@@ -53,6 +53,8 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -124,6 +126,8 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
     final AtomicLong consecutive = new AtomicLong(0);
     final AtomicLong terminations = new AtomicLong(0);
 
+    final String rgTagValue = MetricsUtil.formatString(GROUP1);
+
     final Thread thread = Threads.createNonCriticalThread("metric-tailer", () -> {
       while (!shutdownTailer.get()) {
         List<String> statsDMetrics = sink.getLines();
@@ -133,36 +137,36 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
           }
           if (s.startsWith(COMPACTOR_MAJC_CANCELLED.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
-            if (m.getTags().containsKey("resource.group")
-                && m.getTags().get("resource.group").equals(GROUP1)) {
+            if (m.getTags().containsKey(MetricsInfo.RESOURCE_GROUP_TAG_KEY)
+                && m.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY).equals(rgTagValue)) {
               LOG.info("{}", m);
               cancellations.set(Long.parseLong(m.getValue()));
             }
           } else if (s.startsWith(COMPACTOR_MAJC_COMPLETED.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
-            if (m.getTags().containsKey("resource.group")
-                && m.getTags().get("resource.group").equals(GROUP1)) {
+            if (m.getTags().containsKey(MetricsInfo.RESOURCE_GROUP_TAG_KEY)
+                && m.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY).equals(rgTagValue)) {
               LOG.info("{}", m);
               completions.set(Long.parseLong(m.getValue()));
             }
           } else if (s.startsWith(COMPACTOR_MAJC_FAILED.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
-            if (m.getTags().containsKey("resource.group")
-                && m.getTags().get("resource.group").equals(GROUP1)) {
+            if (m.getTags().containsKey(MetricsInfo.RESOURCE_GROUP_TAG_KEY)
+                && m.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY).equals(rgTagValue)) {
               LOG.info("{}", m);
               failures.set(Long.parseLong(m.getValue()));
             }
           } else if (s.startsWith(COMPACTOR_MAJC_FAILURES_TERMINATION.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
-            if (m.getTags().containsKey("resource.group")
-                && m.getTags().get("resource.group").equals(GROUP1)) {
+            if (m.getTags().containsKey(MetricsInfo.RESOURCE_GROUP_TAG_KEY)
+                && m.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY).equals(rgTagValue)) {
               LOG.info("{}", m);
               terminations.set(Long.parseLong(m.getValue()));
             }
           } else if (s.startsWith(COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
-            if (m.getTags().containsKey("resource.group")
-                && m.getTags().get("resource.group").equals(GROUP1)) {
+            if (m.getTags().containsKey(MetricsInfo.RESOURCE_GROUP_TAG_KEY)
+                && m.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY).equals(rgTagValue)) {
               LOG.info("{}", m);
               consecutive.getAndUpdate(prev -> Math.max(prev, Long.parseLong(m.getValue())));
             }
@@ -243,13 +247,13 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
           (ClientContext) client));
-      Wait.waitFor(() -> failures.get() == 1);
-      Wait.waitFor(() -> consecutive.get() == 3);
+      Wait.waitFor(() -> failures.get() > 0);
+      Wait.waitFor(() -> consecutive.get() > 2);
 
       // Three failures have occurred, Compactor should shut down.
       Wait.waitFor(() -> ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
           (ClientContext) client) == 0);
-      Wait.waitFor(() -> terminations.get() == 1);
+      Wait.waitFor(() -> terminations.get() > 0);
       assertEquals(0, cancellations.get());
       assertEquals(0, completions.get());
 

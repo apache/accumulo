@@ -51,11 +51,15 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
-import org.apache.accumulo.monitor.next.views.ServersView;
+import org.apache.accumulo.monitor.next.views.Status;
+import org.apache.accumulo.monitor.next.views.TableData;
+import org.apache.accumulo.monitor.next.views.TableDataFactory;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -80,6 +84,10 @@ public class Endpoints {
 
   @Inject
   private Monitor monitor;
+
+  public record MonitorStatus(String managerGoalState, Map<ServerId.Type,Status> componentStatuses,
+      long timestamp) {
+  }
 
   private void validateResourceGroup(String resourceGroup) {
     if (monitor.getInformationFetcher().getSummaryForEndpoint().getResourceGroups()
@@ -156,6 +164,16 @@ public class Endpoints {
       throw new NotFoundException("Garbage Collector not found");
     }
     return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
+  }
+
+  @GET
+  @Path("status")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns status of server components")
+  public MonitorStatus getStatus() {
+    SystemInformation summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return new MonitorStatus(summary.getManagerGoalState(), summary.getComponentStatuses(),
+        summary.getTimestamp());
   }
 
   @GET
@@ -250,12 +268,12 @@ public class Endpoints {
   @GET
   @Path("servers/view")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a UI-ready table model for server process pages. Add ';table=<ServersView.ServerTable>' to URL")
-  public ServersView getServerProcessView(@MatrixParam("table") ServersView.ServerTable table) {
+  @Description("Returns a UI-ready table model for server process pages. Add ';table=<TableDataFactory.TableName>' to URL")
+  public TableData getServerProcessView(@MatrixParam("table") TableDataFactory.TableName table) {
     if (table == null) {
       throw new BadRequestException("A 'table' parameter is required");
     }
-    ServersView view =
+    TableData view =
         monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(table);
     if (view == null) {
       throw new NotFoundException("ServersView object for table " + table.name() + " not found");
@@ -319,6 +337,22 @@ public class Endpoints {
     return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
         .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
         .collect(Collectors.toList());
+  }
+
+  @GET
+  @Path("compactions/running/group")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns number of running major compactions per group")
+  public List<CompactionGroupSummary> getRunningCompactionsPerGroup() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getRunningCompactionsPerGroup();
+  }
+
+  @GET
+  @Path("compactions/running/table")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns number of running major compactions per table")
+  public List<CompactionTableSummary> getRunningCompactionsPerTable() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getRunningCompactionsPerTable();
   }
 
   @GET

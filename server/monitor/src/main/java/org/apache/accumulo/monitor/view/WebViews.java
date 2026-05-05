@@ -264,6 +264,23 @@ public class WebViews {
    * @return Compactors model
    */
   @GET
+  @Path("coordinator")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactionOverview() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compaction Overview");
+    model.put("template", "coordinator.ftl");
+    model.put("js", "coordinator.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
   @Path("compactors")
   @Template(name = "/default.ftl")
   public Map<String,Object> getCompactors() {

@@ -47,6 +47,8 @@ public enum ThreadPoolNames {
   MANAGER_UPGRADE_COORDINATOR_METADATA_POOL("accumulo.pool.manager.upgrade.metadata"),
   METADATA_TABLET_MIGRATION_POOL("accumulo.pool.metadata.tablet.migration"),
   METADATA_TABLET_ASSIGNMENT_POOL("accumulo.pool.metadata.tablet.assignment"),
+  RPC_POOL("accumulo.pool.rpc"),
+  SCAN_EXECUTOR_PREFIX("accumulo.pool.scan.exec."),
   SCAN_SERVER_TABLET_METADATA_CACHE_POOL("accumulo.pool.scan.server.tablet.metadata.cache"),
   SCANNER_READ_AHEAD_POOL("accumulo.pool.client.context.scanner.read.ahead"),
   SCHED_FUTURE_CHECKER_POOL("accumulo.pool.scheduled.future.checker"),
