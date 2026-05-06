@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -190,7 +189,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     COMPACTION, COMPACTION_RGS, METRIC, TABLE;
   }
 
-  interface UpdateTask<T extends Comparable<?>> extends Runnable, Comparable<UpdateTask<T>> {
+  interface UpdateTask<T extends Object> extends Runnable, Comparable<UpdateTask<T>> {
 
     UpdateType getType();
 
@@ -226,12 +225,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       MetricFetcher other = (MetricFetcher) obj;
       return Objects.equals(getType(), other.getType())
           && Objects.equals(getResource(), other.getResource());
@@ -303,12 +305,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       TableInformationFetcher other = (TableInformationFetcher) obj;
       return Objects.equals(getType(), other.getType())
           && Objects.equals(getResource(), other.getResource());
@@ -355,7 +360,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  class RunningCompactionFetcher implements UpdateTask<TExternalCompaction> {
+  class RunningCompactionFetcher implements UpdateTask<Void> {
 
     private final SystemInformation summary;
     private final ThreadPoolExecutor executor;
@@ -375,18 +380,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       RunningCompactionFetcher other = (RunningCompactionFetcher) obj;
       return Objects.equals(getType(), other.getType());
     }
 
     @Override
-    public int compareTo(UpdateTask<TExternalCompaction> other) {
+    public int compareTo(UpdateTask<Void> other) {
       return this.getType().compareTo(other.getType());
     }
 
@@ -396,7 +404,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
 
     @Override
-    public TExternalCompaction getResource() {
+    public Void getResource() {
       return null;
     }
 
@@ -417,7 +425,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  class ConfiguredCompactionResourceGroupFetcher implements UpdateTask<TExternalCompaction> {
+  class ConfiguredCompactionResourceGroupFetcher implements UpdateTask<Void> {
 
     private final SystemInformation summary;
 
@@ -445,19 +453,22 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       ConfiguredCompactionResourceGroupFetcher other =
           (ConfiguredCompactionResourceGroupFetcher) obj;
       return Objects.equals(getType(), other.getType());
     }
 
     @Override
-    public int compareTo(UpdateTask<TExternalCompaction> other) {
+    public int compareTo(UpdateTask<Void> other) {
       return this.getType().compareTo(other.getType());
     }
 
@@ -467,7 +478,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
 
     @Override
-    public TExternalCompaction getResource() {
+    public Void getResource() {
       return null;
     }
 
@@ -488,6 +499,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private final Cache<ServerId,MetricResponse> allMetrics;
   private final Cache<ServerId,Boolean> retainedProblemServers;
   private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
+  private final TabletMetadataFilter noLocation = new NoCurrentLocationFilter();
 
   public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
     this.ctx = ctx;
@@ -543,12 +555,59 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
+  /**
+   * Obtains a count of the metadata tablets with no location. This work is done in a Thread because
+   * the Scanner used by Ample will sit and wait for the tablets to be hosted.
+   *
+   * @return count of metadata tablets with no location
+   */
+  private long countMetadataTabletsNoLocation() {
+    // If any Metadata tablet is not hosted, then don't look for table information
+    // on other tables.
+    AtomicLong metadataNoLocation = new AtomicLong(-1);
+    // This is a background task because the tserver could go down and
+    // the scanner inside Ample will sit there and wait.
+    Runnable countTask = () -> {
+      metadataNoLocation.set(ctx.getAmple().readTablets().forTable(SystemTables.METADATA.tableId())
+          .fetch(ColumnType.LOCATION).filter(noLocation).build().stream().count());
+    };
+    Thread countThread = new Thread(countTask, "Metadata-Tablets-Location-Thread");
+    countThread.start();
+    try {
+      countThread.join(30_000);
+    } catch (InterruptedException e) {
+      throw new RuntimeException(
+          "Interrupted while waiting for thread counting metadata tablet locations");
+    }
+    if (countThread.isAlive()) {
+      countThread.interrupt();
+    }
+    return metadataNoLocation.get();
+  }
+
+  /**
+   * Location of Root tablet
+   *
+   * @return Location, can be null
+   */
+  private Location getRootTabletLocation() {
+    Location storedLocation =
+        new RootTabletMetadata(new String(ctx.getZooCache().get(RootTable.ZROOT_TABLET), UTF_8))
+            .toTabletMetadata().getLocation();
+    // Verify location is alive
+    Set<ServiceLockPath> servers = ctx.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
+        AddressSelector.exact(storedLocation.getHostAndPort()), true);
+
+    if (servers != null && !servers.isEmpty()) {
+      return storedLocation;
+    }
+    return null;
+  }
+
   @Override
   public void run() {
 
     long lastRunTime = 0;
-    final TabletMetadataFilter noLocation = new NoCurrentLocationFilter();
-
     while (true) {
 
       // Don't fetch new data if there are no connections.
@@ -594,60 +653,30 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       Future<?> rcff = this.pool.submit(rcf);
       futures.add(new UpdateTaskFuture(rcff, rcf));
 
-      Location rootTabletLocation =
-          new RootTabletMetadata(new String(ctx.getZooCache().get(RootTable.ZROOT_TABLET), UTF_8))
-              .toTabletMetadata().getLocation();
-
+      // Fetch Tablet information, but only if root and metadata tables are fully hosted.
+      final Location rootTabletLocation = getRootTabletLocation();
       if (rootTabletLocation != null) {
-        Set<ServiceLockPath> servers =
-            ctx.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
-                AddressSelector.exact(rootTabletLocation.getHostAndPort()), true);
-        // Don't spawn tasks to look for table information if the root tablet is not hosted
-        if (servers != null && !servers.isEmpty()) {
-          TableInformationFetcher tif =
-              new TableInformationFetcher(this.ctx, SystemTables.ROOT.tableId(), summary);
-          Future<?> tiff = this.pool.submit(tif);
-          futures.add(new UpdateTaskFuture(tiff, tif));
+        TableInformationFetcher tif =
+            new TableInformationFetcher(this.ctx, SystemTables.ROOT.tableId(), summary);
+        Future<?> tiff = this.pool.submit(tif);
+        futures.add(new UpdateTaskFuture(tiff, tif));
 
-          // If any Metadata tablet is not hosted, then don't look for table information
-          // on other tables.
-          AtomicLong metadataNoLocation = new AtomicLong(-1);
-          // This is a background task because the tserver could go down and
-          // the scanner inside Ample will sit there and wait.
-          Runnable countTask = () -> {
-            metadataNoLocation
-                .set(ctx.getAmple().readTablets().forTable(SystemTables.METADATA.tableId())
-                    .fetch(ColumnType.LOCATION).filter(noLocation).build().stream().count());
-          };
-          Thread countThread = new Thread(countTask, "Metadata-Tablets-Location-Thread");
-          countThread.start();
-          try {
-            countThread.join(30_000);
-          } catch (InterruptedException e) {
-            // TODO something
-          }
-          if (countThread.isAlive()) {
-            countThread.interrupt();
-          }
-          if (metadataNoLocation.get() == -1) {
-            summary.addMessage(Critical, Table,
-                "Unable to determine count of hosted metadata tablets in 30s");
-          } else if (metadataNoLocation.get() == 0) {
-            for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
-              if (tableId.equals(SystemTables.ROOT.tableId())) {
-                continue; // we already spawned a task
-              }
-              tif = new TableInformationFetcher(this.ctx, tableId, summary);
-              tiff = this.pool.submit(tif);
-              futures.add(new UpdateTaskFuture(tiff, tif));
+        final long metadataNoLocation = countMetadataTabletsNoLocation();
+        if (metadataNoLocation == 0) {
+          for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
+            if (tableId.equals(SystemTables.ROOT.tableId())) {
+              continue; // we already spawned a task
             }
-          } else {
-            summary.addMessage(Critical, Table,
-                metadataNoLocation + " metadata tablets are not hosted");
+            tif = new TableInformationFetcher(this.ctx, tableId, summary);
+            tiff = this.pool.submit(tif);
+            futures.add(new UpdateTaskFuture(tiff, tif));
           }
         } else {
-          summary.addMessage(Critical, Table, "The root tablet is not currently hosted");
+          summary.addMessage(Critical, Table,
+              metadataNoLocation + " metadata tablets are not hosted");
         }
+      } else {
+        summary.addMessage(Critical, Table, "The root tablet is not currently hosted");
       }
 
       ConfiguredCompactionResourceGroupFetcher r =
@@ -662,16 +691,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       final List<UpdateTaskFuture> failures = new ArrayList<>();
       final List<UpdateTaskFuture> cancelled = new ArrayList<>();
-
+      boolean firstIteration = true;
       while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
           String message =
-              "Fetching information for Monitor has taken longer than %1$s ms. Cancelling all remaining tasks (%2$s) "
-                  + "and monitor will display old information. Resolve issue causing this or increase property %3$s."
-                      .formatted(monitorFetchTimeout, futures.size(),
-                          Property.MONITOR_FETCH_TIMEOUT.getKey());
-          LOG.warn(message);
+              "Fetching information for Monitor has taken longer than %1$d ms. Cancelling all remaining tasks (%2$d) "
+                  + "and monitor will display old information. Resolve issue causing this or increase property %3$s.";
+          LOG.warn(String.format(message, monitorFetchTimeout, futures.size(),
+              Property.MONITOR_FETCH_TIMEOUT.getKey()));
           tookToLong = true;
         }
 
@@ -696,23 +724,26 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
             }
           }
         }
-
-        // Update current messages on the Monitor that we are
-        // waiting on tasks to complete to complete a refresh
-        final String waitingMsg = "Waiting on " + futures.size()
-            + " tasks to complete. Time remaining before cancellation: "
-            + (monitorFetchTimeout - NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()))
-            + "ms";
-        SystemInformation currentSummary = summaryRef.get();
-        if (currentSummary != null) {
-          currentSummary.removeMessage(Info, Monitor,
-              " tasks to complete. Time remaining before cancellation: ");
-          currentSummary.addMessage(Info, Monitor, waitingMsg);
+        if (!firstIteration) {
+          // Update current messages on the Monitor that we are
+          // waiting on tasks to complete to complete a refresh
+          final String waitingMsg = "Waiting on " + futures.size()
+              + " tasks to complete. Time remaining before cancellation: "
+              + (monitorFetchTimeout - NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()))
+                  / 1000
+              + " seconds";
+          SystemInformation currentSummary = summaryRef.get();
+          if (currentSummary != null) {
+            currentSummary.removeMessage(Info, Monitor,
+                " tasks to complete. Time remaining before cancellation: ");
+            currentSummary.addMessage(Info, Monitor, waitingMsg);
+          }
         }
 
         if (!futures.isEmpty()) {
           UtilWaitThread.sleep(3_000);
         }
+        firstIteration = false;
       }
 
       lastRunTime = NanoTime.now();

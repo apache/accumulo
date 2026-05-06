@@ -825,8 +825,8 @@ public class SystemInformation {
     }
 
     if (problemHosts.size() > 0) {
-      addMessage(Info, Resource, "Monitor has not recevied a response from " + problemHosts.size()
-          + " servers in the last 10 minutes");
+      addMessage(Info, Resource, "Monitor has not received a response from " + problemHosts.size()
+          + " servers recently: " + problemHosts);
     }
 
     if (metricProblemHosts.size() > 0) {
