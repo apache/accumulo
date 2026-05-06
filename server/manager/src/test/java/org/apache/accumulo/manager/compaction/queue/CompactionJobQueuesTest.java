@@ -70,6 +70,8 @@ public class CompactionJobQueuesTest {
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
+    jobQueues.setAllowedGroups(Set.of(cg1, cg2, cg3));
+
     jobQueues.beginFullScan(DataLevel.USER);
 
     jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
@@ -230,6 +232,7 @@ public class CompactionJobQueuesTest {
     var cg1 = ResourceGroupId.of("CG1");
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
+    jobQueues.setAllowedGroups(Set.of(cg1));
 
     jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
     jobQueues.add(extent2, List.of(newJob((short) 2, 6, cg1)));
@@ -268,6 +271,8 @@ public class CompactionJobQueuesTest {
     CompactionJobQueues jobQueues = new CompactionJobQueues(10000000);
     ResourceGroupId[] groups =
         Stream.of("G1", "G2", "G3").map(ResourceGroupId::of).toArray(ResourceGroupId[]::new);
+
+    jobQueues.setAllowedGroups(Set.of(groups));
 
     var executor = Executors.newFixedThreadPool(groups.length);
 
@@ -331,6 +336,8 @@ public class CompactionJobQueuesTest {
     var cg1 = ResourceGroupId.of("CG1");
     var cg2 = ResourceGroupId.of("CG2");
 
+    jobQueues.setAllowedGroups(Set.of(cg1, cg2));
+
     jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
 
     assertEquals(Set.of(cg1), jobQueues.getQueueIds());
@@ -346,5 +353,52 @@ public class CompactionJobQueuesTest {
     assertEquals(Set.of(cg1, cg2), jobQueues.getQueueIds());
     assertEquals(500000, jobQueues.getQueueMaxSize(cg1));
     assertEquals(500000, jobQueues.getQueueMaxSize(cg2));
+  }
+
+  @Test
+  public void testDisallowedGroup() throws Exception {
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+    var extent2 = new KeyExtent(tid, new Text("m"), new Text("c"));
+
+    var cg1 = ResourceGroupId.of("CG1");
+    var cg2 = ResourceGroupId.of("CG2");
+
+    jobQueues.setAllowedGroups(Set.of(cg1));
+
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(extent2, List.of(newJob((short) 2, 3, cg1)));
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg2)));
+
+    assertEquals(Set.of(cg1), jobQueues.getQueueIds());
+
+    assertEquals(2, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
+
+    assertEquals(2, jobQueues.poll(cg1).getPriority());
+    assertNull(jobQueues.poll(cg2));
+    assertEquals(1, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
+
+    // this should clear out the single job for cg1
+    jobQueues.setAllowedGroups(Set.of(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
+    assertNull(jobQueues.poll(cg1));
+    assertNull(jobQueues.poll(cg2));
+
+    // should only add job for cg2 now
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(extent1, List.of(newJob((short) 7, 5, cg2)));
+
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(1, jobQueues.getQueuedJobs(cg2));
+    assertNull(jobQueues.poll(cg1));
+    assertEquals(7, jobQueues.poll(cg2).getPriority());
+    assertNull(jobQueues.poll(cg2));
+    assertEquals(0, jobQueues.getQueuedJobs(cg1));
+    assertEquals(0, jobQueues.getQueuedJobs(cg2));
   }
 }

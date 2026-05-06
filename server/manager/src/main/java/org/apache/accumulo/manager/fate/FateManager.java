@@ -42,6 +42,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.manager.multi.ManagerAssignment;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.FateLocations;
@@ -286,32 +287,8 @@ public class FateManager {
     });
 
     desiredParititions.forEach((fateType, desiredForType) -> {
-      // This code can not handle more than one partition per host
-      Preconditions.checkState(desiredForType.size() <= currentAssignments.size());
-
-      var added = new HashSet<FatePartition>();
-
-      currentAssignments.forEach((hp, partitions) -> {
-        var hostAssignments = desiredAssignments.get(hp);
-        partitions.forEach(partition -> {
-          if (desiredForType.contains(partition)
-              && hostAssignments.stream().noneMatch(fp -> fp.getType() == fateType)
-              && !added.contains(partition)) {
-            hostAssignments.add(partition);
-            Preconditions.checkState(added.add(partition));
-          }
-        });
-      });
-
-      var iter = Sets.difference(desiredForType, added).iterator();
-      currentAssignments.forEach((hp, partitions) -> {
-        var hostAssignments = desiredAssignments.get(hp);
-        if (iter.hasNext() && hostAssignments.stream().noneMatch(fp -> fp.getType() == fateType)) {
-          hostAssignments.add(iter.next());
-        }
-      });
-
-      Preconditions.checkState(!iter.hasNext());
+      var assignments = ManagerAssignment.computeAssignments(currentAssignments, desiredForType);
+      assignments.forEach((hp, parts) -> desiredAssignments.get(hp).addAll(parts));
     });
 
     if (log.isTraceEnabled()) {

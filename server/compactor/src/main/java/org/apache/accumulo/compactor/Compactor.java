@@ -19,6 +19,9 @@
 package org.apache.accumulo.compactor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.compactor.Compactor.CoordinatorLocationType.ANY;
+import static org.apache.accumulo.compactor.Compactor.CoordinatorLocationType.GROUP;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
@@ -67,6 +70,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TDequeuedCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
@@ -113,7 +117,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
@@ -141,6 +144,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.hash.Hashing;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
@@ -489,7 +493,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       String message) throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          Client coordinatorClient = getCoordinatorClient(ANY);
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 job.getExternalCompactionId(), job.extent, message, why,
@@ -513,7 +517,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          // Any coordinator can process a completed compactions request, so spread the load there
+          // is no need to limit to the coordinator queuing compactions for this compactors group.
+          // Also its possible the compaction group has been deconfigured and is no longer in
+          // zookeeper, however we can still record the completion by going to any coordinator.
+          Client coordinatorClient = getCoordinatorClient(ANY);
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
@@ -541,14 +549,35 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     RetryableThriftCall<TNextCompactionJob> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+
+          Client coordinatorClient = null;
+          TDequeuedCompactionJob unreservedJob;
           try {
+            // Must go to the coordinator that is hosting the queue for the compactor group. All
+            // compactors in the group will go to this single coordinator for this, but the RPC to
+            // pull from the queue is quick in memory operation.
+            coordinatorClient = getCoordinatorClient(GROUP);
+            unreservedJob = coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
+                getContext().rpcCreds(), this.getResourceGroup().canonical());
+          } finally {
+            ThriftUtil.returnClient(coordinatorClient, getContext());
+          }
+
+          if (unreservedJob.getJob() == null) {
+            return new TNextCompactionJob(new TExternalCompactionJob(),
+                unreservedJob.getCompactorCount());
+          }
+
+          try {
+            // Go to any coordinator to reserve the job, this spreads the metadata operations to
+            // reserve a compaction across all coordinators regardless of compactor group.
+            coordinatorClient = getCoordinatorClient(ANY);
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
-            LOG.trace("Attempting to get next job, eci = {}", eci);
+            LOG.trace("Attempting to reserve next job, eci = {}", eci);
             currentCompactionId.set(eci);
-            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup().canonical(),
-                getAdvertiseAddress().toString(), eci.toString());
+            return coordinatorClient.reserveCompactionJob(TraceUtil.traceInfo(),
+                getContext().rpcCreds(), unreservedJob.getJob(), getAdvertiseAddress().toString(),
+                eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
@@ -559,20 +588,46 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return nextJobThriftCall.run();
   }
 
+  public enum CoordinatorLocationType {
+    GROUP, ANY
+  };
+
   /**
    * Get the client to the CompactionCoordinator
    *
    * @return compaction coordinator client
    * @throws TTransportException when unable to get client
    */
-  protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.orElseThrow());
-    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(),
-        getContext());
+  protected CompactionCoordinatorService.Client
+      getCoordinatorClient(CoordinatorLocationType locationType) throws TTransportException {
+
+    var coordinatorHost = switch (locationType) {
+      case GROUP -> {
+        var allCoordinatorLocations = getContext().getCoordinatorLocations().locations();
+        var host = allCoordinatorLocations.get(getResourceGroup());
+        if (host == null) {
+          throw new TTransportException("Did not find group " + getResourceGroup()
+              + " in coordinators " + allCoordinatorLocations);
+        }
+        yield host;
+      }
+      case ANY -> {
+        var hosts = getContext().getCoordinatorLocations().sortedUniqueHost();
+        if (hosts.isEmpty()) {
+          throw new TTransportException("There are no coordinators in zookeeper.");
+        }
+        int hashedClientAddr = Math
+            .abs(Hashing.murmur3_128().hashString(getAdvertiseAddress().toString(), UTF_8).asInt());
+        // Hashing compactors to coordinators will spread them evenly across coordinators, however
+        // each coordinator will only have connections for #compactors/#coordinators. If compactors
+        // randomly choose a coordinator, then each coordinator would have a lot more connections.
+        // Hashing also send the same compactor to the same coordinator.
+        yield hosts.get(hashedClientAddr % hosts.size());
+      }
+    };
+
+    LOG.trace("CompactionCoordinator address is: {} {}", locationType, coordinatorHost);
+    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost, getContext());
   }
 
   /**

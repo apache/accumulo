@@ -35,6 +35,7 @@ import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
@@ -262,6 +263,14 @@ public class ExitCodesIT extends SharedMiniClusterBase {
   @ParameterizedTest
   @MethodSource("generateWorkerProcessArguments")
   public void testWorkerProcesses(ServerType server, TerminalBehavior behavior) throws Exception {
+    // Need to configure a planner that uses the TEST compaction resource group so that it will be
+    // present in zookeeper
+    getCluster().getServerContext().instanceOperations().setProperty(
+        Property.COMPACTION_SERVICE_PREFIX.getKey() + "test.planner.opts.groups",
+        "[{'group':'TEST'}]");
+    getCluster().getServerContext().instanceOperations().setProperty(
+        Property.COMPACTION_SERVICE_PREFIX.getKey() + "test.planner",
+        RatioBasedCompactionPlanner.class.getName());
     Map<String,String> properties = new HashMap<>();
     properties.put(PROXY_METHOD_BEHAVIOR, behavior.name());
     getCluster().getConfig().setSystemProperties(properties);
