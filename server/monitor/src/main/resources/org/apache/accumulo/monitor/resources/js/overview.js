@@ -18,18 +18,7 @@
  */
 "use strict";
 
-var deploymentSummaryTable;
-var deploymentBreakdownTable;
-const SERVER_TYPE_LINKS = new Map([
-  ['Manager', 'manager'],
-  ['Garbage Collector', 'gc'],
-  ['Compactor', 'compactors'],
-  ['Scan Server', 'sservers'],
-  ['Tablet Server', 'tservers']
-]);
-const SUMMARY_SERVER_TYPES = ['Manager', 'Garbage Collector', 'Compactor', 'Scan Server',
-  'Tablet Server'
-];
+var deploymentBreakdown = [];
 
 /**
  * Creates overview initial table
@@ -37,98 +26,12 @@ const SUMMARY_SERVER_TYPES = ['Manager', 'Garbage Collector', 'Compactor', 'Scan
 $(function () {
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
-
-  deploymentSummaryTable = $('#deploymentSummaryTable').DataTable({
-    "autoWidth": false,
-    "paging": false,
-    "searching": false,
-    "info": false,
-    "ordering": false,
-    "dom": 't',
-    "data": [],
-    "columnDefs": [{
-        "targets": 0,
-        "width": "60%"
-      },
-      {
-        "targets": 1,
-        "width": "40%"
-      }
-    ],
-    "columns": [{
-        "data": "serverType",
-        "render": function (data, type) {
-          if (type !== 'display') {
-            return data;
-          }
-
-          var link = SERVER_TYPE_LINKS.get(data);
-          if (link === undefined) {
-            return data;
-          }
-
-          return '<a class="link-body-emphasis" href="' + sanitize(link) + '">' + sanitize(data) + '</a>';
-        }
-      },
-      {
-        "data": null,
-        "render": function (data, type, row) {
-          return row.responding + ' / ' + row.total;
-        }
-      }
-    ]
-  });
-
-  deploymentBreakdownTable = $('#deploymentBreakdownTable').DataTable({
-    "autoWidth": false,
-    "paging": true,
-    "pageLength": 10,
-    "searching": true,
-    "info": true,
-    "order": [
-      [0, 'asc'],
-      [1, 'asc']
-    ],
-    "dom": 't<"row"<"col-sm-3"l><"col-sm-5 text-center"i><"col-sm-4 text-right"p>>',
-    "data": [],
-    "columnDefs": [{
-        "targets": 0,
-        "width": "30%"
-      },
-      {
-        "targets": 1,
-        "width": "40%"
-      },
-      {
-        "targets": 2,
-        "width": "30%"
-      }
-    ],
-    "columns": [{
-        "data": "resourceGroup",
-        "name": "resourceGroup"
-      },
-      {
-        "data": "serverType"
-      },
-      {
-        "data": null,
-        "render": function (data, type, row) {
-          return row.responding + ' / ' + row.total;
-        }
-      }
-    ]
-  });
-
   $('#deployment-rg-filter').on('keyup', function () {
     var input = this.value;
     if (isValidRegex(input) || input === '') {
       $('#deployment-rg-feedback').hide();
       $(this).removeClass('is-invalid');
-      deploymentBreakdownTable
-        .column('resourceGroup:name')
-        .search(input, true, false)
-        .draw();
+      renderDeploymentMatrix(deploymentBreakdown, input);
     } else {
       $('#deployment-rg-feedback').show();
       $(this).addClass('is-invalid');
@@ -159,7 +62,8 @@ function refreshDeploymentTables() {
   getDeployment().then(function () {
     var data = JSON.parse(sessionStorage.deployment);
     var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
-    var summary = buildDeploymentSummary(breakdown);
+    var filterValue = $('#deployment-rg-filter').val() || '';
+    deploymentBreakdown = breakdown;
 
     if (breakdown.length === 0) {
       $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
@@ -168,39 +72,172 @@ function refreshDeploymentTables() {
       $('#deploymentWarning').empty();
     }
 
-    deploymentSummaryTable.clear().rows.add(summary).draw();
-    deploymentBreakdownTable.clear().rows.add(breakdown).draw();
+    renderDeploymentMatrix(breakdown, filterValue);
   });
 }
 
-function buildDeploymentSummary(breakdown) {
+function renderDeploymentMatrix(breakdown, resourceGroupFilter) {
+  var matrixData = buildDeploymentMatrix(breakdown, resourceGroupFilter);
+  var $container = $('#deploymentBreakdownMatrix');
+
   if (breakdown.length === 0) {
-    return [];
+    $container.empty();
+    return;
   }
 
-  var totalsByType = new Map();
+  if (matrixData.filteredResourceGroups.length === 0) {
+    $container.html(buildDeploymentEmptyState(resourceGroupFilter));
+    return;
+  }
 
-  SUMMARY_SERVER_TYPES.forEach(function (serverType) {
-    totalsByType.set(serverType, {
-      serverType: serverType,
-      total: 0,
-      responding: 0
+  $container.html(buildDeploymentMatrixTable(matrixData));
+}
+
+function buildDeploymentMatrix(breakdown, resourceGroupFilter) {
+  var serverTypes = [];
+  var serverTypeSet = new Set();
+  var resourceGroups = new Map();
+  var filterRegex = createRegex(resourceGroupFilter);
+
+  breakdown.forEach(function (row) {
+    if (serverTypeSet.has(row.serverType) === false) {
+      serverTypeSet.add(row.serverType);
+      serverTypes.push(row.serverType);
+    }
+
+    if (resourceGroups.has(row.resourceGroup) === false) {
+      resourceGroups.set(row.resourceGroup, new Map());
+    }
+
+    resourceGroups.get(row.resourceGroup).set(row.serverType, {
+      responding: Number(row.responding),
+      total: Number(row.total)
     });
   });
 
-  breakdown.forEach(function (row) {
-    var existing = totalsByType.get(row.serverType);
-    if (existing === undefined) {
-      totalsByType.set(row.serverType, {
-        serverType: row.serverType,
-        total: row.total,
-        responding: row.responding
-      });
-    } else {
-      existing.total += row.total;
-      existing.responding += row.responding;
+  var sortedResourceGroups = Array.from(resourceGroups.keys()).sort();
+  var filteredResourceGroups = sortedResourceGroups.filter(function (resourceGroup) {
+    if (filterRegex === null) {
+      return true;
     }
+    return filterRegex.test(resourceGroup);
   });
 
-  return Array.from(totalsByType.values());
+  return {
+    serverTypes: serverTypes,
+    resourceGroups: resourceGroups,
+    filteredResourceGroups: filteredResourceGroups
+  };
+}
+
+function buildDeploymentMatrixTable(matrixData) {
+  var headerCells = ['<th class="deployment-matrix-group deployment-matrix-header">Resource Group</th>'];
+  var totalByServerType = new Map();
+  var grandTotals = {
+    responding: 0,
+    total: 0
+  };
+
+  matrixData.serverTypes.forEach(function (serverType) {
+    headerCells.push('<th class="deployment-matrix-cell deployment-matrix-header">' +
+      sanitize(serverType) + '</th>');
+    totalByServerType.set(serverType, {
+      responding: 0,
+      total: 0
+    });
+  });
+  headerCells.push('<th class="deployment-matrix-cell deployment-matrix-header">Total</th>');
+
+  var rowsHtml = matrixData.filteredResourceGroups.map(function (resourceGroup) {
+    var cells = ['<th scope="row" class="deployment-matrix-group">' + sanitize(resourceGroup) + '</th>'];
+    var rowTotals = {
+      responding: 0,
+      total: 0
+    };
+    var rowData = matrixData.resourceGroups.get(resourceGroup);
+
+    matrixData.serverTypes.forEach(function (serverType) {
+      var counts = rowData.get(serverType) || {
+        responding: 0,
+        total: 0
+      };
+      var totals = totalByServerType.get(serverType);
+
+      totals.responding += counts.responding;
+      totals.total += counts.total;
+      rowTotals.responding += counts.responding;
+      rowTotals.total += counts.total;
+
+      cells.push('<td class="deployment-matrix-cell">' + buildDeploymentCell(counts) + '</td>');
+    });
+
+    grandTotals.responding += rowTotals.responding;
+    grandTotals.total += rowTotals.total;
+    cells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
+      buildDeploymentCell(rowTotals) + '</td>');
+
+    return '<tr>' + cells.join('') + '</tr>';
+  }).join('');
+
+  var footerCells = ['<th scope="row" class="deployment-matrix-group deployment-matrix-total">Total</th>'];
+
+  matrixData.serverTypes.forEach(function (serverType) {
+    footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
+      buildDeploymentCell(totalByServerType.get(serverType)) + '</td>');
+  });
+  footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
+    buildDeploymentCell(grandTotals) + '</td>');
+
+  return '<div class="table-responsive">' +
+    '<table class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">' +
+    '<thead><tr><th colspan="' + sanitize(String(matrixData.serverTypes.length + 2)) +
+    '" class="center">Deployment Breakdown</th></tr><tr>' + headerCells.join('') +
+    '</tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr>' + footerCells.join('') +
+    '</tr></tfoot></table></div>';
+}
+
+function buildDeploymentCell(counts) {
+  var badgeClass = getDeploymentBadgeClass(counts.responding, counts.total);
+  var label = counts.responding + '/' + counts.total;
+
+  return '<span class="badge rounded-pill deployment-count-badge ' + badgeClass + '">' +
+    sanitize(label) + '</span>';
+}
+
+function getDeploymentBadgeClass(responding, total) {
+  if (total === 0) {
+    return 'deployment-count-empty';
+  }
+
+  if (responding === 0) {
+    return 'deployment-count-error';
+  }
+
+  if (responding === total) {
+    return 'deployment-count-ok';
+  }
+
+  return 'deployment-count-warn';
+}
+
+function buildDeploymentEmptyState(resourceGroupFilter) {
+  if (resourceGroupFilter && resourceGroupFilter !== '') {
+    return '<div class="alert alert-secondary mb-0" role="alert">' +
+      'No resource groups match the current filter.</div>';
+  }
+
+  return '<div class="alert alert-secondary mb-0" role="alert">' +
+    'No deployment breakdown data is currently available.</div>';
+}
+
+function createRegex(pattern) {
+  if (!pattern) {
+    return null;
+  }
+
+  try {
+    return new RegExp(pattern, 'i');
+  } catch (error) {
+    return null;
+  }
 }

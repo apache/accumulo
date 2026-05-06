@@ -36,6 +36,28 @@ const CLASS = {
   ERROR: 'error'
 };
 
+const NAVBAR_COMPONENTS = [{
+  statusKey: 'MANAGER',
+  indicatorId: 'managerStatusNotification',
+  countId: 'managerStatusCount'
+}, {
+  statusKey: 'TABLET_SERVER',
+  indicatorId: 'serverStatusNotification',
+  countId: 'serverStatusCount'
+}, {
+  statusKey: 'GARBAGE_COLLECTOR',
+  indicatorId: 'gcStatusNotification',
+  countId: 'gcStatusCount'
+}, {
+  statusKey: 'SCAN_SERVER',
+  indicatorId: 'sserverStatusNotification',
+  countId: 'sserverStatusCount'
+}, {
+  statusKey: 'COMPACTOR',
+  indicatorId: 'compactorStatusNotification',
+  countId: 'compactorStatusCount'
+}];
+
 /**
  * Remove other bootstrap color classes and add the given class to the given element
  * @param {string} elementId the element id to update
@@ -59,6 +81,21 @@ function updateElementStatus(elementId, status) {
   }
 }
 
+function updateServerCount(elementId, status) {
+  const $element = $(`#${elementId}`);
+
+  if (!status || Number(status.serverCount) <= 0) {
+    $element.text('0/0');
+    return;
+  }
+
+  const total = Number(status.serverCount);
+  const problem = Number(status.problemServerCount || 0);
+  const responding = Math.max(0, total - problem);
+
+  $element.text(`${responding}/${total}`);
+}
+
 /**
  * Updates the notifications of the servers dropdown notification as well as the individual server notifications.
  * @param {JSON} statusData object containing the status info for the servers
@@ -67,14 +104,13 @@ function updateServerNotifications(statusData) {
   const managerGoalState = statusData.managerGoalState;
   const isSafeMode = managerGoalState === 'SAFE_MODE';
   const isCleanStop = managerGoalState === 'CLEAN_STOP';
-  const componentStatuses = [
-    getComponentStatus(statusData, 'MANAGER'),
-    getComponentStatus(statusData, 'TABLET_SERVER'),
-    getComponentStatus(statusData, 'GARBAGE_COLLECTOR'),
-    getComponentStatus(statusData, 'SCAN_SERVER'),
-    getComponentStatus(statusData, 'COMPACTOR')
-  ];
+  const componentStatuses = NAVBAR_COMPONENTS.map(function (component) {
+    return getComponentStatus(statusData, component.statusKey);
+  });
   const managerStatus = componentStatuses[0];
+  const componentData = NAVBAR_COMPONENTS.map(function (component) {
+    return statusData.componentStatuses?.[component.statusKey] || null;
+  });
 
   // setting manager status notification
   if (managerStatus === STATUS.ERROR || isCleanStop) {
@@ -88,10 +124,13 @@ function updateServerNotifications(statusData) {
       '. Could not properly set manager status notification.');
   }
 
-  updateElementStatus('serverStatusNotification', componentStatuses[1]);
-  updateElementStatus('gcStatusNotification', componentStatuses[2]);
-  updateElementStatus('sserverStatusNotification', componentStatuses[3]);
-  updateElementStatus('compactorStatusNotification', componentStatuses[4]);
+  NAVBAR_COMPONENTS.forEach(function (component, index) {
+    updateServerCount(component.countId, componentData[index]);
+    if (index === 0) {
+      return;
+    }
+    updateElementStatus(component.indicatorId, componentStatuses[index]);
+  });
 
   // Setting overall servers status notification
   if (!isSafeMode && !isCleanStop && componentStatuses.every(status => status === STATUS.OK)) {
