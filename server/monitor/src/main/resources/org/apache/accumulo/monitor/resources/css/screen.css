@@ -252,6 +252,84 @@ pre.logevent {
   color: #5cb85c;
 }
 
+.server-count {
+  color: #6c757d;
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+}
+
+.deployment-overview-content {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.deployment-overview-content .form-control {
+  min-width: 28rem;
+}
+
+.deployment-matrix-table {
+  margin: 0 auto;
+  table-layout: auto;
+  width: auto;
+}
+
+.deployment-matrix-table th,
+.deployment-matrix-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.deployment-matrix-group {
+  min-width: 10rem;
+  text-align: left !important;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.deployment-matrix-cell {
+  min-width: 5.25rem;
+}
+
+.deployment-matrix-total {
+  font-weight: 600;
+}
+
+.deployment-matrix-header {
+  font-weight: 600;
+  white-space: normal;
+  line-height: 1.15;
+  background-color: #f8f9fa;
+}
+
+.deployment-matrix-table tfoot th,
+.deployment-matrix-table tfoot td {
+  font-weight: 600;
+}
+
+.deployment-count-badge {
+  min-width: 2.35rem;
+  padding: 0.3em 0.55em;
+  color: #333333;
+  font-variant-numeric: tabular-nums;
+}
+
+.deployment-count-ok {
+  background-color: #5cb85c;
+}
+
+.deployment-count-warn {
+  background-color: #f0ad4e;
+}
+
+.deployment-count-error {
+  background-color: #d9534f;
+}
+
+.deployment-count-empty {
+  background-color: #f5f5f5;
+}
+
 .highlight {
   background-color: #cef4b5;
 }
