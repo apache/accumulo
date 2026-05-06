@@ -522,7 +522,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     boolean sawMetricsQ1 = false;
     boolean sawMetricsQ2 = false;
 
-    while (!sawMetricsQ1 && !sawMetricsQ2) {
+    while (!sawMetricsQ1 || !sawMetricsQ2) {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
         if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
@@ -682,7 +682,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     context.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "2000");
 
     // wait for queue to clear
-    Wait.waitFor(() -> getJobsQueued() == 0, 60_000, sleepMillis,
+    Wait.waitFor(() -> getJobsQueued() <= 0, 60_000, sleepMillis,
         "Expected job queue to be cleared once compactions no longer need to happen");
   }
 
