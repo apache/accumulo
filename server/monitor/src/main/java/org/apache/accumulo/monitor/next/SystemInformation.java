@@ -853,8 +853,16 @@ public class SystemInformation {
     int missingMetricCount = (int) servers.stream()
         .filter(serverId -> !TableDataFactory.hasMetricData(allMetrics.getIfPresent(serverId)))
         .count();
-    return Status.buildStatus(servers.size(), problemHostCount, missingMetricCount,
-        type == ServerId.Type.TABLET_SERVER);
+    return Status.buildStatus(servers.size(), problemHostCount, missingMetricCount, switch (type) {
+      case MANAGER:
+      case GARBAGE_COLLECTOR:
+      case COMPACTOR:
+      case SCAN_SERVER:
+      case TABLET_SERVER:
+        yield true;
+      case MONITOR:
+        yield false;
+    });
   }
 
   private String computeManagerGoalState() {
