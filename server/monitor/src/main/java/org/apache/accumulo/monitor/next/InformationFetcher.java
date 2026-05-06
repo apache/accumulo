@@ -594,12 +594,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     Location storedLocation =
         new RootTabletMetadata(new String(ctx.getZooCache().get(RootTable.ZROOT_TABLET), UTF_8))
             .toTabletMetadata().getLocation();
-    // Verify location is alive
-    Set<ServiceLockPath> servers = ctx.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
-        AddressSelector.exact(storedLocation.getHostAndPort()), true);
-
-    if (servers != null && !servers.isEmpty()) {
-      return storedLocation;
+    if (storedLocation != null) {
+      // Verify location is alive
+      Set<ServiceLockPath> servers = ctx.getServerPaths().getTabletServer(
+          ResourceGroupPredicate.ANY, AddressSelector.exact(storedLocation.getHostAndPort()), true);
+      if (servers != null && !servers.isEmpty()) {
+        return storedLocation;
+      }
     }
     return null;
   }

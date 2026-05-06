@@ -66,8 +66,12 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
@@ -91,6 +95,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Meter.Id;
@@ -385,6 +390,23 @@ public class SystemInformation {
     Configuration, Monitor, Resource, Table;
   }
 
+  public record TServerRecoveryStats(String server, String resourceGroup, String type,
+      Number inProgress, Number avgProgress, Number longestDuration) {
+  }
+
+  public class RecoveryInformation {
+    private final List<TServerRecoveryStats> tserversPerformingRecoveries = new ArrayList<>();
+    private final List<SanitizedTabletInformation> tabletsNeedingRecovery = new ArrayList<>();
+
+    public List<TServerRecoveryStats> getTserversPerformingRecoveries() {
+      return tserversPerformingRecoveries;
+    }
+
+    public List<SanitizedTabletInformation> getTabletsNeedingRecovery() {
+      return tabletsNeedingRecovery;
+    }
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -441,6 +463,7 @@ public class SystemInformation {
   // Table Information
   private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
+  private final RecoveryInformation recoveries = new RecoveryInformation();
 
   // Deployment Overview
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
@@ -546,6 +569,42 @@ public class SystemInformation {
 
   }
 
+  private void captureRecoveriesInProgress(final ServerId server, final MetricResponse response) {
+    if (TableDataFactory.hasMetricData(response)) {
+      Number inProgress = 0;
+      Number avgProgress = 0;
+      Number longestRuntime = 0;
+      for (ByteBuffer bb : response.getMetrics()) {
+        final FMetric fm = FMetric.getRootAsFMetric(bb);
+        final String name = fm.name();
+        final Metric m = Metric.fromName(name);
+        switch (m) {
+          case RECOVERIES_IN_PROGRESS:
+            inProgress = getMetricValue(fm);
+            break;
+          case RECOVERIES_AVG_PROGRESS:
+            avgProgress = getMetricValue(fm);
+            break;
+          case RECOVERIES_LONGEST_RUNTIME:
+            longestRuntime = getMetricValue(fm);
+            break;
+          default:
+            break;
+        }
+        if (inProgress.longValue() > 0 && avgProgress.longValue() > 0
+            && longestRuntime.longValue() > 0) {
+          break;
+        }
+      }
+      if (inProgress.longValue() > 0) {
+        this.recoveries.getTserversPerformingRecoveries()
+            .add(new TServerRecoveryStats(server.toHostPortString(),
+                server.getResourceGroup().canonical(), server.getType().name(), inProgress,
+                avgProgress, longestRuntime));
+      }
+    }
+  }
+
   private TableData createCompactionQueueSummary(final Set<ServerId> managers) {
 
     final Column COMPACTION_QUEUE_COL =
@@ -632,6 +691,7 @@ public class SystemInformation {
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
         .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
+    captureRecoveriesInProgress(server, response);
     switch (response.serverType) {
       case COMPACTOR:
         compactors
@@ -709,6 +769,32 @@ public class SystemInformation {
     tablets.computeIfAbsent(tableId, (t) -> Collections.synchronizedList(new ArrayList<>()))
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
+    if (sti.getNumWalLogs() > 0) {
+      if (sti.getLocation().isPresent()) {
+        String loc = sti.getLocation().orElseThrow();
+        int idx = loc.indexOf(':');
+        try {
+          LocationType type = LocationType.valueOf(loc.substring(0, idx));
+          if (type == LocationType.FUTURE) {
+            // When the location is future, then recovery either has not occurred yet, or
+            // is occurring right now. Location is set to current once recovery is complete.
+            this.recoveries.getTabletsNeedingRecovery().add(sti);
+          } else if (type == LocationType.CURRENT) {
+            // If the location type is current, but there is no tserver at that location
+            // with a lock, then this tablet needs recovery but has not been assigned a
+            // new location yet.
+            Set<ServiceLockPath> servers =
+                ctx.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
+                    AddressSelector.exact(HostAndPort.fromString(loc.substring(idx + 1))), true);
+            if (servers == null || servers.isEmpty()) {
+              this.recoveries.getTabletsNeedingRecovery().add(sti);
+            }
+          }
+        } catch (IllegalArgumentException e) {
+          LOG.error("Unable to determine LocationType from wal location: {}", loc);
+        }
+      }
+    }
   }
 
   public void processError(ServerId server) {
@@ -746,10 +832,9 @@ public class SystemInformation {
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
       String message =
           "Fetching information for Monitor has taken longer than %1$d ms. (%2$d) tasks were cancelled."
-              + " Information displayed may be out of date or missing. Resolve the issue causing this or increase property `%3$s`."
-                  .formatted(monitorFetchTimeout, cancelled.size(),
-                      Property.MONITOR_FETCH_TIMEOUT.getKey());
-      addMessage(High, Monitor, message);
+              + " Information displayed may be out of date or missing. Resolve the issue causing this or increase property `%3$s`.";
+      addMessage(High, Monitor, String.format(message, monitorFetchTimeout, cancelled.size(),
+          Property.MONITOR_FETCH_TIMEOUT.getKey()));
     }
 
     Set<ServerId> failedOrCancelledServers = new HashSet<>();
@@ -1152,6 +1237,10 @@ public class SystemInformation {
 
   public List<TabletInformation> getTablets(TableId tableId) {
     return this.tablets.get(tableId);
+  }
+
+  public RecoveryInformation getRecoveryInformation() {
+    return this.recoveries;
   }
 
   public DeploymentOverview getDeploymentView() {
