@@ -73,8 +73,7 @@ public class SamplerConfiguration {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SamplerConfiguration) {
-      SamplerConfiguration osc = (SamplerConfiguration) o;
+    if (o instanceof SamplerConfiguration osc) {
 
       return className.equals(osc.className) && options.equals(osc.options);
     }

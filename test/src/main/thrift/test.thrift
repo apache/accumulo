@@ -29,4 +29,5 @@ service SimpleThriftService {
   string echoRuntimeFail(1:string value)
   oneway void onewayRuntimeFail(1:string value)
 
+  void echoPassVoid(1:string value)
 }

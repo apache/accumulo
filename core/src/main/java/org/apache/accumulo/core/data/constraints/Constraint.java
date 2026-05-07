@@ -42,7 +42,10 @@ import org.apache.accumulo.core.security.AuthorizationContainer;
  * This would not aggregate very well, because the same violation is represented with two different
  * strings.
  *
- * @since 2.1.0 Replaces interface in org.apache.accumulo.core.constraints package
+ * <p>
+ * This replaces the interface in the org.apache.accumulo.core.constraints package since 2.1.0
+ *
+ * @since 2.1.0
  */
 public interface Constraint {
 

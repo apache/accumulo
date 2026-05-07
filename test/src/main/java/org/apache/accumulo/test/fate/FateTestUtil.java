@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -33,7 +34,7 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
@@ -64,14 +65,14 @@ public class FateTestUtil {
         client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
     TabletAvailability availability;
-    try (var tabletStream =
-        client.tableOperations().getTabletInformation(SystemTables.FATE.tableName(), new Range())) {
+    try (var tabletStream = client.tableOperations()
+        .getTabletInformation(SystemTables.FATE.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(fateTableProps);
+        .withoutDefaults().setProperties(fateTableProps);
     client.tableOperations().create(table, newTableConf);
     var testFateTableProps = client.tableOperations().getTableProperties(table);
 
@@ -93,17 +94,25 @@ public class FateTestUtil {
   }
 
   /**
-   * Returns a config with all FATE operations assigned to a single pool of size numThreads for both
-   * USER and META FATE operations
+   * Returns the config with all FATE operations assigned to a single pool of size "numThreads" for
+   * both USER and META FATE operations. The fate executor is given the name "name"
    */
-  public static ConfigurationCopy createTestFateConfig(int numThreads) {
-    ConfigurationCopy config = new ConfigurationCopy();
+  public static ConfigurationCopy updateFateConfig(ConfigurationCopy config, int numThreads,
+      String name) {
     // this value isn't important, just needs to be set
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
-        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
-        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    config
+        .set(Property.MANAGER_FATE_USER_CONFIG,
+            String
+                .format("{'%s':{'%s': %d}}", name, Fate.FateOperation.getAllUserFateOps().stream()
+                    .map(Enum::name).collect(Collectors.joining(",")), numThreads)
+                .replace("'", "\""));
+    config
+        .set(Property.MANAGER_FATE_META_CONFIG,
+            String
+                .format("{'%s':{'%s': %d}}", name, Fate.FateOperation.getAllMetaFateOps().stream()
+                    .map(Enum::name).collect(Collectors.joining(",")), numThreads)
+                .replace("'", "\""));
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
     return config;
   }

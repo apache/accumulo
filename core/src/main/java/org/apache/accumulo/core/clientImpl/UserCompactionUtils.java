@@ -160,42 +160,18 @@ public class UserCompactionUtils {
     encode(dout, SELECTOR_MAGIC, 1, csc.getClassName(), csc.getOptions());
   }
 
-  public static byte[] encodeSelector(PluginConfig csc) {
-    return encode(csc, UserCompactionUtils::encodeSelector);
-  }
-
   public static PluginConfig decodeSelector(DataInput di) {
     var pcd = decode(di, SELECTOR_MAGIC, 1);
     return new PluginConfig(pcd.className, pcd.opts);
-  }
-
-  public static PluginConfig decodeSelector(byte[] bytes) {
-    return decode(bytes, UserCompactionUtils::decodeSelector);
   }
 
   public static void encodeConfigurer(DataOutput dout, PluginConfig ccc) {
     encode(dout, CONFIGURER_MAGIC, 1, ccc.getClassName(), ccc.getOptions());
   }
 
-  public static byte[] encodeConfigurer(PluginConfig ccc) {
-    return encode(ccc, UserCompactionUtils::encodeConfigurer);
-  }
-
   public static PluginConfig decodeConfigurer(DataInput di) {
     var pcd = decode(di, CONFIGURER_MAGIC, 1);
     return new PluginConfig(pcd.className, pcd.opts);
-  }
-
-  public static PluginConfig decodeConfigurer(byte[] bytes) {
-    return decode(bytes, UserCompactionUtils::decodeConfigurer);
-  }
-
-  public static byte[] encode(Map<String,String> options) {
-    return encode(options, UserCompactionUtils::encode);
-  }
-
-  public static Map<String,String> decodeMap(byte[] bytes) {
-    return decode(bytes, UserCompactionUtils::decodeMap);
   }
 
   public static void encode(DataOutput dout, CompactionConfig cc) {

@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration2.AbstractConfiguration;
@@ -58,7 +59,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SiteConfiguration extends AccumuloConfiguration {
+
+  public static final String ACCUMULO_PROPERTIES_PROPERTY = "accumulo.properties";
 
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
@@ -90,7 +95,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     public OverridesOption fromEnv() {
-      String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
+      String configFile =
+          System.getProperty(ACCUMULO_PROPERTIES_PROPERTY, ACCUMULO_PROPERTIES_PROPERTY);
       if (configFile.startsWith("file://")) {
         File f;
         try {
@@ -100,7 +106,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
               "Failed to load Accumulo configuration from " + configFile, e);
         }
         if (f.exists() && !f.isDirectory()) {
-          log.info("Found Accumulo configuration at {}", configFile);
+          log.debug("Found Accumulo configuration at {}", configFile);
           return fromFile(f);
         } else {
           throw new IllegalArgumentException(
@@ -112,7 +118,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration '" + configFile + "' from classpath");
         } else {
-          log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
+          log.debug("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
           url = accumuloConfigUrl;
           return this;
         }
@@ -204,6 +210,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration(Map<String,String> config) {
     ConfigCheckUtil.validate(config.entrySet(), "site config");
+    var tableProps =
+        config.keySet().stream().filter(prop -> prop.startsWith(Property.TABLE_PREFIX.getKey()))
+            .collect(Collectors.toSet());
+    if (!tableProps.isEmpty()) {
+      throw new IllegalArgumentException(
+          "accumulo.properties file or options set with -o must not contain table properties, saw : "
+              + tableProps);
+    }
+
     this.config = config;
   }
 

@@ -32,11 +32,15 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is used to specify a range of Accumulo keys.
  *
  * @see Key
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Range implements WritableComparable<Range> {
 
   private Key start;
@@ -337,7 +341,8 @@ public class Range implements WritableComparable<Range> {
   /**
    * Compares this range to another range. Compares in order: start key, inclusiveness of start key,
    * end key, inclusiveness of end key. Infinite keys sort first, and non-infinite keys are compared
-   * with {@link Key#compareTo(Key)}. Inclusive sorts before non-inclusive.
+   * with {@link Key#compareTo(Key)}. When bounds are equal, inclusive start keys sort before
+   * exclusive ones, while inclusive end keys sort after exclusive ones.
    *
    * @param o range to compare
    * @return comparison result

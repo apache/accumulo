@@ -57,7 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -86,10 +86,10 @@ public class MetadataConstraints implements Constraint {
   // @formatter:off
   private static final Set<ColumnFQ> validColumnQuals =
       Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
-          Upgrade12to13.OLD_PREV_ROW_COLUMN,
+          Upgrade11to12.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
-          Upgrade12to13.SPLIT_RATIO_COLUMN,
+          Upgrade11to12.SPLIT_RATIO_COLUMN,
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
@@ -101,7 +101,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.SELECTED_COLUMN,
           SplitColumnFamily.UNSPLITTABLE_COLUMN,
           TabletColumnFamily.MERGEABILITY_COLUMN,
-          Upgrade12to13.COMPACT_COL);
+          Upgrade11to12.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
@@ -265,49 +265,29 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-    switch (violationCode) {
-      case 1:
-        return "data file size must be a non-negative integer";
-      case 2:
-        return "Invalid column name given.";
-      case 3:
-        return "Prev end row is greater than or equal to end row.";
-      case 4:
-        return "Invalid metadata row format";
-      case 5:
-        return "Row can not be less than " + SystemTables.METADATA.tableId();
-      case 6:
-        return "Empty values are not allowed for any " + SystemTables.METADATA.tableName()
-            + " column";
-      case 7:
-        return "Lock not held in zookeeper by writer";
-      case 8:
-        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
-      case 3100:
-        return "Invalid data file metadata format";
-      case 3101:
-        return "Suspended timestamp is not valid";
-      case 3102:
-        return "Invalid directory column value";
-      case 4000:
-        return "Malformed operation id";
-      case 4001:
-        return "Malformed file selection value";
-      case 4002:
-        return "Invalid compacted column";
-      case 4003:
-        return "Invalid user compaction requested column";
-      case 4004:
-        return "Invalid unsplittable column";
-      case 4005:
-        return "Malformed availability value";
-      case 4006:
-        return "Malformed mergeability value";
-      case 4007:
-        return "Malformed migration value";
-
-    }
-    return null;
+    return switch (violationCode) {
+      case 1 -> "data file size must be a non-negative integer";
+      case 2 -> "Invalid column name given.";
+      case 3 -> "Prev end row is greater than or equal to end row.";
+      case 4 -> "Invalid metadata row format";
+      case 5 -> "Row can not be less than " + SystemTables.METADATA.tableId();
+      case 6 ->
+        "Empty values are not allowed for any " + SystemTables.METADATA.tableName() + " column";
+      case 7 -> "Lock not held in zookeeper by writer";
+      case 8 -> "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
+      case 3100 -> "Invalid data file metadata format";
+      case 3101 -> "Suspended timestamp is not valid";
+      case 3102 -> "Invalid directory column value";
+      case 4000 -> "Malformed operation id";
+      case 4001 -> "Malformed file selection value";
+      case 4002 -> "Invalid compacted column";
+      case 4003 -> "Invalid user compaction requested column";
+      case 4004 -> "Invalid unsplittable column";
+      case 4005 -> "Malformed availability value";
+      case 4006 -> "Malformed mergeability value";
+      case 4007 -> "Malformed migration value";
+      default -> null;
+    };
   }
 
   private void validateColValLen(ArrayList<Short> violations, ColumnUpdate columnUpdate) {

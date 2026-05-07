@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
@@ -294,12 +295,13 @@ public class FileManager {
     // limitations
     closeReaders(filesToClose);
 
+    TableConfiguration tableConf = context.getTableConfiguration(tablet.tableId());
+
     // open any files that need to be opened
     for (StoredTabletFile file : filesToOpen) {
       try {
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
         // log.debug("Opening "+file + " path " + path);
-        var tableConf = context.getTableConfiguration(tablet.tableId());
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)
@@ -454,6 +456,7 @@ public class FileManager {
     private final KeyExtent tablet;
     private boolean continueOnFailure;
     private final CacheProvider cacheProvider;
+    private final boolean shuffleFiles;
 
     ScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
       tabletReservedReaders = new ArrayList<>();
@@ -463,6 +466,9 @@ public class FileManager {
 
       continueOnFailure = context.getTableConfiguration(tablet.tableId())
           .getBoolean(Property.TABLE_FAILURES_IGNORE);
+
+      shuffleFiles = context.getTableConfiguration(tablet.tableId())
+          .getBoolean(Property.TABLE_SHUFFLE_SOURCES);
 
       if (tablet.isMeta()) {
         continueOnFailure = false;
@@ -481,6 +487,9 @@ public class FileManager {
                 + maxOpen + " tablet = " + tablet);
       }
 
+      if (shuffleFiles) {
+        Collections.shuffle(files);
+      }
       Map<FileSKVIterator,StoredTabletFile> newlyReservedReaders =
           reserveReaders(tablet, files, continueOnFailure, cacheProvider);
 

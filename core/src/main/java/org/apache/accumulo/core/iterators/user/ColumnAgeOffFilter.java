@@ -39,7 +39,7 @@ import org.apache.hadoop.io.Text;
  * each column.
  */
 public class ColumnAgeOffFilter extends Filter {
-  public static class TTLSet extends ColumnToClassMapping<Long> {
+  private static final class TTLSet extends ColumnToClassMapping<Long> {
     public TTLSet(Map<String,String> objectStrings) {
 
       for (Entry<String,String> entry : objectStrings.entrySet()) {

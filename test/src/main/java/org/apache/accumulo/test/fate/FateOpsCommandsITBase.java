@@ -59,6 +59,7 @@ import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
@@ -66,13 +67,13 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
 import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
@@ -104,8 +105,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
+    Wait.waitFor(
+        () -> getCluster().getServerContext().getServerPaths()
+            .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty(),
+        60_000);
   }
 
   @AfterAll
@@ -125,7 +128,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
     try {
       // validate blank report, no transactions have started
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          "--summary", "-j");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -147,7 +151,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
       // validate no filters
-      p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--summary",
+          "-j");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -168,8 +173,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
        */
 
       // validate filtering by both transactions
-      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
-          "--summary", "-j");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), fateId2.canonical(), "--summary", "-j");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -187,7 +192,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
 
       // validate filtering by just one transaction
-      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--summary", "-j");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -206,7 +212,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
       // validate filtering by non-existent transaction
       FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
-      p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--summary", "-j");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fakeFateId.canonical(), "--summary", "-j");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -228,7 +235,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
        */
 
       // validate status filter by including only FAILED transactions, should be none
-      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--summary",
+          "-j", "-s", "FAILED");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -245,7 +253,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
 
       // validate status filter by including only NEW transactions, should be 2
-      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--summary",
+          "-j", "-s", "NEW");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -266,7 +275,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
        */
 
       // validate FateInstanceType filter by only including transactions with META filter
-      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "META");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--summary",
+          "-j", "-t", "META");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -287,7 +297,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       }
 
       // validate FateInstanceType filter by only including transactions with USER filter
-      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "USER");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--summary",
+          "-j", "-t", "USER");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -326,8 +337,9 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       FateId fateId1 = fate.startTransaction();
       FateId fateId2 = fate.startTransaction();
 
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(),
-          fateId2.canonical(), "--summary", "-s", "NEW", "-t", store.type().name());
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), fateId2.canonical(), "--summary", "-s", "NEW", "-t",
+          store.type().name());
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
       assertTrue(result.contains("Status Filters: [NEW]"));
@@ -353,7 +365,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
     try {
       // validate no transactions
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--print");
+      ProcessInfo p =
+          getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
       assertTrue(result.contains(" 0 transactions"));
@@ -363,7 +376,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       FateId fateId2 = fate.startTransaction();
 
       // Get all transactions. Should be 2 FateIds with a NEW status
-      p = getCluster().exec(Admin.class, "fate", "--print");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       Map<String,String> fateIdsFromResult = getFateIdsFromPrint(result);
@@ -375,7 +388,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
        */
 
       // Filter by NEW state
-      p = getCluster().exec(Admin.class, "fate", "--print", "-s", "NEW");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print",
+          "-s", "NEW");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
@@ -383,7 +397,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
           fateIdsFromResult);
 
       // Filter by FAILED state
-      p = getCluster().exec(Admin.class, "fate", "--print", "-s", "FAILED");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print",
+          "-s", "FAILED");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
@@ -394,15 +409,16 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
        */
 
       // Filter by one FateId
-      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--print");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--print");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
       assertEquals(Map.of(fateId1.canonical(), "NEW"), fateIdsFromResult);
 
       // Filter by both FateIds
-      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
-          "--print");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), fateId2.canonical(), "--print");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
@@ -411,7 +427,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
       // Filter by non-existent FateId
       FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
-      p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--print");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fakeFateId.canonical(), "--print");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
@@ -422,7 +439,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
        */
 
       // Test filter by USER FateInstanceType
-      p = getCluster().exec(Admin.class, "fate", "--print", "-t", "USER");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print",
+          "-t", "USER");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
@@ -434,7 +452,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       }
 
       // Test filter by META FateInstanceType
-      p = getCluster().exec(Admin.class, "fate", "--print", "-t", "META");
+      p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print",
+          "-t", "META");
       assertEquals(0, p.getProcess().waitFor());
       result = p.readStdOut();
       fateIdsFromResult = getFateIdsFromPrint(result);
@@ -490,7 +509,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         }
         List<String> fateIdsStarted = new ArrayList<>();
 
-        ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+        ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+            "--summary", "-j");
         assertEquals(0, p.getProcess().waitFor());
 
         String result = p.readStdOut();
@@ -507,7 +527,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         }
         assertEquals(2, fateIdsStarted.size());
 
-        p = getCluster().exec(Admin.class, "fate", "--print");
+        p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class, "--print");
         assertEquals(0, p.getProcess().waitFor());
         result = p.readStdOut();
 
@@ -557,15 +577,19 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
           fateIdsFromSummary);
 
       // Cancel the first transaction and ensure that it was cancelled
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--cancel");
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--cancel");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
 
       assertTrue(result
           .contains("transaction " + fateId1.canonical() + " was cancelled or already completed"));
+      var expected = Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW");
+      // The fate operation may temporarily be in the FAILED_IN_PROGRESS state, wait for this to
+      // pass
+      Wait.waitFor(() -> expected.equals(getFateIdsFromSummary()));
       fateIdsFromSummary = getFateIdsFromSummary();
-      assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
-          fateIdsFromSummary);
+      assertEquals(expected, fateIdsFromSummary);
     } finally {
       fate.shutdown(1, TimeUnit.MINUTES);
     }
@@ -605,7 +629,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       // Try to fail fateId1
       // This should not work as it is already reserved and being worked on by our running FATE
       // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--fail");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
 
@@ -642,7 +667,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
       // Try to fail fateId1
       // This should work since nothing has fateId1 reserved (it is NEW)
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--fail");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
 
@@ -691,7 +717,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       // Try to delete fateId1
       // This should not work as it is already reserved and being worked on by our running FATE
       // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--delete");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
 
@@ -728,7 +755,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
       // Try to delete fateId1
       // This should work since nothing has fateId1 reserved (it is NEW)
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+      ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+          fateId1.canonical(), "--delete");
       assertEquals(0, p.getProcess().waitFor());
       String result = p.readStdOut();
 
@@ -785,7 +813,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     AdminUtil.FateStatus status = null;
     try {
       status = AdminUtil.getTransactionStatus(Map.of(store.type(), mockedStore), null, null, null,
-          new HashMap<>(), new HashMap<>());
+          new HashMap<>(), new HashMap<>(), Map.of());
     } catch (Exception e) {
       fail("An unexpected error occurred in getTransactionStatus():\n" + e);
     }
@@ -870,7 +898,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
    * @return a map of each of the FateIds to their status using the --summary command
    */
   private Map<String,String> getFateIdsFromSummary() throws Exception {
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+    ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+        "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
     result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
@@ -910,7 +939,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     // Using FastFate so the cleanup will run often. This ensures that the cleanup will run when
     // there are reservations present and that the cleanup will not unexpectedly delete these live
     // reservations
-    return new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
+    var fate =
+        new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
+    fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    return fate;
   }
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
@@ -952,10 +984,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
   protected void cleanupFateOps() throws Exception {
     List<String> args = new ArrayList<>();
-    args.add("fate");
     args.addAll(fateOpsToCleanup);
     args.add("--delete");
-    ProcessInfo p = getCluster().exec(Admin.class, args.toArray(new String[0]));
+    ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
+        args.toArray(new String[0]));
     assertEquals(0, p.getProcess().waitFor());
   }
 }

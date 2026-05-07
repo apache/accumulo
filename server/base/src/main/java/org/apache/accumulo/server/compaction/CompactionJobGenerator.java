@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.logging.ConditionalLogger;
+import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -59,18 +59,17 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
 public class CompactionJobGenerator {
   private static final Logger log = LoggerFactory.getLogger(CompactionJobGenerator.class);
-  private static final Logger UNKNOWN_SERVICE_ERROR_LOG =
-      new ConditionalLogger.EscalatingLogger(log, Duration.ofMinutes(5), 3000, Level.ERROR);
-  private static final Logger PLANNING_INIT_ERROR_LOG =
-      new ConditionalLogger.EscalatingLogger(log, Duration.ofMinutes(5), 3000, Level.ERROR);
-  private static final Logger PLANNING_ERROR_LOG =
-      new ConditionalLogger.EscalatingLogger(log, Duration.ofMinutes(5), 3000, Level.ERROR);
+  private static final EscalatingLogger UNKNOWN_SERVICE_ERROR_LOG =
+      new EscalatingLogger(log, Duration.ofMinutes(5), 3000, Logger::error);
+  private static final EscalatingLogger PLANNING_INIT_ERROR_LOG =
+      new EscalatingLogger(log, Duration.ofMinutes(5), 3000, Logger::error);
+  private static final EscalatingLogger PLANNING_ERROR_LOG =
+      new EscalatingLogger(log, Duration.ofMinutes(5), 3000, Logger::error);
 
   private final CompactionServicesConfig servicesConfig;
   private final Map<CompactionServiceId,CompactionPlanner> planners = new HashMap<>();

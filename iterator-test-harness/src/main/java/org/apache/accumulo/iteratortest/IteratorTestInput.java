@@ -151,10 +151,9 @@ public class IteratorTestInput {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof IteratorTestInput)) {
+    if (!(o instanceof IteratorTestInput that)) {
       return false;
     }
-    IteratorTestInput that = (IteratorTestInput) o;
 
     return inclusive == that.inclusive && iteratorClass.equals(that.iteratorClass)
         && iteratorOptions.equals(that.iteratorOptions) && range.equals(that.range)

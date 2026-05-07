@@ -109,12 +109,18 @@ public class WebViews {
   }
 
   private Map<String,Object> getModel() {
-
+    AccumuloConfiguration conf = monitor.getContext().getConfiguration();
+    String rootContext = conf.get(Property.MONITOR_ROOT_CONTEXT);
+    // Add trailing slash if it doesn't exist
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
     model.put("zk_hosts", monitor.getContext().getZooKeepers());
+    model.put("rootContext", rootContext);
     addExternalResources(model);
     return model;
   }
@@ -157,6 +163,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the messages template
+   *
+   * @return Messages model
+   */
+  @GET
+  @Path("messages")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getMessages() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Messages"); // Need this for the browser tab title
+    model.put("tablesTitle", "Messages");
+    model.put("template", "messages.ftl");
+    model.put("js", "messages.js");
+    return model;
+  }
+
+  /**
    * Returns the tservers templates
    *
    * @param server TServer to show details
@@ -178,6 +202,24 @@ public class WebViews {
     }
     model.put("template", "tservers.ftl");
     model.put("js", "tservers.js");
+    return model;
+  }
+
+  /**
+   * Returns the scan servers template
+   *
+   * @return scan server model
+   */
+  @GET
+  @Path("sservers")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getScanServers() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Scan Server Status");
+    model.put("template", "sservers.ftl");
+    model.put("js", "sservers.js");
+
     return model;
   }
 
@@ -218,22 +260,52 @@ public class WebViews {
   }
 
   /**
-   * Returns the compactions template
+   * Returns the active compactions template.
    *
-   * @return Scans model
+   * @return Active compactions model
    */
   @GET
   @Path("ec")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getExternalCompactions() {
-    var ccHost = monitor.getCoordinatorHost();
-
+  public Map<String,Object> getActiveCompactions() {
     Map<String,Object> model = getModel();
-    model.put("title", "External Compactions");
+    model.put("title", "Active Compactions");
     model.put("template", "ec.ftl");
-
-    model.put("coordinatorRunning", ccHost.isPresent());
     model.put("js", "ec.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
+  @Path("coordinator")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactionOverview() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compaction Overview");
+    model.put("template", "coordinator.ftl");
+    model.put("js", "coordinator.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
+  @Path("compactors")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactors() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compactors");
+    model.put("template", "compactors.ftl");
+    model.put("js", "compactors.js");
 
     return model;
   }

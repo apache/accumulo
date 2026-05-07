@@ -24,45 +24,46 @@
         </div>
       </div>
       <div class="row d-flex justify-content-center">
-        <div class="col-sm-6 col-sm-offset-3" id="manager">
-          <table class="table table-bordered table-striped table-condensed">
-            <thead>
-              <tr>
-                <th colspan="2"><a href="/manager">Accumulo Manager</a></th>
-              </tr>
-              <tr>
-                <td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td>
-              </tr>
-              <tr>
-                <td class="left"><a href="/tables">Tables</a></td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left"><a href="/tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Tablets</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Entries</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Lookups</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Uptime</td>
-                <td class="right"></td>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+        <div class="col-xs-12" id="deploymentOverview">
+          <div id="deploymentWarning"></div>
+          <div class="mb-4" style="max-width: 560px; margin: 0 auto;">
+            <table id="deploymentSummaryTable"
+              class="table table-bordered table-striped table-condensed" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th colspan="2" class="center">Server Type Summary</th>
+                </tr>
+                <tr>
+                  <th>Server Type</th>
+                  <th>Responding / Total</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div style="max-width: 760px; margin: 0 auto;">
+            <div class="mb-3">
+              <label for="deployment-rg-filter" class="form-label">Resource Group Filter</label>
+              <input type="text" id="deployment-rg-filter" class="form-control"
+                placeholder="Enter resource group regex">
+              <small id="deployment-rg-feedback" class="form-text text-danger"
+                style="display:none;">Invalid regex pattern</small>
+            </div>
+            <table id="deploymentBreakdownTable"
+              class="table table-bordered table-striped table-condensed" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th colspan="3" class="center">Deployment Breakdown</th>
+                </tr>
+                <tr>
+                  <th>Resource Group</th>
+                  <th>Server Type</th>
+                  <th>Responding / Total</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
       </div>

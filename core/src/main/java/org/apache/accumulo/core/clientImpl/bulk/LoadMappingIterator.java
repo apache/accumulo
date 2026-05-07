@@ -34,17 +34,19 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 
 /**
  * Iterator for reading the Bulk Load Mapping JSON.
  */
-public class LoadMappingIterator
+public final class LoadMappingIterator
     implements Iterator<Map.Entry<KeyExtent,Bulk.Files>>, AutoCloseable {
   private final TableId tableId;
   private final JsonReader reader;
   private static final Gson gson = ByteArrayToBase64TypeAdapter.createBase64Gson();
   private Map<String,String> renameMap;
+  private KeyExtent lastKeyExtent = null;
 
   LoadMappingIterator(TableId tableId, InputStream loadMappingFile) throws IOException {
     this.tableId = tableId;
@@ -72,12 +74,27 @@ public class LoadMappingIterator
 
   @Override
   public Map.Entry<KeyExtent,Bulk.Files> next() {
-    Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
+    Bulk.Mapping bm;
+    try {
+      bm = gson.fromJson(reader, Bulk.Mapping.class);
+    } catch (JsonParseException e) {
+      throw new IllegalStateException("Failed to read next mapping", e);
+    }
+
+    KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
+
+    if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
+      throw new IllegalStateException(
+          String.format("KeyExtents are not in sorted order: %s was seen before %s", lastKeyExtent,
+              currentKeyExtent));
+    }
+
+    lastKeyExtent = currentKeyExtent;
+
     if (renameMap != null) {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
-          bm.getFiles().mapNames(renameMap));
+      return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles().mapNames(renameMap));
     } else {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId), bm.getFiles());
+      return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles());
     }
   }
 

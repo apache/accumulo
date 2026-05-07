@@ -18,16 +18,16 @@
  */
 package org.apache.accumulo.test.ample;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.tserver.TabletServer;
 
 public class FlakyAmpleTserver extends TabletServer {
-  protected FlakyAmpleTserver(ConfigOpts opts, String[] args) {
+  protected FlakyAmpleTserver(ServerOpts opts, String[] args) {
     super(opts, FlakyAmpleServerContext::new, args);
   }
 
   public static void main(String[] args) throws Exception {
-    try (FlakyAmpleTserver tserver = new FlakyAmpleTserver(new ConfigOpts(), args)) {
+    try (FlakyAmpleTserver tserver = new FlakyAmpleTserver(new ServerOpts(), args)) {
       tserver.runServer();
     }
   }

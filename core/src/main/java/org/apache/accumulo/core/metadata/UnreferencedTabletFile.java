@@ -69,8 +69,7 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof UnreferencedTabletFile) {
-      UnreferencedTabletFile that = (UnreferencedTabletFile) obj;
+    if (obj instanceof UnreferencedTabletFile that) {
       return path.equals(that.path);
     }
     return false;
@@ -96,10 +95,6 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
 
   public static UnreferencedTabletFile of(FileSystem fs, Path path) {
     return new UnreferencedTabletFile(fs, path);
-  }
-
-  public static UnreferencedTabletFile ofRanged(FileSystem fs, Path path, Range range) {
-    return new UnreferencedTabletFile(fs, path, range);
   }
 
   public static UnreferencedTabletFile of(Configuration conf, Path path) throws IOException {

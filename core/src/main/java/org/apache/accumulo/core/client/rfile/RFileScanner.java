@@ -62,6 +62,7 @@ import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -77,7 +78,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class RFileScanner extends ScannerOptions implements Scanner {
+final class RFileScanner extends ScannerOptions implements Scanner {
 
   private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
 
@@ -286,10 +287,20 @@ class RFileScanner extends ScannerOptions implements Scanner {
       }
 
       SortedKeyValueIterator<Key,Value> iterator;
+      boolean shuffled = tableConf.getBoolean(Property.TABLE_SHUFFLE_SOURCES);
+
       if (opts.bounds != null) {
-        iterator = new MultiIterator(readers, opts.bounds);
+        if (shuffled) {
+          iterator = new MultiShuffledIterator(readers, opts.bounds);
+        } else {
+          iterator = new MultiIterator(readers, opts.bounds);
+        }
       } else {
-        iterator = new MultiIterator(readers, false);
+        if (shuffled) {
+          iterator = new MultiShuffledIterator(readers);
+        } else {
+          iterator = new MultiIterator(readers);
+        }
       }
 
       Set<ByteSequence> families = Collections.emptySet();
@@ -320,8 +331,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
               .opts(serverSideIteratorOptions).env(iterEnv).build();
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
+      } catch (IOException | ReflectiveOperationException e) {
+        throw new RuntimeException(e);
       }
 
       iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, !families.isEmpty());

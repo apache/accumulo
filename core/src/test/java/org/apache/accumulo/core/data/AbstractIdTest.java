@@ -38,14 +38,14 @@ class AbstractIdTest {
     assertEquals(hashOne, hashTwo);
 
     // Testing equality
-    TestAbstractId abstractOne = new TestAbstractId("value") {};
-    TestAbstractId abstractTwo = new TestAbstractId("value") {};
+    TestAbstractId abstractOne = new TestAbstractId("value");
+    TestAbstractId abstractTwo = new TestAbstractId("value");
     assertEquals(abstractOne.hashCode(), abstractTwo.hashCode());
 
     // Testing even distribution
     List<TestAbstractId> idList = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
-      idList.add(new TestAbstractId("value" + i) {});
+      idList.add(new TestAbstractId("value" + i));
     }
     Set<Integer> hashCodes = new HashSet<>();
     for (TestAbstractId id : idList) {

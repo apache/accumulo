@@ -55,6 +55,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -156,26 +157,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     // Then export it
     client.tableOperations().exportTable(srcTable, exportDir.toString());
 
-    // Make sure the distcp.txt file that exporttable creates is available
-    Path distcp = new Path(exportDir, "distcp.txt");
-    fs.deleteOnExit(distcp);
-    assertTrue(fs.exists(distcp), "Distcp file doesn't exist");
-    FSDataInputStream is = fs.open(distcp);
-    BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
-    // Copy each file that was exported to one of the imports directory
-    String line;
-
-    while ((line = reader.readLine()) != null) {
-      Path p = new Path(line.substring(5));
-      assertTrue(fs.exists(p), "File doesn't exist: " + p);
-      Path importDir = importDirAry[RANDOM.get().nextInt(importDirAry.length)];
-      Path dest = new Path(importDir, p.getName());
-      assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
-      FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
-    }
-
-    reader.close();
+    copyExportedFilesToImportDirs(fs, exportDir, importDirAry);
 
     log.info("Import dir A: {}", Arrays.toString(fs.listStatus(importDirA)));
     log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
@@ -229,7 +211,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
   public void testExportImportThenScan(boolean fenced) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
-      doExportImportThenScan(fenced, client, tableNames[0], tableNames[1]);
+      String tableName1 = tableNames[0] + "_" + fenced;
+      String tableName2 = tableNames[1] + "_" + fenced;
+      doExportImportThenScan(fenced, client, tableName1, tableName2);
     }
   }
 
@@ -241,7 +225,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       client.namespaceOperations().create(ns1);
       String ns2 = "namespace2";
       client.namespaceOperations().create(ns2);
-      String tableName = getUniqueNames(1)[0];
+      String tableName = getUniqueNames(1)[0] + "_" + fenced;
       doExportImportThenScan(fenced, client, ns1 + "." + tableName, ns2 + "." + tableName);
     }
   }
@@ -252,8 +236,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
-      String srcTable = tableNames[0];
-      String destTable = tableNames[1];
+      String srcTable = tableNames[0] + "_" + fenced;
+      String destTable = tableNames[1] + "_" + fenced;
       client.tableOperations().create(srcTable);
 
       try (BatchWriter bw = client.createBatchWriter(srcTable)) {
@@ -301,26 +285,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Then export it
       client.tableOperations().exportTable(srcTable, exportDir.toString());
 
-      // Make sure the distcp.txt file that exporttable creates is available
-      Path distcp = new Path(exportDir, "distcp.txt");
-      fs.deleteOnExit(distcp);
-      assertTrue(fs.exists(distcp), "Distcp file doesn't exist");
-      FSDataInputStream is = fs.open(distcp);
-      BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
-      // Copy each file that was exported to one of the imports directory
-      String line;
-
-      while ((line = reader.readLine()) != null) {
-        Path p = new Path(line.substring(5));
-        assertTrue(fs.exists(p), "File doesn't exist: " + p);
-        Path importDir = importDirAry[RANDOM.get().nextInt(importDirAry.length)];
-        Path dest = new Path(importDir, p.getName());
-        assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
-        FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
-      }
-
-      reader.close();
+      copyExportedFilesToImportDirs(fs, exportDir, importDirAry);
 
       log.info("Import dir A: {}", Arrays.toString(fs.listStatus(importDirA)));
       log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
@@ -402,9 +367,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // add split 'h' and 'q'. Leave first as ONDEMAND, set second to UNHOSTED, and third to HOSTED
       SortedSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("h"), new Text("q")));
       client.tableOperations().addSplits(srcTable, splits);
-      Range range = new Range(new Text("h"), false, new Text("q"), true);
+      RowRange range = RowRange.openClosed(new Text("h"), new Text("q"));
       client.tableOperations().setTabletAvailability(srcTable, range, TabletAvailability.UNHOSTED);
-      range = new Range(new Text("q"), false, null, true);
+      range = RowRange.greaterThan(new Text("q"));
       client.tableOperations().setTabletAvailability(srcTable, range, TabletAvailability.HOSTED);
 
       // verify
@@ -415,7 +380,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
           TabletAvailability.UNHOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, null, "q",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilities(client, srcTable, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(client, srcTable, RowRange.all(), expectedTabletAvailability);
 
       // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
       splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
@@ -435,7 +400,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, null, "v",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilities(client, srcTable, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(client, srcTable, RowRange.all(), expectedTabletAvailability);
 
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
@@ -467,26 +432,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Then export it
       client.tableOperations().exportTable(srcTable, exportDir.toString());
 
-      // Make sure the distcp.txt file that exporttable creates is available
-      Path distcp = new Path(exportDir, "distcp.txt");
-      fs.deleteOnExit(distcp);
-      assertTrue(fs.exists(distcp), "Distcp file doesn't exist");
-      FSDataInputStream is = fs.open(distcp);
-      BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-
-      // Copy each file that was exported to one of the imports directory
-      String line;
-
-      while ((line = reader.readLine()) != null) {
-        Path p = new Path(line.substring(5));
-        assertTrue(fs.exists(p), "File doesn't exist: " + p);
-        Path importDir = importDirAry[RANDOM.get().nextInt(importDirAry.length)];
-        Path dest = new Path(importDir, p.getName());
-        assertFalse(fs.exists(dest), "Did not expect " + dest + " to exist");
-        FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
-      }
-
-      reader.close();
+      copyExportedFilesToImportDirs(fs, exportDir, importDirAry);
 
       log.info("Import dir A: {}", Arrays.toString(fs.listStatus(importDirA)));
       log.info("Import dir B: {}", Arrays.toString(fs.listStatus(importDirB)));
@@ -501,7 +447,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", destTableId);
 
-      client.tableOperations().getTabletInformation(destTable, new Range())
+      client.tableOperations().getTabletInformation(destTable, List.of(RowRange.all()))
           .forEach(tabletInformation -> assertEquals(TabletAvailability.ONDEMAND,
               tabletInformation.getTabletAvailability(),
               "Expected all tablets in imported table to be ONDEMAND"));
@@ -615,6 +561,37 @@ public class ImportExportIT extends AccumuloClusterHarness {
             true),
         new Range("row_" + String.format("%010d", 699), false, "row_" + String.format("%010d", 749),
             true));
+  }
+
+  /**
+   * Copy exported files from export directory to import directories by reading distcp.txt. Files
+   * are distributed randomly across the provided import directories. If only one import directory
+   * is provided, all files will go to that directory.
+   *
+   * @param fs the filesystem to use
+   * @param exportDir the export directory containing distcp.txt and exported files
+   * @param importDirs array of import directories to distribute files to (can be single dir)
+   */
+  public static void copyExportedFilesToImportDirs(FileSystem fs, Path exportDir,
+      Path... importDirs) throws IOException {
+    for (Path importDir : importDirs) {
+      assertTrue(fs.mkdirs(importDir), "Failed to create import directory: " + importDir);
+    }
+
+    Path distcp = new Path(exportDir, "distcp.txt");
+    assertTrue(fs.exists(distcp), "Distcp file doesn't exist: " + distcp);
+
+    try (FSDataInputStream is = fs.open(distcp); InputStreamReader in = new InputStreamReader(is);
+        BufferedReader reader = new BufferedReader(in)) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        Path srcPath = new Path(line);
+        assertTrue(fs.exists(srcPath), "Source file doesn't exist: " + srcPath);
+        Path importDir = importDirs[RANDOM.get().nextInt(importDirs.length)];
+        Path destPath = new Path(importDir, srcPath.getName());
+        FileUtil.copy(fs, srcPath, fs, destPath, false, fs.getConf());
+      }
+    }
   }
 
   public static Path createBaseDir(AccumuloCluster cluster, Class<?> clazz) throws IOException {

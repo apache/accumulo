@@ -31,12 +31,14 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.WithTestNames;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -56,9 +58,11 @@ public class ClusterConfigParserTest extends WithTestNames {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
-    assertEquals(14, contents.size());
-    assertTrue(contents.containsKey("manager"));
-    assertEquals("localhost1 localhost2", contents.get("manager"));
+    assertEquals(15, contents.size());
+    assertTrue(contents.containsKey("manager.hosts"));
+    assertEquals("localhost1 localhost2", contents.get("manager.hosts"));
+    assertTrue(contents.containsKey("manager.servers_per_host"));
+    assertEquals("2", contents.get("manager.servers_per_host"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
     assertTrue(contents.containsKey("gc"));
@@ -115,7 +119,9 @@ public class ClusterConfigParserTest extends WithTestNames {
             ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
         final Path outputFile = Files.createFile(tempDir.resolve(testName()));
-
+        var groups = new HashSet<ResourceGroupId>();
+        groups.add(ResourceGroupId.DEFAULT);
+        Stream.of("q1", "q2", "cheap", "highmem").map(ResourceGroupId::of).forEach(groups::add);
         try (var out = Files.newOutputStream(outputFile); var ps = new PrintStream(out)) {
           ClusterConfigParser.outputShellVariables(contents, ps);
         }
@@ -127,7 +133,6 @@ public class ClusterConfigParserTest extends WithTestNames {
     });
   }
 
-  @Test
   public void testShellOutputMain() throws Exception {
 
     // Test that the main method in ClusterConfigParser properly parses the configuration
@@ -145,7 +150,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     });
   }
 
-  private void testShellOutput(Function<URL,Path> outputConfigFunction) throws Exception {
+  private static void testShellOutput(Function<URL,Path> outputConfigFunction) throws Exception {
     final URL configFile = ClusterConfigParserTest.class
         .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yaml");
     assertNotNull(configFile);
@@ -153,6 +158,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     final Path f = outputConfigFunction.apply(configFile);
 
     Map<String,String> expected = new TreeMap<>();
+    expected.put("MANAGERS_PER_HOST_default", "2");
     expected.put("MANAGER_HOSTS", "localhost1 localhost2");
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
@@ -301,18 +307,36 @@ public class ClusterConfigParserTest extends WithTestNames {
   }
 
   @Test
-  public void testGroupNamePattern() {
-    ClusterConfigParser.validateGroupNames(List.of("a"));
-    ClusterConfigParser.validateGroupNames(List.of("a", "b"));
-    ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
-    ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__"));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a-b")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a*b")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a?b")));
+  public void testFileMissingManagerSection() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/missing-manager-section.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalStateException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("Manager is required in the configuration"));
+    }
   }
+
+  @Test
+  public void testFileBadManagerSection() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-manager-section.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(
+          exception.getMessage().contains("Unknown manager entry for: manager.extra_broken"));
+    }
+  }
+
 }

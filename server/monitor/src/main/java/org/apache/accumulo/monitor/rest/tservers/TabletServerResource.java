@@ -50,7 +50,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.manager.ManagerResource;
 import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.util.ActionStatsUpdator;
 
@@ -88,8 +87,6 @@ public class TabletServerResource {
     for (TabletServerStatus status : mmi.tServerInfo) {
       tserverInfo.addTablet(new TabletServer(monitor, status));
     }
-
-    tserverInfo.addBadTabletServer(ManagerResource.getTables(monitor));
 
     return tserverInfo;
   }

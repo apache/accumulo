@@ -22,14 +22,16 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.KeywordExecutable.UsageGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +39,7 @@ public class Main {
 
   private static final Logger log = LoggerFactory.getLogger(Main.class);
   private static ClassLoader classLoader;
-  private static Map<String,KeywordExecutable> servicesMap;
+  private static Map<CommandGroup,Map<String,KeywordExecutable>> servicesMap;
 
   public static void main(final String[] args) throws Exception {
     final ClassLoader loader = getClassLoader();
@@ -51,16 +53,48 @@ public class Main {
       return;
     }
 
-    // determine whether a keyword was used or a class name, and execute it with the remaining
-    // args
-    String keywordOrClassName = args[0];
-    KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
-    if (keywordExec != null) {
-      execKeyword(keywordExec, stripArgs(args, 1));
-    } else {
-      execMainClassName(keywordOrClassName, stripArgs(args, 1));
-    }
+    Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(loader);
+    Set<CommandGroup> usageGroups = executables.keySet();
 
+    // The commands in the CLIENT group may be specified without a group name. For example,
+    // instead of `accumulo client shell`, we support the user supplying `accumulo shell`.
+    // Check to see if the first arg is in the client group first.
+
+    CommandGroup clientGroup = CommandGroups.CLIENT;
+    String cmd = args[0];
+    int argOffset = 1;
+    KeywordExecutable ke = executables.get(clientGroup).get(cmd);
+
+    if (ke != null) {
+      execKeyword(ke, stripArgs(args, argOffset));
+    } else if (args.length == 1) {
+      // If only one arg, and not a client command, then it's a class with
+      // no args.
+      execMainClassName(cmd, stripArgs(args, argOffset));
+    } else {
+      // More than 1 arg, check to see if it's a command, otherwise exec class
+      String group = args[0];
+      cmd = args[1];
+      argOffset = 2;
+      CommandGroup ug = null;
+      try {
+        ug = usageGroups.stream().filter(g -> g.key().equalsIgnoreCase(group)).findFirst()
+            .orElseThrow();
+        ke = executables.get(ug).get(cmd);
+      } catch (NoSuchElementException e) {
+        // args[0] is not a valid group
+        ke = null;
+      }
+
+      if (ke != null) {
+        execKeyword(ke, stripArgs(args, argOffset));
+      } else {
+        String clazz = args[0];
+        argOffset = 1;
+        execMainClassName(clazz, stripArgs(args, argOffset));
+      }
+
+    }
   }
 
   public static synchronized ClassLoader getClassLoader() {
@@ -79,6 +113,8 @@ public class Main {
     Runnable r = () -> {
       try {
         keywordExec.execute(args);
+      } catch (JCommanderParseException e) {
+        System.exit(1);
       } catch (Exception e) {
         die(e, null);
       }
@@ -157,61 +193,93 @@ public class Main {
     System.exit(1);
   }
 
-  public static void printCommands(TreeSet<KeywordExecutable> set, UsageGroup group) {
-    set.stream().filter(e -> e.usageGroup() == group)
-        .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
-  }
-
   public static void printUsage() {
-    TreeSet<KeywordExecutable> executables =
-        new TreeSet<>(Comparator.comparing(KeywordExecutable::keyword));
-    executables.addAll(getExecutables(getClassLoader()).values());
 
-    System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n"
-        + "  --help   Prints usage for specified command");
-    System.out.println("\nCore Commands:");
-    printCommands(executables, UsageGroup.CORE);
+    final String header =
+        """
 
-    System.out.println("  jshell                         Runs JShell for Accumulo\n"
-        + "  classpath                      Prints Accumulo classpath\n"
-        + "  <main class> args              Runs Java <main class> located on Accumulo classpath");
+            Usage one of:
+                accumulo --help
+                    Prints this help
 
-    System.out.println("\nProcess Commands:");
-    printCommands(executables, UsageGroup.PROCESS);
+                accumulo classpath
+                    Prints the classpath for the accumulo script
 
-    System.out.println("\nOther Commands:");
-    printCommands(executables, UsageGroup.OTHER);
+                accumulo jshell [ARG]...
+                    Starts a Java JShell session for use with an Accumulo instance
 
+                accumulo className [ARG]...
+                    Executes a Java class passing the provided arguments
+
+                accumulo <command> <subcommand> --help | [ARG]...
+                    Provides a common execution environment to run various Accumulo related commands and subcommands.
+                    Client commands support a shorter command structure where the command does not have to be specified,
+                    'accumulo shell' instead of 'accumulo client shell', for example. Commands other than 'client'
+                    require access to the accumulo.properties file for the instance.
+            """;
+
+    System.out.println(header);
+
+    Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
+
+    System.out.println(CommandGroups.CLIENT.title() + " Commands (accumulo <command>):");
+    executables.get(CommandGroups.CLIENT).entrySet().forEach(ce -> {
+      System.out.printf("  %-30s %s\n", ce.getValue().usage(), ce.getValue().description());
+    });
+
+    executables.entrySet().forEach(e -> {
+      if (e.getKey() != CommandGroups.CLIENT) {
+        System.out.println(
+            "\n" + e.getKey().title() + " Commands (accumulo " + e.getKey().key() + " <command>):");
+        e.getValue().values()
+            .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
+      }
+    });
     System.out.println();
   }
 
-  public static synchronized Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
+  public static synchronized Map<CommandGroup,Map<String,KeywordExecutable>>
+      getExecutables(final ClassLoader cl) {
     if (servicesMap == null) {
       servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
     }
     return servicesMap;
   }
 
-  public static Map<String,KeywordExecutable>
+  private record BanKey(CommandGroup group, String keyword) implements Comparable<BanKey> {
+    @Override
+    public int compareTo(BanKey o) {
+      int result = this.group.compareTo(o.group);
+      if (result == 0) {
+        result = this.keyword.compareTo(o.keyword);
+      }
+      return result;
+    }
+  };
+
+  public static Map<CommandGroup,Map<String,KeywordExecutable>>
       checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
-    TreeSet<String> banList = new TreeSet<>();
-    TreeMap<String,KeywordExecutable> results = new TreeMap<>();
+    TreeSet<BanKey> banList = new TreeSet<>();
+    Map<CommandGroup,Map<String,KeywordExecutable>> results = new TreeMap<>();
     for (KeywordExecutable service : services) {
+      CommandGroup group = service.commandGroup();
+      results.putIfAbsent(group, new TreeMap<>());
       String keyword = service.keyword();
-      if (banList.contains(keyword)) {
+      BanKey bk = new BanKey(group, keyword);
+      if (banList.contains(bk)) {
         // subsequent times a duplicate is found, just warn and exclude it
         warnDuplicate(service);
-      } else if (results.containsKey(keyword)) {
+      } else if (results.get(group).containsKey(keyword)) {
         // the first time a duplicate is found, banList it and warn
-        banList.add(keyword);
-        warnDuplicate(results.remove(keyword));
+        banList.add(bk);
+        warnDuplicate(results.get(group).remove(keyword));
         warnDuplicate(service);
       } else {
         // first observance of this keyword, so just add it to the list
-        results.put(service.keyword(), service);
+        results.get(group).put(service.keyword(), service);
       }
     }
-    return Collections.unmodifiableSortedMap(results);
+    return Collections.unmodifiableMap(results);
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {

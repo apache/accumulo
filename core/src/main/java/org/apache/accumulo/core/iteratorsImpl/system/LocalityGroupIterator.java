@@ -70,7 +70,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     private InterruptibleIterator iterator;
   }
 
-  public static class LocalityGroupContext {
+  public static final class LocalityGroupContext {
     final List<LocalityGroup> groups;
     final LocalityGroup defaultGroup;
     final Map<ByteSequence,LocalityGroup> groupByCf;

@@ -48,7 +48,7 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.suites.SimpleSharedMacTestSuiteIT;
+import org.apache.accumulo.test.suites.SimpleSharedMacTestSuiteIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -136,7 +136,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     cluster = harness.create(getTestClassName(), SharedMiniClusterBase.class.getSimpleName(), token,
         miniClusterCallback, krb);
     cluster.start();
-
+    try (AccumuloClient ac = Accumulo.newClient().from(getClientProps()).build()) {
+      AccumuloITBase.setSystemTablePermsForITs(ac, cluster.getServerContext().securityOperations());
+    }
   }
 
   private static String getTestClassName() {

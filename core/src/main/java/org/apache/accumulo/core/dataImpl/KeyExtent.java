@@ -64,7 +64,7 @@ import org.apache.hadoop.io.Text;
 /**
  * keeps track of information needed to identify a tablet
  */
-public class KeyExtent implements Comparable<KeyExtent> {
+public final class KeyExtent implements Comparable<KeyExtent> {
 
   private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
 
@@ -284,10 +284,9 @@ public class KeyExtent implements Comparable<KeyExtent> {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof KeyExtent)) {
+    if (!(o instanceof KeyExtent oke)) {
       return false;
     }
-    KeyExtent oke = (KeyExtent) o;
     return tableId().equals(oke.tableId()) && Objects.equals(endRow(), oke.endRow())
         && Objects.equals(prevEndRow(), oke.prevEndRow());
   }

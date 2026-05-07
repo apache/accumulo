@@ -37,11 +37,15 @@ import java.util.concurrent.TimeoutException;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.util.ZooZap;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +59,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   protected MiniAccumuloClusterImpl cluster;
 
   Process zooKeeperProcess = null;
-  Process managerProcess = null;
+  final List<Process> managerProcesses = new ArrayList<>();
   Process gcProcess = null;
   Process monitor = null;
   final Map<String,List<Process>> tabletServerProcesses = new HashMap<>();
@@ -104,7 +108,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public void adminStopAll() throws IOException {
-    Process p = cluster.exec(Admin.class, "stopAll").getProcess();
+    Process p = cluster.exec(StopAll.class).getProcess();
     try {
       p.waitFor();
     } catch (InterruptedException e) {
@@ -145,28 +149,37 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           Map<String,Integer> tserverGroups =
               cluster.getConfig().getClusterServerConfiguration().getTabletServerConfiguration();
           for (Entry<String,Integer> e : tserverGroups.entrySet()) {
+            final String rg = e.getKey();
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
-                tabletServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                tabletServerProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
-                : cluster.getConfig().getServerClass(server, e.getKey());
+                : cluster.getConfig().getServerClass(server, rg);
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes
-                  .add(
-                      cluster
-                          ._exec(classToUse, server, configOverrides,
-                              ArrayUtils.addAll(args, "-o",
-                                  Property.TSERV_GROUP_NAME.getKey() + "=" + e.getKey()))
-                          .getProcess());
+              processes.add(cluster
+                  ._exec(classToUse, server, configOverrides,
+                      ArrayUtils.addAll(args, "-o", Property.TSERV_GROUP_NAME.getKey() + "=" + rg))
+                  .getProcess());
             }
           }
         }
         break;
       case MANAGER:
-        if (managerProcess == null) {
+        synchronized (managerProcesses) {
+          int numMgrs = cluster.getConfig().getClusterServerConfiguration().getNumManagers();
           Class<?> classToUse = classOverride != null ? classOverride
               : cluster.getConfig().getServerClass(server, Constants.DEFAULT_RESOURCE_GROUP_NAME);
-          managerProcess = cluster._exec(classToUse, server, configOverrides, args).getProcess();
+          for (int i = managerProcesses.size(); i < numMgrs; i++) {
+            managerProcesses
+                .add(cluster._exec(classToUse, server, configOverrides, args).getProcess());
+          }
         }
         break;
       case ZOOKEEPER:
@@ -197,19 +210,24 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           Map<String,Integer> sserverGroups =
               cluster.getConfig().getClusterServerConfiguration().getScanServerConfiguration();
           for (Entry<String,Integer> e : sserverGroups.entrySet()) {
+            final String rg = e.getKey();
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
-                scanServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                scanServerProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
-                : cluster.getConfig().getServerClass(server, e.getKey());
+                : cluster.getConfig().getServerClass(server, rg);
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes
-                  .add(
-                      cluster
-                          ._exec(classToUse, server, configOverrides,
-                              ArrayUtils.addAll(args, "-o",
-                                  Property.SSERV_GROUP_NAME.getKey() + "=" + e.getKey()))
-                          .getProcess());
+              processes.add(cluster
+                  ._exec(classToUse, server, configOverrides,
+                      ArrayUtils.addAll(args, "-o", Property.SSERV_GROUP_NAME.getKey() + "=" + rg))
+                  .getProcess());
             }
           }
         }
@@ -220,10 +238,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
           for (Entry<String,Integer> e : compactorGroups.entrySet()) {
             final String rg = e.getKey();
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
                 compactorProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
-                : cluster.getConfig().getServerClass(server, e.getKey());
+                : cluster.getConfig().getServerClass(server, rg);
             int count = 0;
             // Override the Compactor classToUse for the default resource group. In the cases
             // where the ExternalDoNothingCompactor and MemoryConsumingCompactor are used, they
@@ -262,6 +287,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
+  public void stopScanServerGroup(String sserverResourceGroup) {
+    synchronized (scanServerProcesses) {
+      var group = scanServerProcesses.get(sserverResourceGroup);
+      if (group == null) {
+        return;
+      }
+      cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, group, 30, TimeUnit.SECONDS);
+      scanServerProcesses.remove(sserverResourceGroup);
+    }
+  }
+
   public void stopTabletServerGroup(String tserverResourceGroup) {
     synchronized (tabletServerProcesses) {
       var group = tabletServerProcesses.get(tserverResourceGroup);
@@ -277,20 +313,21 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MANAGER:
-        if (managerProcess != null) {
+        synchronized (managerProcesses) {
           try {
-            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
+            cluster.stopProcessesWithTimeout(ServerType.MANAGER, managerProcesses, 30,
+                TimeUnit.SECONDS);
             try {
-              new ZooZap().zap(cluster.getServerContext(), "-manager");
-            } catch (RuntimeException e) {
+              System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+                  "file://" + cluster.getAccumuloPropertiesPath());
+              new ZooZap().execute(new String[] {"-managers"});
+            } catch (Exception e) {
               log.error("Error zapping Manager zookeeper lock", e);
+            } finally {
+              System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
             }
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Manager did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
           } finally {
-            managerProcess = null;
+            managerProcesses.clear();
           }
         }
         break;
@@ -392,14 +429,21 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     boolean found = false;
     switch (type) {
       case MANAGER:
-        if (procRef.getProcess().equals(managerProcess)) {
-          try {
-            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Manager did not fully stop after 30 seconds", e);
+        synchronized (managerProcesses) {
+          Iterator<Process> iter = managerProcesses.iterator();
+          while (!found && iter.hasNext()) {
+            Process process = iter.next();
+            if (procRef.getProcess().equals(process)) {
+              iter.remove();
+              try {
+                cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("Manager did not fully stop after 30 seconds", e);
+              }
+              found = true;
+              break;
+            }
           }
-          managerProcess = null;
-          found = true;
         }
         break;
       case TABLET_SERVER:
@@ -518,9 +562,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MANAGER:
-        if (!managerProcess.isAlive()) {
-          managerProcess = null;
-        }
+        managerProcesses.removeIf(process -> !process.isAlive());
         break;
       case MONITOR:
         if (!monitor.isAlive()) {
@@ -546,23 +588,31 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public Set<Process> getProcesses(ServerType type) {
     switch (type) {
       case COMPACTOR:
-        Set<Process> cprocesses = new HashSet<>();
-        compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
-        return cprocesses;
+        synchronized (compactorProcesses) {
+          Set<Process> cprocesses = new HashSet<>();
+          compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
+          return cprocesses;
+        }
       case GARBAGE_COLLECTOR:
         return gcProcess == null ? Set.of() : Set.of(gcProcess);
       case MANAGER:
-        return managerProcess == null ? Set.of() : Set.of(managerProcess);
+        synchronized (managerProcesses) {
+          return managerProcesses.size() == 0 ? Set.of() : Set.copyOf(managerProcesses);
+        }
       case MONITOR:
         return monitor == null ? Set.of() : Set.of(monitor);
       case SCAN_SERVER:
-        Set<Process> sprocesses = new HashSet<>();
-        scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
-        return sprocesses;
+        synchronized (scanServerProcesses) {
+          Set<Process> sprocesses = new HashSet<>();
+          scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
+          return sprocesses;
+        }
       case TABLET_SERVER:
-        Set<Process> tprocesses = new HashSet<>();
-        tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
-        return tprocesses;
+        synchronized (tabletServerProcesses) {
+          Set<Process> tprocesses = new HashSet<>();
+          tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
+          return tprocesses;
+        }
       case ZOOKEEPER:
         return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
       default:

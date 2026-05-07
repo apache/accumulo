@@ -19,6 +19,9 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_AVG_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_LONGEST_RUNTIME;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
@@ -32,6 +35,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -43,6 +48,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
@@ -64,9 +70,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.AtomicDouble;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class LogSorter {
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public class LogSorter implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
 
@@ -229,6 +239,9 @@ public class LogSorter {
   private final double walBlockSize;
   private final CryptoService cryptoService;
   private final AccumuloConfiguration sortedLogConf;
+  private final AtomicLong recoveriesInProgress = new AtomicLong(0);
+  private final AtomicLong recoveryRuntime = new AtomicLong(0);
+  private final AtomicDouble recoveryAvgProgress = new AtomicDouble(0.0D);
 
   public LogSorter(AbstractServer server) {
     this.server = server;
@@ -239,6 +252,8 @@ public class LogSorter {
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
     this.cryptoService =
         context.getCryptoFactory().getService(env, this.conf.getAllCryptoProperties());
+    ThreadPools.watchNonCriticalScheduledTask(context.getScheduledExecutor()
+        .scheduleWithFixedDelay(() -> updateMetrics(), 60, 60, TimeUnit.SECONDS));
   }
 
   /**
@@ -334,5 +349,42 @@ public class LogSorter {
       }
       return result;
     }
+  }
+
+  private void updateMetrics() {
+    synchronized (currentWork) {
+      recoveriesInProgress.set(currentWork.size());
+      if (recoveriesInProgress.get() == 0) {
+        recoveryRuntime.set(0);
+        recoveryAvgProgress.set(0.0D);
+      } else {
+        long runtime = 0;
+        long progress = 0;
+        for (LogProcessor processor : currentWork.values()) {
+          long start = processor.getSortTime();
+          if (start > 0) { // may not have started yet
+            runtime = Math.max(start, runtime);
+          }
+          try {
+            progress += processor.getBytesCopied();
+          } catch (IOException e) {
+            log.warn("Error getting bytes read");
+          }
+        }
+        recoveryRuntime.set(runtime);
+        recoveryAvgProgress
+            .set(Math.min(progress / (walBlockSize * recoveriesInProgress.get()), 99.9));
+      }
+    }
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge.builder(RECOVERIES_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
+        .description(RECOVERIES_IN_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
+        .description(RECOVERIES_LONGEST_RUNTIME.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
+        .description(RECOVERIES_AVG_PROGRESS.getDescription()).register(registry);
   }
 }

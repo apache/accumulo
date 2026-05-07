@@ -25,8 +25,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -84,24 +82,6 @@ public class VolumeUtil {
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
     Path switchedPath = switchVolume(new Path(le.getPath()), FileType.WAL, replacements);
     return switchedPath == null ? null : LogEntry.fromPath(switchedPath.toString());
-  }
-
-  public static class TabletFiles {
-    public String dirName;
-    public final List<LogEntry> logEntries;
-    public final SortedMap<StoredTabletFile,DataFileValue> datafiles;
-
-    public TabletFiles() {
-      logEntries = new ArrayList<>();
-      datafiles = new TreeMap<>();
-    }
-
-    public TabletFiles(String dirName, List<LogEntry> logEntries,
-        SortedMap<StoredTabletFile,DataFileValue> datafiles) {
-      this.dirName = dirName;
-      this.logEntries = logEntries;
-      this.datafiles = datafiles;
-    }
   }
 
   public static boolean needsVolumeReplacement(final Map<Path,Path> replacements,

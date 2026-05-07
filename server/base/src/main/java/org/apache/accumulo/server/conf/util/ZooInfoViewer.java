@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
+import static org.apache.accumulo.core.Constants.ZRESOURCEGROUPS;
 import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.checkWritableAuth;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.extractAuthName;
@@ -38,16 +39,20 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -56,12 +61,17 @@ import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.conf.util.ZooInfoViewer.ViewerOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.zookeeper.ZooAclUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.ACL;
@@ -69,6 +79,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
@@ -77,7 +88,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
     justification = "app is run in same security context as user providing the filename")
-public class ZooInfoViewer implements KeywordExecutable {
+public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
   private static final DateTimeFormatter tsFormat =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
@@ -86,10 +97,9 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private static final String INDENT = "  ";
 
-  /**
-   * No-op constructor - provided so ServiceLoader autoload does not consume resources.
-   */
-  public ZooInfoViewer() {}
+  public ZooInfoViewer() {
+    super(new ViewerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -102,26 +112,22 @@ public class ZooInfoViewer implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  public CommandGroup commandGroup() {
+    return CommandGroups.CONFIG;
+  }
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(), args);
+  @Override
+  public void execute(JCommander cl, ViewerOpts opts) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
     log.info("print ids map: {}", opts.printIdMap);
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    try (ServerContext context = getContext(opts)) {
-      generateReport(context, opts);
-    }
+    generateReport(getServerContext(), opts);
   }
 
-  ServerContext getContext(ZooInfoViewer.Opts opts) {
-    return new ServerContext(opts.getSiteConfiguration());
-  }
-
-  void generateReport(final ServerContext context, final ZooInfoViewer.Opts opts) throws Exception {
+  void generateReport(final ServerContext context, final ViewerOpts opts) throws Exception {
 
     OutputStream outStream;
 
@@ -144,6 +150,10 @@ public class ZooInfoViewer implements KeywordExecutable {
         printInstanceIds(instanceMap, writer);
       }
 
+      if (opts.printResourceGroups) {
+        printResourceGroups(context, writer);
+      }
+
       if (opts.printIdMap) {
         printIdMapping(context, writer);
       }
@@ -155,12 +165,13 @@ public class ZooInfoViewer implements KeywordExecutable {
       if (opts.printAcls) {
         printAcls(context, opts, writer);
       }
+
       writer.println("-----------------------------------------------");
     }
   }
 
-  private void printProps(final ServerContext context, final Opts opts, final PrintWriter writer)
-      throws Exception {
+  private void printProps(final ServerContext context, final ViewerOpts opts,
+      final PrintWriter writer) throws Exception {
     var iid = context.getInstanceID();
     var zooReader = context.getZooSession().asReader();
 
@@ -169,6 +180,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     } else {
       log.info("Filters:");
       log.info("system: {}", opts.printSysProps());
+      log.info("resource groups: {} {}", opts.printResourceGroupProps(),
+          opts.getResourceGroups().size() > 0 ? opts.getResourceGroups() : "");
       log.info("namespaces: {} {}", opts.printNamespaceProps(),
           opts.getNamespaces().size() > 0 ? opts.getNamespaces() : "");
       log.info("tables: {} {}", opts.printTableProps(),
@@ -178,6 +191,15 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.printf("ZooKeeper properties for instance ID: %s\n\n", iid.canonical());
     if (opts.printSysProps()) {
       printSortedProps(writer, Map.of("System", fetchSystemProp(iid, zooReader)));
+    }
+
+    if (opts.printResourceGroupProps()) {
+      Map<String,VersionedProperties> nsProps =
+          fetchResourceGroupProps(iid, zooReader, opts.getResourceGroups());
+
+      writer.println("Resource Groups: ");
+      printSortedProps(writer, nsProps);
+      writer.flush();
     }
 
     if (opts.printNamespaceProps()) {
@@ -219,7 +241,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println();
   }
 
-  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer) {
+  private void printAcls(final ServerContext context, final ViewerOpts opts,
+      final PrintWriter writer) {
     var iid = context.getInstanceID();
 
     Map<String,List<ACL>> aclMap = new TreeMap<>();
@@ -310,6 +333,52 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println("Instances (Instance Name, Instance ID)");
     instanceIdMap.forEach((name, iid) -> writer.println(name + "=" + iid));
     writer.println();
+  }
+
+  private void printResourceGroups(ServerContext context, PrintWriter writer) {
+    Set<String> groups = new TreeSet<>();
+    context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS).forEach(groups::add);
+    String rgs = String.join(" ", groups.toArray(new String[] {}));
+    writer.println("Resource Groups: " + rgs);
+    writer.println();
+  }
+
+  private Map<String,VersionedProperties> fetchResourceGroupProps(InstanceId iid,
+      ZooReader zooReader, List<String> groups) {
+
+    try {
+      List<String> zkGroups = zooReader.getChildren(ZRESOURCEGROUPS);
+      Set<String> cmdOptGroups = new TreeSet<>(groups);
+
+      Map<ResourceGroupId,String> filteredIds = new HashMap<>();
+      if (cmdOptGroups.isEmpty()) {
+        zkGroups.forEach(v -> filteredIds.put(ResourceGroupId.of(v), v));
+      } else {
+        zkGroups.forEach(v -> {
+          if (cmdOptGroups.contains(v)) {
+            filteredIds.put(ResourceGroupId.of(v), v);
+          }
+        });
+      }
+      log.trace("rg filter: {}", filteredIds);
+      Map<String,VersionedProperties> results = new TreeMap<>();
+
+      for (Entry<ResourceGroupId,String> e : filteredIds.entrySet()) {
+        var key = ResourceGroupPropKey.of(e.getKey());
+        log.trace("fetch props from path: {}", key.getPath());
+        var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
+        results.put(e.getValue(), props);
+      }
+      return results;
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted reading resource group properties from ZooKeeper", ex);
+    } catch (IOException | KeeperException ex) {
+      throw new IllegalStateException("Failed to read resource group properties from ZooKeeper",
+          ex);
+    }
+
   }
 
   private Map<String,VersionedProperties> fetchNamespaceProps(InstanceId iid, ZooReader zooReader,
@@ -409,7 +478,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
   }
 
-  static class Opts extends ConfigOpts {
+  static class ViewerOpts extends ServerOpts {
     @Parameter(names = {"--outfile"},
         description = "Write the output to a file, if the file exists will not be overwritten.")
     public String outfile = "";
@@ -420,6 +489,10 @@ public class ZooInfoViewer implements KeywordExecutable {
             + " nodes that it uses. PRIVATE | NOT_PRIVATE - other than configuration, most nodes are world read-able "
             + "(NOT_PRIVATE) to permit client access")
     public boolean printAcls = false;
+
+    @Parameter(names = {"--print-resource-groups"},
+        description = "print the names of the resource groups")
+    public boolean printResourceGroups = false;
 
     @Parameter(names = {"--print-id-map"},
         description = "print the namespace and table id, name mappings stored in ZooKeeper")
@@ -438,6 +511,11 @@ public class ZooInfoViewer implements KeywordExecutable {
         variableArity = true)
     private List<String> namespacesOpt = new ArrayList<>();
 
+    @Parameter(names = {"-r", "--resource-groups"},
+        description = "a list of resource group names to print properties, with none specified, print all. Only valid with --print-props",
+        variableArity = true)
+    private List<String> resourceGroupOpt = new ArrayList<>();
+
     @Parameter(names = {"--system"},
         description = "print the properties for the system config. Only valid with --print-props")
     private boolean printSystemOpt = false;
@@ -453,11 +531,16 @@ public class ZooInfoViewer implements KeywordExecutable {
      * @return true if print all is set AND no namespaces or table names were provided.
      */
     boolean printAllProps() {
-      return !printSystemOpt && namespacesOpt.isEmpty() && tablesOpt.isEmpty();
+      return !printSystemOpt && namespacesOpt.isEmpty() && tablesOpt.isEmpty()
+          && resourceGroupOpt.isEmpty();
     }
 
     boolean printSysProps() {
       return printAllProps() || printSystemOpt;
+    }
+
+    boolean printResourceGroupProps() {
+      return printAllProps() || !resourceGroupOpt.isEmpty();
     }
 
     boolean printNamespaceProps() {
@@ -466,6 +549,10 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     List<String> getNamespaces() {
       return namespacesOpt;
+    }
+
+    List<String> getResourceGroups() {
+      return resourceGroupOpt;
     }
 
     boolean printTableProps() {

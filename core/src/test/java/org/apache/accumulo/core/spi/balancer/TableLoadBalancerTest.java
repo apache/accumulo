@@ -36,8 +36,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -146,17 +146,15 @@ public class TableLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(
-        new BalanceParamsImpl(state, Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, state.keySet()),
-            migrations, migrationsOut, DataLevel.USER, tableIdMap));
+    tls.balance(new BalanceParamsImpl(state, Map.of(ResourceGroupId.DEFAULT, state.keySet()),
+        migrations, migrationsOut, DataLevel.USER, tableIdMap));
     assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", 2345, "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(
-        new BalanceParamsImpl(state, Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, state.keySet()),
-            migrations, migrationsOut, DataLevel.USER, tableIdMap));
+    tls.balance(new BalanceParamsImpl(state, Map.of(ResourceGroupId.DEFAULT, state.keySet()),
+        migrations, migrationsOut, DataLevel.USER, tableIdMap));
     int count = 0;
     Map<TableId,Integer> movedByTable = new HashMap<>();
     movedByTable.put(TableId.of(t1Id), 0);
@@ -178,9 +176,9 @@ public class TableLoadBalancerTest {
   private static class TestCurrAssignment implements TabletBalancer.CurrentAssignment {
 
     private final TabletIdImpl tablet;
-    private final String resourceGroup;
+    private final ResourceGroupId resourceGroup;
 
-    TestCurrAssignment(TableId tid, String rg) {
+    TestCurrAssignment(TableId tid, ResourceGroupId rg) {
       this.tablet = new TabletIdImpl(new KeyExtent(tid, null, null));
       this.resourceGroup = rg;
     }
@@ -196,7 +194,7 @@ public class TableLoadBalancerTest {
     }
 
     @Override
-    public String getResourceGroup() {
+    public ResourceGroupId getResourceGroup() {
       return resourceGroup;
     }
   }
@@ -231,15 +229,14 @@ public class TableLoadBalancerTest {
     };
     tls.init(environment);
 
-    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid1, "G1")));
-    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid1, "G2")));
+    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid1, ResourceGroupId.of("G1"))));
+    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid1, ResourceGroupId.of("G2"))));
 
-    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid2, "G2")));
-    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid2, "G1")));
+    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid2, ResourceGroupId.of("G2"))));
+    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid2, ResourceGroupId.of("G1"))));
 
-    assertFalse(
-        tls.needsReassignment(new TestCurrAssignment(tid3, Constants.DEFAULT_RESOURCE_GROUP_NAME)));
-    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid3, "G1")));
+    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid3, ResourceGroupId.DEFAULT)));
+    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid3, ResourceGroupId.of("G1"))));
 
     // test when the delegated table balancer returns true for one table and false for others
     var tls2 = new TableLoadBalancer() {
@@ -253,15 +250,14 @@ public class TableLoadBalancerTest {
     };
     tls2.init(environment);
 
-    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid1, "G1")));
-    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid1, "G2")));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid1, ResourceGroupId.of("G1"))));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid1, ResourceGroupId.of("G2"))));
 
-    assertFalse(tls2.needsReassignment(new TestCurrAssignment(tid2, "G2")));
-    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid2, "G1")));
+    assertFalse(tls2.needsReassignment(new TestCurrAssignment(tid2, ResourceGroupId.of("G2"))));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid2, ResourceGroupId.of("G1"))));
 
-    assertFalse(tls2
-        .needsReassignment(new TestCurrAssignment(tid3, Constants.DEFAULT_RESOURCE_GROUP_NAME)));
-    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid3, "G1")));
+    assertFalse(tls2.needsReassignment(new TestCurrAssignment(tid3, ResourceGroupId.DEFAULT)));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid3, ResourceGroupId.of("G1"))));
   }
 
 }

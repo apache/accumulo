@@ -28,10 +28,14 @@ import org.apache.accumulo.core.conf.Property;
 
 import com.google.common.collect.Sets;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class serves to configure compaction services from an {@link AccumuloConfiguration} object.
  * Specifically, compaction service properties (those prefixed by "compaction.service") are used.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class CompactionServicesConfig {
 
   private final Map<String,String> planners = new HashMap<>();
@@ -91,8 +95,7 @@ public class CompactionServicesConfig {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof CompactionServicesConfig) {
-      var oc = (CompactionServicesConfig) o;
+    if (o instanceof CompactionServicesConfig oc) {
       return getPlanners().equals(oc.getPlanners()) && getOptions().equals(oc.getOptions());
     }
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.shell;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileDescriptor;
@@ -96,14 +96,15 @@ public class ShellConfigTest {
   }
 
   @Test
-  public void testHelp() throws IOException {
-    assertFalse(shell.config(args("--help")));
+  public void testHelp() throws Exception {
+    shell.execute(args("--help"));
     assertTrue(output.get().startsWith("Usage"), "Did not print usage");
   }
 
   @Test
-  public void testBadArg() throws IOException {
-    assertFalse(shell.config(args("--bogus")));
+  public void testBadArg() throws Exception {
+    shell.execute(args("--bogus"));
+    assertNotEquals(0, shell.getExitCode());
     // JCommander versions after 1.60 will cause the Shell to detect the arg as Unrecognized option
     assertTrue(output.get().startsWith("ERROR"), "Did not print Error");
     assertTrue(output.get().contains("Usage"), "Did not print usage");

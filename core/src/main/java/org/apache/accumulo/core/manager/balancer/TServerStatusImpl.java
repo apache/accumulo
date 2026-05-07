@@ -147,7 +147,4 @@ public class TServerStatusImpl implements TServerStatus {
     return thriftStatus.toString();
   }
 
-  public TabletServerStatus toThrift() {
-    return thriftStatus;
-  }
 }

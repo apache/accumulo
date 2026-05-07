@@ -20,6 +20,7 @@ package org.apache.accumulo.compactor;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -38,15 +39,15 @@ public class ExtCEnv implements CompactionEnv {
 
   private final CompactionJobHolder jobHolder;
   private final TExternalCompactionJob job;
-  private final String groupName;
+  private final ResourceGroupId groupName;
 
   public static class CompactorIterEnv extends SystemIteratorEnvironmentImpl {
 
     private static class Builder extends SystemIteratorEnvironmentImpl.Builder {
 
-      private final String groupName;
+      private final ResourceGroupId groupName;
 
-      public Builder(ServerContext context, String groupName) {
+      public Builder(ServerContext context, ResourceGroupId groupName) {
         super(context);
         this.groupName = groupName;
       }
@@ -58,7 +59,7 @@ public class ExtCEnv implements CompactionEnv {
 
     }
 
-    private final String groupName;
+    private final ResourceGroupId groupName;
 
     public CompactorIterEnv(Builder builder) {
       super(builder);
@@ -66,15 +67,15 @@ public class ExtCEnv implements CompactionEnv {
     }
 
     @VisibleForTesting
-    public String getQueueName() {
+    public ResourceGroupId getQueueName() {
       return groupName;
     }
 
   }
 
-  ExtCEnv(CompactionJobHolder jobHolder, String groupName) {
+  ExtCEnv(CompactionJobHolder jobHolder, ResourceGroupId groupName) {
     this.jobHolder = jobHolder;
-    this.job = jobHolder.getJob();
+    this.job = jobHolder.getCurrentCompaction().getJob();
     this.groupName = groupName;
   }
 
@@ -99,7 +100,7 @@ public class ExtCEnv implements CompactionEnv {
       builder.isUserCompaction();
     }
 
-    if (!jobHolder.getJob().isPropagateDeletes()) {
+    if (!jobHolder.getCurrentCompaction().getJob().isPropagateDeletes()) {
       builder.isFullMajorCompaction();
     }
 
@@ -113,14 +114,10 @@ public class ExtCEnv implements CompactionEnv {
 
   @Override
   public TCompactionReason getReason() {
-    switch (job.getKind()) {
-      case USER:
-        return TCompactionReason.USER;
-      case SYSTEM:
-        return TCompactionReason.SYSTEM;
-      default:
-        throw new IllegalStateException("Unknown compaction kind " + job.getKind());
-    }
+    return switch (job.getKind()) {
+      case USER -> TCompactionReason.USER;
+      case SYSTEM -> TCompactionReason.SYSTEM;
+    };
   }
 
 }

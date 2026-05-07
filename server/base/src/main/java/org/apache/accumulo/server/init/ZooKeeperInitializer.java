@@ -47,8 +47,10 @@ import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.manager.FateLocations;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -76,16 +78,33 @@ public class ZooKeeperInitializer {
       String zkInstanceRoot = ZooUtil.getRoot(instanceId);
       zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
       var sysPropPath = SystemPropKey.of().getPath();
-      VersionedProperties vProps = new VersionedProperties();
       // skip if the encoded props node exists
-      if (zoo.exists(sysPropPath)) {
+      boolean alreadyExists = zoo.exists(zkInstanceRoot + sysPropPath);
+      var created = zoo.putPrivatePersistentData(zkInstanceRoot + sysPropPath,
+          VersionedPropCodec.getDefault().toBytes(new VersionedProperties()),
+          ZooUtil.NodeExistsPolicy.FAIL);
+      if (!alreadyExists && !created) {
+        throw new IllegalStateException(
+            "Failed to create default system props during initialization at: " + sysPropPath);
+      }
+
+      var defaultRG = ResourceGroupPropKey.DEFAULT;
+      zoo.putPersistentData(zkInstanceRoot + Constants.ZRESOURCEGROUPS, EMPTY_BYTE_ARRAY,
+          ZooUtil.NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(
+          zkInstanceRoot + Constants.ZRESOURCEGROUPS + "/" + defaultRG.getId().canonical(),
+          EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
+      var rgPropPath = defaultRG.getPath();
+      if (zoo.exists(zkInstanceRoot + rgPropPath)) {
         return;
       }
-      var created = zoo.putPrivatePersistentData(zkInstanceRoot + sysPropPath,
-          VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
+      created = zoo.putPrivatePersistentData(zkInstanceRoot + rgPropPath,
+          VersionedPropCodec.getDefault().toBytes(new VersionedProperties()),
+          ZooUtil.NodeExistsPolicy.FAIL);
       if (!created) {
         throw new IllegalStateException(
-            "Failed to create default system props during initialization at: {}" + sysPropPath);
+            "Failed to create default resource group props during initialization at: "
+                + rgPropPath);
       }
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to initialize configuration for prop store", ex);
@@ -158,6 +177,14 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZCOMPACTIONS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZMANAGER_ASSISTANT_LOCK, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZSHUTTING_DOWN_TSERVERS, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZMANAGER_ASSIGNMENTS, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    FateLocations.storeLocations(zrwChroot, Map.of(), ZooUtil.NodeExistsPolicy.FAIL);
+
   }
 
   /**

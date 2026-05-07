@@ -36,23 +36,18 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.context.Scope;
 
 /**
  * This utility class will scan the Accumulo Metadata table to compute the disk usage for a table or
@@ -319,22 +314,8 @@ public class TableDiskUsage {
     }
   }
 
-  static class Opts extends ServerUtilOpts {
-    @Parameter(description = " <table> { <table> ... } ")
-    final List<String> tables = new ArrayList<>();
+  static class Opts extends ClientOpts {
+    @Parameter(required = true, description = " <table> { <table> ... } ")
+    List<String> tables = new ArrayList<>();
   }
-
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(TableDiskUsage.class.getName(), args);
-    Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
-    try (Scope scope = span.makeCurrent()) {
-      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-        org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, client, false);
-      } finally {
-        span.end();
-      }
-    }
-  }
-
 }

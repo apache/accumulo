@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -39,6 +40,8 @@ import org.apache.hadoop.io.WritableUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of
@@ -68,6 +71,8 @@ import com.google.common.base.Preconditions;
  * support different subset of fields and types. The functionality of all of these {@code put}
  * methods and more is provided by the new fluent {@link #at()} method added in 2.0.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Mutation implements Writable {
 
   /**
@@ -777,6 +782,16 @@ public class Mutation implements Writable {
     QualifierOptions family(CharSequence colFam);
 
     QualifierOptions family(Text colFam);
+
+    /**
+     * Sets the column family, column qualifier, and column visibility of a mutation. All other
+     * fields in the key are ignored.
+     *
+     * @param key key
+     * @return a TimestampOptions object, advancing the method chain
+     * @since 4.0.0
+     */
+    TimestampOptions keyColumns(Key key);
   }
 
   /**
@@ -960,6 +975,17 @@ public class Mutation implements Writable {
     @Override
     public QualifierOptions family(Text colFam) {
       return family(colFam.getBytes(), colFam.getLength());
+    }
+
+    @Override
+    public TimestampOptions keyColumns(Key key) {
+      Objects.requireNonNull(key, "key cannot be null");
+
+      byte[] colFam = key.getColumnFamilyData().toArray();
+      byte[] colQual = key.getColumnQualifierData().toArray();
+      byte[] colVis = key.getColumnVisibilityData().toArray();
+
+      return this.family(colFam).qualifier(colQual).visibility(colVis);
     }
 
     /**

@@ -73,7 +73,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -265,11 +265,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
 
-    synchronized (runningCompactions) {
-      for (FileCompactor compactor : runningCompactions) {
-        compactions.add(new CompactionInfo(compactor));
-      }
-    }
+    runningCompactions.forEach(compactor -> compactions.add(new CompactionInfo(compactor)));
 
     return compactions;
   }
@@ -307,14 +303,14 @@ public class FileCompactor implements Callable<CompactionStats> {
       throws IOException {
     try {
       return LocalityGroupUtil.getLocalityGroups(acuTableConf);
-    } catch (LocalityGroupConfigurationError e) {
+    } catch (LocalityGroupConfigurationException e) {
       throw new IOException(e);
     }
   }
 
   @Override
-  public CompactionStats call()
-      throws IOException, CompactionCanceledException, InterruptedException {
+  public CompactionStats call() throws IOException, CompactionCanceledException,
+      InterruptedException, ReflectiveOperationException {
 
     FileSKVWriter mfw = null;
 
@@ -328,10 +324,19 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     clearCurrentEntryCounts();
 
+    final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
+
+    StringBuilder newThreadName = new StringBuilder();
+    if (isMinC) {
+      newThreadName.append("MinC ");
+    } else {
+      newThreadName.append("MajC ");
+    }
+
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName =
-        "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
-    Thread.currentThread().setName(newThreadName);
+    newThreadName.append("compacting ").append(extent).append(" started ").append(threadStartDate)
+        .append(" file: ").append(outputFile);
+    Thread.currentThread().setName(newThreadName.toString());
     // Use try w/ resources for clearing the thread instead of finally because clearing may throw an
     // exception. Java's handling of exceptions thrown in finally blocks is not good.
     try (var ignored = setThread()) {
@@ -353,17 +358,16 @@ public class FileCompactor implements Callable<CompactionStats> {
       final EnumSet<FilePrefix> dropCacheFileTypes =
           ConfigurationTypeHelper.getDropCacheBehindFilePrefixes(dropCachePrefixProperty);
 
-      final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
-
       final boolean dropCacheBehindOutput =
           !SystemTables.ROOT.tableId().equals(this.extent.tableId())
               && !SystemTables.METADATA.tableId().equals(this.extent.tableId())
               && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
                   || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
-      WriterBuilder outBuilder =
-          fileFactory.newWriterBuilder().forFile(outputFile, ns, ns.getConf(), cryptoService)
-              .withTableConfiguration(acuTableConf);
+      WriterBuilder outBuilder = fileFactory.newWriterBuilder().forTable(this.extent.tableId())
+          .forFile(outputFile, ns, ns.getConf(), cryptoService)
+          .withTableConfiguration(acuTableConf);
+
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
@@ -536,7 +540,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
-      EnumSet<FilePrefix> dropCacheFilePrefixes) throws IOException, CompactionCanceledException {
+      EnumSet<FilePrefix> dropCacheFilePrefixes)
+      throws IOException, CompactionCanceledException, ReflectiveOperationException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
@@ -559,7 +564,6 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorConfigUtil
           .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
-
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 
       if (inclusive) {

@@ -34,21 +34,8 @@ public class RetryableThriftCall<T> {
 
     public RetriesExceededException() {}
 
-    public RetriesExceededException(String message, Throwable cause, boolean enableSuppression,
-        boolean writableStackTrace) {
-      super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public RetriesExceededException(String message, Throwable cause) {
-      super(message, cause);
-    }
-
     public RetriesExceededException(String message) {
       super(message);
-    }
-
-    public RetriesExceededException(Throwable cause) {
-      super(cause);
     }
 
   }

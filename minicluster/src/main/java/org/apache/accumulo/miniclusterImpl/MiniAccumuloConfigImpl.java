@@ -28,18 +28,20 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
@@ -58,6 +60,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed
@@ -86,6 +90,7 @@ public class MiniAccumuloConfigImpl {
   private final Map<ServerType,Function<String,Class<?>>> rgServerClassOverrides = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
+  private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -111,16 +116,13 @@ public class MiniAccumuloConfigImpl {
   private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
+  private int numMiniDFSDataNodes = 1;
 
   private boolean useCredentialProvider = false;
 
   private String[] classpathItems = null;
 
   private String[] nativePathItems = null;
-
-  // These are only used on top of existing instances
-  private Configuration hadoopConf;
-  private SiteConfiguration accumuloConf;
 
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
@@ -175,7 +177,6 @@ public class MiniAccumuloConfigImpl {
       // enable metrics reporting - by default will appear in standard log files.
       mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
 
-      mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
@@ -188,8 +189,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-
-      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
@@ -233,7 +232,7 @@ public class MiniAccumuloConfigImpl {
 
     Path keystoreFile = confDir.resolve("credential-provider.jks");
     String keystoreUri = "jceks://file" + keystoreFile.toAbsolutePath();
-    Configuration conf = getHadoopConfiguration();
+    Configuration conf = buildHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
 
     // Set the URI on the siteCfg
@@ -259,6 +258,22 @@ public class MiniAccumuloConfigImpl {
       // Only remove it from the siteCfg if we succeeded in adding it to the CredentialProvider
       entries.remove();
     }
+  }
+
+  Configuration buildHadoopConfiguration() {
+    Configuration conf = new Configuration(false);
+    if (hadoopConfDir != null) {
+      Path coreSite = hadoopConfDir.toPath().resolve("core-site.xml");
+      Path hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml");
+
+      try {
+        conf.addResource(coreSite.toUri().toURL());
+        conf.addResource(hdfsSite.toUri().toURL());
+      } catch (MalformedURLException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+    return conf;
   }
 
   /**
@@ -585,7 +600,17 @@ public class MiniAccumuloConfigImpl {
    * underlying miniDFS cannot be restarted.
    */
   public void useMiniDFS(boolean useMiniDFS) {
+    useMiniDFS(useMiniDFS, 1);
+  }
+
+  public void useMiniDFS(boolean useMiniDFS, int numDataNodes) {
+    Preconditions.checkArgument(numDataNodes > 0);
     this.useMiniDFS = useMiniDFS;
+    this.numMiniDFSDataNodes = numDataNodes;
+  }
+
+  public int getNumDataNodes() {
+    return numMiniDFSDataNodes;
   }
 
   public File getAccumuloPropsFile() {
@@ -615,6 +640,16 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<>(systemProperties);
+  }
+
+  /**
+   * Get the set of JVM options. Changes to this set will affect the Configuration
+   *
+   * @return set of options
+   * @since 2.1.5
+   */
+  public Set<String> getJvmOptions() {
+    return jvmOptions;
   }
 
   /**
@@ -722,24 +757,12 @@ public class MiniAccumuloConfigImpl {
 
     this.existingInstance = Boolean.TRUE;
 
-    System.setProperty("accumulo.properties", "accumulo.properties");
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY, "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
-    hadoopConf = new Configuration(false);
-    accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    Path coreSite = this.hadoopConfDir.toPath().resolve("core-site.xml");
-    Path hdfsSite = this.hadoopConfDir.toPath().resolve("hdfs-site.xml");
-
-    try {
-      hadoopConf.addResource(coreSite.toUri().toURL());
-      hadoopConf.addResource(hdfsSite.toUri().toURL());
-    } catch (MalformedURLException e1) {
-      throw e1;
-    }
+    var siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
 
     Map<String,String> siteConfigMap = new HashMap<>();
-    for (Entry<String,String> e : accumuloConf) {
-      siteConfigMap.put(e.getKey(), e.getValue());
-    }
+    siteConfiguration.getProperties(siteConfigMap, key -> true, false);
     _setSiteConfig(siteConfigMap);
 
     return this;
@@ -761,24 +784,6 @@ public class MiniAccumuloConfigImpl {
    */
   public File getHadoopConfDir() {
     return hadoopConfDir;
-  }
-
-  /**
-   * @return accumulo Configuration being used
-   *
-   * @since 1.6.2
-   */
-  public AccumuloConfiguration getAccumuloConfiguration() {
-    return accumuloConf;
-  }
-
-  /**
-   * @return hadoop Configuration being used
-   *
-   * @since 1.6.2
-   */
-  public Configuration getHadoopConfiguration() {
-    return hadoopConf;
   }
 
   /**

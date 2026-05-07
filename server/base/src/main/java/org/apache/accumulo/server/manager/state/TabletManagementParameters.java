@@ -36,6 +36,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -65,8 +66,8 @@ public class TabletManagementParameters {
 
   private final Ample.DataLevel level;
 
-  private final Supplier<Map<TServerInstance,String>> resourceGroups;
-  private final Map<String,Set<TServerInstance>> tserverGroups;
+  private final Supplier<Map<TServerInstance,ResourceGroupId>> resourceGroups;
+  private final Map<ResourceGroupId,Set<TServerInstance>> tserverGroups;
   private final Map<FateId,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
@@ -91,7 +92,7 @@ public class TabletManagementParameters {
     this.tserverGroups = liveTServersSnapshot.getTserverGroups();
     this.compactionHints = makeImmutable(compactionHints);
     this.resourceGroups = Suppliers.memoize(() -> {
-      Map<TServerInstance,String> resourceGroups = new HashMap<>();
+      Map<TServerInstance,ResourceGroupId> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
           .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
@@ -113,10 +114,10 @@ public class TabletManagementParameters {
     this.compactionHints = makeImmutable(jdata.compactionHints.entrySet().stream()
         .collect(Collectors.toMap(entry -> FateId.from(entry.getKey()), Map.Entry::getValue)));
     this.tserverGroups = jdata.tserverGroups.entrySet().stream().collect(toUnmodifiableMap(
-        Map.Entry::getKey,
+        entry -> ResourceGroupId.of(entry.getKey()),
         entry -> entry.getValue().stream().map(TServerInstance::new).collect(toUnmodifiableSet())));
     this.resourceGroups = Suppliers.memoize(() -> {
-      Map<TServerInstance,String> resourceGroups = new HashMap<>();
+      Map<TServerInstance,ResourceGroupId> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
           .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
@@ -155,11 +156,11 @@ public class TabletManagementParameters {
     return level;
   }
 
-  public String getResourceGroup(TServerInstance tserver) {
+  public ResourceGroupId getResourceGroup(TServerInstance tserver) {
     return resourceGroups.get().get(tserver);
   }
 
-  public Map<String,Set<TServerInstance>> getGroupedTServers() {
+  public Map<ResourceGroupId,Set<TServerInstance>> getGroupedTServers() {
     return tserverGroups;
   }
 
@@ -222,7 +223,7 @@ public class TabletManagementParameters {
           .collect(toList());
       level = params.level;
       tserverGroups = params.getGroupedTServers().entrySet().stream()
-          .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
+          .collect(toMap(entry -> entry.getKey().canonical(), entry -> entry.getValue().stream()
               .map(TServerInstance::getHostPortSession).collect(toSet())));
       compactionHints = params.compactionHints.entrySet().stream()
           .collect(Collectors.toMap(entry -> entry.getKey().canonical(), Map.Entry::getValue));

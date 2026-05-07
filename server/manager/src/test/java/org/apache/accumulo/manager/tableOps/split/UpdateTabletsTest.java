@@ -23,7 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -36,6 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
@@ -45,6 +49,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -64,8 +69,8 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.split.Splitter;
+import org.apache.accumulo.manager.split.FileRangeCache;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.fs.Path;
@@ -81,8 +86,8 @@ public class UpdateTabletsTest {
         .insert();
   }
 
-  Splitter.FileInfo newFileInfo(String start, String end) {
-    return new Splitter.FileInfo(new Text(start), new Text(end));
+  FileSKVIterator.FileRange newFileInfo(String start, String end) {
+    return new FileSKVIterator.FileRange(new Text(start), new Text(end));
   }
 
   /**
@@ -231,19 +236,41 @@ public class UpdateTabletsTest {
     String dir1 = "dir1";
     String dir2 = "dir2";
 
-    Manager manager = EasyMock.mock(Manager.class);
+    FateEnv fateEnv = EasyMock.mock(FateEnv.class);
     ServerContext context = EasyMock.mock(ServerContext.class);
-    EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
+    EasyMock.expect(fateEnv.getContext()).andReturn(context).atLeastOnce();
     Ample ample = EasyMock.mock(Ample.class);
     EasyMock.expect(context.getAmple()).andReturn(ample).atLeastOnce();
-    Splitter splitter = EasyMock.mock(Splitter.class);
-    EasyMock.expect(splitter.getCachedFileInfo(tableId, file1)).andReturn(newFileInfo("a", "z"));
-    EasyMock.expect(splitter.getCachedFileInfo(tableId, file2)).andReturn(newFileInfo("a", "b"));
-    EasyMock.expect(splitter.getCachedFileInfo(tableId, file3)).andReturn(newFileInfo("d", "f"));
-    EasyMock.expect(splitter.getCachedFileInfo(tableId, file4)).andReturn(newFileInfo("d", "j"));
-    EasyMock.expect(manager.getSplitter()).andReturn(splitter).atLeastOnce();
-    EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
+    FileRangeCache fileRangeCache = EasyMock.mock(FileRangeCache.class);
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file1))
+        .andReturn(newFileInfo("a", "z"));
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file2))
+        .andReturn(newFileInfo("a", "b"));
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file3))
+        .andReturn(newFileInfo("d", "f"));
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file4))
+        .andReturn(newFileInfo("d", "j"));
+    EasyMock.expect(fateEnv.getFileRangeCache()).andReturn(fileRangeCache).atLeastOnce();
+    EasyMock.expect(fateEnv.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
         .atLeastOnce();
+    Set<Ample.OrphanedCompaction> orphanedCompactionSet = new HashSet<>();
+    Ample.OrphanedCompactionStore ocs = new Ample.OrphanedCompactionStore() {
+      @Override
+      public Stream<Ample.OrphanedCompaction> list() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public void add(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        orphanedCompactionSet.addAll(removedCompactions);
+      }
+
+      @Override
+      public void delete(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        throw new UnsupportedOperationException();
+      }
+    };
+    EasyMock.expect(ample.orphanedCompactions()).andReturn(ocs).atLeastOnce();
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
@@ -283,6 +310,7 @@ public class UpdateTabletsTest {
         10000, tabletFiles.keySet());
     EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(usm).atLeastOnce();
     EasyMock.expect(tabletMeta.getMigration()).andReturn(migration).atLeastOnce();
+    EasyMock.expect(tabletMeta.getDirName()).andReturn("td1").atLeastOnce();
 
     EasyMock.expect(ample.readTablet(origExtent)).andReturn(tabletMeta);
 
@@ -388,18 +416,24 @@ public class UpdateTabletsTest {
     tabletsMutator.close();
     EasyMock.expectLastCall().anyTimes();
 
-    EasyMock.replay(manager, context, ample, tabletMeta, splitter, tabletsMutator, tablet1Mutator,
-        tablet2Mutator, tablet3Mutator, cr, compactions);
+    EasyMock.replay(fateEnv, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
+        tablet1Mutator, tablet2Mutator, tablet3Mutator, cr, compactions);
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(newExtent1.endRow(), newExtent2.endRow()));
+    var dirNames = new ArrayList<String>();
+    dirNames.add(dir1);
+    dirNames.add(dir2);
     UpdateTablets updateTablets = new UpdateTablets(
-        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
-        List.of(dir1, dir2));
-    updateTablets.call(fateId, manager);
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)), dirNames);
+    updateTablets.call(fateId, fateEnv);
 
-    EasyMock.verify(manager, context, ample, tabletMeta, splitter, tabletsMutator, tablet1Mutator,
-        tablet2Mutator, tablet3Mutator, cr, compactions);
+    EasyMock.verify(fateEnv, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
+        tablet1Mutator, tablet2Mutator, tablet3Mutator, cr, compactions);
+
+    assertEquals(Set.of(new Ample.OrphanedCompaction(cid1, tableId, "td1"),
+        new Ample.OrphanedCompaction(cid2, tableId, "td1"),
+        new Ample.OrphanedCompaction(cid3, tableId, "td1")), orphanedCompactionSet);
   }
 
   @Test
@@ -461,23 +495,24 @@ public class UpdateTabletsTest {
 
   private static void testError(KeyExtent origExtent, TabletMetadata tm1, FateId fateId)
       throws Exception {
-    Manager manager = EasyMock.mock(Manager.class);
+    FateEnv fateEnv = EasyMock.mock(FateEnv.class);
     ServerContext context = EasyMock.mock(ServerContext.class);
-    EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
+    EasyMock.expect(fateEnv.getContext()).andReturn(context).atLeastOnce();
     Ample ample = EasyMock.mock(Ample.class);
     EasyMock.expect(context.getAmple()).andReturn(ample).atLeastOnce();
 
     EasyMock.expect(ample.readTablet(origExtent)).andReturn(tm1);
 
-    EasyMock.replay(manager, context, ample);
+    EasyMock.replay(fateEnv, context, ample);
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c")));
-    UpdateTablets updateTablets = new UpdateTablets(
-        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
-        List.of("d1"));
-    updateTablets.call(fateId, manager);
+    var dirNames = new ArrayList<String>();
+    dirNames.add("d1");
+    var updateTablets = new UpdateTablets(
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)), dirNames);
+    updateTablets.call(fateId, fateEnv);
 
-    EasyMock.verify(manager, context, ample);
+    EasyMock.verify(fateEnv, context, ample);
   }
 }

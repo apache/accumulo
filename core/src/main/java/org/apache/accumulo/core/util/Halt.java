@@ -40,7 +40,7 @@ public class Halt {
     halt(status, msg, null, runnable);
   }
 
-  public static void halt(final int status, final String msg, final Throwable exception,
+  private static void halt(final int status, final String msg, final Throwable exception,
       final Runnable runnable) {
     try {
 

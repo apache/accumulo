@@ -27,9 +27,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
@@ -85,12 +85,12 @@ public class TableLoadBalancer implements TabletBalancer {
     return null;
   }
 
-  protected String getResourceGroupNameForTable(TableId tid) {
+  protected ResourceGroupId getResourceGroupNameForTable(TableId tid) {
     String resourceGroup = environment.getConfiguration(tid).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
     if (!StringUtils.isEmpty(resourceGroup)) {
-      return resourceGroup;
+      return ResourceGroupId.of(resourceGroup);
     }
-    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
+    return ResourceGroupId.DEFAULT;
   }
 
   private TabletBalancer constructAndInitializeBalancer(String clazzName, TableId tableId) {
@@ -128,11 +128,10 @@ public class TableLoadBalancer implements TabletBalancer {
 
   private SortedMap<TabletServerId,TServerStatus> getCurrentSetForTable(
       SortedMap<TabletServerId,TServerStatus> allTServers,
-      Map<String,Set<TabletServerId>> groupedTServers, String resourceGroup) {
+      Map<ResourceGroupId,Set<TabletServerId>> groupedTServers, ResourceGroupId resourceGroup) {
 
-    String groupName =
-        resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
-    Set<TabletServerId> tserversInGroup = groupedTServers.get(groupName);
+    final String groupName = resourceGroup.canonical();
+    Set<TabletServerId> tserversInGroup = groupedTServers.get(resourceGroup);
     if (tserversInGroup == null || tserversInGroup.isEmpty()) {
       log.warn("No TabletServers in assignment group {}", groupName);
       return null;
@@ -160,7 +159,7 @@ public class TableLoadBalancer implements TabletBalancer {
     params.unassignedTablets().forEach((tid, lastTserver) -> groupedUnassigned
         .computeIfAbsent(tid.getTable(), k -> new HashMap<>()).put(tid, lastTserver));
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
-      final String tableResourceGroup = getResourceGroupNameForTable(e.getKey());
+      final ResourceGroupId tableResourceGroup = getResourceGroupNameForTable(e.getKey());
       log.trace("Table {} is set to use resource group: {}", e.getKey(), tableResourceGroup);
       final Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
       // get the group of tservers for this table
@@ -188,8 +187,8 @@ public class TableLoadBalancer implements TabletBalancer {
   public boolean needsReassignment(CurrentAssignment currentAssignment) {
     var tableId = currentAssignment.getTablet().getTable();
     String value = environment.getConfiguration(tableId).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
-    String expectedGroup = (value == null || StringUtils.isEmpty(value))
-        ? Constants.DEFAULT_RESOURCE_GROUP_NAME : value;
+    ResourceGroupId expectedGroup = (value == null || StringUtils.isEmpty(value))
+        ? ResourceGroupId.DEFAULT : ResourceGroupId.of(value);
 
     if (!expectedGroup.equals(currentAssignment.getResourceGroup())) {
       // The tablet is not in the expected resource group, so it needs to be reassigned
@@ -207,7 +206,7 @@ public class TableLoadBalancer implements TabletBalancer {
     for (Entry<String,TableId> entry : params.getTablesToBalance().entrySet()) {
       String tableName = entry.getKey();
       TableId tableId = entry.getValue();
-      final String tableResourceGroup = getResourceGroupNameForTable(tableId);
+      final ResourceGroupId tableResourceGroup = getResourceGroupNameForTable(tableId);
       // get the group of tservers for this table
       SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
           params.currentStatus(), params.currentResourceGroups(), tableResourceGroup);

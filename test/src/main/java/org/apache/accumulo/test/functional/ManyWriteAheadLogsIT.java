@@ -61,10 +61,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    // idle compactions may addess the problem this test is creating, however they will not prevent
-    // lots of closed WALs for all write patterns. This test ensures code that directly handles many
-    // tablets referencing many different WALs is working.
-    cfg.setProperty(Property.TABLE_MINC_COMPACT_MAXAGE, "1h");
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -104,8 +100,14 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       String rollWALsTable = tableNames[1];
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      // idle compactions may addess the problem this test is creating, however they will not
+      // prevent lots of closed WALs for all write patterns. This test ensures code that directly
+      // handles many tablets referencing many different WALs is working.
+      ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_MAXAGE.getKey(), "1h"));
       c.tableOperations().create(manyWALsTable, ntc);
 
+      // this table does not need TABLE_MINC_COMPACT_MAXAGE set because it will naturally flush
+      // frequently
       c.tableOperations().create(rollWALsTable);
 
       Set<String> allWalsSeen = new HashSet<>();

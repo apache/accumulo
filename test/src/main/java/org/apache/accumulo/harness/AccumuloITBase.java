@@ -30,9 +30,15 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -47,6 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloITBase extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
+  public static final String UNIQUE_TEST_DIR_SYS_PROPERTY = "accumulo.it.uniq.test.dir";
   public static final String STANDALONE_CAPABLE_CLUSTER = "StandaloneCapableCluster";
   public static final String SUNNY_DAY = "SunnyDay";
   public static final String MINI_CLUSTER_ONLY = "MiniClusterOnly";
@@ -91,8 +98,12 @@ public class AccumuloITBase extends WithTestNames {
     if (name == null) {
       return baseDir;
     }
-    String uniqueName = String.format("%s-%d-%d", name, System.currentTimeMillis(),
-        RANDOM.get().nextInt(Short.MAX_VALUE));
+
+    String uniqueName =
+        System.getProperty(UNIQUE_TEST_DIR_SYS_PROPERTY, "").equalsIgnoreCase("true")
+            ? String.format("%s-%d-%d", name, System.currentTimeMillis(),
+                RANDOM.get().nextInt(Short.MAX_VALUE))
+            : name;
     File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
@@ -154,5 +165,15 @@ public class AccumuloITBase extends WithTestNames {
     jar.deleteOnExit();
 
     return jar;
+  }
+
+  // ITs may use the client properties to create an AccumuloClient
+  // and then interact with the Fate and ScanRef tables. By default
+  // only the system user can interact with these tables.
+  public static void setSystemTablePermsForITs(AccumuloClient client, SecurityOperations ops)
+      throws AccumuloException, AccumuloSecurityException {
+    ops.grantTablePermission(client.whoami(), SystemTables.FATE.tableName(), TablePermission.READ);
+    ops.grantTablePermission(client.whoami(), SystemTables.SCAN_REF.tableName(),
+        TablePermission.READ);
   }
 }

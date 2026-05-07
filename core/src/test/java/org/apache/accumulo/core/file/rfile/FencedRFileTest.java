@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -219,55 +221,58 @@ public class FencedRFileTest extends AbstractRFileTest {
     // Infinite range fence
     // Should just be first/last rows of file
     assertReader(trf, new Range(), (reader) -> {
-      assertEquals(firstRowInFile, reader.getFirstRow());
-      assertEquals(lastRowInFile, reader.getLastRow());
+      assertEquals(new Range(firstRowInFile, lastRowInFile), reader.getFileRange().rowRange);
     });
 
     // Range inside of file so should return the rows of the fence
     assertReader(trf, new Range("r_000001", "r_000002"), (reader) -> {
-      assertEquals(new Text("r_000001"), reader.getFirstRow());
-      assertEquals(new Text("r_000002"), reader.getLastRow());
+      assertEquals(new Range(new Text("r_000001"), new Text("r_000002")),
+          reader.getFileRange().rowRange);
     });
 
     // Test infinite start row
     assertReader(trf, new Range(null, "r_000001"), (reader) -> {
-      assertEquals(firstRowInFile, reader.getFirstRow());
-      assertEquals(new Text("r_000001"), reader.getLastRow());
+      assertEquals(new Range(firstRowInFile, new Text("r_000001")), reader.getFileRange().rowRange);
     });
 
     // Test infinite end row
     assertReader(trf, new Range("r_000002", null), (reader) -> {
-      assertEquals(new Text("r_000002"), reader.getFirstRow());
-      assertEquals(lastRowInFile, reader.getLastRow());
+      assertEquals(new Range(new Text("r_000002"), lastRowInFile), reader.getFileRange().rowRange);
     });
 
     // Test start row matches start of file
     assertReader(trf, new Range("r_000000", "r_000002"), (reader) -> {
       // start row of range matches first row in file so that should be returned instead
-      assertEquals(firstRowInFile, reader.getFirstRow());
-      assertEquals(new Text("r_000002"), reader.getLastRow());
+      assertEquals(new Range(firstRowInFile, new Text("r_000002")), reader.getFileRange().rowRange);
     });
 
     // Test end row matches end of file
     assertReader(trf, new Range("r_000001", "r_000003"), (reader) -> {
-      assertEquals(new Text("r_000001"), reader.getFirstRow());
       // end row of range matches last row in file so that should be returned instead
-      assertEquals(lastRowInFile, reader.getLastRow());
+      assertEquals(new Range(new Text("r_000001"), lastRowInFile), reader.getFileRange().rowRange);
     });
 
     // Test case where rows in range are less than and greater than rows in file
     assertReader(trf, new Range("a", "z"), (reader) -> {
-      assertEquals(firstRowInFile, reader.getFirstRow());
-      assertEquals(lastRowInFile, reader.getLastRow());
+      assertEquals(new Range(firstRowInFile, lastRowInFile), reader.getFileRange().rowRange);
     });
 
-    // Test inclusive end key, usually a row range is required to be an exclusive key
-    // for a tablet file but the fenced reader still supports any range type
+    // Test fence that does not overlap with data in file
+    assertReader(trf, new Range("x", "z"), (reader) -> {
+      assertTrue(reader.getFileRange().empty);
+      assertNull(reader.getFileRange().rowRange);
+    });
+
+    // Test fence that does not overlap with data in file
+    assertReader(trf, new Range("c", "q"), (reader) -> {
+      assertTrue(reader.getFileRange().empty);
+      assertNull(reader.getFileRange().rowRange);
+    });
+
+    // Test inclusive end key, a row range is required to be an exclusive key
     assertReader(trf, new Range(new Key("r_000002"), true, new Key("r_000002"), true), (reader) -> {
-      assertEquals(new Text("r_000002"), reader.getFirstRow());
-      assertEquals(new Text("r_000002"), reader.getLastRow());
+      assertThrows(IllegalArgumentException.class, reader::getFileRange);
     });
-
   }
 
   @Test
@@ -483,7 +488,7 @@ public class FencedRFileTest extends AbstractRFileTest {
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
     for (int i = 0; i < 12; i++) {
-      index = random.nextInt(expectedKeys.size());
+      index = RANDOM.get().nextInt(expectedKeys.size());
       seek(trfIter, expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trfIter.hasTop());

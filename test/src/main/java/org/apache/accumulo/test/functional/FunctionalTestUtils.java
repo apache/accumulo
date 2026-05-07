@@ -31,10 +31,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
@@ -93,22 +91,13 @@ public class FunctionalTestUtils {
     }
   }
 
-  public static List<String> getRFilePaths(AccumuloClient c, String tableName) throws Exception {
-    return getStoredTabletFiles(c, tableName).stream().map(StoredTabletFile::getMetadataPath)
-        .collect(Collectors.toList());
-  }
-
-  public static List<StoredTabletFile> getStoredTabletFiles(AccumuloClient c, String tableName)
-      throws Exception {
-    List<StoredTabletFile> files = new ArrayList<>();
-    try (Scanner scanner =
-        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
-      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-      scanner.setRange(TabletsSection.getRange(tableId));
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.forEach(entry -> files.add(StoredTabletFile.of(entry.getKey().getColumnQualifier())));
+  public static Set<StoredTabletFile> getStoredTabletFiles(ServerContext context,
+      String tableName) {
+    TableId tableId = TableId.of(context.tableOperations().tableIdMap().get(tableName));
+    try (var tabletsMetadata = context.getAmple().readTablets().forTable(tableId).build()) {
+      return tabletsMetadata.stream().flatMap(tm -> tm.getFiles().stream())
+          .collect(Collectors.toSet());
     }
-    return files;
   }
 
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,

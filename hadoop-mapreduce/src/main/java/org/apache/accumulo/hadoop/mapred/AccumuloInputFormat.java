@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @see org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloInputFormat implements InputFormat<Key,Value> {
   private static final Class<AccumuloInputFormat> CLASS = AccumuloInputFormat.class;

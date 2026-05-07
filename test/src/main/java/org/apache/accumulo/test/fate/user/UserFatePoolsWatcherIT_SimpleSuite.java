@@ -49,11 +49,13 @@ public class UserFatePoolsWatcherIT_SimpleSuite extends FatePoolsWatcherITBase {
   public void executeTest(FateTestExecutor<PoolResizeTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     table = getUniqueNames(1)[0];
-    try (ClientContext client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
-        FateStore<PoolResizeTestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(),
-            null, maxDeferred, fateIdGenerator)) {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(fs, getCluster().getServerContext());
+      try (FateStore<PoolResizeTestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(),
+          null, maxDeferred, fateIdGenerator)) {
+        testMethod.execute(fs, getCluster().getServerContext());
+      }
     }
   }
 }

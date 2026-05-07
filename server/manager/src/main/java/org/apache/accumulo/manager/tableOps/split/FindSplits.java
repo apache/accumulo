@@ -33,14 +33,14 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.split.SplitUtils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FindSplits extends ManagerRepo {
+public class FindSplits extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -52,9 +52,9 @@ public class FindSplits extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     var extent = splitInfo.getOriginal();
-    var ample = manager.getContext().getAmple();
+    var ample = env.getContext().getAmple();
     var tabletMetadata = ample.readTablet(extent);
     Optional<UnSplittableMetadata> computedUnsplittable = Optional.empty();
 
@@ -73,7 +73,7 @@ public class FindSplits extends ManagerRepo {
     // as unsplittable and the metadata hasn't changed so check that the metadata is different
     if (tabletMetadata.getUnSplittable() != null) {
       computedUnsplittable =
-          Optional.of(SplitUtils.toUnSplittable(manager.getContext(), tabletMetadata));
+          Optional.of(SplitUtils.toUnSplittable(env.getContext(), tabletMetadata));
       if (tabletMetadata.getUnSplittable().equals(computedUnsplittable.orElseThrow())) {
         log.debug("Not splitting {} because unsplittable metadata is present and did not change",
             extent);
@@ -90,13 +90,13 @@ public class FindSplits extends ManagerRepo {
       return null;
     }
 
-    if (manager.getContext().getTableState(extent.tableId()) != TableState.ONLINE) {
+    if (env.getContext().getTableState(extent.tableId()) != TableState.ONLINE) {
       // The table is offline, do not bother finding splits
       log.debug("Not splitting {} because the table is not online", tabletMetadata.getExtent());
       return null;
     }
 
-    SortedSet<Text> splits = SplitUtils.findSplits(manager.getContext(), tabletMetadata);
+    SortedSet<Text> splits = SplitUtils.findSplits(env.getContext(), tabletMetadata);
 
     if (extent.endRow() != null) {
       splits.remove(extent.endRow());
@@ -117,7 +117,7 @@ public class FindSplits extends ManagerRepo {
         // Case 1: If a split is needed then set the unsplittable marker as no split
         // points could be found so that we don't keep trying again until the
         // split metadata is changed
-        final var context = manager.getContext();
+        final var context = env.getContext();
         if (SplitUtils.needsSplit(context, tabletMetadata)) {
           log.info("Tablet {} needs to split, but no split points could be found.",
               tabletMetadata.getExtent());

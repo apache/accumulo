@@ -59,7 +59,7 @@ public class RollingStatsTest {
     assertTrue(rs.getStandardDeviation() >= 0);
   }
 
-  private static class StatTester {
+  private static final class StatTester {
 
     private DescriptiveStatistics ds;
     private RollingStats rs;

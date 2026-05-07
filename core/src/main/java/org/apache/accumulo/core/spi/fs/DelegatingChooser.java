@@ -149,8 +149,7 @@ public class DelegatingChooser implements VolumeChooser {
         log.trace("Change detected for {} for {}", property, key);
       }
       try {
-        if (key instanceof TableId) {
-          TableId tableId = (TableId) key;
+        if (key instanceof TableId tableId) {
           return env.getServiceEnv().instantiate(tableId, className, VolumeChooser.class);
         } else {
           return env.getServiceEnv().instantiate(className, VolumeChooser.class);

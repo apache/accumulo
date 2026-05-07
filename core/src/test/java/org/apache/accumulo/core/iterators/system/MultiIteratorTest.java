@@ -45,6 +45,14 @@ public class MultiIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
+  protected MultiIterator makeIterator(List<SortedKeyValueIterator<Key,Value>> list, Range range) {
+    return new MultiIterator(list, range);
+  }
+
+  protected MultiIterator makeIterator(List<SortedKeyValueIterator<Key,Value>> list, Boolean init) {
+    return new MultiIterator(list, init);
+  }
+
   public static Key newKey(int row, long ts) {
     return new Key(newRow(row), ts);
   }
@@ -74,7 +82,7 @@ public class MultiIteratorTest {
 
     MultiIterator mi;
     if (endRow == null && prevEndRow == null) {
-      mi = new MultiIterator(iters, init);
+      mi = makeIterator(iters, init);
     } else {
       Range range = new Range(prevEndRow, false, endRow, true);
       if (init) {
@@ -82,7 +90,7 @@ public class MultiIteratorTest {
           iter.seek(range, Set.of(), false);
         }
       }
-      mi = new MultiIterator(iters, range);
+      mi = makeIterator(iters, range);
 
       if (init) {
         mi.seek(range, Set.of(), false);
@@ -204,7 +212,7 @@ public class MultiIteratorTest {
 
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
-    MultiIterator mi = new MultiIterator(skvil, true);
+    MultiIterator mi = makeIterator(skvil, true);
 
     assertFalse(mi.hasTop());
 
@@ -285,7 +293,7 @@ public class MultiIteratorTest {
 
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
-    MultiIterator mi = new MultiIterator(skvil, true);
+    MultiIterator mi = makeIterator(skvil, true);
     mi.seek(new Range(null, true, newKey(5, 9), false), EMPTY_COL_FAMS, false);
 
     assertTrue(mi.hasTop());
@@ -368,7 +376,7 @@ public class MultiIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent);
+    MultiIterator mi = makeIterator(skvil, extent.toDataRange());
 
     Range r1 = new Range((Text) null, (Text) null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
@@ -421,5 +429,59 @@ public class MultiIteratorTest {
     Range r7 = new Range(newKey(0, 3), true, newKey(0, 1), true);
     mi.seek(r7, EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
+  }
+
+  @Test
+  public void testDeepCopy() throws IOException {
+    // TEst setting an endKey
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
+    newKeyValue(tm1, 0, 3, false, "1");
+    newKeyValue(tm1, 0, 2, false, "2");
+    newKeyValue(tm1, 0, 1, false, "3");
+    newKeyValue(tm1, 0, 0, false, "4");
+    newKeyValue(tm1, 1, 2, false, "5");
+    newKeyValue(tm1, 1, 1, false, "6");
+    newKeyValue(tm1, 1, 0, false, "7");
+    newKeyValue(tm1, 2, 1, false, "8");
+    newKeyValue(tm1, 2, 0, false, "9");
+
+    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
+    skvil.add(new SortedMapIterator(tm1));
+
+    KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
+
+    MultiIterator mi = makeIterator(skvil, extent.toDataRange());
+    MultiIterator miCopy = mi.deepCopy(null);
+
+    Range r1 = new Range((Text) null, null);
+    mi.seek(r1, EMPTY_COL_FAMS, false);
+    miCopy.seek(r1, EMPTY_COL_FAMS, false);
+    assertTrue(mi.hasTop());
+    assertEquals("5", mi.getTopValue().toString());
+    mi.next();
+    assertTrue(mi.hasTop());
+    assertEquals("6", mi.getTopValue().toString());
+    assertTrue(miCopy.hasTop());
+    assertEquals("5", miCopy.getTopValue().toString());
+    mi.next();
+    assertTrue(mi.hasTop());
+    assertEquals("7", mi.getTopValue().toString());
+    mi.next();
+    assertFalse(mi.hasTop());
+    assertEquals("5", miCopy.getTopValue().toString());
+
+    miCopy.seek(r1, EMPTY_COL_FAMS, false);
+
+    assertTrue(miCopy.hasTop());
+    assertEquals("5", miCopy.getTopValue().toString());
+    miCopy.next();
+    assertTrue(miCopy.hasTop());
+    assertEquals("6", miCopy.getTopValue().toString());
+    assertFalse(mi.hasTop());
+    miCopy.next();
+    assertTrue(miCopy.hasTop());
+    assertEquals("7", miCopy.getTopValue().toString());
+    miCopy.next();
+    assertFalse(miCopy.hasTop());
   }
 }

@@ -49,8 +49,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -59,7 +57,7 @@ import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.slf4j.Logger;
@@ -83,15 +81,15 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Fetching list of namespaces...", Thread.currentThread().getId());
+      log.trace("Fetching list of namespaces...");
       timer = Timer.startNew();
     }
 
     var namespaces = new TreeSet<>(context.getNamespaceMapping().getIdToNameMap().values());
 
     if (timer != null) {
-      log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
-          namespaces.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Fetched {} namespaces in {}", namespaces.size(),
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return namespaces;
@@ -104,8 +102,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(),
-          namespace);
+      log.trace("Checking if namespace {} exists", namespace);
       timer = Timer.startNew();
     }
 
@@ -118,7 +115,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
 
     if (timer != null) {
-      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("Checked existence of {} in {}", exists,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -299,13 +296,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -322,13 +319,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -356,14 +353,16 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
               className, asTypeName));
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+    } catch (AccumuloSecurityException e) {
+      throw e;
+    } catch (AccumuloException e) {
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -409,7 +408,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       Map<String,String> allProps = getConfiguration(namespace);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' for namespace '" + namespace
             + "'resulted in bad locality group config. This may be a transient situation since the"

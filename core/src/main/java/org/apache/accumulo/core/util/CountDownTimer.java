@@ -39,11 +39,11 @@ import com.google.common.base.Preconditions;
  * </pre>
  */
 public class CountDownTimer {
-  private final long startNanos;
+  private final Timer timer;
   private final long durationNanos;
 
   private CountDownTimer(long durationNanos) {
-    this.startNanos = System.nanoTime();
+    this.timer = Timer.startNew();
     this.durationNanos = durationNanos;
   }
 
@@ -69,17 +69,31 @@ public class CountDownTimer {
   }
 
   /**
+   * Resets the timer to the initial duration.
+   */
+  public void restart() {
+    timer.restart();
+  }
+
+  /**
    * @param unit the desired {@link TimeUnit} for the returned time.
    * @return the remaining time in the specified unit, or zero if expired.
    */
   public long timeLeft(TimeUnit unit) {
-    var elapsed = (System.nanoTime() - startNanos);
+    var elapsed = timer.elapsed(TimeUnit.NANOSECONDS);
     var timeLeft = durationNanos - elapsed;
     if (timeLeft < 0) {
       timeLeft = 0;
     }
 
     return unit.convert(timeLeft, TimeUnit.NANOSECONDS);
+  }
+
+  /**
+   * @return the remaining time, or zero if expired.
+   */
+  public Duration timeLeft() {
+    return Duration.ofNanos(timeLeft(TimeUnit.NANOSECONDS));
   }
 
   /**

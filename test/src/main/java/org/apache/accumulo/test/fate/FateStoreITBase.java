@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateKey.FateKeyType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
@@ -198,8 +200,8 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
     try {
       // Run and verify all 10 transactions still exist and were not
       // run because of the deferral time of all the transactions
-      future = executor.submit(() -> store.runnable(keepRunning,
-          fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
+      future = executor.submit(() -> store.runnable(Set.of(FatePartition.all(store.type())),
+          keepRunning::get, fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
       Thread.sleep(2000);
       assertEquals(10, transactions.size());
       // Setting this flag to false should terminate the task if sleeping
@@ -224,8 +226,8 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
       // Run and verify all 11 transactions were processed
       // and removed from the store
       keepRunning.set(true);
-      future = executor.submit(() -> store.runnable(keepRunning,
-          fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
+      future = executor.submit(() -> store.runnable(Set.of(FatePartition.all(store.type())),
+          keepRunning::get, fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
       Wait.waitFor(transactions::isEmpty);
       // Setting this flag to false should terminate the task if sleeping
       keepRunning.set(false);
@@ -606,14 +608,22 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
     FateKey fateKey = FateKey.forSplit(ke);
 
-    var executor = Executors.newFixedThreadPool(10);
+    final int numTasks = 10;
+    var executor = Executors.newFixedThreadPool(numTasks);
+    List<Future<Optional<FateId>>> futures = new ArrayList<>(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks/threads to satisfy latch count - deadlock risk");
     try {
-      // have 10 threads all try to seed the same fate key, only one should succeed.
-      List<Future<Optional<FateId>>> futures = new ArrayList<>(10);
-      for (int i = 0; i < 10; i++) {
-        futures.add(executor
-            .submit(() -> seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true)));
+      // have all threads try to seed the same fate key, only one should succeed.
+      for (int i = 0; i < numTasks; i++) {
+        futures.add(executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
+          return seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true);
+        }));
       }
+      assertEquals(numTasks, futures.size());
 
       int idsSeen = 0;
       for (var future : futures) {
@@ -760,5 +770,4 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
       super("testOperation2");
     }
   }
-
 }

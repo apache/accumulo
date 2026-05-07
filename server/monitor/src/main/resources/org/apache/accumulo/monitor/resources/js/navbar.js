@@ -64,65 +64,51 @@ function updateElementStatus(elementId, status) {
  * @param {JSON} statusData object containing the status info for the servers
  */
 function updateServerNotifications(statusData) {
-  getManager().then(function () {
+  const managerGoalState = statusData.managerGoalState;
+  const isSafeMode = managerGoalState === 'SAFE_MODE';
+  const isCleanStop = managerGoalState === 'CLEAN_STOP';
+  const componentStatuses = [
+    getComponentStatus(statusData, 'MANAGER'),
+    getComponentStatus(statusData, 'TABLET_SERVER'),
+    getComponentStatus(statusData, 'GARBAGE_COLLECTOR'),
+    getComponentStatus(statusData, 'SCAN_SERVER'),
+    getComponentStatus(statusData, 'COMPACTOR')
+  ];
+  const managerStatus = componentStatuses[0];
 
-    // gather information about the manager
-    const managerData = JSON.parse(sessionStorage.manager);
-    const managerState = managerData.managerState;
-    const managerGoalState = managerData.managerGoalState;
+  // setting manager status notification
+  if (managerStatus === STATUS.ERROR || isCleanStop) {
+    updateElementStatus('managerStatusNotification', STATUS.ERROR);
+  } else if (managerStatus === STATUS.WARN || isSafeMode) {
+    updateElementStatus('managerStatusNotification', STATUS.WARN);
+  } else if (managerStatus === STATUS.OK) {
+    updateElementStatus('managerStatusNotification', STATUS.OK);
+  } else {
+    console.error('Unrecognized manager state: ' + managerStatus +
+      '. Could not properly set manager status notification.');
+  }
 
-    const isSafeMode = managerState === 'SAFE_MODE' || managerGoalState === 'SAFE_MODE';
-    const isCleanStop = managerState === 'CLEAN_STOP' || managerGoalState === 'CLEAN_STOP';
+  updateElementStatus('serverStatusNotification', componentStatuses[1]);
+  updateElementStatus('gcStatusNotification', componentStatuses[2]);
+  updateElementStatus('sserverStatusNotification', componentStatuses[3]);
+  updateElementStatus('compactorStatusNotification', componentStatuses[4]);
 
-    // setting manager status notification
-    if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusNotification', STATUS.WARN);
-    } else if (statusData.managerStatus === STATUS.OK) {
-      updateElementStatus('managerStatusNotification', STATUS.OK);
-    } else {
-      console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
-    }
-
-    // setting tserver status notification
-    if (statusData.tServerStatus === STATUS.OK) {
-      updateElementStatus('serverStatusNotification', STATUS.OK);
-    } else if (statusData.tServerStatus === STATUS.WARN) {
-      updateElementStatus('serverStatusNotification', STATUS.WARN);
-    } else {
-      updateElementStatus('serverStatusNotification', STATUS.ERROR);
-    }
-
-    // setting gc status notification
-    if (statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('gcStatusNotification', STATUS.OK);
-    } else {
-      updateElementStatus('gcStatusNotification', STATUS.ERROR);
-    }
-
-    // Setting overall servers status notification
-    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
-      statusData.tServerStatus === STATUS.OK &&
-      statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('statusNotification', STATUS.OK);
-    } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
-      statusData.tServerStatus === STATUS.ERROR ||
-      statusData.gcStatus === STATUS.ERROR) {
-      updateElementStatus('statusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
-      statusData.tServerStatus === STATUS.WARN ||
-      statusData.gcStatus === STATUS.WARN) {
-      updateElementStatus('statusNotification', STATUS.WARN);
-    }
-
-  });
+  // Setting overall servers status notification
+  if (!isSafeMode && !isCleanStop && componentStatuses.every(status => status === STATUS.OK)) {
+    updateElementStatus('statusNotification', STATUS.OK);
+  } else if (isCleanStop || componentStatuses.some(status => status === STATUS.ERROR)) {
+    updateElementStatus('statusNotification', STATUS.ERROR);
+  } else if (isSafeMode || componentStatuses.some(status => status === STATUS.WARN)) {
+    updateElementStatus('statusNotification', STATUS.WARN);
+  }
 }
 
 /**
  * Creates the initial sidebar
  */
 $(function () {
+  setTheme();
+  updateDarkThemeSwitch();
   refreshSidebar();
 });
 
@@ -130,7 +116,7 @@ $(function () {
  * Makes the REST call for the server status, generates the sidebar with the new information
  */
 function refreshSidebar() {
-  getStatus().then(function () {
+  getStatus().always(function () {
     refreshSideBarNotifications();
   });
 }
@@ -140,7 +126,6 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  updateSystemAlerts();
 }
 
 /**
@@ -149,6 +134,50 @@ function refreshNavBar() {
 function refreshSideBarNotifications() {
 
   const statusData = sessionStorage?.status ? JSON.parse(sessionStorage.status) : undefined;
+  if (!statusData) {
+    return;
+  }
 
   updateServerNotifications(statusData);
+}
+
+/**
+ * Set the theme based on the user
+ * preferences
+ */
+function setTheme() {
+  var setDarkMode = false;
+  var storedValue = localStorage.getItem("dark-theme-enabled");
+  if (storedValue === null) {
+    setDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    setDarkMode = storedValue === 'true';
+  }
+
+  if (setDarkMode === true) {
+    document.documentElement.setAttribute('data-bs-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+  }
+}
+
+/**
+ * Update the Dark Theme Switch in the Preference list
+ */
+function updateDarkThemeSwitch() {
+  var storageKey = "dark-theme-enabled";
+  var darkThemeSwitchElement = $('#darkThemeSwitch');
+  var savedValue = localStorage.getItem(storageKey);
+
+  if (savedValue === 'true') {
+    darkThemeSwitchElement.prop('checked', true);
+  } else {
+    darkThemeSwitchElement.prop('checked', false);
+  }
+
+  darkThemeSwitchElement.on("change", function () {
+    var enableDarkTheme = $(this).is(':checked');
+    localStorage.setItem(storageKey, enableDarkTheme);
+    document.documentElement.setAttribute('data-bs-theme', enableDarkTheme ? 'dark' : 'light');
+  });
 }

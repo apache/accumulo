@@ -66,11 +66,13 @@ public class UserFateIT_SimpleSuite extends FateITBase {
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
     table = getUniqueNames(1)[0];
-    try (ClientContext client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
-        FateStore<TestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
-            maxDeferred, fateIdGenerator)) {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(fs, getCluster().getServerContext());
+      try (FateStore<TestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
+          maxDeferred, fateIdGenerator)) {
+        testMethod.execute(fs, getCluster().getServerContext());
+      }
     }
   }
 

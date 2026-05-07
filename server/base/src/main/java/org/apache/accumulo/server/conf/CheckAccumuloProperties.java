@@ -18,22 +18,29 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.io.IOException;
-import java.nio.file.Path;
-
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @AutoService(KeywordExecutable.class)
-public class CheckAccumuloProperties implements KeywordExecutable {
+public class CheckAccumuloProperties extends ServerKeywordExecutable<ServerOpts> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CheckAccumuloProperties.class);
+
+  public CheckAccumuloProperties() {
+    super(new ServerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -42,19 +49,24 @@ public class CheckAccumuloProperties implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Checks the provided Accumulo configuration file for errors. "
-        + "This only checks the contents of the file and not any running Accumulo system, "
-        + "so it can be used prior to init, but only performs a subset of the checks done by "
-        + (new CheckServerConfig().keyword());
+    return "Checks the provided Accumulo configuration file for errors";
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
   @Override
-  public void execute(String[] args) throws IOException {
-    Preconditions.checkArgument(args.length == 1,
-        "Expected 1 argument (the properties file path), got " + args.length);
+  public CommandGroup commandGroup() {
+    return CommandGroups.CONFIG;
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+
+    LOG.info("This command checks the configuration file only to allow"
+        + " some level of verification before initializing an instance. To"
+        + " perform a more complete check, run the check command with the arguments 'run "
+        + Check.SERVER_CONFIG + "'");
+
     var hadoopConfig = new Configuration();
-    var siteConfig = SiteConfiguration.fromFile(Path.of(args[0]).toFile()).build();
+    var siteConfig = options.getSiteConfiguration();
 
     VolumeManagerImpl.get(siteConfig, hadoopConfig);
     new ServerDirs(siteConfig, hadoopConfig);

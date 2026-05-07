@@ -26,13 +26,13 @@ import org.apache.hadoop.fs.Path;
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
  * {@link AccumuloFileOutputFormat#configure()}
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public interface FileOutputFormatBuilder {
   /**
    * Required params for builder
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface PathParams<T> {
     /**
@@ -44,7 +44,7 @@ public interface FileOutputFormatBuilder {
   /**
    * Options for builder
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface OutputOptions<T> {
     /**

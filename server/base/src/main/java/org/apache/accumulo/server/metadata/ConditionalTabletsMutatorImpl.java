@@ -69,15 +69,21 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   final Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
   private final Map<KeyExtent,Supplier<String>> operationDescriptions = new HashMap<>();
   private final Function<DataLevel,String> tableMapper;
-
-  public ConditionalTabletsMutatorImpl(ServerContext context) {
-    this(context, DataLevel::metaTable);
-  }
+  private final Supplier<ConditionalWriter> sharedMetadataWriter;
+  private final Supplier<ConditionalWriter> sharedUserWriter;
 
   public ConditionalTabletsMutatorImpl(ServerContext context,
       Function<DataLevel,String> tableMapper) {
+    this(context, tableMapper, context.getSharedMetadataWriter(), context.getSharedUserWriter());
+  }
+
+  public ConditionalTabletsMutatorImpl(ServerContext context,
+      Function<DataLevel,String> tableMapper, Supplier<ConditionalWriter> sharedMetadataWriter,
+      Supplier<ConditionalWriter> sharedUserWriter) {
     this.context = context;
     this.tableMapper = Objects.requireNonNull(tableMapper);
+    this.sharedMetadataWriter = sharedMetadataWriter;
+    this.sharedUserWriter = sharedUserWriter;
   }
 
   @Override
@@ -212,22 +218,36 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       throw new IllegalStateException(e);
     }
 
-    switch (status) {
-      case REJECTED:
-        return Ample.ConditionalResult.Status.REJECTED;
-      case ACCEPTED:
-        return Ample.ConditionalResult.Status.ACCEPTED;
-      default:
-        throw new IllegalStateException(
-            "Unexpected conditional mutation status : " + extent + " " + status);
-    }
+    return switch (status) {
+      case REJECTED -> Ample.ConditionalResult.Status.REJECTED;
+      case ACCEPTED -> Ample.ConditionalResult.Status.ACCEPTED;
+      default -> throw new IllegalStateException(
+          "Unexpected conditional mutation status : " + extent + " " + status);
+    };
   }
 
   @Override
   public Map<KeyExtent,Ample.ConditionalResult> process() {
     Preconditions.checkState(active);
     if (dataLevel != null) {
-      try (ConditionalWriter conditionalWriter = createConditionalWriter(dataLevel)) {
+      ConditionalWriter conditionalWriter = null;
+      boolean shouldClose = false;
+
+      try {
+        if (dataLevel == Ample.DataLevel.ROOT) {
+          conditionalWriter = createConditionalWriter(dataLevel);
+          shouldClose = true;
+        } else {
+          if (dataLevel == Ample.DataLevel.METADATA) {
+            conditionalWriter = sharedMetadataWriter.get();
+          } else if (dataLevel == Ample.DataLevel.USER) {
+            conditionalWriter = sharedUserWriter.get();
+          } else {
+            throw new IllegalArgumentException("Unsupported DataLevel: " + dataLevel);
+          }
+          shouldClose = false; // don't close shared writers
+        }
+
         var results = writeMutations(conditionalWriter);
 
         var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>();
@@ -300,6 +320,9 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       } finally {
+        if (shouldClose && conditionalWriter != null) {
+          conditionalWriter.close();
+        }
         // render inoperable because reuse is not tested
         extents.clear();
         mutations.clear();

@@ -18,10 +18,123 @@
  */
 "use strict";
 
+var deploymentSummaryTable;
+var deploymentBreakdownTable;
+const SERVER_TYPE_LINKS = new Map([
+  ['Manager', 'manager'],
+  ['Garbage Collector', 'gc'],
+  ['Compactor', 'compactors'],
+  ['Scan Server', 'sservers'],
+  ['Tablet Server', 'tservers']
+]);
+const SUMMARY_SERVER_TYPES = ['Manager', 'Garbage Collector', 'Compactor', 'Scan Server',
+  'Tablet Server'
+];
+
 /**
  * Creates overview initial table
  */
 $(function () {
+  // display datatables errors in the console instead of in alerts
+  $.fn.dataTable.ext.errMode = 'throw';
+
+  deploymentSummaryTable = $('#deploymentSummaryTable').DataTable({
+    "autoWidth": false,
+    "paging": false,
+    "searching": false,
+    "info": false,
+    "ordering": false,
+    "dom": 't',
+    "data": [],
+    "columnDefs": [{
+        "targets": 0,
+        "width": "60%"
+      },
+      {
+        "targets": 1,
+        "width": "40%"
+      }
+    ],
+    "columns": [{
+        "data": "serverType",
+        "render": function (data, type) {
+          if (type !== 'display') {
+            return data;
+          }
+
+          var link = SERVER_TYPE_LINKS.get(data);
+          if (link === undefined) {
+            return data;
+          }
+
+          return '<a class="link-body-emphasis" href="' + sanitize(link) + '">' + sanitize(data) + '</a>';
+        }
+      },
+      {
+        "data": null,
+        "render": function (data, type, row) {
+          return row.responding + ' / ' + row.total;
+        }
+      }
+    ]
+  });
+
+  deploymentBreakdownTable = $('#deploymentBreakdownTable').DataTable({
+    "autoWidth": false,
+    "paging": true,
+    "pageLength": 10,
+    "searching": true,
+    "info": true,
+    "order": [
+      [0, 'asc'],
+      [1, 'asc']
+    ],
+    "dom": 't<"row"<"col-sm-3"l><"col-sm-5 text-center"i><"col-sm-4 text-right"p>>',
+    "data": [],
+    "columnDefs": [{
+        "targets": 0,
+        "width": "30%"
+      },
+      {
+        "targets": 1,
+        "width": "40%"
+      },
+      {
+        "targets": 2,
+        "width": "30%"
+      }
+    ],
+    "columns": [{
+        "data": "resourceGroup",
+        "name": "resourceGroup"
+      },
+      {
+        "data": "serverType"
+      },
+      {
+        "data": null,
+        "render": function (data, type, row) {
+          return row.responding + ' / ' + row.total;
+        }
+      }
+    ]
+  });
+
+  $('#deployment-rg-filter').on('keyup', function () {
+    var input = this.value;
+    if (isValidRegex(input) || input === '') {
+      $('#deployment-rg-feedback').hide();
+      $(this).removeClass('is-invalid');
+      deploymentBreakdownTable
+        .column('resourceGroup:name')
+        .search(input, true, false)
+        .draw();
+    } else {
+      $('#deployment-rg-feedback').show();
+      $(this).addClass('is-invalid');
+    }
+  });
+
   refreshOverview();
 });
 
@@ -29,9 +142,7 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  getManager().then(function () {
-    refreshManagerTable();
-  });
+  refreshDeploymentTables();
 }
 
 /**
@@ -42,27 +153,54 @@ function refresh() {
 }
 
 /**
- * Refreshes the manager table
+ * Refreshes the deployment overview tables
  */
-function refreshManagerTable() {
-  var data = sessionStorage.manager === undefined ? [] : JSON.parse(sessionStorage.manager);
+function refreshDeploymentTables() {
+  getDeployment().then(function () {
+    var data = JSON.parse(sessionStorage.deployment);
+    var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+    var summary = buildDeploymentSummary(breakdown);
 
-  $('#manager tr td:first').hide();
-  $('#manager tr td').hide();
+    if (breakdown.length === 0) {
+      $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
+        'No deployment data is currently available.</div>');
+    } else {
+      $('#deploymentWarning').empty();
+    }
 
-  // If the manager is down, show the first row, otherwise refresh old values
-  if (data.length === 0 || data.manager === 'No Managers running') {
-    $('#manager tr td:first').show();
-  } else {
-    $('#manager tr td:not(:first)').show();
-    var table = $('#manager td.right');
+    deploymentSummaryTable.clear().rows.add(summary).draw();
+    deploymentBreakdownTable.clear().rows.add(breakdown).draw();
+  });
+}
 
-    table.eq(0).html(bigNumberForQuantity(data.tables));
-    table.eq(1).html(bigNumberForQuantity(data.totalTabletServers));
-    table.eq(2).html(bigNumberForQuantity(data.deadTabletServersCount));
-    table.eq(3).html(bigNumberForQuantity(data.tablets));
-    table.eq(4).html(bigNumberForQuantity(data.numentries));
-    table.eq(5).html(bigNumberForQuantity(data.lookups));
-    table.eq(6).html(timeDuration(data.uptime));
+function buildDeploymentSummary(breakdown) {
+  if (breakdown.length === 0) {
+    return [];
   }
+
+  var totalsByType = new Map();
+
+  SUMMARY_SERVER_TYPES.forEach(function (serverType) {
+    totalsByType.set(serverType, {
+      serverType: serverType,
+      total: 0,
+      responding: 0
+    });
+  });
+
+  breakdown.forEach(function (row) {
+    var existing = totalsByType.get(row.serverType);
+    if (existing === undefined) {
+      totalsByType.set(row.serverType, {
+        serverType: row.serverType,
+        total: row.total,
+        responding: row.responding
+      });
+    } else {
+      existing.total += row.total;
+      existing.responding += row.responding;
+    }
+  });
+
+  return Array.from(totalsByType.values());
 }

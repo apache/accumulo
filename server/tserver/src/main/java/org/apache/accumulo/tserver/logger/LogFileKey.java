@@ -238,21 +238,14 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
 
   @Override
   public String toString() {
-    switch (event) {
-      case OPEN:
-        return String.format("OPEN %s", tserverSession);
-      case COMPACTION_FINISH:
-        return String.format("COMPACTION_FINISH %d %d", tabletId, seq);
-      case COMPACTION_START:
-        return String.format("COMPACTION_START %d %d %s", tabletId, seq, filename);
-      case MUTATION:
-        return String.format("MUTATION %d %d", tabletId, seq);
-      case MANY_MUTATIONS:
-        return String.format("MANY_MUTATIONS %d %d", tabletId, seq);
-      case DEFINE_TABLET:
-        return String.format("DEFINE_TABLET %d %d %s", tabletId, seq, tablet);
-    }
-    throw new RuntimeException("Unknown type of entry: " + event);
+    return switch (event) {
+      case OPEN -> String.format("OPEN %s", tserverSession);
+      case COMPACTION_FINISH -> String.format("COMPACTION_FINISH %d %d", tabletId, seq);
+      case COMPACTION_START -> String.format("COMPACTION_START %d %d %s", tabletId, seq, filename);
+      case MUTATION -> String.format("MUTATION %d %d", tabletId, seq);
+      case MANY_MUTATIONS -> String.format("MANY_MUTATIONS %d %d", tabletId, seq);
+      case DEFINE_TABLET -> String.format("DEFINE_TABLET %d %d %s", tabletId, seq, tablet);
+    };
   }
 
   /**

@@ -59,7 +59,7 @@ import org.junit.jupiter.api.io.TempDir;
 /**
  * Tests the new MR API in the hadoop-mapreduce package.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 

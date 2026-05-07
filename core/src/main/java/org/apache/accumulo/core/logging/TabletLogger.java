@@ -140,6 +140,10 @@ public class TabletLogger {
         cf -> CompactableFileImpl.toStoredTabletFile(cf).toMinimalString());
   }
 
+  public static void renamed(KeyExtent extent, TabletFile src, TabletFile dest) {
+    fileLog.debug("{} renamed {} to {}", extent, src.getFileName(), dest.getFileName());
+  }
+
   public static void selected(FateId fateId, KeyExtent extent,
       Collection<StoredTabletFile> inputs) {
     fileLog.trace("Selected files {} {} {}", extent, fateId,
@@ -147,18 +151,18 @@ public class TabletLogger {
   }
 
   public static void compacting(KeyExtent extent, FateId selectedFateId, ExternalCompactionId cid,
-      String compactorAddress, CompactionJob job) {
+      String compactorAddress, CompactionJob job, TabletFile output) {
     if (fileLog.isDebugEnabled()) {
       if (job.getKind() == CompactionKind.USER) {
         fileLog.debug(
-            "Compacting {} driver:{} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
+            "Compacting {} driver:{} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{} output:{}",
             extent, selectedFateId, cid, job.getGroup(), compactorAddress, job.getPriority(),
-            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()), output);
       } else {
         fileLog.debug(
-            "Compacting {} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
+            "Compacting {} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{} output:{}",
             extent, cid, job.getGroup(), compactorAddress, job.getPriority(),
-            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()), output);
       }
     }
   }

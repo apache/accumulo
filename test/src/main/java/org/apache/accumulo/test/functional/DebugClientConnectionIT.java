@@ -52,6 +52,7 @@ public class DebugClientConnectionIT extends AccumuloClusterHarness {
     }
     assertNotNull(tservers);
     assertEquals(2, tservers.size());
+    System.clearProperty(TServerClient.DEBUG_HOST);
   }
 
   @Test

@@ -360,8 +360,9 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(BulkFileColumnFamily.NAME,
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
-            .getMetadata().replaceFirst("\"path\":\".*\",\"startRow", "\"path\":\"\",\"startRow")),
+            .getMetadata().replaceFirst("\"path\":\".*\"", "\"path\":\"\"")),
         new Value(fateId1.canonical()));
+
     assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test startRow key replaced with empty string so validation should fail
@@ -435,8 +436,9 @@ public class MetadataConstraintsTest {
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily,
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
-            .getMetadata().replaceFirst("\"path\":\".*\",\"startRow", "\"path\":\"\",\"startRow")),
+            .getMetadata().replaceFirst("\"path\":\".*\"", "\"path\":\"\"")),
         value);
+
     assertViolation(mc, m, (short) 3100);
 
     // Bad Json - test startRow key replaced with empty string so validation should fail

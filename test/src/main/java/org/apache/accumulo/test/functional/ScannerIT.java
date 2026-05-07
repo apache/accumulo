@@ -20,16 +20,26 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.EVENTUAL;
 import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.IMMEDIATE;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.minicluster.ServerType.SCAN_SERVER;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.security.SecureRandom;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,25 +47,39 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ThriftScanner;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.CloseScannerIT;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import com.google.common.collect.MoreCollectors;
 
 public class ScannerIT extends ConfigurableMacBase {
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
+  }
+
+  @Override
+  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
   }
 
   @Test
@@ -74,7 +98,7 @@ public class ScannerIT extends ConfigurableMacBase {
 
       IteratorSetting cfg;
       Iterator<Entry<Key,Value>> iterator;
-      long nanosWithWait = 0;
+      Duration durationWithWait = Duration.ZERO;
       try (Scanner s = c.createScanner(table, new Authorizations())) {
 
         cfg = new IteratorSetting(100, SlowIterator.class);
@@ -88,19 +112,22 @@ public class ScannerIT extends ConfigurableMacBase {
         s.setRange(new Range());
 
         iterator = s.iterator();
-        long startTime = System.nanoTime();
-        while (iterator.hasNext()) {
-          nanosWithWait += System.nanoTime() - startTime;
+        Timer hasNextTimer = Timer.startNew();
+        while (true) {
+          hasNextTimer.restart();
+          boolean hasNext = iterator.hasNext();
+          durationWithWait = durationWithWait.plus(hasNextTimer.elapsed());
+          if (!hasNext) {
+            break;
+          }
 
           // While we "do work" in the client, we should be fetching the next result
           Thread.sleep(100L);
           iterator.next();
-          startTime = System.nanoTime();
         }
-        nanosWithWait += System.nanoTime() - startTime;
       }
 
-      long nanosWithNoWait = 0;
+      Duration durationWithNoWait = Duration.ZERO;
       try (Scanner s = c.createScanner(table, new Authorizations())) {
         s.addScanIterator(cfg);
         s.setRange(new Range());
@@ -108,21 +135,25 @@ public class ScannerIT extends ConfigurableMacBase {
         s.setReadaheadThreshold(0L);
 
         iterator = s.iterator();
-        long startTime = System.nanoTime();
-        while (iterator.hasNext()) {
-          nanosWithNoWait += System.nanoTime() - startTime;
+        Timer hasNextTimer = Timer.startNew();
+        while (true) {
+          hasNextTimer.restart();
+          boolean hasNext = iterator.hasNext();
+          durationWithNoWait = durationWithNoWait.plus(hasNextTimer.elapsed());
+          if (!hasNext) {
+            break;
+          }
 
           // While we "do work" in the client, we should be fetching the next result
           Thread.sleep(100L);
           iterator.next();
-          startTime = System.nanoTime();
         }
-        nanosWithNoWait += System.nanoTime() - startTime;
 
         // The "no-wait" time should be much less than the "wait-time"
-        assertTrue(nanosWithNoWait < nanosWithWait,
-            "Expected less time to be taken with immediate readahead (" + nanosWithNoWait
-                + ") than without immediate readahead (" + nanosWithWait + ")");
+        assertTrue(durationWithNoWait.compareTo(durationWithWait) < 0,
+            "Expected less time to be taken with immediate readahead ("
+                + durationWithNoWait.toNanos() + ") than without immediate readahead ("
+                + durationWithWait.toNanos() + ")");
       }
     }
   }
@@ -133,7 +164,7 @@ public class ScannerIT extends ConfigurableMacBase {
   @ParameterizedTest
   @EnumSource
   public void testSessionCleanup(ConsistencyLevel consistency) throws Exception {
-    final String tableName = getUniqueNames(1)[0];
+    final String tableName = getUniqueNames(1)[0] + "_" + consistency;
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
 
@@ -221,5 +252,183 @@ public class ScannerIT extends ConfigurableMacBase {
 
     return c.instanceOperations().getActiveScans(servers).stream()
         .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
+  }
+
+  @Test
+  public void testIOExceptionDuringScanIterator() throws Exception {
+
+    getCluster().getClusterControl().startAllServers(SCAN_SERVER);
+    var random = new SecureRandom();
+
+    Properties props = getClientProperties();
+    // configure scan server not to fallback to tablet servers
+    String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s', 'busyTimeoutMultiplier':8,"
+        + "'timeToWaitForScanServers':10h, "
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'100ms'}]}]";
+    props.put(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles", profiles);
+
+    final String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      client.tableOperations().create(table);
+
+      try (var writer = client.createBatchWriter(table)) {
+        for (int i = 0; i < 10; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("", "", "");
+          writer.addMutation(m);
+        }
+      }
+
+      // need to flush data to disk so its visible to scan server
+      client.tableOperations().flush(table, null, null, true);
+
+      IteratorSetting iteratorSetting = new IteratorSetting(1000, ErrorThrowingIterator.class);
+      iteratorSetting.addOption(ErrorThrowingIterator.TIMES, "3");
+      // Set a single row to fail so that after splitting some tablets fail and some do not fail.
+      iteratorSetting.addOption(ErrorThrowingIterator.ROW, "row5");
+
+      // The batch scanner sends multiple extents in a single RPC. Need to try a mixture of failing
+      // and non failing extents for this RPC, so test w/ single tablet and three tablets.
+      for (List<String> splitsToAdd : List.of(List.<String>of(), List.of("row3", "row7"))) {
+        if (!splitsToAdd.isEmpty()) {
+          TreeSet<Text> splits =
+              splitsToAdd.stream().map(Text::new).collect(Collectors.toCollection(TreeSet::new));
+          client.tableOperations().addSplits(table, splits);
+          // The scan server would not see these splits as it caches tablet info for a bit
+          getCluster().getClusterControl().stopAllServers(SCAN_SERVER);
+          getCluster().getClusterControl().startAllServers(SCAN_SERVER);
+        }
+        // try tablet and scan server to ensure both have same behavior
+        for (var cl : ConsistencyLevel.values()) {
+          log.debug("Starting scan {} {}", cl, splitsToAdd);
+          try (var scanner = client.createScanner(table)) {
+            iteratorSetting.addOption(ErrorThrowingIterator.NAME, random.nextLong() + "");
+            scanner.addScanIterator(iteratorSetting);
+            scanner.setConsistencyLevel(cl);
+            assertEquals(10, scanner.stream().count());
+          }
+
+          log.debug("Starting batch scan {} {}", cl, splitsToAdd);
+          iteratorSetting.addOption(ErrorThrowingIterator.NAME, random.nextLong() + "");
+          try (var scanner = client.createBatchScanner(table)) {
+            scanner.setRanges(List.of(new Range()));
+            scanner.addScanIterator(iteratorSetting);
+            scanner.setConsistencyLevel(cl);
+            assertEquals(10, scanner.stream().count());
+          }
+        }
+      }
+
+      // ensure a repeating IOException in an iterator times out eventually
+      iteratorSetting.addOption(ErrorThrowingIterator.TIMES, "1000000");
+      var executor = Executors.newCachedThreadPool();
+      try {
+        List<Future<?>> futures = new ArrayList<>();
+        for (var consistencyLevel : List.of(IMMEDIATE, EVENTUAL)) {
+          iteratorSetting.addOption(ErrorThrowingIterator.NAME, random.nextLong() + "");
+          futures.add(executor
+              .submit(() -> expectScanTimeout(client, table, consistencyLevel, iteratorSetting)));
+          iteratorSetting.addOption(ErrorThrowingIterator.NAME, random.nextLong() + "");
+          futures.add(executor.submit(
+              () -> expectBatchScanTimeout(client, table, consistencyLevel, iteratorSetting)));
+        }
+
+        for (var future : futures) {
+          future.get();
+        }
+      } finally {
+        executor.shutdownNow();
+      }
+
+    }
+  }
+
+  @Test
+  public void testIOExceptionDuringScanFileOpen() throws Exception {
+
+    getCluster().getClusterControl().startAllServers(SCAN_SERVER);
+
+    final String table = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+
+      try (var writer = client.createBatchWriter(table)) {
+        for (int i = 0; i < 10; i++) {
+          Mutation m = new Mutation("row" + i);
+          m.put("", "", "");
+          writer.addMutation(m);
+        }
+      }
+
+      client.tableOperations().flush(table, null, null, true);
+
+      var ctx = getCluster().getServerContext();
+      var tableId = ctx.getTableId(table);
+
+      // Delete the tablets file to cause an IOException during opening the file. By default
+      // scanners will retry indefinitely when an IOException happens. Test setting a timeout on the
+      // scans for this case.
+      try (var tablets = ctx.getAmple().readTablets().forTable(tableId).fetch(FILES).build()) {
+        var tabletList = tablets.stream().collect(Collectors.toList());
+        assertEquals(1, tabletList.size());
+        for (var tablet : tabletList) {
+          var file = tablet.getFiles().stream().collect(MoreCollectors.onlyElement());
+          assertTrue(getCluster().getFileSystem().delete(file.getPath(), false));
+        }
+      }
+
+      // Run scans all concurrently to avoid waiting on each one to timeout sequentially.
+      var executor = Executors.newCachedThreadPool();
+      try {
+        List<Future<?>> futures = new ArrayList<>();
+        for (var consistencyLevel : List.of(IMMEDIATE, EVENTUAL)) {
+          futures.add(executor.submit(() -> expectScanTimeout(client, table, consistencyLevel)));
+          futures
+              .add(executor.submit(() -> expectBatchScanTimeout(client, table, consistencyLevel)));
+        }
+
+        for (var future : futures) {
+          future.get();
+        }
+      } finally {
+        executor.shutdownNow();
+      }
+    }
+  }
+
+  private static void expectBatchScanTimeout(AccumuloClient client, String table,
+      ConsistencyLevel consistencyLevel, IteratorSetting... iters) {
+    try (var scanner = client.createBatchScanner(table)) {
+      scanner.setRanges(List.of(new Range()));
+      scanner.setTimeout(5, TimeUnit.SECONDS);
+      scanner.setConsistencyLevel(consistencyLevel);
+      for (var iter : iters) {
+        scanner.addScanIterator(iter);
+      }
+      Timer timer = Timer.startNew();
+      assertThrows(TimedOutException.class, () -> scanner.stream().count());
+      long elapsed = timer.elapsed(TimeUnit.MILLISECONDS);
+      assertTrue(elapsed >= 5000, () -> "elapsed : " + elapsed);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private static void expectScanTimeout(AccumuloClient client, String table,
+      ConsistencyLevel consistencyLevel, IteratorSetting... iters) {
+    try (var scanner = client.createScanner(table)) {
+      scanner.setTimeout(5, TimeUnit.SECONDS);
+      scanner.setConsistencyLevel(consistencyLevel);
+      for (var iter : iters) {
+        scanner.addScanIterator(iter);
+      }
+      Timer timer = Timer.startNew();
+      var exception = assertThrows(RuntimeException.class, () -> scanner.stream().count());
+      assertEquals(ThriftScanner.ScanTimedOutException.class, exception.getCause().getClass());
+      long elapsed = timer.elapsed(TimeUnit.MILLISECONDS);
+      assertTrue(elapsed >= 5000, () -> "elapsed : " + elapsed);
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 }

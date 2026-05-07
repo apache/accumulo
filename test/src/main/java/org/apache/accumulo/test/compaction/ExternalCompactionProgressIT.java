@@ -37,7 +37,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,15 +45,15 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -66,15 +65,12 @@ import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Tests that external compactions report progress from start to finish. To prevent flaky test
@@ -132,8 +128,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
     final AtomicLong totalEntriesRead = new AtomicLong(0);
     final AtomicLong totalEntriesWritten = new AtomicLong(0);
-    final long expectedEntriesRead = 18432;
-    final long expectedEntriesWritten = 13312;
+    final long expectedEntriesRead = 9216;
+    final long expectedEntriesWritten = 4096;
 
     Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
 
@@ -194,11 +190,15 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
           final String metricName = metric.getName();
-          if (!metricName.startsWith("accumulo.compaction.entries")) {
+          // When the tablet server flushes memory to disk that can cause metrics that may throw the
+          // test off, so only look for metrics from the compactor.
+          String process = metric.getTags().getOrDefault("process.name", "none");
+          if (!metricName.startsWith("accumulo.compaction.entries")
+              || !process.equals(MetricsUtil.formatString(ServerId.Type.COMPACTOR.name()))) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
-          log.debug("Found metric: {} with value: {}", metricName, value);
+          log.debug("Found metric: {} {} with value: {}", metricName, metric.getTags(), value);
           if (metricName.equals(COMPACTOR_ENTRIES_READ.getName())) {
             totalEntriesRead.addAndGet(value);
           } else if (metricName.equals(COMPACTOR_ENTRIES_WRITTEN.getName())) {
@@ -322,13 +322,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    */
   private void checkRunning() throws TException {
     ServerContext ctx = getCluster().getServerContext();
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
 
-    TExternalCompactionMap ecList = getRunningCompactions(ctx, coordinatorHost);
-    Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
+    Map<String,TExternalCompaction> ecMap = getRunningCompactions(ctx);
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
         // returns null if it's a new mapping

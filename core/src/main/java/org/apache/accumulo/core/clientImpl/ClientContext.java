@@ -32,11 +32,11 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.URL;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -76,6 +76,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -86,6 +87,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -93,6 +95,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
@@ -109,6 +112,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -122,6 +126,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -168,6 +174,7 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
+  private ResourceGroupOperations rgOps = null;
   private final Supplier<ThreadPools> clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
@@ -182,6 +189,10 @@ public class ClientContext implements AccumuloClient {
     if (closed.get()) {
       throw new IllegalStateException("This client was closed.");
     }
+  }
+
+  public boolean isClosed() {
+    return closed.get();
   }
 
   private ScanServerSelector createScanServerSelector() {
@@ -213,15 +224,16 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
-              .stream().map(entry -> new ScanServerInfo() {
+          return () -> getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).stream()
+              .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
                   return entry.getServer();
                 }
 
                 @Override
-                public String getGroup() {
+                public ResourceGroupId getGroup() {
                   return entry.getResourceGroup();
                 }
               }).collect(Collectors.toSet());
@@ -446,11 +458,11 @@ public class ClientContext implements AccumuloClient {
   /**
    * @return map of live scan server addresses to lock uuids.
    */
-  public Map<String,Pair<UUID,String>> getScanServers() {
+  public Map<String,Pair<UUID,ResourceGroupId>> getScanServers() {
     ensureOpen();
-    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    Map<String,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+        getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();
@@ -459,7 +471,7 @@ public class ClientContext implements AccumuloClient {
           final ServiceLockData data = sld.orElseThrow();
           final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
           final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
-          final String group = data.getGroup(ThriftService.TABLET_SCAN);
+          final ResourceGroupId group = data.getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {
@@ -736,7 +748,7 @@ public class ClientContext implements AccumuloClient {
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
     if (!tableNodeExists(tableId)) {
-      throw new TableDeletedException(tableId.canonical());
+      throw new TableDeletedException(tableId);
     }
     return tableId;
   }
@@ -894,6 +906,15 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
+  public synchronized ResourceGroupOperations resourceGroupOperations() {
+    ensureOpen();
+    if (rgOps == null) {
+      rgOps = new ResourceGroupOperationsImpl(this);
+    }
+    return rgOps;
+  }
+
+  @Override
   public Properties properties() {
     ensureOpen();
     Properties result = new Properties();
@@ -913,20 +934,25 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
-      if (zooCacheCreated.get()) {
-        zooCache.get().close();
-      }
-      if (zooKeeperOpened.get()) {
-        zooSession.get().close();
-      }
       if (thriftTransportPool != null) {
+        log.debug("Closing Thrift Transport Pool");
         thriftTransportPool.shutdown();
       }
       if (scannerReadaheadPool != null) {
+        log.debug("Closing Scanner ReadAhead Pool");
         scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
       }
       if (cleanupThreadPool != null) {
+        log.debug("Closing Cleanup ThreadPool");
         cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+      }
+      if (zooCacheCreated.get()) {
+        log.debug("Closing ZooCache");
+        zooCache.get().close();
+      }
+      if (zooKeeperOpened.get()) {
+        log.debug("Closing ZooSession");
+        zooSession.get().close();
       }
     }
   }
@@ -1120,10 +1146,6 @@ public class ClientContext implements AccumuloClient {
       properties.setProperty(property.getKey(), value.toString());
     }
 
-    public void setProperty(ClientProperty property, Long value) {
-      setProperty(property, Long.toString(value));
-    }
-
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
@@ -1228,8 +1250,45 @@ public class ClientContext implements AccumuloClient {
     return mapping;
   }
 
+  @VisibleForTesting
+  public boolean isTabletLocationCachePresent(TableId tableId) {
+    return tabletLocationCache.get(DataLevel.of(tableId)).containsKey(tableId);
+  }
+
+  private volatile Duration clearFrequency = Duration.ofMinutes(10);
+
+  /**
+   * Sets how often checks for unused tables are done
+   */
+  @VisibleForTesting
+  public void setClearFrequency(Duration frequency) {
+    Preconditions.checkArgument(frequency != null && !frequency.isNegative() && !frequency.isZero(),
+        "frequency:%s", frequency);
+    clearFrequency = frequency;
+  }
+
+  private final Timer lastClearTimer = Timer.startNew();
+
   public ClientTabletCache getTabletLocationCache(TableId tableId) {
     ensureOpen();
+    if (lastClearTimer.hasElapsed(clearFrequency)) {
+      synchronized (lastClearTimer) {
+        if (lastClearTimer.hasElapsed(clearFrequency)) {
+          tabletLocationCache.get(DataLevel.USER).entrySet().removeIf(entry -> {
+            TableId tableIdToCheck = entry.getKey();
+            ClientTabletCache cache = entry.getValue();
+            var tableState = getTableState(tableIdToCheck);
+            if (tableState != TableState.ONLINE && tableState != TableState.OFFLINE) {
+              cache.invalidateCache();
+              return true;
+            }
+            return false;
+          });
+          lastClearTimer.restart();
+        }
+      }
+    }
+
     return tabletLocationCache.get(DataLevel.of(tableId)).computeIfAbsent(tableId,
         (TableId key) -> {
           var lockChecker = getTServerLockChecker();
@@ -1268,14 +1327,12 @@ public class ClientContext implements AccumuloClient {
   }
 
   private static Set<String> createPersistentWatcherPaths() {
-    Set<String> pathsToWatch = new HashSet<>();
-    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+    return Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
-      pathsToWatch.add(path);
-    }
-    return pathsToWatch;
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
+        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS,
+        Constants.ZMANAGER_ASSIGNMENTS);
   }
 
 }

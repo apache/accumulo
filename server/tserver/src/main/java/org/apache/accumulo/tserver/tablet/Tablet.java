@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -86,6 +87,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -125,7 +127,7 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
-  private static final Logger CLOSING_STUCK_LOGGER =
+  private static final DeduplicatingLogger CLOSING_STUCK_LOGGER =
       new DeduplicatingLogger(log, Duration.ofMinutes(5), 1000);
 
   private final TabletServer tabletServer;
@@ -166,7 +168,7 @@ public class Tablet extends TabletBase {
     OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
-  private long closeRequestTime = 0;
+  private Timer closeRequestTimer = null;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -220,7 +222,7 @@ public class Tablet extends TabletBase {
     public boolean closed = false;
   }
 
-  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
+  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) {
     return TabletNameGenerator.getNextDataFilename(prefix, context, extent,
         getMetadata().getDirName(), dir -> checkTabletDir(new Path(dir)));
   }
@@ -247,8 +249,7 @@ public class Tablet extends TabletBase {
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
-      final TabletResourceManager trm, TabletMetadata metadata)
-      throws IOException, IllegalArgumentException {
+      final TabletResourceManager trm, TabletMetadata metadata) {
 
     super(tabletServer, extent);
 
@@ -320,7 +321,7 @@ public class Tablet extends TabletBase {
           logEntries.clear();
         }
 
-      } catch (Exception t) {
+      } catch (IOException | RuntimeException t) {
         String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           log.warn(msg, t);
@@ -355,7 +356,7 @@ public class Tablet extends TabletBase {
   }
 
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
-      AtomicBoolean iFlag) throws IOException {
+      AtomicBoolean iFlag) throws IOException, ReflectiveOperationException {
 
     ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
         null, false, null, -1, null);
@@ -367,7 +368,7 @@ public class Tablet extends TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       checker.check(iter);
-    } catch (IOException | RuntimeException e) {
+    } catch (IOException | RuntimeException | ReflectiveOperationException e) {
       sawException = true;
       throw e;
     } finally {
@@ -397,7 +398,7 @@ public class Tablet extends TabletBase {
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         TraceUtil.setException(span, e, true);
         throw e;
       } finally {
@@ -409,12 +410,12 @@ public class Tablet extends TabletBase {
         bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId, mincReason);
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         final ServiceLock tserverLock = tabletServer.getLock();
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
           log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
               + " Halting...", getExtent(), e);
-          Halt.halt(-1, "TabletServer lock does not exist", e);
+          Halt.halt(1, "TabletServer lock does not exist", e);
         } else {
           TraceUtil.setException(span2, e, true);
           throw e;
@@ -424,14 +425,14 @@ public class Tablet extends TabletBase {
       }
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
-    } catch (Exception | Error e) {
+    } catch (RuntimeException e) {
       failed = true;
       throw new RuntimeException("Exception occurred during minor compaction on " + extent, e);
     } finally {
       Thread.currentThread().setName(oldName);
       try {
         getTabletMemory().finalizeMinC();
-      } catch (Exception t) {
+      } catch (RuntimeException t) {
         log.error("Failed to free tablet memory on {}", extent, t);
       }
 
@@ -794,11 +795,11 @@ public class Tablet extends TabletBase {
 
     synchronized (this) {
       if (closeState == CloseState.OPEN) {
-        closeRequestTime = System.nanoTime();
+        closeRequestTimer = Timer.startNew();
         closeState = CloseState.REQUESTED;
       } else {
-        Preconditions.checkState(closeRequestTime != 0);
-        long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
+        Preconditions.checkState(closeRequestTimer != null);
+        long runningTime = closeRequestTimer.elapsed(MINUTES);
         if (runningTime >= 15) {
           CLOSING_STUCK_LOGGER.info(
               "Tablet {} close requested again, but has been closing for {} minutes", this.extent,
@@ -928,7 +929,7 @@ public class Tablet extends TabletBase {
         return currentlyUnreserved;
       });
 
-      long lastLogTime = System.nanoTime();
+      Timer lastLogTimer = Timer.startNew();
 
       // wait for reads and writes to complete
       while (writesInProgress > 0 || !runningScans.isEmpty()) {
@@ -940,13 +941,12 @@ public class Tablet extends TabletBase {
           return currentlyUnreserved;
         });
 
-        if (log.isDebugEnabled()
-            && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
+        if (log.isDebugEnabled() && lastLogTimer.hasElapsed(1, MINUTES)) {
           for (ScanDataSource activeScan : runningScans) {
             log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
           }
 
-          lastLogTime = System.nanoTime();
+          lastLogTimer.restart();
         }
 
         try {
@@ -1009,7 +1009,7 @@ public class Tablet extends TabletBase {
 
       try {
         getTabletMemory().getMemTable().delete(0);
-      } catch (Exception t) {
+      } catch (RuntimeException t) {
         log.error("Failed to delete mem table : " + t.getMessage() + " for tablet " + extent, t);
       }
 
@@ -1053,11 +1053,10 @@ public class Tablet extends TabletBase {
         log.error(msg);
         throw new RuntimeException(msg);
       }
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
       throw new RuntimeException(msg, e);
-
     }
 
     if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {
@@ -1167,7 +1166,7 @@ public class Tablet extends TabletBase {
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, this.scannedCount.get());
+    scannedRate.update(now, this.scannedCount.sum());
   }
 
   private Set<DfsLogger> currentLogs = new HashSet<>();
@@ -1581,12 +1580,13 @@ public class Tablet extends TabletBase {
           }
           attemptedRename = true;
           ScanfileManager.rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+          TabletLogger.renamed(getExtent(), tmpDatafile, newDatafile);
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet " + getExtent() + " failed to rename " + newDatafile
-            + " after MinC, will retry in 60 secs...", ioe);
-        sleepUninterruptibly(1, TimeUnit.MINUTES);
+        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", getExtent(),
+            newDatafile, ioe);
+        sleepUninterruptibly(1, MINUTES);
       }
     } while (true);
 
@@ -1630,7 +1630,7 @@ public class Tablet extends TabletBase {
               commitSession.getWALogSeq() + 2);
           break;
         } catch (IOException e) {
-          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          log.error("Failed to write to write-ahead log {} will retry", e.getMessage(), e);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } while (true);

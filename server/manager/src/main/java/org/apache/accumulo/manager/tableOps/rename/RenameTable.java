@@ -27,12 +27,12 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-public class RenameTable extends ManagerRepo {
+public class RenameTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
@@ -41,10 +41,11 @@ public class RenameTable extends ManagerRepo {
   private final String newTableName;
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.RENAME);
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.WRITE, true,
+            TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
@@ -56,22 +57,20 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     Pair<String,String> qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
     // the namespace name was already checked before starting the fate operation
     String newSimpleTableName = TableNameUtil.qualify(newTableName).getSecond();
-    var context = manager.getContext();
+    var context = env.getContext();
 
-    Utils.getTableNameLock().lock();
     try {
       context.getTableMapping(namespaceId).rename(tableId, qualifiedOldTableName.getSecond(),
           newSimpleTableName);
 
       context.clearTableListCache();
     } finally {
-      Utils.getTableNameLock().unlock();
-      Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
-      Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(context, tableId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(context, namespaceId, fateId, LockType.READ);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -81,9 +80,9 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+  public void undo(FateId fateId, FateEnv env) {
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 
 }

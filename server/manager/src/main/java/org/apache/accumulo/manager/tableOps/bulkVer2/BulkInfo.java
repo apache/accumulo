@@ -36,4 +36,12 @@ class BulkInfo implements Serializable {
   // imported data
   byte[] firstSplit;
   byte[] lastSplit;
+
+  static BulkInfo create(TableId tableId, String sourceDir, boolean setTime) {
+    BulkInfo info = new BulkInfo();
+    info.tableId = tableId;
+    info.sourceDir = sourceDir;
+    info.setTime = setTime;
+    return info;
+  }
 }

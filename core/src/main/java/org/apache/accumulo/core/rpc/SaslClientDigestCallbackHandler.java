@@ -108,8 +108,7 @@ public class SaslClientDigestCallbackHandler extends SaslDigestCallbackHandler {
     if (o == null) {
       return false;
     }
-    if (o instanceof SaslClientDigestCallbackHandler) {
-      SaslClientDigestCallbackHandler other = (SaslClientDigestCallbackHandler) o;
+    if (o instanceof SaslClientDigestCallbackHandler other) {
       return userName.equals(other.userName) && Arrays.equals(userPassword, other.userPassword);
     }
     return false;

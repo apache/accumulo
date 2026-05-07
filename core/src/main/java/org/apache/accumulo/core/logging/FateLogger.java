@@ -23,8 +23,9 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.FateStore.Seeder;
@@ -114,6 +116,11 @@ public class FateLogger {
       }
 
       @Override
+      public void seeded() {
+        store.seeded();
+      }
+
+      @Override
       public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
         return store.tryReserve(fateId)
             .map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString, allowForceDel));
@@ -140,8 +147,9 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
-        store.runnable(keepWaiting, idConsumer);
+      public void runnable(Set<FatePartition> partitions, BooleanSupplier keepWaiting,
+          Consumer<FateIdStatus> idConsumer) {
+        store.runnable(partitions, keepWaiting, idConsumer);
       }
 
       @Override
@@ -162,8 +170,8 @@ public class FateLogger {
       public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<T> repo,
           boolean autoCleanUp) {
         boolean seeded = store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
-        if (storeLog.isTraceEnabled()) {
-          storeLog.trace("{} {} {} {}", fateId, seeded ? "seeded" : "unable to seed",
+        if (storeLog.isDebugEnabled()) {
+          storeLog.debug("{} {} {} {}", fateId, seeded ? "seeded" : "unable to seed",
               toLogString.apply(repo), autoCleanUp);
         }
         return seeded;
@@ -185,13 +193,13 @@ public class FateLogger {
       }
 
       @Override
-      public Map<FateId,FateReservation> getActiveReservations() {
-        return store.getActiveReservations();
+      public Map<FateId,FateReservation> getActiveReservations(Set<FatePartition> partitions) {
+        return store.getActiveReservations(partitions);
       }
 
       @Override
-      public void deleteDeadReservations() {
-        store.deleteDeadReservations();
+      public void deleteDeadReservations(Set<FatePartition> partitions) {
+        store.deleteDeadReservations(partitions);
       }
 
       @Override
@@ -217,12 +225,12 @@ public class FateLogger {
         FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
       var future = this.seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
       return future.whenComplete((optional, throwable) -> {
-        if (storeLog.isTraceEnabled()) {
+        if (storeLog.isDebugEnabled()) {
           optional.ifPresentOrElse(fateId -> {
-            storeLog.trace("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
+            storeLog.debug("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
                 autoCleanUp);
           }, () -> {
-            storeLog.trace("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
+            storeLog.debug("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
                 autoCleanUp);
           });
         }

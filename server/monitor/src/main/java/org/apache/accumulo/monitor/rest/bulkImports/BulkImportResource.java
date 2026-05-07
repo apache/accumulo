@@ -24,8 +24,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
@@ -48,18 +46,6 @@ public class BulkImportResource {
    */
   @GET
   public BulkImport getTables() {
-    BulkImport bulkImport = new BulkImport();
-    ManagerMonitorInfo mmi = monitor.getMmi();
-    if (mmi == null) {
-      return bulkImport;
-    }
-
-    // Generating Bulk Import and adding it to the return object
-    for (BulkImportStatus bulk : mmi.bulkImports) {
-      bulkImport
-          .addBulkImport(new BulkImportInformation(bulk.filename, bulk.startTime, bulk.state));
-    }
-
-    return bulkImport;
+    return monitor.getBulkImports();
   }
 }

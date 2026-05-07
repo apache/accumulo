@@ -101,8 +101,7 @@ public class SummarizerConfiguration {
    */
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SummarizerConfiguration) {
-      SummarizerConfiguration osc = (SummarizerConfiguration) o;
+    if (o instanceof SummarizerConfiguration osc) {
       return className.equals(osc.className) && options.equals(osc.options);
     }
 

@@ -19,23 +19,18 @@
 package org.apache.accumulo.core.fate;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.META_DEAD_RESERVATION_CLEANER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.USER_DEAD_RESERVATION_CLEANER_POOL;
 
 import java.time.Duration;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -47,43 +42,44 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.FateStore.FateTxStore;
-import org.apache.accumulo.core.fate.FateStore.Seeder;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonParser;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Fault tolerant executor
  */
-public class Fate<T> {
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
+public class Fate<T> extends FateClient<T> {
 
-  private static final Logger log = LoggerFactory.getLogger(Fate.class);
+  static final Logger log = LoggerFactory.getLogger(Fate.class);
 
   private final FateStore<T> store;
   private final ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
   private final ExecutorService deadResCleanerExecutor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
   public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
   private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
-  private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
+  public static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
-  private final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  // Visible for FlakyFate test object
+  protected final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  private Set<FatePartition> currentPartitions = Set.of();
 
   public enum TxInfo {
     FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -114,8 +110,8 @@ public class Fate<T> {
     TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY);
 
     private final TFateOperation top;
-    private static final Set<FateOperation> nonThriftOps = Collections.unmodifiableSet(
-        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT, SYSTEM_MERGE));
+    private static final Set<FateOperation> nonThriftOps = Arrays.stream(FateOperation.values())
+        .filter(fateOp -> fateOp.top == null).collect(Collectors.toUnmodifiableSet());
     private static final Set<FateOperation> allUserFateOps =
         Collections.unmodifiableSet(EnumSet.allOf(FateOperation.class));
     private static final Set<FateOperation> allMetaFateOps =
@@ -170,8 +166,9 @@ public class Fate<T> {
     public void run() {
       // Read from the config here and here only. Must avoid reading the same property from the
       // config more than once since it can change at any point in this execution
-      var poolConfigs = getPoolConfigurations(conf);
-      var idleCheckIntervalMillis = conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
+      final var poolConfigs = getPoolConfigurations(conf, store.type());
+      final var idleCheckIntervalMillis =
+          conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
 
       // shutdown task: shutdown fate executors whose set of fate operations are no longer present
       // in the config
@@ -180,18 +177,22 @@ public class Fate<T> {
         while (fateExecutorsIter.hasNext()) {
           var fateExecutor = fateExecutorsIter.next();
 
-          // if this fate executors set of fate ops is no longer present in the config...
-          if (!poolConfigs.containsKey(fateExecutor.getFateOps())) {
+          // if this fate executors set of fate ops is no longer present in the config OR
+          // this fate executor was renamed in the config
+          if (!poolConfigs.containsKey(fateExecutor.getFateOps()) || !poolConfigs
+              .get(fateExecutor.getFateOps()).getKey().equals(fateExecutor.getName())) {
             if (!fateExecutor.isShutdown()) {
-              log.debug("The config for {} has changed invalidating {}. Gracefully shutting down "
-                  + "the FateExecutor.", getFateConfigProp(), fateExecutor);
+              log.debug(
+                  "[{}] The config for {} has changed invalidating {}. Gracefully shutting down "
+                      + "the FateExecutor.",
+                  store.type(), getFateConfigProp(store.type()), fateExecutor);
               fateExecutor.initiateShutdown();
             } else if (fateExecutor.isShutdown() && fateExecutor.isAlive()) {
-              log.debug("{} has been shutdown, but is still actively working on transactions.",
-                  fateExecutor);
+              log.debug("[{}] {} has been shutdown, but is still actively working on transactions.",
+                  store.type(), fateExecutor);
             } else if (fateExecutor.isShutdown() && !fateExecutor.isAlive()) {
-              log.debug("{} has been shutdown and all threads have safely terminated.",
-                  fateExecutor);
+              log.debug("[{}] {} has been shutdown and all threads have safely terminated.",
+                  store.type(), fateExecutor);
               fateExecutorsIter.remove();
             }
           }
@@ -202,13 +203,19 @@ public class Fate<T> {
       // config changes have started shutdown or finished shutdown. Now create any new replacement
       // FateExecutors needed
       for (var poolConfig : poolConfigs.entrySet()) {
-        var configFateOps = poolConfig.getKey();
-        var configPoolSize = poolConfig.getValue();
+        Set<FateOperation> fateOps = poolConfig.getKey();
+        Map.Entry<String,Integer> fateExecNameAndPoolSize = poolConfig.getValue();
+        String fateExecutorName = fateExecNameAndPoolSize.getKey();
+        int poolSize = fateExecNameAndPoolSize.getValue();
         synchronized (fateExecutors) {
-          if (fateExecutors.stream().map(FateExecutor::getFateOps)
-              .noneMatch(fo -> fo.equals(configFateOps))) {
-            fateExecutors
-                .add(new FateExecutor<>(Fate.this, environment, configFateOps, configPoolSize));
+          if (fateExecutors.stream().noneMatch(
+              fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
+            log.debug("[{}] Adding FateExecutor for {} with {} threads", store.type(), fateOps,
+                poolSize);
+            var fateExecutor =
+                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName);
+            fateExecutors.add(fateExecutor);
+            fateExecutor.setPartitions(currentPartitions);
           }
         }
       }
@@ -232,7 +239,11 @@ public class Fate<T> {
     @Override
     public void run() {
       if (keepRunning.get()) {
-        store.deleteDeadReservations();
+        Set<FatePartition> partitions;
+        synchronized (fateExecutors) {
+          partitions = currentPartitions;
+        }
+        store.deleteDeadReservations(partitions);
       }
     }
   }
@@ -247,6 +258,7 @@ public class Fate<T> {
   public Fate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf,
       ScheduledThreadPoolExecutor genSchedExecutor) {
+    super(store, toLogStrFunc);
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
 
     fatePoolsWatcherFuture =
@@ -267,36 +279,30 @@ public class Fate<T> {
       ThreadPools.watchCriticalScheduledTask(deadReservationCleaner);
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
-
-    startFateExecutors(environment, conf, fateExecutors);
-  }
-
-  protected void startFateExecutors(T environment, AccumuloConfiguration conf,
-      Set<FateExecutor<T>> fateExecutors) {
-    for (var poolConf : getPoolConfigurations(conf).entrySet()) {
-      // no fate threads are running at this point; fine not to synchronize
-      fateExecutors
-          .add(new FateExecutor<>(this, environment, poolConf.getKey(), poolConf.getValue()));
-    }
   }
 
   /**
    * Returns a map of the current pool configurations as set in the given config. Each key is a set
-   * of fate operations and each value is an integer for the number of threads assigned to work
-   * those fate operations.
+   * of fate operations and each value is a map entry with key = fate executor name and value = pool
+   * size
    */
-  protected Map<Set<FateOperation>,Integer> getPoolConfigurations(AccumuloConfiguration conf) {
-    Map<Set<FateOperation>,Integer> poolConfigs = new HashMap<>();
-    final var json = JsonParser.parseString(conf.get(getFateConfigProp())).getAsJsonObject();
+  @VisibleForTesting
+  public static Map<Set<FateOperation>,Map.Entry<String,Integer>>
+      getPoolConfigurations(AccumuloConfiguration conf, FateInstanceType type) {
+    Map<Set<FateOperation>,Map.Entry<String,Integer>> poolConfigs = new HashMap<>();
+    final var json = JsonParser.parseString(conf.get(getFateConfigProp(type))).getAsJsonObject();
 
     for (var entry : json.entrySet()) {
-      var key = entry.getKey();
-      var val = entry.getValue().getAsInt();
-      var fateOpsStrArr = key.split(",");
+      String fateExecutorName = entry.getKey();
+      var poolConfig = entry.getValue().getAsJsonObject().entrySet().iterator().next();
+      String fateOpsStr = poolConfig.getKey();
+      int poolSize = poolConfig.getValue().getAsInt();
+      String[] fateOpsStrArr = fateOpsStr.split(",");
       Set<FateOperation> fateOpsSet = Arrays.stream(fateOpsStrArr).map(FateOperation::valueOf)
           .collect(Collectors.toCollection(TreeSet::new));
 
-      poolConfigs.put(fateOpsSet, val);
+      poolConfigs.put(fateOpsSet,
+          new AbstractMap.SimpleImmutableEntry<>(fateExecutorName, poolSize));
     }
 
     return poolConfigs;
@@ -310,17 +316,29 @@ public class Fate<T> {
     return store;
   }
 
-  protected Property getFateConfigProp() {
-    return this.store.type() == FateInstanceType.USER ? Property.MANAGER_FATE_USER_CONFIG
+  protected static Property getFateConfigProp(FateInstanceType type) {
+    return type == FateInstanceType.USER ? Property.MANAGER_FATE_USER_CONFIG
         : Property.MANAGER_FATE_META_CONFIG;
   }
 
+  /**
+   * Exists for overrides in test code. Internal access to this field needs to be through this
+   * getter
+   */
   public Duration getDeadResCleanupDelay() {
     return DEAD_RES_CLEANUP_DELAY;
   }
 
+  /**
+   * Exists for overrides in test code. Internal access to this field needs to be through this
+   * getter
+   */
   public Duration getPoolWatcherDelay() {
     return POOL_WATCHER_DELAY;
+  }
+
+  public Set<FateExecutor<T>> getFateExecutors() {
+    return fateExecutors;
   }
 
   /**
@@ -334,7 +352,7 @@ public class Fate<T> {
     synchronized (fateExecutors) {
       for (var fateExecutor : fateExecutors) {
         if (fateExecutor.getFateOps().equals(fateOps)) {
-          return fateExecutor.getRunningTxRunners().size();
+          return fateExecutor.getNumRunningTxRunners();
         }
       }
     }
@@ -348,7 +366,7 @@ public class Fate<T> {
   @VisibleForTesting
   public int getTotalTxRunnersActive() {
     synchronized (fateExecutors) {
-      return fateExecutors.stream().mapToInt(fe -> fe.getRunningTxRunners().size()).sum();
+      return fateExecutors.stream().mapToInt(FateExecutor::getNumRunningTxRunners).sum();
     }
   }
 
@@ -361,129 +379,15 @@ public class Fate<T> {
     return needMoreThreadsWarnCount;
   }
 
-  // get a transaction id back to the requester before doing any work
-  public FateId startTransaction() {
-    return store.create();
-  }
-
-  public Seeder<T> beginSeeding() {
-    return store.beginSeeding();
-  }
-
-  public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp) {
-    try (var seeder = store.beginSeeding()) {
-      @SuppressWarnings("unused")
-      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
-    }
-  }
-
-  // start work in the transaction.. it is safe to call this
-  // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(FateOperation fateOp, FateId fateId, Repo<T> repo,
-      boolean autoCleanUp, String goalMessage) {
-    log.info("Seeding {} {}", fateId, goalMessage);
-    store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
-  }
-
-  // check on the transaction
-  public TStatus waitForCompletion(FateId fateId) {
-    return store.read(fateId).waitForStatusChange(FINISHED_STATES);
-  }
-
-  /**
-   * Attempts to cancel a running Fate transaction
-   *
-   * @param fateId fate transaction id
-   * @return true if transaction transitioned to a failed state or already in a completed state,
-   *         false otherwise
-   */
-  public boolean cancel(FateId fateId) {
-    for (int retries = 0; retries < 5; retries++) {
-      Optional<FateTxStore<T>> optionalTxStore = store.tryReserve(fateId);
-      if (optionalTxStore.isPresent()) {
-        var txStore = optionalTxStore.orElseThrow();
-        try {
-          TStatus status = txStore.getStatus();
-          log.info("status is: {}", status);
-          if (status == NEW || status == SUBMITTED) {
-            txStore.setTransactionInfo(TxInfo.EXCEPTION, new TApplicationException(
-                TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
-            txStore.setStatus(FAILED_IN_PROGRESS);
-            log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
-                fateId);
-            return true;
-          } else {
-            log.info("{} cancelled by user but already in progress or finished state", fateId);
-            return false;
-          }
-        } finally {
-          txStore.unreserve(Duration.ZERO);
-        }
-      } else {
-        // reserved, lets retry.
-        UtilWaitThread.sleep(500);
+  public void seeded(Set<FatePartition> partitions) {
+    synchronized (fateExecutors) {
+      if (Sets.intersection(currentPartitions, partitions).isEmpty()) {
+        return;
       }
     }
-    log.info("Unable to reserve transaction {} to cancel it", fateId);
-    return false;
-  }
 
-  // resource cleanup
-  public void delete(FateId fateId) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      switch (txStore.getStatus()) {
-        case NEW:
-        case SUBMITTED:
-        case FAILED:
-        case SUCCESSFUL:
-          txStore.delete();
-          break;
-        case FAILED_IN_PROGRESS:
-        case IN_PROGRESS:
-          throw new IllegalStateException("Can not delete in progress transaction " + fateId);
-        case UNKNOWN:
-          // nothing to do, it does not exist
-          break;
-      }
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-  }
-
-  public String getReturn(FateId fateId) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      if (txStore.getStatus() != SUCCESSFUL) {
-        throw new IllegalStateException(
-            "Tried to get exception when transaction " + fateId + " not in successful state");
-      }
-      return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-  }
-
-  // get reportable failures
-  public Exception getException(FateId fateId) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      if (txStore.getStatus() != FAILED) {
-        throw new IllegalStateException(
-            "Tried to get exception when transaction " + fateId + " not in failed state");
-      }
-      return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-  }
-
-  /**
-   * Lists transctions for a given fate key type.
-   */
-  public Stream<FateKey> list(FateKey.FateKeyType type) {
-    return store.list(type);
+    log.trace("Notified of seeding for {}", partitions);
+    store.seeded();
   }
 
   /**
@@ -492,8 +396,10 @@ public class Fate<T> {
    * fate data, like add a new fate operation or get the status of an existing fate operation.
    */
   public void shutdown(long timeout, TimeUnit timeUnit) {
-    log.info("Shutting down {} FATE", store.type());
-
+    log.info("Shutting down {} FATE, waiting: {} seconds", store.type(),
+        TimeUnit.SECONDS.convert(timeout, timeUnit));
+    // important this is set before shutdownNow is called as the background
+    // threads will check this to see if shutdown related errors should be ignored.
     if (keepRunning.compareAndSet(true, false)) {
       synchronized (fateExecutors) {
         for (var fateExecutor : fateExecutors) {
@@ -526,9 +432,12 @@ public class Fate<T> {
 
     // interrupt the background threads
     synchronized (fateExecutors) {
-      for (var fateExecutor : fateExecutors) {
+      var fateExecutorsIter = fateExecutors.iterator();
+      while (fateExecutorsIter.hasNext()) {
+        var fateExecutor = fateExecutorsIter.next();
         fateExecutor.shutdownNow();
         fateExecutor.getIdleCountHistory().clear();
+        fateExecutorsIter.remove();
       }
     }
     if (deadResCleanerExecutor != null) {
@@ -542,6 +451,27 @@ public class Fate<T> {
   public void close() {
     shutdown(0, SECONDS);
     store.close();
+  }
+
+  public Set<FatePartition> getPartitions() {
+    synchronized (fateExecutors) {
+      return currentPartitions;
+    }
+  }
+
+  public Set<FatePartition> setPartitions(Set<FatePartition> partitions) {
+    Objects.requireNonNull(partitions);
+    Preconditions.checkArgument(
+        partitions.stream().allMatch(
+            fp -> fp.start().getType() == store.type() && fp.end().getType() == store.type()),
+        "type mismatch type:%s partitions:%s", store.type(), partitions);
+
+    synchronized (fateExecutors) {
+      var old = currentPartitions;
+      currentPartitions = Set.copyOf(partitions);
+      fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
+      return old;
+    }
   }
 
   private boolean anyFateExecutorIsAlive() {

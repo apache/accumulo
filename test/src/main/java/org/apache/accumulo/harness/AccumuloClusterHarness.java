@@ -33,6 +33,8 @@ import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -165,6 +167,9 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
     if (type.isDynamic()) {
       cluster.start();
+      try (AccumuloClient ac = Accumulo.newClient().from(getClientProps()).build()) {
+        setSystemTablePerms(ac, cluster.getServerContext().securityOperations());
+      }
     } else {
       log.info("Removing tables which appear to be from a previous test run");
       cleanupTables();
@@ -172,6 +177,12 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
       cleanupUsers();
     }
 
+  }
+
+  protected void setSystemTablePerms(AccumuloClient client, SecurityOperations sops)
+      throws AccumuloException, AccumuloSecurityException {
+    AccumuloITBase.setSystemTablePermsForITs(client,
+        cluster.getServerContext().securityOperations());
   }
 
   public void cleanupTables() throws Exception {
@@ -263,20 +274,18 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   @Override
   public ClusterUser getAdminUser() {
-    switch (type) {
-      case MINI:
+    return switch (type) {
+      case MINI -> {
         if (krb == null) {
           PasswordToken passwordToken = (PasswordToken) getAdminToken();
-          return new ClusterUser(getAdminPrincipal(),
+          yield new ClusterUser(getAdminPrincipal(),
               new String(passwordToken.getPassword(), UTF_8));
         }
-        return krb.getRootUser();
-      case STANDALONE:
-        return new ClusterUser(getAdminPrincipal(),
-            ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
-      default:
-        throw new RuntimeException("Unknown cluster type");
-    }
+        yield krb.getRootUser();
+      }
+      case STANDALONE -> new ClusterUser(getAdminPrincipal(),
+          ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
+    };
   }
 
   @Override

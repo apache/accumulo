@@ -19,7 +19,9 @@
 package org.apache.accumulo.manager.tserverOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.manager.tserverOps.BeginTserverShutdown.createPath;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -27,89 +29,101 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
-public class ShutdownTServer extends ManagerRepo {
+public class ShutdownTServer extends AbstractFateOperation {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
-  private final String resourceGroup;
+  private final ResourceGroupId resourceGroup;
   private final HostAndPort hostAndPort;
   private final String serverSession;
   private final boolean force;
 
-  public ShutdownTServer(TServerInstance server, String resourceGroup, boolean force) {
-    this.hostAndPort = server.getHostAndPort();
+  public ShutdownTServer(HostAndPort hostAndPort, String serverSession,
+      ResourceGroupId resourceGroup, boolean force) {
+    this.hostAndPort = hostAndPort;
     this.resourceGroup = resourceGroup;
-    this.serverSession = server.getSession();
+    this.serverSession = serverSession;
     this.force = force;
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) {
+  public long isReady(FateId fateId, FateEnv env) {
     TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
       return 0;
     }
 
-    // Inform the manager that we want this server to shutdown
-    manager.shutdownTServer(server);
+    if (env.onlineTabletServers().contains(server)) {
 
-    if (manager.onlineTabletServers().contains(server)) {
-      TServerConnection connection = manager.getConnection(server);
-      if (connection != null) {
-        try {
-          TabletServerStatus status = connection.getTableMap(false);
-          if (status.tableMap != null && status.tableMap.isEmpty()) {
-            log.info("tablet server hosts no tablets {}", server);
-            connection.halt(manager.getManagerLock());
-            log.info("tablet server asked to halt {}", server);
-            return 0;
-          } else {
-            log.info("tablet server {} still has tablets for tables: {}", server,
-                (status.tableMap == null) ? "null" : status.tableMap.keySet());
-          }
-        } catch (TTransportException ex) {
-          // expected
-        } catch (Exception ex) {
-          log.error("Error talking to tablet server {}: ", server, ex);
+      TabletServerClientService.Client client = null;
+
+      try {
+        client =
+            ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, hostAndPort, env.getContext());
+        TabletServerStatus status =
+            client.getTabletServerStatus(TraceUtil.traceInfo(), env.getContext().rpcCreds());
+        if (status.tableMap != null && status.tableMap.isEmpty()) {
+          log.info("tablet server hosts no tablets {}", server);
+          client.halt(TraceUtil.traceInfo(), env.getContext().rpcCreds(),
+              env.getServiceLock().getLockID().serialize());
+          log.info("tablet server asked to halt {}", server);
+          return 0;
+        } else {
+          log.info("tablet server {} still has tablets for tables: {}", server,
+              (status.tableMap == null) ? "null" : status.tableMap.keySet());
         }
-
-        // If the connection was non-null and we could communicate with it
-        // give the manager some more time to tell it to stop and for the
-        // tserver to ack the request and stop itself.
-        return 1000;
+      } catch (TTransportException ex) {
+        // expected
+      } catch (Exception ex) {
+        log.error("Error talking to tablet server {}: ", server, ex);
+      } finally {
+        ThriftUtil.returnClient(client, env.getContext());
       }
+
+      // If the connection was non-null and we could communicate with it
+      // give the manager some more time to tell it to stop and for the
+      // tserver to ack the request and stop itself.
+      return 1000;
+
     }
 
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
-      ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
+      ZooReaderWriter zoo = env.getContext().getZooSession().asReaderWriter();
       var path =
-          manager.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
+          env.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
       ServiceLock.deleteLock(zoo, path);
-      path = manager.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup,
-          hostAndPort);
+      path =
+          env.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup, hostAndPort);
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
+    } else {
+      String path = createPath(hostAndPort, serverSession);
+      env.getContext().getZooSession().asReaderWriter().delete(path);
+      log.trace("{} removed {}", fateId, path);
     }
 
     return null;
   }
 
   @Override
-  public void undo(FateId fateId, Manager m) {}
+  public void undo(FateId fateId, FateEnv env) {}
 }

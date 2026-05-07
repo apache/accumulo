@@ -262,11 +262,10 @@ public class SslConnectionParams {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof SslConnectionParams)) {
+    if (!(obj instanceof SslConnectionParams other)) {
       return false;
     }
 
-    SslConnectionParams other = (SslConnectionParams) obj;
     if (clientAuth != other.clientAuth) {
       return false;
     }

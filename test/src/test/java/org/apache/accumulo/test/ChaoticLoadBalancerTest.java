@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -121,8 +121,7 @@ public class ChaoticLoadBalancerTest {
 
     while (!unassigned.isEmpty()) {
       balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
-          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, servers.keySet()), unassigned,
-          assignments));
+          Map.of(ResourceGroupId.DEFAULT, servers.keySet()), unassigned, assignments));
       assignments.forEach((tablet, tserver) -> {
         servers.get(tserver).tablets.add(tablet);
         assertTrue(unassigned.containsKey(tablet));
@@ -169,9 +168,9 @@ public class ChaoticLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
       SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
-      balancer.balance(new BalanceParamsImpl(current,
-          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
-          migrationsOut, DataLevel.USER, Map.of()));
+      balancer
+          .balance(new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+              migrations, migrationsOut, DataLevel.USER, Map.of()));
     }
   }
 

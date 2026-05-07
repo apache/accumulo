@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,10 +41,12 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -129,7 +132,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ranges.clear();
 
-      tableOps.setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      tableOps.setTabletAvailability(tableName, RowRange.all(), TabletAvailability.HOSTED);
       Wait.waitFor(() -> hostedAndCurrentNotNull
           .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
@@ -172,6 +175,54 @@ public class LocatorIT extends AccumuloClusterHarness {
       tableOps.delete(tableName);
 
       assertThrows(TableNotFoundException.class, () -> tableOps.locate(tableName, ranges));
+    }
+  }
+
+  @Test
+  public void testClearingUnused() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tables = getUniqueNames(4);
+      String table1 = tables[0];
+      String table2 = tables[1];
+      String table3 = tables[2];
+      String table4 = tables[3];
+
+      TableOperations tableOps = client.tableOperations();
+      tableOps.create(table1);
+      tableOps.create(table2);
+      tableOps.create(table3, new NewTableConfiguration().createOffline());
+      tableOps.create(table4, new NewTableConfiguration().createOffline());
+
+      var ctx = getCluster().getServerContext();
+
+      ctx.setClearFrequency(Duration.ofMillis(100));
+
+      TableId tableId1 = ctx.getTableId(table1);
+      TableId tableId2 = ctx.getTableId(table2);
+      TableId tableId3 = ctx.getTableId(table3);
+      TableId tableId4 = ctx.getTableId(table4);
+
+      for (var tableId : List.of(tableId1, tableId2, tableId3, tableId4)) {
+        assertFalse(ctx.isTabletLocationCachePresent(tableId));
+        assertNotNull(ctx.getTabletLocationCache(tableId));
+        assertTrue(ctx.isTabletLocationCachePresent(tableId));
+      }
+
+      tableOps.delete(table1);
+      tableOps.delete(table4);
+
+      Wait.waitFor(() -> {
+        // Accessing table3 in the cache should cause table1 and table4 to eventually be cleared
+        // because they no longer exist. This also test that online and offline tables a properly
+        // cleared from the cache.
+        assertNotNull(ctx.getTabletLocationCache(tableId3));
+        return !ctx.isTabletLocationCachePresent(tableId1)
+            && !ctx.isTabletLocationCachePresent(tableId4);
+      });
+
+      // table2 and table3 should be left in the cache
+      assertTrue(ctx.isTabletLocationCachePresent(tableId2));
+      assertTrue(ctx.isTabletLocationCachePresent(tableId3));
     }
   }
 }

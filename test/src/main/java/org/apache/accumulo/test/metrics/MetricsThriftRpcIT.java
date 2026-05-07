@@ -29,12 +29,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -118,7 +118,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       try {
         MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
             getCluster().getServerContext().rpcCreds());
-        assertEquals(managerServer.getResourceGroup(), response.getResourceGroup());
+        assertEquals(managerServer.getResourceGroup().canonical(), response.getResourceGroup());
         assertEquals(MetricSource.MANAGER, response.getServerType());
         assertTrue(handleMetrics(response) > 0);
       } finally {
@@ -134,7 +134,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       try {
         MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
             getCluster().getServerContext().rpcCreds());
-        assertEquals(Constants.DEFAULT_RESOURCE_GROUP_NAME, response.getResourceGroup());
+        assertEquals(ResourceGroupId.DEFAULT.canonical(), response.getResourceGroup());
         assertEquals(MetricSource.GARBAGE_COLLECTOR, response.getServerType());
         assertTrue(handleMetrics(response) > 0);
       } finally {
@@ -149,7 +149,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
               getCluster().getServerContext().rpcCreds());
-          assertEquals(server.getResourceGroup(), response.getResourceGroup());
+          assertEquals(server.getResourceGroup().canonical(), response.getResourceGroup());
           assertEquals(MetricSource.COMPACTOR, response.getServerType());
           assertTrue(handleMetrics(response) > 0);
         } finally {
@@ -164,7 +164,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
               getCluster().getServerContext().rpcCreds());
-          assertEquals(server.getResourceGroup(), response.getResourceGroup());
+          assertEquals(server.getResourceGroup().canonical(), response.getResourceGroup());
           assertEquals(MetricSource.SCAN_SERVER, response.getServerType());
           assertTrue(handleMetrics(response) > 0);
         } finally {
@@ -179,7 +179,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
               getCluster().getServerContext().rpcCreds());
-          assertEquals(server.getResourceGroup(), response.getResourceGroup());
+          assertEquals(server.getResourceGroup().canonical(), response.getResourceGroup());
           assertEquals(MetricSource.TABLET_SERVER, response.getServerType());
           assertTrue(handleMetrics(response) > 0);
         } finally {

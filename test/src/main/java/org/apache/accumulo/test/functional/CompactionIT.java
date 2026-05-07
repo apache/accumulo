@@ -73,6 +73,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -99,6 +100,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
@@ -106,6 +108,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
+import org.apache.accumulo.test.functional.ScanIteratorIT.AppendingIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -504,8 +507,8 @@ public class CompactionIT extends CompactionITBase {
       // This speed bump is an attempt to increase the chance that splits and compactions run
       // concurrently. Wait.waitFor() is not used here because it will throw an exception if the
       // time limit is exceeded.
-      long startTime = System.nanoTime();
-      while (System.nanoTime() - startTime < SECONDS.toNanos(3)
+      CountDownTimer waitTimer = CountDownTimer.startNew(Duration.ofSeconds(3));
+      while (!waitTimer.isExpired()
           && countTablets(tableName, tabletMetadata -> tabletMetadata.getSelectedFiles() != null)
               == 0) {
         Thread.sleep(10);
@@ -523,8 +526,8 @@ public class CompactionIT extends CompactionITBase {
       // before this so do not wait long. Wait.waitFor() is not used here because it will throw an
       // exception if the time limit is exceeded. This is just a speed bump, its ok if the condition
       // is not met within the time limit.
-      startTime = System.nanoTime();
-      while (System.nanoTime() - startTime < SECONDS.toNanos(3)
+      waitTimer.restart();
+      while (!waitTimer.isExpired()
           && countTablets(tableName, tabletMetadata -> !tabletMetadata.getCompacted().isEmpty())
               == 0) {
         Thread.sleep(10);
@@ -792,20 +795,21 @@ public class CompactionIT extends CompactionITBase {
         }
       });
       assertNotNull(interCompactionFile[0]);
-      String[] args = new String[3];
-      args[0] = "--props";
-      args[1] = getCluster().getAccumuloPropertiesPath();
-      args[2] = finalCompactionFile;
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+          "file://" + getCluster().getAccumuloPropertiesPath());
+      String[] args = new String[1];
+      args[0] = finalCompactionFile;
       PrintBCInfo bcInfo = new PrintBCInfo(args);
       String finalCompressionType = bcInfo.getCompressionType();
       // The compression type used on the final compaction file should be 'snappy'
       assertEquals("snappy", finalCompressionType);
-      args[2] = interCompactionFile[0];
+      args[0] = interCompactionFile[0];
       bcInfo = new PrintBCInfo(args);
       String interCompressionType = bcInfo.getCompressionType();
       // The compression type used on the intermediate compaction file should be 'gz'
       assertEquals("gz", interCompressionType);
     } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
       // Re-enable GC
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
     }
@@ -1067,21 +1071,28 @@ public class CompactionIT extends CompactionITBase {
 
       // start a bunch of compactions in the background
       var executor = Executors.newCachedThreadPool();
-      List<Future<?>> futures = new ArrayList<>();
+      final int numTasks = 20;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
       // start user compactions on a subset of the tables tablets, system compactions should attempt
       // to run on all tablets. With concurrency should get a mix.
-      for (int i = 1; i < 20; i++) {
+      for (int i = 1; i < numTasks + 1; i++) {
         var startRow = new Text(String.format("r:%04d", i - 1));
         var endRow = new Text(String.format("r:%04d", i));
+        final CompactionConfig config = new CompactionConfig();
+        config.setWait(true);
+        config.setStartRow(startRow);
+        config.setEndRow(endRow);
         futures.add(executor.submit(() -> {
-          CompactionConfig config = new CompactionConfig();
-          config.setWait(true);
-          config.setStartRow(startRow);
-          config.setEndRow(endRow);
+          startLatch.countDown();
+          startLatch.await();
           client.tableOperations().compact(table, config);
           return null;
         }));
       }
+      assertEquals(numTasks, futures.size());
 
       log.debug("Waiting for offline");
       // take tablet offline while there are concurrent compactions
@@ -1195,6 +1206,56 @@ public class CompactionIT extends CompactionITBase {
 
       client.tableOperations().cancelCompaction(table1);
       t.join();
+    }
+  }
+
+  @Test
+  public void testIteratorOrder() throws Exception {
+    String[] names = getUniqueNames(2);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // create a table with minor compaction iterators configured to ensure those iterators are
+      // applied in the correct order
+      NewTableConfiguration ntc = new NewTableConfiguration()
+          .attachIterator(AppendingIterator.configure(50, "x"), EnumSet.of(IteratorScope.minc))
+          .attachIterator(AppendingIterator.configure(100, "a"), EnumSet.of(IteratorScope.minc));
+      c.tableOperations().create(names[0], ntc);
+
+      // create a table with major compaction iterators configured to ensure those iterators are
+      // applied in the correct order
+      NewTableConfiguration ntc2 = new NewTableConfiguration()
+          .attachIterator(AppendingIterator.configure(50, "x"), EnumSet.of(IteratorScope.majc))
+          .attachIterator(AppendingIterator.configure(100, "a"), EnumSet.of(IteratorScope.majc));
+      c.tableOperations().create(names[1], ntc2);
+
+      try (var writer = c.createBatchWriter(names[0]);
+          var writer2 = c.createBatchWriter(names[1])) {
+        Mutation m = new Mutation("r1");
+        m.put("", "", "base:");
+        writer.addMutation(m);
+        writer2.addMutation(m);
+      }
+
+      try (var mincScanner = c.createScanner(names[0]);
+          var majcScanner = c.createScanner(names[1])) {
+        // iterators should not be applied yet
+        assertEquals("base:", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:", majcScanner.iterator().next().getValue().toString());
+
+        c.tableOperations().flush(names[0], null, null, true);
+        assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:", majcScanner.iterator().next().getValue().toString());
+
+        // The user compaction iterators with priority 50 and 100 have the same priority as table
+        // level iterators.
+        List<IteratorSetting> iters = List.of(AppendingIterator.configure(70, "m"),
+            AppendingIterator.configure(50, "b"), AppendingIterator.configure(100, "c"));
+        c.tableOperations().compact(names[1],
+            new CompactionConfig().setWait(true).setFlush(true).setIterators(iters));
+        assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:bxmac", majcScanner.iterator().next().getValue().toString());
+
+      }
     }
   }
 

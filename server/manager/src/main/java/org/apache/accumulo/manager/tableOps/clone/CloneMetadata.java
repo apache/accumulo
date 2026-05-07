@@ -20,12 +20,12 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.slf4j.LoggerFactory;
 
-class CloneMetadata extends ManagerRepo {
+class CloneMetadata extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final CloneInfo cloneInfo;
@@ -35,28 +35,28 @@ class CloneMetadata extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     LoggerFactory.getLogger(CloneMetadata.class)
         .info(String.format("Cloning %s with tableId %s from srcTableId %s",
             cloneInfo.getTableName(), cloneInfo.getTableId(), cloneInfo.getSrcTableId()));
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
     MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
     MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.getSrcTableId(),
         cloneInfo.getTableId());
     return new FinishCloneTable(cloneInfo);
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
   }
 
 }

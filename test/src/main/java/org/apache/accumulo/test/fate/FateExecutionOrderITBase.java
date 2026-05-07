@@ -47,12 +47,14 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -193,8 +195,11 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
   }
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {
-    return new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
-        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
+    var fate = new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
+        new ScheduledThreadPoolExecutor(2));
+    fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    return fate;
   }
 
   private static Entry<FateId,String> toIdStep(Entry<Key,Value> e) {

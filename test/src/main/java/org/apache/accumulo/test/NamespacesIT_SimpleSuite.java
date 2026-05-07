@@ -68,12 +68,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -409,9 +409,8 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
           EnumSet.allOf(IteratorScope.class));
       c.namespaceOperations().attachIterator(namespace, setting);
       Thread.sleep(SECONDS.toMillis(2));
-      var e = assertThrows(AccumuloException.class, () -> c.namespaceOperations()
-          .checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class)));
-      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+      c.namespaceOperations().checkIteratorConflicts(namespace, setting,
+          EnumSet.allOf(IteratorScope.class));
       IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace,
           setting.getName(), IteratorScope.scan);
       assertEquals(setting, setting2);
@@ -552,7 +551,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
   public void verifyConstraintInheritance() throws Exception {
     String t1 = namespace + ".1";
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaultIterators());
+    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaults());
     String constraintClassName = NumericValueConstraint.class.getName();
 
     assertFalse(
@@ -872,78 +871,6 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
   }
 
   @Test
-  public void verifySystemPropertyInheritance() throws Exception {
-
-    try (AccumuloClient client =
-        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
-      client.securityOperations().grantNamespacePermission(getPrincipal(), "accumulo",
-          NamespacePermission.ALTER_NAMESPACE);
-      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
-          NamespacePermission.ALTER_NAMESPACE);
-    }
-
-    String t1 = "1";
-    String t2 = namespace + "." + t1;
-    c.tableOperations().create(t1);
-    c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t2);
-
-    // verify iterator inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.sum",
-        "20," + SimpleFilter.class.getName(), false);
-
-    // verify constraint inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_CONSTRAINT_PREFIX.getKey() + "42",
-        NumericValueConstraint.class.getName(), false);
-
-    // verify other inheritance
-    _verifySystemPropertyInheritance(t1, t2,
-        Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "dummy", "dummy", true);
-  }
-
-  private void _verifySystemPropertyInheritance(String defaultNamespaceTable, String namespaceTable,
-      String k, String v, boolean systemNamespaceShouldInherit) throws Exception {
-    // nobody should have any of these properties yet
-    assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.ROOT.tableName(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.METADATA.tableName(), k, v));
-    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
-    assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
-    assertFalse(checkNamespaceHasProp(namespace, k, v));
-    assertFalse(checkTableHasProp(namespaceTable, k, v));
-
-    // set the filter, verify that accumulo namespace is the only one unaffected
-    c.instanceOperations().setProperty(k, v);
-    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    Thread.sleep(250);
-    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertEquals(systemNamespaceShouldInherit,
-        checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertEquals(systemNamespaceShouldInherit,
-        checkTableHasProp(SystemTables.ROOT.tableName(), k, v));
-    assertEquals(systemNamespaceShouldInherit,
-        checkTableHasProp(SystemTables.METADATA.tableName(), k, v));
-    assertTrue(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
-    assertTrue(checkTableHasProp(defaultNamespaceTable, k, v));
-    assertTrue(checkNamespaceHasProp(namespace, k, v));
-    assertTrue(checkTableHasProp(namespaceTable, k, v));
-
-    // verify it is no longer inherited
-    c.instanceOperations().removeProperty(k);
-    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    Thread.sleep(250);
-    assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.ROOT.tableName(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.METADATA.tableName(), k, v));
-    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
-    assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
-    assertFalse(checkNamespaceHasProp(namespace, k, v));
-    assertFalse(checkTableHasProp(namespaceTable, k, v));
-  }
-
-  @Test
   public void listNamespaces() throws Exception {
     SortedSet<String> namespaces = c.namespaceOperations().list();
     Map<String,String> map = c.namespaceOperations().namespaceIdMap();
@@ -1117,7 +1044,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     assertNoTableNoNamespace(() -> ops.getIteratorSetting(tableName, "a", IteratorScope.scan));
     assertNoTableNoNamespace(() -> ops.getLocalityGroups(tableName));
     assertNoTableNoNamespace(
-        () -> ops.getMaxRow(tableName, Authorizations.EMPTY, a, true, z, true));
+        () -> ops.getMaxRow(tableName, Authorizations.EMPTY, RowRange.closed(a, z)));
     assertNoTableNoNamespace(() -> ops.getConfiguration(tableName));
     assertNoTableNoNamespace(() -> ops.importDirectory("").to(tableName).load());
     assertNoTableNoNamespace(() -> ops.testClassLoad(tableName, VersioningIterator.class.getName(),
@@ -1160,6 +1087,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     assertNoNamespace(() -> ops.setProperty(namespace, "k", "v"));
     assertNoNamespace(() -> ops.testClassLoad(namespace, VersioningIterator.class.getName(),
         SortedKeyValueIterator.class.getName()));
+    assertNoNamespace(() -> ops.getNamespaceProperties(namespace));
 
     // namespace operations that should throw a NamespaceExistsException
     assertNamespaceExists(() -> ops.create(Namespace.DEFAULT.name()));

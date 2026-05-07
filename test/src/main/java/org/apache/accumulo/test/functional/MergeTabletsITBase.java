@@ -56,6 +56,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -70,7 +72,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -176,9 +177,9 @@ public abstract class MergeTabletsITBase extends SharedMiniClusterBase {
           bw.addMutation(m);
         }
       }
-      c.tableOperations().setTabletAvailability(tableName, new Range("d", "e"),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.closed("d", "e"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("e", "f"),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.closed("e", "f"),
           TabletAvailability.UNHOSTED);
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));
@@ -692,7 +693,7 @@ public abstract class MergeTabletsITBase extends SharedMiniClusterBase {
 
           ReferencedTabletFile tmpFile =
               ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
-          CompactorGroupId ceid = CompactorGroupId.of("G1");
+          ResourceGroupId ceid = ResourceGroupId.of("G1");
           Set<StoredTabletFile> jobFiles =
               Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
           CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",

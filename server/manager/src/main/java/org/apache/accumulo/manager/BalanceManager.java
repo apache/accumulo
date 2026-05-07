@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
@@ -353,7 +354,7 @@ class BalanceManager {
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
-      Map<String,Set<TServerInstance>> currentTServerGroups,
+      Map<ResourceGroupId,Set<TServerInstance>> currentTServerGroups,
       Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
     AssignmentParamsImpl params =
         AssignmentParamsImpl.fromThrift(currentStatus, currentTServerGroups,

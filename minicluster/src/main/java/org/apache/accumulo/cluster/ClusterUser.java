@@ -117,8 +117,7 @@ public class ClusterUser {
       return false;
     }
 
-    if (obj instanceof ClusterUser) {
-      ClusterUser other = (ClusterUser) obj;
+    if (obj instanceof ClusterUser other) {
       if (keytab == null) {
         if (other.keytab != null) {
           return false;

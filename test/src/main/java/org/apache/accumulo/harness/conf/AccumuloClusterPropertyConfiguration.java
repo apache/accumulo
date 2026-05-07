@@ -116,17 +116,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   public Map<String,String> getConfiguration(ClusterType type) {
     requireNonNull(type);
 
-    String prefix;
-    switch (type) {
-      case MINI:
-        prefix = ACCUMULO_MINI_PREFIX;
-        break;
-      case STANDALONE:
-        prefix = ACCUMULO_STANDALONE_PREFIX;
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown ClusterType: " + type);
-    }
+    String prefix = switch (type) {
+      case MINI -> ACCUMULO_MINI_PREFIX;
+      case STANDALONE -> ACCUMULO_STANDALONE_PREFIX;
+    };
 
     Map<String,String> configuration = new HashMap<>();
 
@@ -170,11 +163,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   protected void loadFromProperties(String desiredPrefix, Properties properties,
       Map<String,String> configuration) {
     for (Entry<Object,Object> entry : properties.entrySet()) {
-      if (!(entry.getKey() instanceof String)) {
+      if (!(entry.getKey() instanceof String key)) {
         continue;
       }
 
-      String key = (String) entry.getKey();
       if (key.startsWith(desiredPrefix)) {
         configuration.put(key, (String) entry.getValue());
       }

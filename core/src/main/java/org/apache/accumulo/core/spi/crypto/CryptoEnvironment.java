@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.TableId;
 /**
  * Useful information provided to the crypto implementation
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public interface CryptoEnvironment {
   /**

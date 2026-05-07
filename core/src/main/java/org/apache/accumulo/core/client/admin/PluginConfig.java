@@ -75,8 +75,7 @@ public class PluginConfig {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof PluginConfig) {
-      PluginConfig ocsc = (PluginConfig) o;
+    if (o instanceof PluginConfig ocsc) {
       return className.equals(ocsc.className) && options.equals(ocsc.options);
     }
 

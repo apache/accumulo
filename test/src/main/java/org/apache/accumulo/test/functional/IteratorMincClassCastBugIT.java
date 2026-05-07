@@ -77,7 +77,7 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
       groups.put("g2", Set.of(new Text("odd")));
       ntc.setLocalityGroups(groups);
 
-      IteratorSetting iteratorSetting = new IteratorSetting(20, ClasCastIterator.class);
+      IteratorSetting iteratorSetting = new IteratorSetting(30, ClasCastIterator.class);
       ntc.attachIterator(iteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.minc));
 
       c.tableOperations().create(tableName, ntc);

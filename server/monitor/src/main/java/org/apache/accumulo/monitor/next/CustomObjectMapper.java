@@ -36,6 +36,7 @@ import org.apache.accumulo.monitor.next.serializers.ThriftSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -59,6 +60,7 @@ public class CustomObjectMapper implements ContextResolver<ObjectMapper> {
     module.addSerializer(TabletId.class, new TabletIdSerializer());
     mapper.registerModule(module);
     mapper.registerModule(new Jdk8Module());
+    mapper.registerModule(new JavaTimeModule());
 
   }
 

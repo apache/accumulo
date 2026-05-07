@@ -33,12 +33,14 @@ public class UserFateExecutionOrderIT_SimpleSuite extends FateExecutionOrderITBa
   public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     var table = getUniqueNames(1)[0];
-    try (ClientContext client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
-        FateStore<FeoTestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
-            maxDeferred, fateIdGenerator)) {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(fs, getCluster().getServerContext());
-      client.tableOperations().delete(table);
+      try (FateStore<FeoTestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
+          maxDeferred, fateIdGenerator)) {
+        testMethod.execute(fs, getCluster().getServerContext());
+        client.tableOperations().delete(table);
+      }
     }
   }
 }
