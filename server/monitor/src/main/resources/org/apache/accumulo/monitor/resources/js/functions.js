@@ -40,6 +40,7 @@ const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
 const MESSAGE_CATEGORIES = 'messageCategories';
 const MESSAGES = 'messages';
+const RECOVERY = 'recovery';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -619,6 +620,14 @@ function getTableTablets(name) {
  */
 function getMetrics() {
   return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /recovery,
+ * stores it on a sessionStorage variable
+ */
+function getRecoveryInformation() {
+  return getJSONForTable(REST_V2_PREFIX + '/recovery', RECOVERY);
 }
 
 /**

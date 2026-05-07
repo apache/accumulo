@@ -104,6 +104,7 @@ import org.apache.accumulo.tserver.TservConstraintEnv;
 import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerRecoveryMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.hadoop.fs.FileStatus;
@@ -268,6 +269,8 @@ public class Tablet extends TabletBase {
 
     // don't bother examining WALs for recovery if Table is being deleted
     if (!logEntries.isEmpty() && !isBeingDeleted()) {
+      TabletServerRecoveryMetrics recoveryMetrics = tabletServer.getTabletRecoveryMetrics();
+      recoveryMetrics.recoveryStarted();
       TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
       // track max time from walog entries without timestamps
@@ -291,6 +294,7 @@ public class Tablet extends TabletBase {
               }
               getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
               entriesUsedOnTablet.incrementAndGet();
+              recoveryMetrics.incrementMutationsReplayed();
             });
 
         if (maxTime.get() != Long.MIN_VALUE) {
@@ -322,6 +326,7 @@ public class Tablet extends TabletBase {
         }
 
       } catch (IOException | RuntimeException t) {
+        recoveryMetrics.recoveryFailed();
         String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           log.warn(msg, t);
@@ -337,6 +342,7 @@ public class Tablet extends TabletBase {
 
       rebuildReferencedLogs();
 
+      recoveryMetrics.recoveryCompleted();
       TabletLogger.recovered(extent, logEntries, entriesUsedOnTablet.get(),
           getTabletMemory().getNumEntries());
     }

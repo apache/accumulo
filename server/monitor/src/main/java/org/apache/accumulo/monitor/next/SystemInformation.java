@@ -21,6 +21,8 @@ package org.apache.accumulo.monitor.next;
 import static com.google.common.base.Suppliers.memoize;
 import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Monitor;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Resource;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.High;
@@ -44,6 +46,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -64,14 +67,22 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.monitor.next.InformationFetcher.MetricFetcher;
+import org.apache.accumulo.monitor.next.InformationFetcher.TableInformationFetcher;
+import org.apache.accumulo.monitor.next.InformationFetcher.UpdateTaskFuture;
+import org.apache.accumulo.monitor.next.InformationFetcher.UpdateTasks;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ColumnFactory;
 import org.apache.accumulo.monitor.next.views.Status;
@@ -85,6 +96,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Meter.Id;
@@ -376,7 +388,73 @@ public class SystemInformation {
   }
 
   public enum MessageCategory {
-    Configuration, Table;
+    Configuration, Monitor, Resource, Table;
+  }
+
+  public class RecoveryOverview {
+
+    private final AtomicBoolean rootTabletRecovering = new AtomicBoolean(false);
+    private final AtomicLong metadataTabletsRecovering = new AtomicLong(0);
+    private final AtomicLong userTabletsRecovering = new AtomicLong(0);
+
+    public void setRootTabletRecovering(boolean recover) {
+      rootTabletRecovering.compareAndExchange(false, recover);
+    }
+
+    public boolean getRootTabletRecovering() {
+      return rootTabletRecovering.get();
+    }
+
+    public long getMetadataTabletsRecovering() {
+      return metadataTabletsRecovering.get();
+    }
+
+    public void setMetadataTabletsRecovering(long recover) {
+      metadataTabletsRecovering.compareAndSet(0, recover);
+    }
+
+    public long getUserTabletsRecovering() {
+      return userTabletsRecovering.get();
+    }
+
+    public void setUserTabletsRecovering(long recover) {
+      userTabletsRecovering.compareAndSet(0, recover);
+    }
+  }
+
+  public record LogSorts(String server, String resourceGroup, String type, Number inProgress,
+      Number avgProgress, Number longestDuration) {
+  }
+
+  public record TabletRecoveries(String server, String resourceGroup, Number started,
+      Number completed, Number failed, Number inProgress, Number mutationsReplayed) {
+  }
+
+  public record TabletNeedingRecovery(String tableId, String tabletId, String tabletDir,
+      String location) {
+  }
+
+  public class RecoveryInformation {
+    private final RecoveryOverview overview = new RecoveryOverview();
+    private final List<TabletNeedingRecovery> tabletsNeedingRecovery = new ArrayList<>();
+    private final List<LogSorts> serversPerformingLogSorting = new ArrayList<>();
+    private final List<TabletRecoveries> serversRecoveringTablets = new ArrayList<>();
+
+    public RecoveryOverview getOverview() {
+      return overview;
+    }
+
+    public List<LogSorts> getServersSortingLogs() {
+      return serversPerformingLogSorting;
+    }
+
+    public List<TabletRecoveries> getServersRecoveringTablets() {
+      return serversRecoveringTablets;
+    }
+
+    public List<TabletNeedingRecovery> getTabletsNeedingRecovery() {
+      return tabletsNeedingRecovery;
+    }
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
@@ -435,6 +513,7 @@ public class SystemInformation {
   // Table Information
   private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
+  private final RecoveryInformation recoveries = new RecoveryInformation();
 
   // Deployment Overview
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
@@ -493,9 +572,14 @@ public class SystemInformation {
     serverMetricsView.clear();
   }
 
-  private void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
+  public void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
     messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
         .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
+  }
+
+  public void removeMessage(MessagePriority pri, MessageCategory cat, String part) {
+    messages.getOrDefault(pri, new EnumMap<>(MessageCategory.class))
+        .getOrDefault(cat, new HashSet<String>()).removeIf(s -> s.contains(part));
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -533,6 +617,66 @@ public class SystemInformation {
           .record(value.doubleValue());
     });
 
+  }
+
+  private void captureRecoveriesInProgress(final ServerId server, final MetricResponse response) {
+    if (TableDataFactory.hasMetricData(response)) {
+      Number logSortsInProgress = 0;
+      Number logSortsAvgProgress = 0;
+      Number logSortsLongestRuntime = 0;
+      Number tabletRecoveriesStarted = 0;
+      Number tabletRecoveriesCompleted = 0;
+      Number tabletRecoveriesFailed = 0;
+      Number tabletRecoveriesInProgress = 0;
+      Number tabletRecoveriesMutationsReplayed = 0;
+      for (ByteBuffer bb : response.getMetrics()) {
+        final FMetric fm = FMetric.getRootAsFMetric(bb);
+        final String name = fm.name();
+        final Metric m = Metric.fromName(name);
+        switch (m) {
+          case RECOVERIES_SORTS_IN_PROGRESS:
+            logSortsInProgress = getMetricValue(fm);
+            break;
+          case RECOVERIES_SORTS_AVG_PROGRESS:
+            logSortsAvgProgress = getMetricValue(fm);
+            break;
+          case RECOVERIES_SORTS_LONGEST_RUNTIME:
+            logSortsLongestRuntime = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_STARTED:
+            tabletRecoveriesStarted = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_COMPLETED:
+            tabletRecoveriesCompleted = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_FAILED:
+            tabletRecoveriesFailed = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_IN_PROGRESS:
+            tabletRecoveriesInProgress = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_MUTATIONS_REPLAYED:
+            tabletRecoveriesMutationsReplayed = getMetricValue(fm);
+            break;
+          default:
+            break;
+        }
+      }
+      if (logSortsInProgress.longValue() > 0) {
+        this.recoveries.getServersSortingLogs()
+            .add(new LogSorts(server.toHostPortString(), server.getResourceGroup().canonical(),
+                server.getType().name(), logSortsInProgress, logSortsAvgProgress,
+                logSortsLongestRuntime));
+      }
+      if (tabletRecoveriesInProgress.longValue() > 0) {
+        this.recoveries.getServersRecoveringTablets()
+            .add(new TabletRecoveries(server.toHostPortString(),
+                server.getResourceGroup().canonical(), tabletRecoveriesStarted.longValue(),
+                tabletRecoveriesCompleted.longValue(), tabletRecoveriesFailed.longValue(),
+                tabletRecoveriesInProgress.longValue(),
+                tabletRecoveriesMutationsReplayed.longValue()));
+      }
+    }
   }
 
   private TableData createCompactionQueueSummary(final Set<ServerId> managers) {
@@ -580,7 +724,7 @@ public class SystemInformation {
 
     for (ServerId manager : managers) {
       MetricResponse response = allMetrics.getIfPresent(manager);
-      if (response.getMetrics() != null) {
+      if (response != null && response.getMetrics() != null) {
 
         FMetric fm = new FMetric();
         FTag t = new FTag();
@@ -612,7 +756,8 @@ public class SystemInformation {
     return TableDataFactory.forColumns(Set.of(), Map.of(), timestamp.get(), cols);
   }
 
-  public void processResponse(final ServerId server, final MetricResponse response) {
+  public void processResponse(final ServerId server, final MetricResponse response,
+      final UpdateTasks callback) {
     problemHosts.remove(server);
     metricProblemHosts.remove(server);
     retainedProblemHosts.remove(server);
@@ -620,6 +765,7 @@ public class SystemInformation {
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
         .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
+    captureRecoveriesInProgress(server, response);
     switch (response.serverType) {
       case COMPACTOR:
         compactors
@@ -634,6 +780,32 @@ public class SystemInformation {
         break;
       case MANAGER:
         managers.add(server);
+        FMetric flatbuffer = new FMetric();
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.MANAGER_ROOT_TGW_RECOVERY.getName())) {
+            boolean recovering = getMetricValue(flatbuffer).longValue() > 0;
+            this.recoveries.getOverview().setRootTabletRecovering(recovering);
+            if (recovering) {
+              addMessage(Critical, Table, "The root table requires recovery");
+            }
+          } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
+            long tablets = getMetricValue(flatbuffer).longValue();
+            this.recoveries.getOverview().setMetadataTabletsRecovering(tablets);
+            if (tablets > 0) {
+              callback.stopCollectingTableInformation();
+              addMessage(Critical, Table, tablets + " metadata table tablets require recovery");
+            }
+          } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
+            long tablets = getMetricValue(flatbuffer).longValue();
+            this.recoveries.getOverview().setUserTabletsRecovering(tablets);
+            if (tablets > 0) {
+              callback.stopCollectingTableInformation();
+              addMessage(High, Table, tablets + " user table tablets require recovery");
+            }
+          }
+        }
         break;
       case SCAN_SERVER:
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
@@ -676,9 +848,37 @@ public class SystemInformation {
     tablets.computeIfAbsent(tableId, (t) -> Collections.synchronizedList(new ArrayList<>()))
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
-    if (sti.getEstimatedEntries() == 0) {
-      addMessage(Info, Table, "Tablet " + sti.getTabletId().toString() + " (tid: "
-          + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
+    if (sti.getNumWalLogs() > 0) {
+      if (sti.getLocation().isPresent()) {
+        String loc = sti.getLocation().orElseThrow();
+        int idx = loc.indexOf(':');
+        try {
+          LocationType type = LocationType.valueOf(loc.substring(0, idx));
+          if (type == LocationType.FUTURE) {
+            // When the location is future, then recovery either has not occurred yet, or
+            // is occurring right now. Location is set to current once recovery is complete.
+            this.recoveries.getTabletsNeedingRecovery()
+                .add(new TabletNeedingRecovery(info.getTabletId().getTable().canonical(),
+                    sti.getTabletId().toString(), sti.getTabletDir(),
+                    sti.getLocation().orElse("")));
+          } else if (type == LocationType.CURRENT) {
+            // If the location type is current, but there is no tserver at that location
+            // with a lock, then this tablet needs recovery but has not been assigned a
+            // new location yet.
+            Set<ServiceLockPath> servers =
+                ctx.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
+                    AddressSelector.exact(HostAndPort.fromString(loc.substring(idx + 1))), true);
+            if (servers == null || servers.isEmpty()) {
+              this.recoveries.getTabletsNeedingRecovery()
+                  .add(new TabletNeedingRecovery(info.getTabletId().getTable().canonical(),
+                      sti.getTabletId().toString(), sti.getTabletDir(),
+                      sti.getLocation().orElse("")));
+            }
+          }
+        } catch (IllegalArgumentException e) {
+          LOG.error("Unable to determine LocationType from wal location: {}", loc);
+        }
+      }
     }
   }
 
@@ -703,13 +903,131 @@ public class SystemInformation {
     configuredCompactionResourceGroups.addAll(groups);
   }
 
-  public void finish() {
-    // Update the deployment not-responded numbers based
-    // on metric fetch failures for this refresh.
-    metricProblemHosts.forEach(serverId -> {
-      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
-          .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
+  private void computeMessages(final List<UpdateTaskFuture> failures,
+      final List<UpdateTaskFuture> cancelled) {
+
+    if (failures.size() > 0) {
+      addMessage(High, Monitor,
+          "There were " + failures.size() + " failures in the last monitor update cycle."
+              + " Information displayed may be out of date or missing.");
+    }
+
+    if (cancelled.size() > 0) {
+      final long monitorFetchTimeout =
+          ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
+      String message =
+          "Fetching information for Monitor has taken longer than %1$d ms. (%2$d) tasks were cancelled."
+              + " Information displayed may be out of date or missing. Resolve the issue causing this or increase property `%3$s`.";
+      addMessage(High, Monitor, String.format(message, monitorFetchTimeout, cancelled.size(),
+          Property.MONITOR_FETCH_TIMEOUT.getKey()));
+    }
+
+    Set<ServerId> failedOrCancelledServers = new HashSet<>();
+    Set<TableId> failedOrCancelledTables = new HashSet<>();
+    for (UpdateTaskFuture f : failures) {
+      switch (f.task().getType()) {
+        case COMPACTION:
+          addMessage(Info, Monitor,
+              "The task to get information about currently running compactions failed");
+          break;
+        case COMPACTION_RGS:
+          addMessage(Info, Monitor,
+              "The task to get information about configured compaction resource groups failed");
+          break;
+        case METRIC:
+          ServerId s = ((MetricFetcher) f.task()).getResource();
+          failedOrCancelledServers.add(s);
+          break;
+        case TABLE:
+          TableId t = ((TableInformationFetcher) f.task()).getResource();
+          failedOrCancelledTables.add(t);
+          break;
+        default:
+          break;
+      }
+    }
+
+    for (UpdateTaskFuture f : cancelled) {
+      switch (f.task().getType()) {
+        case COMPACTION:
+          addMessage(Info, Monitor,
+              "The task to get information about currently running compactions was cancelled");
+          break;
+        case COMPACTION_RGS:
+          addMessage(Info, Monitor,
+              "The task to get information about configured compaction resource groups was cancelled");
+          break;
+        case METRIC:
+          ServerId s = ((MetricFetcher) f.task()).getResource();
+          failedOrCancelledServers.add(s);
+          break;
+        case TABLE:
+          TableId t = ((TableInformationFetcher) f.task()).getResource();
+          failedOrCancelledTables.add(t);
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (failedOrCancelledServers.size() > 0) {
+      addMessage(High, Monitor, failedOrCancelledServers.size()
+          + " tasks to get information from servers were failed or cancelled.");
+      addMessage(Info, Monitor,
+          "The Monitor is not displaying updated information for the following servers: "
+              + failedOrCancelledServers);
+    }
+
+    if (failedOrCancelledTables.size() > 0) {
+      addMessage(High, Monitor, failedOrCancelledTables.size()
+          + " tasks to get information for tables were failed or cancelled.");
+      addMessage(Info, Monitor,
+          "The Monitor is not displaying updated information for the following tables: "
+              + failedOrCancelledTables);
+    }
+
+    if (managers.isEmpty()) {
+      addMessage(Critical, Resource, "No Managers are running");
+    }
+
+    if (gc.get() == null) {
+      addMessage(Critical, Resource, "Garbage Collector is not running");
+    }
+
+    if (problemHosts.size() > 0) {
+      addMessage(Info, Resource, "Monitor has not received a response from " + problemHosts.size()
+          + " servers recently: " + problemHosts);
+    }
+
+    if (metricProblemHosts.size() > 0) {
+      addMessage(Info, Resource,
+          "Unable to gather information from " + metricProblemHosts.size() + " servers");
+    }
+
+    for (ResourceGroupId rg : ctx.resourceGroupOperations().list()) {
+      if (rg == ResourceGroupId.DEFAULT) {
+        continue;
+      }
+      if (!compactors.containsKey(rg.canonical()) && !sservers.containsKey(rg.canonical())
+          && !tservers.containsKey(rg.canonical())) {
+        addMessage(Info, Configuration, "Resource Group " + rg
+            + " exists, but no resources assigned. Consider removing the resource group with command `accumulo inst init --remove-resource-groups`");
+      }
+    }
+
+    tablets.forEach((tid, tablets) -> {
+      int empty = 0;
+      for (TabletInformation tablet : tablets) {
+        if (tablet.getEstimatedEntries() == 0) {
+          empty++;
+        }
+      }
+      if (empty > 0) {
+        addMessage(Info, Table,
+            "Table " + tid + " may have " + empty + " tablets that could be merged.");
+      }
     });
+
     for (SystemTables table : SystemTables.values()) {
       TableConfiguration tconf = this.ctx.getTableConfiguration(table.tableId());
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
@@ -719,6 +1037,28 @@ public class SystemInformation {
             "Table " + table.tableName() + " configured to balance tablets in resource group "
                 + balancerRG + ", but there are no TabletServers.");
       }
+    }
+
+    FMetric flatbuffer = new FMetric();
+    long serversWithZombieScans = 0;
+    for (Entry<ServerId,MetricResponse> e : allMetrics.asMap().entrySet()) {
+      ServerId sid = e.getKey();
+      List<ByteBuffer> metrics = e.getValue().metrics;
+      if (sid.getType() == ServerId.Type.SCAN_SERVER
+          || sid.getType() == ServerId.Type.TABLET_SERVER) {
+        for (ByteBuffer binary : metrics) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          if (flatbuffer.name().equals(Metric.SCAN_ZOMBIE_THREADS.getName())) {
+            if (getMetricValue(flatbuffer).longValue() > 0) {
+              serversWithZombieScans++;
+            }
+          }
+        }
+      }
+    }
+    if (serversWithZombieScans > 0) {
+      addMessage(High, Resource,
+          "There are " + serversWithZombieScans + " servers with zombie scan threads");
     }
 
     for (String rg : getResourceGroups()) {
@@ -749,7 +1089,7 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                addMessage(High, Configuration,
+                addMessage(High, Resource,
                     "Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
@@ -765,6 +1105,19 @@ public class SystemInformation {
             + " has running compactors, but no configuration uses them.");
       }
     }
+
+  }
+
+  public void finish(final List<UpdateTaskFuture> failures,
+      final List<UpdateTaskFuture> cancelled) {
+    // Update the deployment not-responded numbers based
+    // on metric fetch failures for this refresh.
+    metricProblemHosts.forEach(serverId -> {
+      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
+          .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
+    });
+
+    computeMessages(failures, cancelled);
 
     timestamp.set(System.currentTimeMillis());
     componentStatuses.clear();
@@ -969,6 +1322,10 @@ public class SystemInformation {
 
   public List<TabletInformation> getTablets(TableId tableId) {
     return this.tablets.get(tableId);
+  }
+
+  public RecoveryInformation getRecoveryInformation() {
+    return this.recoveries;
   }
 
   public DeploymentOverview getDeploymentView() {
