@@ -82,6 +82,7 @@ public class TabletManagementIterator extends WholeRowIterator {
     long splitThreshold;
     long maxEndRowSize;
     int maxFilesToOpen;
+    int maxFilesBeforeSplit;
 
     void update(TableId tableId, Configuration tableConfig) {
       if (!tableId.equals(this.tableId)) {
@@ -92,6 +93,8 @@ public class TabletManagementIterator extends WholeRowIterator {
             .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_END_ROW_SIZE.getKey()));
         maxFilesToOpen = (int) ConfigurationTypeHelper
             .getFixedMemoryAsBytes(tableConfig.get(Property.SPLIT_MAXOPEN.getKey()));
+        maxFilesBeforeSplit = (int) ConfigurationTypeHelper
+            .getFixedMemoryAsBytes(tableConfig.get(Property.TABLE_MAX_FILES_BEFORE_SPLIT.getKey()));
       }
     }
   }
@@ -110,13 +113,14 @@ public class TabletManagementIterator extends WholeRowIterator {
     // which gives a chance to clean up the marker and recheck.
     var unsplittable = tm.getUnSplittable();
     if (unsplittable != null) {
-      return !unsplittable
-          .equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(), splitConfig.splitThreshold,
-              splitConfig.maxEndRowSize, splitConfig.maxFilesToOpen, tm.getFiles()));
+      return !unsplittable.equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(),
+          splitConfig.splitThreshold, splitConfig.maxEndRowSize, splitConfig.maxFilesToOpen,
+          splitConfig.maxFilesBeforeSplit, tm.getFiles()));
     }
 
     // If unsplittable is not set at all then check if over split threshold
-    final boolean shouldSplit = SplitUtils.needsSplit(splitConfig.splitThreshold, tm);
+    final boolean shouldSplit =
+        SplitUtils.needsSplit(splitConfig.splitThreshold, splitConfig.maxFilesBeforeSplit, tm);
     LOG.trace("{} should split? sum: {}, threshold: {}, result: {}", tm.getExtent(),
         tm.getFileSize(), splitConfig.splitThreshold, shouldSplit);
     return shouldSplit;
