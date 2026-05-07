@@ -76,7 +76,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public void create(ResourceGroupId group) throws AccumuloException, AccumuloSecurityException {
     checkArgument(group != null, "group argument must be supplied");
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .createResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
   }
 
@@ -116,7 +116,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           + " setting its replacement {} instead", property, replacement);
     });
     try {
-      ThriftClientTypes.MANAGER.executeVoid(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context,
           client -> client.setResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
               group.canonical(), property, value));
     } catch (AccumuloException | AccumuloSecurityException e) {
@@ -168,7 +168,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
     // Send to server
     try {
-      ThriftClientTypes.MANAGER.executeVoid(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context,
           client -> client.modifyResourceGroupProperties(TraceUtil.traceInfo(), context.rpcCreds(),
               group.canonical(), vProperties));
     } catch (AccumuloException | AccumuloSecurityException e) {
@@ -228,7 +228,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           + " its replacement {} and will remove that instead", property, replacement);
     });
     try {
-      ThriftClientTypes.MANAGER.executeVoid(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context,
           client -> client.removeResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
               group.canonical(), property));
     } catch (AccumuloException | AccumuloSecurityException e) {
@@ -246,7 +246,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     checkArgument(group != null, "group argument must be supplied");
     try {
-      ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
           .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();

@@ -19,13 +19,13 @@
 package org.apache.accumulo.tserver.managermessage;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.thrift.TException;
 
 public interface ManagerMessage {
 
-  void send(TCredentials info, String serverName, ManagerClientService.Iface client)
+  void send(TCredentials info, String serverName, PrimaryManagerClientService.Iface client)
       throws TException, ThriftSecurityException;
 
 }

@@ -187,7 +187,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
-      ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoidTableCommand(context,
           client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
               namespace, property, value));
     } catch (TableNotFoundException e) {
@@ -218,7 +218,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoidTableCommand(context,
           client -> client.modifyNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(),
               namespace, vProperties));
 
@@ -273,7 +273,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
     try {
-      ThriftClientTypes.MANAGER.executeVoidTableCommand(context, client -> client
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoidTableCommand(context, client -> client
           .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException) {

@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver.managermessage;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Iface;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService.Iface;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;

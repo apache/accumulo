@@ -47,6 +47,9 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ManagerThriftClient MANAGER = new ManagerThriftClient("mgr");
 
+  public static final AssistantManagerThriftClient ASSISTANT_MANAGER =
+      new AssistantManagerThriftClient("asst_mgr");
+
   public static final TabletServerThriftClient TABLET_SERVER =
       new TabletServerThriftClient("tserver");
 

@@ -224,106 +224,7 @@ service FateService {
 
 }
 
-service ManagerClientService {
-
-  // table management methods
-  i64 initiateFlush(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-  )
-
-  void waitForFlush(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-    4:binary startRow
-    5:binary endRow
-    6:i64 flushID
-    7:i64 maxLoops
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-  )
-
-  void setTableProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-    4:string property
-    5:string value
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-    4:ThriftPropertyException tpe
-  )
-
-  void modifyTableProperties(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-    4:client.TVersionedProperties vProperties
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-    4:client.ThriftConcurrentModificationException tcme
-    5:ThriftPropertyException tpe
-  )
-
-  void removeTableProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-    4:string property
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-  )
-
-  void setNamespaceProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string ns
-    4:string property
-    5:string value
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-    4:ThriftPropertyException tpe
-  )
-
-  void modifyNamespaceProperties(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string ns
-    4:client.TVersionedProperties vProperties
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-    4:client.ThriftConcurrentModificationException tcme
-    5:ThriftPropertyException tpe
-  )
-
-  void removeNamespaceProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string ns
-    4:string property
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-  )
+service PrimaryManagerClientService {
 
   // system management methods
   void setManagerGoalState(
@@ -363,94 +264,6 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
-
-  void setSystemProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string property
-    4:string value
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:ThriftPropertyException tpe
-  )
-
-  void modifySystemProperties(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:client.TVersionedProperties vProperties
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftConcurrentModificationException tcme
-    4:ThriftPropertyException tpe
-  )
-
-  void removeSystemProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string property
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
-
-  void createResourceGroupNode(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
-
-  void removeResourceGroupNode(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-  void setResourceGroupProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-    4:string property
-    5:string value
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:ThriftPropertyException tpe
-    4:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-  void modifyResourceGroupProperties(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-    4:client.TVersionedProperties vProperties
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftConcurrentModificationException tcme
-    4:ThriftPropertyException tpe
-    5:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-  void removeResourceGroupProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-    4:string property
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftResourceGroupNotExistsException rgne
-  )
-
 
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
@@ -532,6 +345,195 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+}
+
+service AssistantManagerClientService {
+
+// table management methods
+  i64 initiateFlush(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException tope
+    3:client.ThriftNotActiveServiceException tnase
+  )
+
+  void waitForFlush(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+    4:binary startRow
+    5:binary endRow
+    6:i64 flushID
+    7:i64 maxLoops
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException tope
+    3:client.ThriftNotActiveServiceException tnase
+  )
+
+    void setTableProperty(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string tableName
+      4:string property
+      5:string value
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftTableOperationException tope
+      3:client.ThriftNotActiveServiceException tnase
+      4:ThriftPropertyException tpe
+    )
+
+    void modifyTableProperties(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string tableName
+      4:client.TVersionedProperties vProperties
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftTableOperationException tope
+      3:client.ThriftNotActiveServiceException tnase
+      4:client.ThriftConcurrentModificationException tcme
+      5:ThriftPropertyException tpe
+    )
+
+    void removeTableProperty(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string tableName
+      4:string property
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftTableOperationException tope
+      3:client.ThriftNotActiveServiceException tnase
+    )
+
+    void setNamespaceProperty(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string ns
+      4:string property
+      5:string value
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftTableOperationException tope
+      3:client.ThriftNotActiveServiceException tnase
+      4:ThriftPropertyException tpe
+    )
+
+    void modifyNamespaceProperties(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string ns
+      4:client.TVersionedProperties vProperties
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftTableOperationException tope
+      3:client.ThriftNotActiveServiceException tnase
+      4:client.ThriftConcurrentModificationException tcme
+      5:ThriftPropertyException tpe
+    )
+
+    void removeNamespaceProperty(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string ns
+      4:string property
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftTableOperationException tope
+      3:client.ThriftNotActiveServiceException tnase
+    )
+
+  void setSystemProperty(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string property
+    4:string value
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:ThriftPropertyException tpe
+  )
+
+  void modifySystemProperties(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:client.TVersionedProperties vProperties
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftConcurrentModificationException tcme
+    4:ThriftPropertyException tpe
+  )
+
+  void removeSystemProperty(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string property
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+
+  void createResourceGroupNode(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string resourceGroup
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftNotActiveServiceException tnase
+    )
+
+  void removeResourceGroupNode(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string resourceGroup
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftNotActiveServiceException tnase
+      3:client.ThriftResourceGroupNotExistsException rgne
+    )
+
+      void setResourceGroupProperty(
+        1:client.TInfo tinfo
+        2:security.TCredentials credentials
+        3:string resourceGroup
+        4:string property
+        5:string value
+      ) throws (
+        1:client.ThriftSecurityException sec
+        2:client.ThriftNotActiveServiceException tnase
+        3:ThriftPropertyException tpe
+        4:client.ThriftResourceGroupNotExistsException rgne
+      )
+
+      void modifyResourceGroupProperties(
+        1:client.TInfo tinfo
+        2:security.TCredentials credentials
+        3:string resourceGroup
+        4:client.TVersionedProperties vProperties
+      ) throws (
+        1:client.ThriftSecurityException sec
+        2:client.ThriftNotActiveServiceException tnase
+        3:client.ThriftConcurrentModificationException tcme
+        4:ThriftPropertyException tpe
+        5:client.ThriftResourceGroupNotExistsException rgne
+      )
+
+      void removeResourceGroupProperty(
+        1:client.TInfo tinfo
+        2:security.TCredentials credentials
+        3:string resourceGroup
+        4:string property
+      ) throws (
+        1:client.ThriftSecurityException sec
+        2:client.ThriftNotActiveServiceException tnase
+        3:client.ThriftResourceGroupNotExistsException rgne
+      )
 }
 
 struct TFatePartitions {

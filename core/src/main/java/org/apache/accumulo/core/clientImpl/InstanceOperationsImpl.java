@@ -105,7 +105,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release;"
           + " setting its replacement {} instead", property, replacement);
     });
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value));
     checkLocalityGroups(property);
   }
@@ -138,7 +138,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
 
     // Send to server
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
 
     return vProperties.getProperties();
@@ -184,7 +184,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
           + " its replacement {} and will remove that instead", property, replacement);
     });
-    ThriftClientTypes.MANAGER.executeVoid(context,
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
     checkLocalityGroups(property);
   }

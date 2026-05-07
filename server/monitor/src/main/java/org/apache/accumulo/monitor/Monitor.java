@@ -59,8 +59,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -219,7 +219,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     // Otherwise, we'll never release the lock by unsetting 'fetching' in the finally block
     try {
       while (retry) {
-        ManagerClientService.Client client = null;
+        PrimaryManagerClientService.Client client = null;
         try {
           client = ThriftClientTypes.MANAGER.getConnection(context);
           if (client != null) {

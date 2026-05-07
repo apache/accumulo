@@ -137,8 +137,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.AssistantManagerClientService;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
@@ -975,9 +975,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // so pass the tableid to both calls
 
       while (true) {
-        ManagerClientService.Client client = null;
+        AssistantManagerClientService.Client client = null;
         try {
-          client = ThriftClientTypes.MANAGER.getConnectionWithRetry(context);
+          client = ThriftClientTypes.ASSISTANT_MANAGER.getConnectionWithRetry(context);
           flushID =
               client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
@@ -994,9 +994,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
       while (true) {
-        ManagerClientService.Client client = null;
+        AssistantManagerClientService.Client client = null;
         try {
-          client = ThriftClientTypes.MANAGER.getConnectionWithRetry(context);
+          client = ThriftClientTypes.ASSISTANT_MANAGER.getConnectionWithRetry(context);
           client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical(),
               TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);
@@ -1059,7 +1059,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER.executeVoid(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context,
           client -> client.modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
               tableName, vProperties));
       for (String property : vProperties.getProperties().keySet()) {
@@ -1126,7 +1126,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value));
   }
 
@@ -1147,7 +1147,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void removePropertyNoChecks(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property));
   }
 
