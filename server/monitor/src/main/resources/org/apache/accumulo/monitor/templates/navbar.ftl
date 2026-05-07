@@ -58,6 +58,7 @@
                 <li><a class="link-body-emphasis dropdown-item" href="coordinator">Compaction Overview</a></li>
                 <li><a class="link-body-emphasis dropdown-item" href="ec">Compaction Details</a></li>
                 <li><a class="link-body-emphasis dropdown-item" href="scans">Scans</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="recovery">Tablet Recoveries</a></li>
               </ul>
             </li>
             <li>

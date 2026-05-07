@@ -135,6 +135,7 @@ import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.managermessage.ManagerMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerRecoveryMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.scan.ScanRunState;
@@ -167,6 +168,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerMinCMetrics mincMetrics;
   PausedCompactionMetrics pausedMetrics;
   BlockCacheMetrics blockCacheMetrics;
+  TabletServerRecoveryMetrics recoveryMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -180,6 +182,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public PausedCompactionMetrics getPausedCompactionMetrics() {
     return pausedMetrics;
+  }
+
+  public TabletServerRecoveryMetrics getTabletRecoveryMetrics() {
+    return recoveryMetrics;
   }
 
   private final LogSorter logSorter;
@@ -556,9 +562,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     pausedMetrics = new PausedCompactionMetrics();
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
+    recoveryMetrics = new TabletServerRecoveryMetrics();
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics, logSorter);
+        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 

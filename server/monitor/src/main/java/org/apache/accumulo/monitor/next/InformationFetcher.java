@@ -564,7 +564,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private long countMetadataTabletsNoLocation() {
     // If any Metadata tablet is not hosted, then don't look for table information
     // on other tables.
-    AtomicLong metadataNoLocation = new AtomicLong(-1);
+    AtomicLong metadataNoLocation = new AtomicLong(0);
     // This is a background task because the tserver could go down and
     // the scanner inside Ample will sit there and wait.
     Runnable countTask = () -> {
@@ -677,6 +677,11 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
               metadataNoLocation + " metadata tablets are not hosted");
         }
       } else {
+        //TODO: Check to see if the root table needs to be recovered.
+        // Has logs and a future location. If so, ensure that root
+        // table is marked as needing recovery and add the tablet to
+        // the list of tablets needing recovery.
+        
         summary.addMessage(Critical, Table, "The root tablet is not currently hosted");
       }
 
@@ -704,10 +709,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           tookToLong = true;
         }
 
+        final Location rtl = getRootTabletLocation();
+        final long unhostedMetadataTabletCount = countMetadataTabletsNoLocation();
         Iterator<UpdateTaskFuture> iter = futures.iterator();
         while (iter.hasNext()) {
+
           UpdateTaskFuture future = iter.next();
-          if (tookToLong && !future.future().isCancelled()) {
+
+          if (future.task().getClass().equals(TableInformationFetcher.class)
+              && (rtl == null || unhostedMetadataTabletCount > 0)) {
+            LOG.warn(
+                "Cancelling TableInformationFetcher task as metadata or root tablet are unhosted. {}",
+                future.task().getFailureMessage());
+            future.future().cancel(true);
+            cancelled.add(future);
+          } else if (tookToLong && !future.future().isCancelled()) {
             LOG.warn("Cancelling task as it took too long. {}", future.task().getFailureMessage());
             future.future().cancel(true);
             cancelled.add(future);

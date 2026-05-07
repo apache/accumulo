@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -390,19 +391,68 @@ public class SystemInformation {
     Configuration, Monitor, Resource, Table;
   }
 
-  public record TServerRecoveryStats(String server, String resourceGroup, String type,
-      Number inProgress, Number avgProgress, Number longestDuration) {
+  public class RecoveryOverview {
+
+    private final AtomicBoolean rootTabletRecovering = new AtomicBoolean(false);
+    private final AtomicLong metadataTabletsRecovering = new AtomicLong(0);
+    private final AtomicLong userTabletsRecovering = new AtomicLong(0);
+
+    public void setRootTabletRecovering(boolean recover) {
+      rootTabletRecovering.compareAndExchange(false, recover);
+    }
+
+    public boolean getRootTabletRecovering() {
+      return rootTabletRecovering.get();
+    }
+
+    public long getMetadataTabletsRecovering() {
+      return metadataTabletsRecovering.get();
+    }
+
+    public void setMetadataTabletsRecovering(long recover) {
+      metadataTabletsRecovering.compareAndSet(0, recover);
+    }
+
+    public long getUserTabletsRecovering() {
+      return userTabletsRecovering.get();
+    }
+
+    public void setUserTabletsRecovering(long recover) {
+      userTabletsRecovering.compareAndSet(0, recover);
+    }
+  }
+
+  public record LogSorts(String server, String resourceGroup, String type, Number inProgress,
+      Number avgProgress, Number longestDuration) {
+  }
+
+  public record TabletRecoveries(String server, String resourceGroup, Number started,
+      Number completed, Number failed, Number inProgress, Number mutationsReplayed) {
+  }
+
+  public record TabletNeedingRecovery(String tableId, String tabletId, String tabletDir,
+      String location) {
   }
 
   public class RecoveryInformation {
-    private final List<TServerRecoveryStats> tserversPerformingRecoveries = new ArrayList<>();
-    private final List<SanitizedTabletInformation> tabletsNeedingRecovery = new ArrayList<>();
+    private final RecoveryOverview overview = new RecoveryOverview();
+    private final List<TabletNeedingRecovery> tabletsNeedingRecovery = new ArrayList<>();
+    private final List<LogSorts> serversPerformingLogSorting = new ArrayList<>();
+    private final List<TabletRecoveries> serversRecoveringTablets = new ArrayList<>();
 
-    public List<TServerRecoveryStats> getTserversPerformingRecoveries() {
-      return tserversPerformingRecoveries;
+    public RecoveryOverview getOverview() {
+      return overview;
     }
 
-    public List<SanitizedTabletInformation> getTabletsNeedingRecovery() {
+    public List<LogSorts> getServersSortingLogs() {
+      return serversPerformingLogSorting;
+    }
+
+    public List<TabletRecoveries> getServersRecoveringTablets() {
+      return serversRecoveringTablets;
+    }
+
+    public List<TabletNeedingRecovery> getTabletsNeedingRecovery() {
       return tabletsNeedingRecovery;
     }
   }
@@ -571,36 +621,60 @@ public class SystemInformation {
 
   private void captureRecoveriesInProgress(final ServerId server, final MetricResponse response) {
     if (TableDataFactory.hasMetricData(response)) {
-      Number inProgress = 0;
-      Number avgProgress = 0;
-      Number longestRuntime = 0;
+      Number logSortsInProgress = 0;
+      Number logSortsAvgProgress = 0;
+      Number logSortsLongestRuntime = 0;
+      Number tabletRecoveriesStarted = 0;
+      Number tabletRecoveriesCompleted = 0;
+      Number tabletRecoveriesFailed = 0;
+      Number tabletRecoveriesInProgress = 0;
+      Number tabletRecoveriesMutationsReplayed = 0;
       for (ByteBuffer bb : response.getMetrics()) {
         final FMetric fm = FMetric.getRootAsFMetric(bb);
         final String name = fm.name();
         final Metric m = Metric.fromName(name);
         switch (m) {
-          case RECOVERIES_IN_PROGRESS:
-            inProgress = getMetricValue(fm);
+          case RECOVERIES_SORTS_IN_PROGRESS:
+            logSortsInProgress = getMetricValue(fm);
             break;
-          case RECOVERIES_AVG_PROGRESS:
-            avgProgress = getMetricValue(fm);
+          case RECOVERIES_SORTS_AVG_PROGRESS:
+            logSortsAvgProgress = getMetricValue(fm);
             break;
-          case RECOVERIES_LONGEST_RUNTIME:
-            longestRuntime = getMetricValue(fm);
+          case RECOVERIES_SORTS_LONGEST_RUNTIME:
+            logSortsLongestRuntime = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_STARTED:
+            tabletRecoveriesStarted = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_COMPLETED:
+            tabletRecoveriesCompleted = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_FAILED:
+            tabletRecoveriesFailed = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_IN_PROGRESS:
+            tabletRecoveriesInProgress = getMetricValue(fm);
+            break;
+          case RECOVERIES_TABLETS_MUTATIONS_REPLAYED:
+            tabletRecoveriesMutationsReplayed = getMetricValue(fm);
             break;
           default:
             break;
         }
-        if (inProgress.longValue() > 0 && avgProgress.longValue() > 0
-            && longestRuntime.longValue() > 0) {
-          break;
-        }
       }
-      if (inProgress.longValue() > 0) {
-        this.recoveries.getTserversPerformingRecoveries()
-            .add(new TServerRecoveryStats(server.toHostPortString(),
-                server.getResourceGroup().canonical(), server.getType().name(), inProgress,
-                avgProgress, longestRuntime));
+      if (logSortsInProgress.longValue() > 0) {
+        this.recoveries.getServersSortingLogs()
+            .add(new LogSorts(server.toHostPortString(), server.getResourceGroup().canonical(),
+                server.getType().name(), logSortsInProgress, logSortsAvgProgress,
+                logSortsLongestRuntime));
+      }
+      if (tabletRecoveriesInProgress.longValue() > 0) {
+        this.recoveries.getServersRecoveringTablets()
+            .add(new TabletRecoveries(server.toHostPortString(),
+                server.getResourceGroup().canonical(), tabletRecoveriesStarted.longValue(),
+                tabletRecoveriesCompleted.longValue(), tabletRecoveriesFailed.longValue(),
+                tabletRecoveriesInProgress.longValue(),
+                tabletRecoveriesMutationsReplayed.longValue()));
       }
     }
   }
@@ -650,7 +724,7 @@ public class SystemInformation {
 
     for (ServerId manager : managers) {
       MetricResponse response = allMetrics.getIfPresent(manager);
-      if (response.getMetrics() != null) {
+      if (response != null && response.getMetrics() != null) {
 
         FMetric fm = new FMetric();
         FTag t = new FTag();
@@ -710,17 +784,22 @@ public class SystemInformation {
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
-          if (metricName.equals(Metric.MANAGER_ROOT_TGW_RECOVERY.getName())
-              && getMetricValue(flatbuffer).longValue() > 0) {
-            addMessage(Critical, Table, "The root table requires recovery");
+          if (metricName.equals(Metric.MANAGER_ROOT_TGW_RECOVERY.getName())) {
+            boolean recovering = getMetricValue(flatbuffer).longValue() > 0;
+            this.recoveries.getOverview().setRootTabletRecovering(recovering);
+            if (recovering) {
+              addMessage(Critical, Table, "The root table requires recovery");
+            }
           } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
             long tablets = getMetricValue(flatbuffer).longValue();
+            this.recoveries.getOverview().setMetadataTabletsRecovering(tablets);
             if (tablets > 0) {
               callback.stopCollectingTableInformation();
               addMessage(Critical, Table, tablets + " metadata table tablets require recovery");
             }
           } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
             long tablets = getMetricValue(flatbuffer).longValue();
+            this.recoveries.getOverview().setUserTabletsRecovering(tablets);
             if (tablets > 0) {
               callback.stopCollectingTableInformation();
               addMessage(High, Table, tablets + " user table tablets require recovery");
@@ -778,7 +857,10 @@ public class SystemInformation {
           if (type == LocationType.FUTURE) {
             // When the location is future, then recovery either has not occurred yet, or
             // is occurring right now. Location is set to current once recovery is complete.
-            this.recoveries.getTabletsNeedingRecovery().add(sti);
+            this.recoveries.getTabletsNeedingRecovery()
+                .add(new TabletNeedingRecovery(info.getTabletId().getTable().canonical(),
+                    sti.getTabletId().toString(), sti.getTabletDir(),
+                    sti.getLocation().orElse("")));
           } else if (type == LocationType.CURRENT) {
             // If the location type is current, but there is no tserver at that location
             // with a lock, then this tablet needs recovery but has not been assigned a
@@ -787,7 +869,10 @@ public class SystemInformation {
                 ctx.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
                     AddressSelector.exact(HostAndPort.fromString(loc.substring(idx + 1))), true);
             if (servers == null || servers.isEmpty()) {
-              this.recoveries.getTabletsNeedingRecovery().add(sti);
+              this.recoveries.getTabletsNeedingRecovery()
+                  .add(new TabletNeedingRecovery(info.getTabletId().getTable().canonical(),
+                      sti.getTabletId().toString(), sti.getTabletDir(),
+                      sti.getLocation().orElse("")));
             }
           }
         } catch (IllegalArgumentException e) {

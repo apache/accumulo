@@ -392,15 +392,30 @@ public enum Metric {
       MetricDocSection.MANAGER, "Manager Goal State", null, NUMBER),
 
   // Recovery Metrics
-  RECOVERIES_IN_PROGRESS("accumulo.recoveries.in.progress", MetricType.GAUGE,
-      "The number of recoveries in progress.", MetricDocSection.GENERAL_SERVER,
-      "Tablet Recoveries In Progress", null, NUMBER),
-  RECOVERIES_LONGEST_RUNTIME("accumulo.recoveries.runtime.longest", MetricType.GAUGE,
-      "The time (in milliseconds) of the longest running recovery.",
+  RECOVERIES_SORTS_IN_PROGRESS("accumulo.recoveries.sorts.in.progress", MetricType.GAUGE,
+      "The number of log sorts in progress.", MetricDocSection.GENERAL_SERVER,
+      "Log Sorts In Progress", null, NUMBER),
+  RECOVERIES_SORTS_LONGEST_RUNTIME("accumulo.recoveries.sorts.runtime.longest", MetricType.GAUGE,
+      "The time (in milliseconds) of the longest running log sort.",
       MetricDocSection.GENERAL_SERVER, "Tablet Recovery Longest Time", null, DURATION),
-  RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
-      "The average percentage (0.0 - 99.9) of the in progress recoveries.",
+  RECOVERIES_SORTS_AVG_PROGRESS("accumulo.recoveries.sorts.avg.progress", MetricType.GAUGE,
+      "The average percentage (0.0 - 99.9) of the in progress log sorts.",
       MetricDocSection.GENERAL_SERVER, "Tablet Recovery Avg Percent Complete", null, PERCENT),
+  RECOVERIES_TABLETS_STARTED("accumulo.recoveries.tablets.started", MetricType.GAUGE,
+      "The number of tablet recoveries started", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries Started", null, NUMBER),
+  RECOVERIES_TABLETS_COMPLETED("accumulo.recoveries.tablets.completed", MetricType.GAUGE,
+      "The number of tablet recoveries completed", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries Completed", null, NUMBER),
+  RECOVERIES_TABLETS_FAILED("accumulo.recoveries.tablets.failed", MetricType.GAUGE,
+      "The number of tablet recoveries failed", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries Failed", null, NUMBER),
+  RECOVERIES_TABLETS_IN_PROGRESS("accumulo.recoveries.tablets.in.progress", MetricType.GAUGE,
+      "The number of tablet recoveries in progress", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries In Progress", null, NUMBER),
+  RECOVERIES_TABLETS_MUTATIONS_REPLAYED("accumulo.recoveries.tablets.mutations.replayed",
+      MetricType.GAUGE, "The number of mutations replayed for tablet recovery",
+      MetricDocSection.GENERAL_SERVER, "Tablet Recoveries Mutations Replayed", null, NUMBER),
 
   // Executor metrics
   EXECUTOR_COMPLETED("executor.completed", MetricType.FUNCTION_COUNTER,
@@ -555,8 +570,10 @@ public enum Metric {
   public static Set<String> getMonitorExclusions(ServerId.Type serverType) {
     switch (serverType) {
       case COMPACTOR:
-        return Set.of(MINC_PAUSED.getName(), RECOVERIES_AVG_PROGRESS.getName(),
-            RECOVERIES_IN_PROGRESS.getName(), RECOVERIES_LONGEST_RUNTIME.getName());
+        return Set.of(MINC_PAUSED.getName(), RECOVERIES_TABLETS_STARTED.getName(),
+            RECOVERIES_TABLETS_COMPLETED.getName(), RECOVERIES_TABLETS_FAILED.getName(),
+            RECOVERIES_TABLETS_IN_PROGRESS.getName(),
+            RECOVERIES_TABLETS_MUTATIONS_REPLAYED.getName());
       case GARBAGE_COLLECTOR:
         return Set.of();
       case MANAGER:
@@ -564,8 +581,9 @@ public enum Metric {
       case MONITOR:
         return Set.of();
       case SCAN_SERVER:
-        return Set.of(RECOVERIES_AVG_PROGRESS.getName(), RECOVERIES_IN_PROGRESS.getName(),
-            RECOVERIES_LONGEST_RUNTIME.getName());
+        return Set.of(RECOVERIES_TABLETS_STARTED.getName(), RECOVERIES_TABLETS_COMPLETED.getName(),
+            RECOVERIES_TABLETS_FAILED.getName(), RECOVERIES_TABLETS_IN_PROGRESS.getName(),
+            RECOVERIES_TABLETS_MUTATIONS_REPLAYED.getName());
       case TABLET_SERVER:
         return Set.of(MAJC_PAUSED.getName());
       default:
