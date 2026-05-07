@@ -109,7 +109,16 @@ class LoadFiles extends AbstractBulkFateOperation {
     }
     VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    try (LoadMappingIterator lmi =
+    env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
+
+    // Compute which files appear in more than one tablet range
+    Set<String> sharedFiles;
+    try (LoadMappingIterator lmiPass1 =
+        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
+      sharedFiles = computeSharedFiles(fateId, lmiPass1);
+    }
+
+    try (LoadMappingIterator lmiPass2 =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
       Loader loader = new Loader(env, bulkInfo.tableId);
@@ -125,8 +134,26 @@ class LoadFiles extends AbstractBulkFateOperation {
 
       int skip = env.getContext().getTableConfiguration(bulkInfo.tableId)
           .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, fateId, skip);
+      return loadFiles(loader, bulkInfo, bulkDir, lmiPass2, tmf, fateId, skip, sharedFiles);
     }
+  }
+
+  /**
+   * Iterate the load mapping once to compute which file names appear in more than one tablet range,
+   * returns the set of "shared" file names
+   */
+  static Set<String> computeSharedFiles(FateId fateId, LoadMappingIterator lmi) throws Exception {
+    Map<String,Integer> fileTabletCount = new HashMap<>();
+    while (lmi.hasNext()) {
+      for (var fileInfo : lmi.next().getValue()) {
+        fileTabletCount.merge(fileInfo.getFileName(), 1, Integer::sum);
+      }
+    }
+    Set<String> sharedFiles = fileTabletCount.entrySet().stream().filter(e -> e.getValue() > 1)
+        .map(Map.Entry::getKey).collect(Collectors.toSet());
+    log.debug("{}: Detected {} shared files out of {} total files", fateId.getTxUUIDStr(),
+        sharedFiles.size(), fileTabletCount.size());
+    return sharedFiles;
   }
 
   @Override
@@ -163,7 +190,7 @@ class LoadFiles extends AbstractBulkFateOperation {
       this.loadingFiles = new HashMap<>();
     }
 
-    void load(List<TabletMetadata> tablets, Files files) {
+    void load(List<TabletMetadata> tablets, Files files, Set<String> sharedFiles) {
 
       Map<ReferencedTabletFile,Bulk.FileInfo> toLoad = new HashMap<>();
       for (var fileInfo : files) {
@@ -241,16 +268,18 @@ class LoadFiles extends AbstractBulkFateOperation {
           ReferencedTabletFile refTabFile = entry.getKey();
           Bulk.FileInfo fileInfo = entry.getValue();
 
+          boolean isShared = sharedFiles.contains(fileInfo.getFileName());
           DataFileValue dfv;
 
           if (setTime) {
             // This should always be set outside the loop when setTime is true and should not be
             // null at this point
             Preconditions.checkState(fileTime != null);
-            dfv =
-                new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(), fileTime);
+            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
+                fileTime, isShared);
           } else {
-            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries());
+            dfv =
+                new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(), isShared);
           }
 
           filesToLoad.put(refTabFile, dfv);
@@ -389,11 +418,15 @@ class LoadFiles extends AbstractBulkFateOperation {
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
       LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, FateId fateId,
-      int skipDistance) throws Exception {
+      int skipDistance, Set<String> sharedFiles) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
-    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
-    Text startRow = loadMapEntry.getKey().prevEndRow();
+    if (!lmi.hasNext()) {
+      log.warn("{}: No files to load", fateId.getTxUUIDStr());
+      return 0;
+    }
+
+    Text startRow = lmi.peek().getKey().prevEndRow();
 
     String fmtTid = fateId.getTxUUIDStr();
     log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
@@ -407,11 +440,11 @@ class LoadFiles extends AbstractBulkFateOperation {
     try {
       PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
       while (lmi.hasNext()) {
-        loadMapEntry = lmi.next();
+        var entry = lmi.next();
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
         if (skipDistance > 0) {
-          final KeyExtent loadMapKey = loadMapEntry.getKey();
+          final KeyExtent loadMapKey = entry.getKey();
           if (!pi.findWithin(
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
@@ -424,8 +457,8 @@ class LoadFiles extends AbstractBulkFateOperation {
           }
         }
         List<TabletMetadata> tablets =
-            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
-        loader.load(tablets, loadMapEntry.getValue());
+            findOverlappingTablets(fmtTid, entry.getKey(), pi, importTimingStats);
+        loader.load(tablets, entry.getValue(), sharedFiles);
       }
     } finally {
       tabletsMetadata.close();

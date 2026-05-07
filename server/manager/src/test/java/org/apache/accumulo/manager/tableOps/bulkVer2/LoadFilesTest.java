@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
@@ -95,7 +96,7 @@ public class LoadFilesTest {
     }
 
     @Override
-    void load(List<TabletMetadata> tablets, Files files) {
+    void load(List<TabletMetadata> tablets, Files files, Set<String> sharedFiles) {
       results.add(new LoadResult(tablets, files));
     }
 
@@ -184,7 +185,10 @@ public class LoadFilesTest {
     TabletsMetadataFactory tmf = (startRow) -> tabletMeta;
     FateId txid = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
-    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, txid, 0);
+    Set<String> sharedFiles = LoadFiles.computeSharedFiles(txid, lmi);
+    LoadMappingIterator lmi2 = PrepBulkImportTest.createLoadMappingIter(loadRanges);
+
+    LoadFiles.loadFiles(cl, info, bulkDir, lmi2, tmf, txid, 0, sharedFiles);
     EasyMock.verify(env, ctx, tconf, bulkDir);
     List<CaptureLoader.LoadResult> results = cl.getLoadResults();
     assertEquals(loadRanges.size(), results.size());
