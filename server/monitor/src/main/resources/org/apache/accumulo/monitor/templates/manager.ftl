@@ -37,21 +37,3 @@
         <tbody></tbody>
     </table>
     <br />
-    <!--
-    <table id="recoveryList" class="table caption-top table-bordered table-striped table-condensed">
-        <caption><span class="table-caption">Log&nbsp;Recovery</span><br />
-            <span class="table-subcaption">Some tablets were unloaded in an unsafe manner. Write-ahead logs are being
-                recovered.</span><br />
-        </caption>
-        <thead>
-            <tr>
-                <th>Server</th>
-                <th>Log</th>
-                <th class="duration">Time</th>
-                <th class="percent">Progress</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <br />
-    -->
