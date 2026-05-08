@@ -264,10 +264,6 @@ pre.logevent {
   margin: 0 auto;
 }
 
-.deployment-overview-content .form-control {
-  min-width: 28rem;
-}
-
 .deployment-matrix-table {
   margin: 0 auto;
   table-layout: auto;

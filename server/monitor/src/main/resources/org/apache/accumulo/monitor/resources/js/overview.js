@@ -26,18 +26,6 @@ var deploymentBreakdown = [];
 $(function () {
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
-  $('#deployment-rg-filter').on('keyup', function () {
-    var input = this.value;
-    if (isValidRegex(input) || input === '') {
-      $('#deployment-rg-feedback').hide();
-      $(this).removeClass('is-invalid');
-      renderDeploymentMatrix(deploymentBreakdown, input);
-    } else {
-      $('#deployment-rg-feedback').show();
-      $(this).addClass('is-invalid');
-    }
-  });
-
   refreshOverview();
 });
 
@@ -62,7 +50,6 @@ function refreshDeploymentTables() {
   getDeployment().then(function () {
     var data = JSON.parse(sessionStorage.deployment);
     var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
-    var filterValue = $('#deployment-rg-filter').val() || '';
     deploymentBreakdown = breakdown;
 
     if (breakdown.length === 0) {
@@ -72,12 +59,12 @@ function refreshDeploymentTables() {
       $('#deploymentWarning').empty();
     }
 
-    renderDeploymentMatrix(breakdown, filterValue);
+    renderDeploymentMatrix(breakdown);
   });
 }
 
-function renderDeploymentMatrix(breakdown, resourceGroupFilter) {
-  var matrixData = buildDeploymentMatrix(breakdown, resourceGroupFilter);
+function renderDeploymentMatrix(breakdown) {
+  var matrixData = buildDeploymentMatrix(breakdown);
   var $container = $('#deploymentBreakdownMatrix');
 
   if (breakdown.length === 0) {
@@ -93,11 +80,10 @@ function renderDeploymentMatrix(breakdown, resourceGroupFilter) {
   $container.html(buildDeploymentMatrixTable(matrixData));
 }
 
-function buildDeploymentMatrix(breakdown, resourceGroupFilter) {
+function buildDeploymentMatrix(breakdown) {
   var serverTypes = [];
   var serverTypeSet = new Set();
   var resourceGroups = new Map();
-  var filterRegex = createRegex(resourceGroupFilter);
 
   breakdown.forEach(function (row) {
     if (serverTypeSet.has(row.serverType) === false) {
@@ -116,17 +102,11 @@ function buildDeploymentMatrix(breakdown, resourceGroupFilter) {
   });
 
   var sortedResourceGroups = Array.from(resourceGroups.keys()).sort();
-  var filteredResourceGroups = sortedResourceGroups.filter(function (resourceGroup) {
-    if (filterRegex === null) {
-      return true;
-    }
-    return filterRegex.test(resourceGroup);
-  });
 
   return {
     serverTypes: serverTypes,
     resourceGroups: resourceGroups,
-    filteredResourceGroups: filteredResourceGroups
+    filteredResourceGroups: sortedResourceGroups
   };
 }
 
@@ -231,24 +211,7 @@ function getDeploymentBadgeClass(responding, total) {
   return 'deployment-count-warn';
 }
 
-function buildDeploymentEmptyState(resourceGroupFilter) {
-  if (resourceGroupFilter && resourceGroupFilter !== '') {
-    return '<div class="alert alert-secondary mb-0" role="alert">' +
-      'No resource groups match the current filter.</div>';
-  }
-
+function buildDeploymentEmptyState() {
   return '<div class="alert alert-secondary mb-0" role="alert">' +
     'No deployment breakdown data is currently available.</div>';
-}
-
-function createRegex(pattern) {
-  if (!pattern) {
-    return null;
-  }
-
-  try {
-    return new RegExp(pattern, 'i');
-  } catch (error) {
-    return null;
-  }
 }
