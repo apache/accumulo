@@ -174,7 +174,7 @@ function buildDeploymentMatrixTable(matrixData) {
     grandTotals.responding += rowTotals.responding;
     grandTotals.total += rowTotals.total;
     cells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
-      buildDeploymentCell(rowTotals) + '</td>');
+      buildDeploymentTotalCell(rowTotals) + '</td>');
 
     return '<tr>' + cells.join('') + '</tr>';
   }).join('');
@@ -183,10 +183,10 @@ function buildDeploymentMatrixTable(matrixData) {
 
   matrixData.serverTypes.forEach(function (serverType) {
     footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
-      buildDeploymentCell(totalByServerType.get(serverType)) + '</td>');
+      buildDeploymentTotalCell(totalByServerType.get(serverType)) + '</td>');
   });
   footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
-    buildDeploymentCell(grandTotals) + '</td>');
+    buildDeploymentTotalCell(grandTotals) + '</td>');
 
   return '<div class="table-responsive">' +
     '<table class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">' +
@@ -196,11 +196,23 @@ function buildDeploymentMatrixTable(matrixData) {
     '</tr></tfoot></table></div>';
 }
 
-function buildDeploymentCell(counts) {
+/**
+ * Builds the HTML for a badge containing the counts of responding vs total servers
+ */
+function buildDeploymentCell(counts, neutral) {
   var badgeClass = getDeploymentBadgeClass(counts.responding, counts.total);
   var label = counts.responding + '/' + counts.total;
 
   return '<span class="badge rounded-pill deployment-count-badge ' + badgeClass + '">' +
+    sanitize(label) + '</span>';
+}
+/**
+ * Builds the HTML for a badge containing the total counts of responding vs total servers
+ */
+function buildDeploymentTotalCell(counts) {
+  var label = counts.responding + '/' + counts.total;
+
+  return '<span class="badge rounded-pill deployment-count-badge deployment-count-total">' +
     sanitize(label) + '</span>';
 }
 
