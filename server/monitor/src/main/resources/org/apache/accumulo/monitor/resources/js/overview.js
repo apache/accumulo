@@ -190,8 +190,7 @@ function buildDeploymentMatrixTable(matrixData) {
 
   return '<div class="table-responsive">' +
     '<table class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">' +
-    '<thead><tr><th colspan="' + sanitize(String(matrixData.serverTypes.length + 2)) +
-    '" class="center">Deployment Breakdown</th></tr><tr>' + headerCells.join('') +
+    '<thead><tr>' + headerCells.join('') +
     '</tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr>' + footerCells.join('') +
     '</tr></tfoot></table></div>';
 }
