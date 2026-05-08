@@ -39,11 +39,11 @@
                 <span id="statusNotification" class="icon-dot normal"></span>&nbsp;Servers
               </a>
               <ul class="dropdown-menu">
-                <li><a class="link-body-emphasis dropdown-item" href="manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>
-                <li><a class="link-body-emphasis dropdown-item" href="tservers"><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers&nbsp;</a></li>
-                <li><a class="link-body-emphasis dropdown-item" href="sservers"><span id="sserverStatusNotification" class="icon-dot normal"></span>&nbsp;Scan&nbsp;Servers&nbsp;</a></li>
-                <li><a class="link-body-emphasis dropdown-item" href="compactors"><span id="compactorStatusNotification" class="icon-dot normal"></span>&nbsp;Compactors</a></li>
-                <li><a class="link-body-emphasis dropdown-item" href="gc"><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector&nbsp;</a></li>
+                <li><a class="link-body-emphasis dropdown-item d-flex justify-content-between align-items-center gap-3" href="manager"><span><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server</span><span id="managerStatusCount" class="server-count"></span></a></li>
+                <li><a class="link-body-emphasis dropdown-item d-flex justify-content-between align-items-center gap-3" href="tservers"><span><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers</span><span id="serverStatusCount" class="server-count"></span></a></li>
+                <li><a class="link-body-emphasis dropdown-item d-flex justify-content-between align-items-center gap-3" href="sservers"><span><span id="sserverStatusNotification" class="icon-dot normal"></span>&nbsp;Scan&nbsp;Servers</span><span id="sserverStatusCount" class="server-count"></span></a></li>
+                <li><a class="link-body-emphasis dropdown-item d-flex justify-content-between align-items-center gap-3" href="compactors"><span><span id="compactorStatusNotification" class="icon-dot normal"></span>&nbsp;Compactors</span><span id="compactorStatusCount" class="server-count"></span></a></li>
+                <li><a class="link-body-emphasis dropdown-item d-flex justify-content-between align-items-center gap-3" href="gc"><span><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector</span><span id="gcStatusCount" class="server-count"></span></a></li>
               </ul>
             </li>
             <li>
