@@ -180,7 +180,9 @@ public class LogSorter implements MetricsProducer {
         return;
       }
 
-      final long bufferSize = sortedLogConf.getAsBytes(Property.TSERV_WAL_SORT_BUFFER_SIZE);
+      @SuppressWarnings("deprecation")
+      final long bufferSize = sortedLogConf.getAsBytes(sortedLogConf.resolve(
+          Property.GENERAL_SERVER_WAL_SORT_BUFFER_SIZE, Property.TSERV_WAL_SORT_BUFFER_SIZE));
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
