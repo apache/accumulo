@@ -26,44 +26,8 @@
       <div class="row d-flex justify-content-center">
         <div class="col-xs-12" id="deploymentOverview">
           <div id="deploymentWarning"></div>
-          <div class="mb-4" style="max-width: 560px; margin: 0 auto;">
-            <table id="deploymentSummaryTable"
-              class="table table-bordered table-striped table-condensed" style="width: 100%;">
-              <thead>
-                <tr>
-                  <th colspan="2" class="center">Server Type Summary</th>
-                </tr>
-                <tr>
-                  <th>Server Type</th>
-                  <th>Responding / Total</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div style="max-width: 760px; margin: 0 auto;">
-            <div class="mb-3">
-              <label for="deployment-rg-filter" class="form-label">Resource Group Filter</label>
-              <input type="text" id="deployment-rg-filter" class="form-control"
-                placeholder="Enter resource group regex">
-              <small id="deployment-rg-feedback" class="form-text text-danger"
-                style="display:none;">Invalid regex pattern</small>
-            </div>
-            <table id="deploymentBreakdownTable"
-              class="table table-bordered table-striped table-condensed" style="width: 100%;">
-              <thead>
-                <tr>
-                  <th colspan="3" class="center">Deployment Breakdown</th>
-                </tr>
-                <tr>
-                  <th>Resource Group</th>
-                  <th>Server Type</th>
-                  <th>Responding / Total</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <div class="deployment-overview-content">
+            <div id="deploymentBreakdownMatrix"></div>
           </div>
         </div>
       </div>
