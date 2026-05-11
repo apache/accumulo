@@ -21,12 +21,12 @@
     <br />
     <table id="coordinators" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">Compaction Coordinator Activity</span><br /></caption>
-        <tbody></tbody>
+        <#include "table_loading.ftl" >
     </table>
     <br />
     <table id="coordinator_queues" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">Compaction Coordinator Queues</span><br /></caption>
-        <tbody></tbody>
+        <#include "table_loading.ftl" >
     </table>
     <br />
     <table id="table_running" class="table caption-top table-bordered table-striped table-condensed">
