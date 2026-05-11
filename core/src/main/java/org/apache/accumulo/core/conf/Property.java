@@ -520,7 +520,7 @@ public enum Property {
           operations and whose value is a pool size for those operations.
           """, "4.0.0"),
   @Deprecated(since = "4.0.0")
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "",
       PropertyType.FATE_THREADPOOL_SIZE, """
           Previously, the number of threads used to run fault-tolerant executions (FATE). \
           This is no longer used in 4.0+. %s and %s are the replacement and must be \
