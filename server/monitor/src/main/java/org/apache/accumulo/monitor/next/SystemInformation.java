@@ -1048,14 +1048,17 @@ public class SystemInformation {
     long serversWithZombieScans = 0;
     for (Entry<ServerId,MetricResponse> e : allMetrics.asMap().entrySet()) {
       ServerId sid = e.getKey();
-      List<ByteBuffer> metrics = e.getValue().metrics;
-      if (sid.getType() == ServerId.Type.SCAN_SERVER
-          || sid.getType() == ServerId.Type.TABLET_SERVER) {
-        for (ByteBuffer binary : metrics) {
-          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
-          if (flatbuffer.name().equals(Metric.SCAN_ZOMBIE_THREADS.getName())) {
-            if (getMetricValue(flatbuffer).longValue() > 0) {
-              serversWithZombieScans++;
+      MetricResponse mr = e.getValue();
+      if (mr != null) {
+        List<ByteBuffer> metrics = mr.metrics;
+        if (sid.getType() == ServerId.Type.SCAN_SERVER
+            || sid.getType() == ServerId.Type.TABLET_SERVER) {
+          for (ByteBuffer binary : metrics) {
+            flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+            if (flatbuffer.name().equals(Metric.SCAN_ZOMBIE_THREADS.getName())) {
+              if (getMetricValue(flatbuffer).longValue() > 0) {
+                serversWithZombieScans++;
+              }
             }
           }
         }
