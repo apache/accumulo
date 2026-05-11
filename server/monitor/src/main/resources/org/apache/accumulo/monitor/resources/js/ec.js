@@ -321,7 +321,7 @@ function refreshRunningCompactions() {
  */
 async function refreshManagerStatus() {
   return getStatus().then(function () {
-    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    var managerStatus = getComponentStatus(getStoredStatusData(), 'MANAGER');
     if (managerStatus === 'ERROR') {
       // show banner and hide tables
       $('#managerBanner').show();

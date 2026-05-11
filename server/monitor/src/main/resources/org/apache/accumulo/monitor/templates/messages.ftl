@@ -18,16 +18,24 @@
     under the License.
 
 -->
-      <div class="row">
-        <div class="col-xs-12 center nowrap">
-          <h3>${title}</h3>
-        </div>
-      </div>
-      <div class="row d-flex justify-content-center">
-        <div class="col-xs-12" id="deploymentOverview">
-          <div id="deploymentWarning"></div>
-          <div class="deployment-overview-content">
-            <div id="deploymentBreakdownMatrix"></div>
-          </div>
-        </div>
-      </div>
+    <br />
+    <div class="col-xs-12" id="messages">
+      <h5>Message Priority Filters <small>(critical messages are always shown)</small></h5>
+      <div id="message-priority-list"></div>
+      <br />
+      <h5>Message Category Filters</h5>
+      <div id="message-category-list"></div>
+      <br />
+      <h5>Messages</h5>
+      <table id="messagesTable"
+        class="table table-bordered table-striped table-condensed" style="width: 100%;">
+        <thead>
+          <tr>
+            <th class="col-xs-2">Priority</th>
+            <th class="col-xs-2">Category</th>
+            <th class="col-xs-8">Message</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>

@@ -163,6 +163,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the messages template
+   *
+   * @return Messages model
+   */
+  @GET
+  @Path("messages")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getMessages() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Messages"); // Need this for the browser tab title
+    model.put("tablesTitle", "Messages");
+    model.put("template", "messages.ftl");
+    model.put("js", "messages.js");
+    return model;
+  }
+
+  /**
    * Returns the tservers templates
    *
    * @param server TServer to show details
@@ -254,6 +272,23 @@ public class WebViews {
     model.put("title", "Active Compactions");
     model.put("template", "ec.ftl");
     model.put("js", "ec.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
+  @Path("coordinator")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactionOverview() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compaction Overview");
+    model.put("template", "coordinator.ftl");
+    model.put("js", "coordinator.js");
 
     return model;
   }

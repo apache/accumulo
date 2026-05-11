@@ -36,6 +36,28 @@ const CLASS = {
   ERROR: 'error'
 };
 
+const NAVBAR_COMPONENTS = [{
+  statusKey: 'MANAGER',
+  indicatorId: 'managerStatusNotification',
+  countId: 'managerStatusCount'
+}, {
+  statusKey: 'TABLET_SERVER',
+  indicatorId: 'serverStatusNotification',
+  countId: 'serverStatusCount'
+}, {
+  statusKey: 'GARBAGE_COLLECTOR',
+  indicatorId: 'gcStatusNotification',
+  countId: 'gcStatusCount'
+}, {
+  statusKey: 'SCAN_SERVER',
+  indicatorId: 'sserverStatusNotification',
+  countId: 'sserverStatusCount'
+}, {
+  statusKey: 'COMPACTOR',
+  indicatorId: 'compactorStatusNotification',
+  countId: 'compactorStatusCount'
+}];
+
 /**
  * Remove other bootstrap color classes and add the given class to the given element
  * @param {string} elementId the element id to update
@@ -59,137 +81,73 @@ function updateElementStatus(elementId, status) {
   }
 }
 
+function updateServerCount(elementId, status) {
+  const $element = $(`#${elementId}`);
+
+  if (!status || Number(status.serverCount) <= 0) {
+    $element.text('0/0');
+    return;
+  }
+
+  const total = Number(status.serverCount);
+  const problem = Number(status.problemServerCount || 0);
+  const responding = Math.max(0, total - problem);
+
+  $element.text(`${responding}/${total}`);
+}
+
 /**
  * Updates the notifications of the servers dropdown notification as well as the individual server notifications.
  * @param {JSON} statusData object containing the status info for the servers
  */
 function updateServerNotifications(statusData) {
-  const applyStatuses = function (managerGoalState) {
-    const isSafeMode = managerGoalState === 'SAFE_MODE';
-    const isCleanStop = managerGoalState === 'CLEAN_STOP';
-
-    // setting manager status notification
-    if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusNotification', STATUS.WARN);
-    } else if (statusData.managerStatus === STATUS.OK) {
-      updateElementStatus('managerStatusNotification', STATUS.OK);
-    } else {
-      console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
-    }
-
-    // setting tserver status notification
-    if (statusData.tServerStatus === STATUS.OK) {
-      updateElementStatus('serverStatusNotification', STATUS.OK);
-    } else if (statusData.tServerStatus === STATUS.WARN) {
-      updateElementStatus('serverStatusNotification', STATUS.WARN);
-    } else {
-      updateElementStatus('serverStatusNotification', STATUS.ERROR);
-    }
-
-    // setting gc status notification
-    if (statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('gcStatusNotification', STATUS.OK);
-    } else {
-      updateElementStatus('gcStatusNotification', STATUS.ERROR);
-    }
-
-    // setting scan server status notification
-    if (statusData.sServerStatus === STATUS.ERROR) {
-      updateElementStatus('sserverStatusNotification', STATUS.ERROR);
-    } else if (statusData.sServerStatus === STATUS.WARN) {
-      updateElementStatus('sserverStatusNotification', STATUS.WARN);
-    } else if (statusData.sServerStatus === STATUS.OK) {
-      updateElementStatus('sserverStatusNotification', STATUS.OK);
-    } else {
-      console.error('Unrecognized scan server state: ' + statusData.sServerStatus +
-        '. Could not properly set scan server status notification.');
-    }
-
-    // setting compactor status notification
-    if (statusData.compactorStatus === STATUS.OK) {
-      updateElementStatus('compactorStatusNotification', STATUS.OK);
-    } else {
-      updateElementStatus('compactorStatusNotification', STATUS.ERROR);
-    }
-
-    // Setting overall servers status notification
-    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
-      statusData.tServerStatus === STATUS.OK &&
-      statusData.gcStatus === STATUS.OK &&
-      statusData.sServerStatus === STATUS.OK &&
-      statusData.compactorStatus === STATUS.OK) {
-      updateElementStatus('statusNotification', STATUS.OK);
-    } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
-      statusData.tServerStatus === STATUS.ERROR ||
-      statusData.gcStatus === STATUS.ERROR ||
-      statusData.sServerStatus === STATUS.ERROR ||
-      statusData.compactorStatus === STATUS.ERROR) {
-      updateElementStatus('statusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
-      statusData.tServerStatus === STATUS.WARN ||
-      statusData.gcStatus === STATUS.WARN ||
-      statusData.sServerStatus === STATUS.WARN) {
-      updateElementStatus('statusNotification', STATUS.WARN);
-    }
-  };
-
-
-  getManagersView().always(function () {
-    applyStatuses(getManagerGoalStateFromSession());
+  const managerGoalState = statusData.managerGoalState;
+  const isSafeMode = managerGoalState === 'SAFE_MODE';
+  const isCleanStop = managerGoalState === 'CLEAN_STOP';
+  const componentStatuses = NAVBAR_COMPONENTS.map(function (component) {
+    return getComponentStatus(statusData, component.statusKey);
   });
-}
+  const managerStatus = componentStatuses[0];
+  const componentData = NAVBAR_COMPONENTS.map(function (component) {
+    return statusData.componentStatuses?.[component.statusKey] || null;
+  });
 
-/**
- * Updates the scan server notification based on REST v2 status.
- */
-function refreshSserverStatus() {
-  return getSserversView().done(function () {
-    var view = sessionStorage.sserversView ? JSON.parse(sessionStorage.sserversView) : null;
-    var status = view && view.status ? view.status : null;
-    if (!status) {
-      sessionStorage.sServerStatus = STATUS.ERROR;
-      updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+  // setting manager status notification
+  if (managerStatus === STATUS.ERROR || isCleanStop) {
+    updateElementStatus('managerStatusNotification', STATUS.ERROR);
+  } else if (managerStatus === STATUS.WARN || isSafeMode) {
+    updateElementStatus('managerStatusNotification', STATUS.WARN);
+  } else if (managerStatus === STATUS.OK) {
+    updateElementStatus('managerStatusNotification', STATUS.OK);
+  } else {
+    console.error('Unrecognized manager state: ' + managerStatus +
+      '. Could not properly set manager status notification.');
+  }
+
+  NAVBAR_COMPONENTS.forEach(function (component, index) {
+    updateServerCount(component.countId, componentData[index]);
+    if (index === 0) {
       return;
     }
-
-    if (status.hasProblemScanServers === true) {
-      sessionStorage.sServerStatus = STATUS.WARN;
-      updateElementStatus('sserverStatusNotification', STATUS.WARN);
-    } else {
-      sessionStorage.sServerStatus = STATUS.OK;
-      updateElementStatus('sserverStatusNotification', STATUS.OK);
-    }
-  }).fail(function () {
-    // else, display ERROR when call fails
-    sessionStorage.sServerStatus = STATUS.ERROR;
-    updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+    updateElementStatus(component.indicatorId, componentStatuses[index]);
   });
-}
 
-/**
- * Sets compactor menu status LED notification to OK if any compactors exist, else ERROR
- */
-function refreshCompactorStatus() {
-  return $.getJSON(REST_V2_PREFIX + '/ec/compactors').done(function (data) {
-    if (Number(data?.numCompactors) > 0) {
-      sessionStorage.compactorStatus = STATUS.OK;
-      updateElementStatus('compactorStatusNotification', STATUS.OK);
-    } else {
-      sessionStorage.compactorStatus = STATUS.ERROR;
-      updateElementStatus('compactorStatusNotification', STATUS.ERROR);
-    }
-  }).fail(function () {
-    sessionStorage.compactorStatus = STATUS.ERROR;
-    updateElementStatus('compactorStatusNotification', STATUS.ERROR);
-  });
+  // Setting overall servers status notification
+  if (!isSafeMode && !isCleanStop && componentStatuses.every(status => status === STATUS.OK)) {
+    updateElementStatus('statusNotification', STATUS.OK);
+  } else if (isCleanStop || componentStatuses.some(status => status === STATUS.ERROR)) {
+    updateElementStatus('statusNotification', STATUS.ERROR);
+  } else if (isSafeMode || componentStatuses.some(status => status === STATUS.WARN)) {
+    updateElementStatus('statusNotification', STATUS.WARN);
+  }
 }
 
 /**
  * Creates the initial sidebar
  */
 $(function () {
+  setTheme();
+  updateDarkThemeSwitch();
   refreshSidebar();
 });
 
@@ -197,7 +155,7 @@ $(function () {
  * Makes the REST call for the server status, generates the sidebar with the new information
  */
 function refreshSidebar() {
-  $.when(getStatus(), refreshSserverStatus(), refreshCompactorStatus()).always(function () {
+  getStatus().always(function () {
     refreshSideBarNotifications();
   });
 }
@@ -218,8 +176,47 @@ function refreshSideBarNotifications() {
   if (!statusData) {
     return;
   }
-  statusData.sServerStatus = sessionStorage.sServerStatus || STATUS.OK;
-  statusData.compactorStatus = sessionStorage.compactorStatus || STATUS.OK;
 
   updateServerNotifications(statusData);
+}
+
+/**
+ * Set the theme based on the user
+ * preferences
+ */
+function setTheme() {
+  var setDarkMode = false;
+  var storedValue = localStorage.getItem("dark-theme-enabled");
+  if (storedValue === null) {
+    setDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    setDarkMode = storedValue === 'true';
+  }
+
+  if (setDarkMode === true) {
+    document.documentElement.setAttribute('data-bs-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+  }
+}
+
+/**
+ * Update the Dark Theme Switch in the Preference list
+ */
+function updateDarkThemeSwitch() {
+  var storageKey = "dark-theme-enabled";
+  var darkThemeSwitchElement = $('#darkThemeSwitch');
+  var savedValue = localStorage.getItem(storageKey);
+
+  if (savedValue === 'true') {
+    darkThemeSwitchElement.prop('checked', true);
+  } else {
+    darkThemeSwitchElement.prop('checked', false);
+  }
+
+  darkThemeSwitchElement.on("change", function () {
+    var enableDarkTheme = $(this).is(':checked');
+    localStorage.setItem(storageKey, enableDarkTheme);
+    document.documentElement.setAttribute('data-bs-theme', enableDarkTheme ? 'dark' : 'light');
+  });
 }

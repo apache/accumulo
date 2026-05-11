@@ -19,6 +19,12 @@
 package org.apache.accumulo.monitor.next;
 
 import static com.google.common.base.Suppliers.memoize;
+import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.High;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Info;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -26,13 +32,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,6 +52,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
@@ -57,14 +67,17 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metrics.Metric;
-import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
-import org.apache.accumulo.monitor.next.views.ServersView;
+import org.apache.accumulo.monitor.next.views.ColumnFactory;
+import org.apache.accumulo.monitor.next.views.Status;
+import org.apache.accumulo.monitor.next.views.TableData;
+import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.views.TableDataFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -352,6 +365,20 @@ public class SystemInformation {
 
   }
 
+  public record CompactionTableSummary(String tableId, String tableName, long running) {
+  }
+
+  public record CompactionGroupSummary(String groupId, long running) {
+  }
+
+  public enum MessagePriority {
+    Critical, High, Info;
+  }
+
+  public enum MessageCategory {
+    Configuration, Table;
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -365,6 +392,7 @@ public class SystemInformation {
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
+  private final Set<ServerId> retainedProblemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
@@ -401,6 +429,9 @@ public class SystemInformation {
   protected final Map<TableId,LongAdder> runningCompactionsPerTable = new ConcurrentHashMap<>();
   protected final Map<String,LongAdder> runningCompactionsPerGroup = new ConcurrentHashMap<>();
 
+  private final List<CompactionTableSummary> tableCompactions = new ArrayList<>();
+  private final List<CompactionGroupSummary> groupCompactions = new ArrayList<>();
+
   // Table Information
   private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
@@ -409,14 +440,18 @@ public class SystemInformation {
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
 
-  private final Set<String> suggestions = new ConcurrentSkipListSet<>();
+  private final Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
+      new EnumMap<>(MessagePriority.class);
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
   private final AtomicLong timestamp = new AtomicLong(0);
-  private final EnumMap<ServersView.ServerTable,Supplier<ServersView>> serverMetricsView =
-      new EnumMap<>(ServersView.ServerTable.class);
+  private final EnumMap<ServerId.Type,Status> componentStatuses =
+      new EnumMap<>(ServerId.Type.class);
+  private final EnumMap<TableDataFactory.TableName,Supplier<TableData>> serverMetricsView =
+      new EnumMap<>(TableDataFactory.TableName.class);
   private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
+  private String managerGoalState;
   private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
@@ -430,6 +465,7 @@ public class SystemInformation {
     resourceGroups.clear();
     problemHosts.clear();
     metricProblemHosts.clear();
+    retainedProblemHosts.clear();
     managers.clear();
     compactors.clear();
     sservers.clear();
@@ -446,11 +482,20 @@ public class SystemInformation {
     tables.clear();
     tablets.clear();
     deployment.clear();
-    suggestions.clear();
+    messages.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
+    tableCompactions.clear();
+    groupCompactions.clear();
     configuredCompactionResourceGroups.clear();
+    componentStatuses.clear();
+    managerGoalState = null;
     serverMetricsView.clear();
+  }
+
+  private void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
+    messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
+        .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -490,25 +535,87 @@ public class SystemInformation {
 
   }
 
-  private void createCompactionSummary(MetricResponse response) {
-    if (response.getMetrics() != null) {
-      for (final ByteBuffer binary : response.getMetrics()) {
-        FMetric fm = FMetric.getRootAsFMetric(binary);
-        for (int i = 0; i < fm.tagsLength(); i++) {
-          FTag t = fm.tags(i);
-          if (t.key().equals(MetricsInfo.QUEUE_TAG_KEY)) {
-            queueMetrics
-                .computeIfAbsent(t.value(), (k) -> Collections.synchronizedList(new ArrayList<>()))
-                .add(fm);
+  private TableData createCompactionQueueSummary(final Set<ServerId> managers) {
+
+    final Column COMPACTION_QUEUE_COL =
+        new Column(TableDataFactory.RG_COL_KEY, "Compaction Queue", "Compaction Queue", "");
+
+    List<ColumnFactory> cols =
+        TableDataFactory.columnsFor(TableDataFactory.TableName.COORDINATOR_QUEUES);
+
+    // Remove the column mapping for the resource group and replace it so that
+    // the column header reads "Compaction Queue" instead of "Resource Group"
+    int rgIdx = -1;
+    for (int idx = 0; idx < cols.size(); idx++) {
+      if (cols.get(idx).getColumn().key().equals(TableDataFactory.RG_COL_KEY)) {
+        rgIdx = idx;
+        break;
+      }
+    }
+
+    if (rgIdx == -1) {
+      LOG.warn("Did not find Resource Group column to replace column header");
+    } else {
+      cols.remove(rgIdx);
+      cols.set(rgIdx, new ColumnFactory() {
+
+        @Override
+        public Column getColumn() {
+          return COMPACTION_QUEUE_COL;
+        }
+
+        @Override
+        public Object getRowData(ServerId sid, MetricResponse mr,
+            Map<String,List<FMetric>> serverMetrics) {
+          return sid.getResourceGroup().canonical();
+        }
+      });
+    }
+
+    // Construct a Map of MetricResponses by Queue. This method will take
+    // the provided MetricResponse and construct new ones that contain
+    // only the metrics with the "queue.id" tag in addition to the common
+    // server information (address, resource group, etc.).
+    Map<ServerId,MetricResponse> qm = new HashMap<>();
+
+    for (ServerId manager : managers) {
+      MetricResponse response = allMetrics.getIfPresent(manager);
+      if (response.getMetrics() != null) {
+
+        FMetric fm = new FMetric();
+        FTag t = new FTag();
+        for (final ByteBuffer binary : response.getMetrics()) {
+          fm = FMetric.getRootAsFMetric(binary, fm);
+          for (int i = 0; i < fm.tagsLength(); i++) {
+            t = fm.tags(t, i);
+            if (t.key().equals(QUEUE_TAG_KEY)) {
+              String queueName = t.value();
+              // For these MetricResponse objects we are going to put the queueId value
+              // in the place of the resource group, we'll update the column information
+              // for the resource group below.
+              ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(queueName),
+                  manager.getHost(), manager.getPort());
+              qm.computeIfAbsent(sid, (k) -> new MetricResponse(response.getServerType(),
+                  response.getServer(), queueName, response.getTimestamp(), new ArrayList<>()))
+                  .addToMetrics(binary);
+              break;
+            }
           }
         }
       }
     }
+
+    if (!qm.isEmpty()) {
+      // Create a ServersView object from the MetricResponse for each queue
+      return TableDataFactory.forColumns(qm.keySet(), qm, timestamp.get(), cols);
+    }
+    return TableDataFactory.forColumns(Set.of(), Map.of(), timestamp.get(), cols);
   }
 
   public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
     metricProblemHosts.remove(server);
+    retainedProblemHosts.remove(server);
     allMetrics.put(server, response);
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
@@ -527,7 +634,6 @@ public class SystemInformation {
         break;
       case MANAGER:
         managers.add(server);
-        createCompactionSummary(response);
         break;
       case SCAN_SERVER:
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
@@ -571,7 +677,7 @@ public class SystemInformation {
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
     if (sti.getEstimatedEntries() == 0) {
-      suggestions.add("Tablet " + sti.getTabletId().toString() + " (tid: "
+      addMessage(Info, Table, "Tablet " + sti.getTabletId().toString() + " (tid: "
           + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
     }
   }
@@ -584,6 +690,13 @@ public class SystemInformation {
     problemHosts.add(server);
     metricProblemHosts.add(server);
     allMetrics.invalidate(server);
+  }
+
+  public void retainProblemServer(ServerId server) {
+    problemHosts.add(server);
+    metricProblemHosts.add(server);
+    retainedProblemHosts.add(server);
+    resourceGroups.add(server.getResourceGroup().canonical());
   }
 
   public void addConfiguredCompactionGroups(Set<String> groups) {
@@ -602,10 +715,12 @@ public class SystemInformation {
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
       balancerRG = balancerRG == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : balancerRG;
       if (!tservers.containsKey(balancerRG)) {
-        suggestions.add("Table " + table.tableName() + " configured to balance tablets in resource"
-            + " group " + balancerRG + ", but there are no TabletServers.");
+        addMessage(Critical, Table,
+            "Table " + table.tableName() + " configured to balance tablets in resource group "
+                + balancerRG + ", but there are no TabletServers.");
       }
     }
+
     for (String rg : getResourceGroups()) {
       Set<ServerId> rgCompactors = getCompactorResourceGroupServers(rg);
       List<FMetric> metrics = queueMetrics.get(rg);
@@ -619,8 +734,8 @@ public class SystemInformation {
         Number numQueued = getMetricValue(queued.orElseThrow());
         if (numQueued.longValue() > 0) {
           if (rgCompactors == null || rgCompactors.size() == 0) {
-            suggestions.add("Compactor group " + rg + " has " + numQueued.longValue()
-                + " queued compactions but no running compactors");
+            addMessage(Critical, Configuration, "Compactor group " + rg + " has "
+                + numQueued.longValue() + " queued compactions but no running compactors");
           } else {
             // Check for idle compactors.
             Map<Id,CumulativeDistributionSummary> rgMetrics =
@@ -634,7 +749,8 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                suggestions.add("Compactor group " + rg + " has queued jobs and idle compactors.");
+                addMessage(High, Configuration,
+                    "Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
 
@@ -645,42 +761,58 @@ public class SystemInformation {
 
     for (var compactorGroup : compactors.keySet()) {
       if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
-        suggestions.add("Compactor group " + compactorGroup
+        addMessage(High, Configuration, "Compactor group " + compactorGroup
             + " has running compactors, but no configuration uses them.");
       }
     }
 
     timestamp.set(System.currentTimeMillis());
+    componentStatuses.clear();
+    for (final ServerId.Type type : ServerId.Type.values()) {
+      if (type == ServerId.Type.MONITOR) {
+        continue;
+      }
+      componentStatuses.put(type, computeServerStatus(type));
+    }
+    managerGoalState = computeManagerGoalState();
+
+    for (Entry<TableId,LongAdder> e : runningCompactionsPerTable.entrySet()) {
+      TableId tid = e.getKey();
+      try {
+        tableCompactions.add(new CompactionTableSummary(tid.canonical(),
+            ctx.getQualifiedTableName(tid), e.getValue().sum()));
+      } catch (TableNotFoundException e1) {
+        LOG.warn("Error converting table id {} to table name, caught TableNotFoundException", tid);
+      }
+    }
+
+    runningCompactionsPerGroup
+        .forEach((k, v) -> groupCompactions.add(new CompactionGroupSummary(k, v.sum())));
 
     for (final ServerId.Type type : ServerId.Type.values()) {
-      long problemHostCount =
-          problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
-      Set<ServerId> servers = new HashSet<>();
+      Set<ServerId> servers = getServers(type);
       switch (type) {
         case COMPACTOR:
-          compactors.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers, problemHostCount);
+          cacheServerProcessView(TableDataFactory.TableName.COMPACTORS, servers);
           break;
         case GARBAGE_COLLECTOR:
-          servers.add(gc.get());
-          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers, problemHostCount);
+          cacheServerProcessView(TableDataFactory.TableName.GC_SUMMARY, servers);
+          cacheServerProcessView(TableDataFactory.TableName.GC_FILES, servers);
+          cacheServerProcessView(TableDataFactory.TableName.GC_WALS, servers);
           break;
         case MANAGER:
-          servers.addAll(managers);
-          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers,
-              problemHostCount);
+          cacheServerProcessView(TableDataFactory.TableName.MANAGERS, servers);
+          cacheServerProcessView(TableDataFactory.TableName.MANAGER_FATE, servers);
+          cacheServerProcessView(TableDataFactory.TableName.MANAGER_COMPACTIONS, servers);
+          TableData coordinatorQueues = createCompactionQueueSummary(getActiveServers(type));
+          serverMetricsView.put(TableDataFactory.TableName.COORDINATOR_QUEUES,
+              memoize(() -> coordinatorQueues));
           break;
         case SCAN_SERVER:
-          sservers.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers, problemHostCount);
+          cacheServerProcessView(TableDataFactory.TableName.SCAN_SERVERS, servers);
           break;
         case TABLET_SERVER:
-          tservers.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers, problemHostCount);
+          cacheServerProcessView(TableDataFactory.TableName.TABLET_SERVERS, servers);
           break;
         case MONITOR:
         default:
@@ -702,8 +834,90 @@ public class SystemInformation {
     return this.managers;
   }
 
+  public Status getServerStatus(ServerId.Type type) {
+    return componentStatuses.get(type);
+  }
+
+  public Map<ServerId.Type,Status> getComponentStatuses() {
+    return new EnumMap<>(componentStatuses);
+  }
+
+  public String getManagerGoalState() {
+    return managerGoalState;
+  }
+
+  private Status computeServerStatus(ServerId.Type type) {
+    Set<ServerId> servers = getServers(type);
+    long problemHostCount =
+        problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
+    int missingMetricCount = (int) servers.stream()
+        .filter(serverId -> !TableDataFactory.hasMetricData(allMetrics.getIfPresent(serverId)))
+        .count();
+    return Status.buildStatus(servers.size(), problemHostCount, missingMetricCount, switch (type) {
+      case MANAGER:
+      case GARBAGE_COLLECTOR:
+      case COMPACTOR:
+      case SCAN_SERVER:
+      case TABLET_SERVER:
+        yield true;
+      case MONITOR:
+        yield false;
+    });
+  }
+
+  private String computeManagerGoalState() {
+    Integer goalState = managers.stream().map(allMetrics::getIfPresent)
+        .map(response -> TableDataFactory.metricValuesByName(response)
+            .get(Metric.MANAGER_GOAL_STATE.getName()))
+        .filter(value -> value != null && !value.isEmpty())
+        .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(Objects::nonNull)
+            .map(Number::intValue).min(Comparator.naturalOrder()).orElse(null))
+        .filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+
+    return switch (goalState == null ? -1 : goalState) {
+      case 0 -> "CLEAN_STOP";
+      case 1 -> "SAFE_MODE";
+      case 2 -> "NORMAL";
+      default -> null;
+    };
+  }
+
+  private Set<ServerId> getServers(ServerId.Type type) {
+    Set<ServerId> servers = new HashSet<>(getActiveServers(type));
+    retainedProblemHosts.stream().filter(serverId -> serverId.getType() == type)
+        .forEach(servers::add);
+    return servers;
+  }
+
+  private Set<ServerId> getActiveServers(ServerId.Type type) {
+    return switch (type) {
+      case COMPACTOR -> getAll(compactors);
+      case GARBAGE_COLLECTOR -> {
+        final var gcServer = gc.get();
+        yield gcServer == null ? Set.of() : Set.of(gcServer);
+      }
+      case MANAGER -> Set.copyOf(managers);
+      case SCAN_SERVER -> getAll(sservers);
+      case TABLET_SERVER -> getAll(tservers);
+      case MONITOR -> Set.of();
+    };
+  }
+
+  private static Set<ServerId> getAll(Map<String,Set<ServerId>> groupedServers) {
+    return groupedServers.values().stream().flatMap(Set::stream).collect(HashSet::new, Set::add,
+        Set::addAll);
+  }
+
   public ServerId getGarbageCollector() {
     return this.gc.get();
+  }
+
+  public List<CompactionGroupSummary> getRunningCompactionsPerGroup() {
+    return this.groupCompactions;
+  }
+
+  public List<CompactionTableSummary> getRunningCompactionsPerTable() {
+    return this.tableCompactions;
   }
 
   public Set<ServerId> getCompactorResourceGroupServers(String resourceGroup) {
@@ -769,8 +983,8 @@ public class SystemInformation {
     return this.deploymentOverview;
   }
 
-  public Set<String> getSuggestions() {
-    return this.suggestions;
+  public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
+    return this.messages;
   }
 
   public long getTimestamp() {
@@ -780,14 +994,13 @@ public class SystemInformation {
   /**
    * Cache a ServersView for the given table and set of servers.
    */
-  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers,
-      long problemHostCount) {
-    serverMetricsView.put(table, memoize(() -> new ServersView(servers, problemHostCount,
-        allMetrics, timestamp.get(), ServersView.columnsFor(table))));
+  private void cacheServerProcessView(TableDataFactory.TableName table, Set<ServerId> servers) {
+    serverMetricsView.put(table, memoize(
+        () -> TableDataFactory.forTable(table, servers, allMetrics.asMap(), timestamp.get())));
   }
 
-  public ServersView getServerProcessView(ServersView.ServerTable table) {
-    Supplier<ServersView> view = this.serverMetricsView.get(table);
+  public TableData getServerProcessView(TableDataFactory.TableName table) {
+    Supplier<TableData> view = this.serverMetricsView.get(table);
     if (view != null) {
       return view.get();
     }

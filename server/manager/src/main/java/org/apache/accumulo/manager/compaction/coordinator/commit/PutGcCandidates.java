@@ -45,6 +45,6 @@ public class PutGcCandidates extends AbstractFateOperation {
 
     // For user initiated table compactions, the fate operation will refresh tablets. Can also
     // refresh as part of this compaction commit as it may run sooner.
-    return new RefreshTablet(commitData.ecid, commitData.textent, refreshLocation);
+    return new RefreshTablet(commitData.textent, refreshLocation);
   }
 }

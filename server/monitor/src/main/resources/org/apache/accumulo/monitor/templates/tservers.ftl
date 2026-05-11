@@ -21,16 +21,6 @@
     <div id="tserversManagerBanner" style="display: none;">
       <div class="alert alert-danger" role="alert">Manager Not Running</div>
     </div>
-    <div id="tserversWarnBanner" style="display: none;">
-      <div class="alert alert-warning" role="alert">
-        One or more Tablet Servers are unavailable or reported as bad.
-      </div>
-    </div>
-    <div id="tserversErrorBanner" style="display: none;">
-      <div class="alert alert-danger" role="alert">
-        No Tablet Servers are currently responding.
-      </div>
-    </div>
     <div id="tserversStatusBanner" style="display: none;">
       <div id="tservers-banner-message" class="alert" role="alert"></div>
     </div>    

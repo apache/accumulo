@@ -59,7 +59,7 @@ public final class PropUtil {
     context.getPropStore().replaceAll(propStoreKey, version, properties);
   }
 
-  protected static void validateProperties(final ServerContext context,
+  public static void validateProperties(final ServerContext context,
       final PropStoreKey propStoreKey, final Map<String,String> properties)
       throws IllegalArgumentException {
     for (Map.Entry<String,String> prop : properties.entrySet()) {

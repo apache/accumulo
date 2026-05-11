@@ -30,8 +30,7 @@ function refresh() {
 $(function () {
   sessionStorage[COMPACTOR_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
   refreshServerInformation(getCompactorsView, htmlTable, COMPACTOR_SERVER_PROCESS_VIEW,

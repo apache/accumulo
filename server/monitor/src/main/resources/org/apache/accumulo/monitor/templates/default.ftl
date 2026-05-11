@@ -24,13 +24,21 @@
     <base href="${rootContext}"/>
     <title>${title} - Accumulo ${version}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!-- Set the saved theme before loading CSS to reduce light-mode flash on reload -->
+    <script>
+      (function() {
+        if (localStorage.getItem('dark-theme-enabled') === 'true') {
+          document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+      })();
+    </script>
     <!-- external resources configurable by setting monitor.resources.external -->
-    <!-- make sure jquery is included first - other scripts depend on it -->
     <#if externalResources?has_content>
       <#list externalResources as val>
         ${val}
       </#list>
     <#else>
+      <!-- make sure jquery is included first - other scripts depend on it -->
       <script src="resources/external/jquery/jquery-3.7.1.js"></script>
       <script src="resources/external/bootstrap/js/bootstrap.bundle.js"></script>
       <script src="resources/external/datatables/js/jquery.dataTables.js"></script>

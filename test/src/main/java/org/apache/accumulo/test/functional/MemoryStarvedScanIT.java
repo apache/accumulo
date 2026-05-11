@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -121,7 +122,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
               SCAN_RETURNED_EARLY.add(val);
             } else if (metric.getName().equals(LOW_MEMORY.getName())) {
               String process = metric.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY);
-              if (process != null && process.contains(ServerId.Type.TABLET_SERVER.name())) {
+              if (process != null && process
+                  .contains(MetricsUtil.formatString(ServerId.Type.TABLET_SERVER.name()))) {
                 int val = Integer.parseInt(metric.getValue());
                 LOW_MEM_DETECTED.set(val);
               }

@@ -64,7 +64,7 @@
                 "type": "html",
                 "render": function (data, type, row, meta) {
                   if (type === 'display') {
-                    data = '<a href="tables/' + row.tableId + '">' + row.tableName + '</a>';
+                    data = '<a class="link-body-emphasis" href="tables/' + row.tableId + '">' + row.tableName + '</a>';
                   }
                   return data;
                 }

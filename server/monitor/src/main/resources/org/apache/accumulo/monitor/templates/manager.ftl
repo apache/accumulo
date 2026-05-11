@@ -42,21 +42,6 @@
         </tbody>
     </table>
     <br />
-    <table id="managers_compactions" class="table caption-top table-bordered table-striped table-condensed">
-        <caption><span class="table-caption">Manager Compaction Activity</span><br /></caption>
-        <thead><tr><th /></tr></thead>
-        <tbody>
-          <tr>
-            <td>
-              <div class="d-flex align-items-center">
-                <strong role="status">Loading...</strong>
-                <div class="spinner-border ms-auto" aria-hidden="true"></div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-    </table>
-    <br />
     <table id="managers_fate" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">Manager Fate Activity</span><br /></caption>
         <thead><tr><th /></tr></thead>

@@ -127,12 +127,14 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
             HostAndPort.fromParts(server.getHost(), server.getPort()), ctx);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(), ctx.rpcCreds());
+          retainedProblemServers.invalidate(server);
           summary.processResponse(server, response);
         } finally {
           ThriftUtil.returnClient(metricsClient, ctx);
         }
       } catch (Exception e) {
         LOG.warn("Error trying to get metrics from server: {}", server, e);
+        retainedProblemServers.put(server, Boolean.TRUE);
         summary.processMetricsError(server);
       }
     }
@@ -197,6 +199,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private final Supplier<Long> connectionCount;
   private final AtomicBoolean newConnectionEvent = new AtomicBoolean(false);
   private final Cache<ServerId,MetricResponse> allMetrics;
+  private final Cache<ServerId,Boolean> retainedProblemServers;
   private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
 
   public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
@@ -204,6 +207,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     this.connectionCount = connectionCount;
     this.allMetrics = Caffeine.newBuilder().executor(pool).scheduler(Scheduler.systemScheduler())
         .expireAfterWrite(Duration.ofMinutes(10)).evictionListener(this::onRemoval).build();
+    this.retainedProblemServers = Caffeine.newBuilder().executor(pool)
+        .scheduler(Scheduler.systemScheduler()).expireAfterWrite(Duration.ofMinutes(10)).build();
   }
 
   public void newConnectionEvent() {
@@ -348,6 +353,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       if (tookToLong) {
         summary.clear();
       } else {
+        retainedProblemServers.asMap().keySet().forEach(summary::retainProblemServer);
         summary.finish();
 
         LOG.info("Finished fetching metrics from servers");
