@@ -27,6 +27,7 @@
             <caption><span class="table-caption">Compactors</span><br />
               <span class="table-subcaption">The following Compactors reported status.</span><br />
             </caption>
+            <#include "table_loading.ftl" >
           </table>
         </div>
       </div>

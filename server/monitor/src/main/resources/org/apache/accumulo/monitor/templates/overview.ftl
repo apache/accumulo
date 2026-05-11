@@ -27,7 +27,11 @@
         <div class="col-xs-12" id="deploymentOverview">
           <div id="deploymentWarning"></div>
           <div class="deployment-overview-content">
-            <div id="deploymentBreakdownMatrix"></div>
+            <div class="table-responsive">
+              <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
+                <#include "table_loading.ftl" >
+              </table>
+            </div>
           </div>
         </div>
       </div>

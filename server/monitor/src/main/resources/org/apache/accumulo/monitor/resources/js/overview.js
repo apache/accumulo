@@ -18,6 +18,8 @@
  */
 "use strict";
 
+const deploymentTable = '#deployment-table';
+
 var deploymentBreakdown = [];
 
 /**
@@ -65,7 +67,7 @@ function refreshDeploymentTables() {
 
 function renderDeploymentMatrix(breakdown) {
   var matrixData = buildDeploymentMatrix(breakdown);
-  var $container = $('#deploymentBreakdownMatrix');
+  var $container = $(deploymentTable);
 
   if (breakdown.length === 0) {
     $container.empty();
@@ -77,6 +79,8 @@ function renderDeploymentMatrix(breakdown) {
     return;
   }
 
+  $container.find('thead').remove();
+  $container.find('tbody').remove();
   $container.html(buildDeploymentMatrixTable(matrixData));
 }
 
@@ -168,11 +172,9 @@ function buildDeploymentMatrixTable(matrixData) {
   footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
     buildDeploymentTotalCell(grandTotals) + '</td>');
 
-  return '<div class="table-responsive">' +
-    '<table class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">' +
-    '<thead><tr>' + headerCells.join('') +
+  return '<thead><tr>' + headerCells.join('') +
     '</tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr>' + footerCells.join('') +
-    '</tr></tfoot></table></div>';
+    '</tr></tfoot>';
 }
 
 /**
