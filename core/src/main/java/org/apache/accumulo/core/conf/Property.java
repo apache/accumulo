@@ -396,6 +396,10 @@ public enum Property {
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
           + " disables this check. The default value changed from 0 to 2m in 4.0.0.",
       "2.1.4"),
+  GENERAL_SERVER_WAL_SORT_BUFFER_SIZE("general.server.wal.sort.buffer.size", "10%",
+      PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery.",
+      "4.0.0"),
+
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
@@ -806,6 +810,8 @@ public enum Property {
       "1.5.0"),
   TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery.", "2.1.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = GENERAL_SERVER_WAL_SORT_BUFFER_SIZE)
   TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
