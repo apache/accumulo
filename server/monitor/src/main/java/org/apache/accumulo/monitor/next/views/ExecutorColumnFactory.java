@@ -29,6 +29,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.views.TableDataFactory.StatType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +90,7 @@ public class ExecutorColumnFactory implements ColumnFactory {
     Number sum = null;
 
     FTag ftag = new FTag();
+    FTag statTag = new FTag();
     for (var metric : metrics) {
       boolean foundTag = false;
       String tag = null;
@@ -103,9 +105,9 @@ public class ExecutorColumnFactory implements ColumnFactory {
         }
       }
 
-      var metricStatistic = TableDataFactory.extractStatistic(metric);
-      if (foundTag && (metricStatistic == null || metricStatistic.equals("value")
-          || metricStatistic.equals("count"))) {
+      var metricStatistic = TableDataFactory.extractStatistic(metric, statTag);
+      if (foundTag && (metricStatistic == null || metricStatistic.equals(StatType.VALUE)
+          || metricStatistic.equals(StatType.COUNT))) {
         var val = SystemInformation.getMetricValue(metric);
         log.trace("adding {}+{} for {} {} {} {}", sum, val, metric.name(), tag,
             sid.toHostPortString(), sid.getResourceGroup());

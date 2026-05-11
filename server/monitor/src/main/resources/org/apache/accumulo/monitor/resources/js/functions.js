@@ -220,12 +220,16 @@ function timeDuration(time) {
   var ms, sec, min, hr, day, yr;
   ms = sec = min = hr = day = yr = -1;
 
-  time = Math.floor(time);
-
-  // If time is 0 return a dash
-  if (time === 0) {
-    return '&mdash;';
+  if (Math.round(time) === 0) {
+    var microsecs = Math.round(time * 1000)
+    if(microsecs == 0){
+      return '0μs';
+    }else{
+      return microsecs+'μs';
+    }
   }
+
+  time = Math.round(time);
 
   // Obtains the milliseconds, if time is 0, return milliseconds, and units
   ms = time % 1000;

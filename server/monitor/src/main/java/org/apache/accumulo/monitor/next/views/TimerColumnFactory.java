@@ -24,45 +24,45 @@ import java.util.Map;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
+import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
-import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.monitor.next.views.TableDataFactory.StatType;
 
-public class RatioColumnFactory implements ColumnFactory {
+import com.google.common.base.Preconditions;
 
-  private final Column column;
-  private final Metric numerator;
-  private final Metric denominator;
+public class TimerColumnFactory implements ColumnFactory {
 
-  RatioColumnFactory(String label, String description, Metric numerator, Metric denominator) {
-    this.column = new Column(numerator.getName() + "/" + denominator.getName(), label, description,
-        Metric.MonitorCssClass.PERCENT.getCssClass());
-    this.numerator = numerator;
-    this.denominator = denominator;
+  private final TableData.Column column;
+
+  public TimerColumnFactory(Metric metric) {
+    Preconditions.checkArgument(metric.getType() == Metric.MetricType.TIMER);
+
+    this.column = new TableData.Column(metric.getName(), metric.getColumnHeader(),
+        metric.getColumnDescription(), Metric.MonitorCssClass.DURATION.getCssClass());
+
   }
 
   @Override
-  public Column getColumn() {
+  public TableData.Column getColumn() {
     return column;
   }
 
   @Override
   public Object getRowData(ServerId sid, MetricResponse mr,
       Map<String,List<FMetric>> serverMetrics) {
-    var n = serverMetrics.get(numerator.getName());
-    var d = serverMetrics.get(denominator.getName());
-
-    if (n == null || d == null) {
-      return null;
+    var metrics = serverMetrics.getOrDefault(column.key(), List.of());
+    FTag ftag = new FTag();
+    for (var metric : metrics) {
+      for (int i = 0; i < metric.tagsLength(); i++) {
+        metric.tags(ftag, i);
+      }
+      String statVal = TableDataFactory.extractStatistic(metric, ftag);
+      if (StatType.AVERAGE.equals(statVal)) {
+        // The average time is in seconds, convert it to millis for the monitor front end code.
+        return SystemInformation.getMetricValue(metric).doubleValue() * 1000;
+      }
     }
-
-    var numeratorSum = sum(n, StatType.COUNT_OR_VALUE).doubleValue();
-    var denominatorSum = sum(d, StatType.COUNT_OR_VALUE).doubleValue();
-
-    if (denominatorSum == 0) {
-      return null;
-    }
-
-    return numeratorSum / denominatorSum;
+    return null;
   }
 }

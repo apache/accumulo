@@ -79,6 +79,15 @@ public class TableDataFactory {
     TABLET_SERVERS
   }
 
+  public static class StatType {
+    public static final String COUNT = "count";
+    public static final String VALUE = "value";
+    public static final String AVERAGE = "avg";
+    public static final String MAX = "max";
+
+    public static final Predicate<String> COUNT_OR_VALUE = s -> COUNT.equals(s) || VALUE.equals(s);
+  }
+
   /**
    * Common columns that are included in every ServersView table
    */
@@ -183,43 +192,20 @@ public class TableDataFactory {
       case MANAGER_FATE -> managerFateMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case MANAGER_COMPACTIONS ->
         managerCompactionMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
-      case SCAN_SERVERS -> scanServerMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
+      case SCAN_SERVERS -> scanServerColumns(cols);
       case TABLET_SERVERS -> tabletServerColumns(cols);
     }
     return cols;
   }
 
   private static void tabletServerColumns(List<ColumnFactory> cols) {
-    cols.add(new MetricColumnFactory(Metric.SERVER_IDLE));
-    cols.add(new MetricColumnFactory(Metric.LOW_MEMORY));
+
+    commonColumns(cols);
 
     cols.add(new MetricColumnFactory(Metric.TSERVER_TABLETS_ONLINE));
     cols.add(new MetricColumnFactory(Metric.TSERVER_TABLETS_LONG_ASSIGNMENTS));
 
-    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
-        ThreadPoolNames.RPC_POOL.poolName, "Completed RPCs",
-        "Task completed by the Thrift thread pool"));
-    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
-        ThreadPoolNames.RPC_POOL.poolName, "Queued RPCs",
-        "Task queued for the Thrift thread pool"));
-
-    // Scan columns
-    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
-        ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Completed scans",
-        "Scan task completed by all scan thread pools"));
-    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
-        ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Queued scans",
-        "Scan task queued on all scan thread pools"));
-    cols.add(new MetricColumnFactory(Metric.SCAN_ERRORS));
-    cols.add(new MetricColumnFactory(Metric.SCAN_SCANNED_ENTRIES));
-    cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS));
-    cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS_BYTES));
-    cols.add(new RatioColumnFactory("Index cache hit",
-        "Ratio of hits/total request for the index block cache", Metric.BLOCKCACHE_INDEX_HITCOUNT,
-        Metric.BLOCKCACHE_INDEX_REQUESTCOUNT));
-    cols.add(new RatioColumnFactory("Data cache hit",
-        "Ratio of hits/total request for the data block cache", Metric.BLOCKCACHE_DATA_HITCOUNT,
-        Metric.BLOCKCACHE_DATA_REQUESTCOUNT));
+    scanColumns(cols);
 
     // Ingest and minc
     cols.add(new MetricColumnFactory(Metric.TSERVER_INGEST_ENTRIES));
@@ -247,25 +233,69 @@ public class TableDataFactory {
     // TODO create scan problems that is a sum of zombie and low memory
   }
 
+  private static void commonColumns(List<ColumnFactory> cols) {
+    cols.add(new MetricColumnFactory(Metric.SERVER_IDLE));
+    cols.add(new MetricColumnFactory(Metric.LOW_MEMORY));
+
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
+        ThreadPoolNames.RPC_POOL.poolName, "Completed RPCs",
+        "Task completed by the Thrift thread pool"));
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
+        ThreadPoolNames.RPC_POOL.poolName, "Queued RPCs",
+        "Task queued for the Thrift thread pool"));
+  }
+
+  private static void scanColumns(List<ColumnFactory> cols) {
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
+        ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Completed scans",
+        "Scan task completed by all scan thread pools"));
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
+        ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Queued scans",
+        "Scan task queued on all scan thread pools"));
+    cols.add(new MultiSumColumnFactory("Scan Problems", Metric.SCAN_ERRORS,
+        Metric.SCAN_PAUSED_FOR_MEM, Metric.SCAN_RETURN_FOR_MEM));
+    cols.add(new MetricColumnFactory(Metric.SCAN_SCANNED_ENTRIES));
+    cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS));
+    cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS_BYTES));
+    cols.add(new RatioColumnFactory("Index cache hit",
+        "Ratio of hits/total request for the index block cache", Metric.BLOCKCACHE_INDEX_HITCOUNT,
+        Metric.BLOCKCACHE_INDEX_REQUESTCOUNT));
+    cols.add(new RatioColumnFactory("Data cache hit",
+        "Ratio of hits/total request for the data block cache", Metric.BLOCKCACHE_DATA_HITCOUNT,
+        Metric.BLOCKCACHE_DATA_REQUESTCOUNT));
+    cols.add(new MetricColumnFactory(Metric.SCAN_OPEN_FILES));
+    cols.add(new MetricColumnFactory(Metric.SCAN_YIELDS));
+  }
+
+  private static void scanServerColumns(List<ColumnFactory> cols) {
+    commonColumns(cols);
+    scanColumns(cols);
+    cols.add(new CacheSizeColumnFactory(Metric.SCAN_TABLET_METADATA_CACHE.getName(),
+        "Tablets Cached", "The number of tablets for which a scan server has cached metadata."));
+    cols.add(new MetricColumnFactory(Metric.SCAN_RESERVATION_FILES));
+    cols.add(new MetricColumnFactory(Metric.SCAN_BUSY_TIMEOUT_COUNT));
+    cols.add(new TimerColumnFactory(Metric.SCAN_RESERVATION_TOTAL_TIMER));
+  }
+
   public static Map<String,List<FMetric>> metricValuesByName(MetricResponse response) {
     var values = new HashMap<String,List<FMetric>>();
     if (response == null || response.getMetrics() == null || response.getMetrics().isEmpty()) {
       return values;
     }
 
+    FTag tag = new FTag();
     for (var binary : response.getMetrics()) {
       var metric = FMetric.getRootAsFMetric(binary);
-      var metricStatistic = extractStatistic(metric);
-      if (metricStatistic == null || metricStatistic.equals("value")
-          || metricStatistic.equals("count")) {
+      var metricStatistic = extractStatistic(metric, tag);
+      if (metricStatistic == null || metricStatistic.equals(StatType.VALUE)
+          || metricStatistic.equals(StatType.COUNT) || metricStatistic.equals(StatType.AVERAGE)) {
         values.computeIfAbsent(metric.name(), m -> new ArrayList<>()).add(metric);
       }
     }
     return values;
   }
 
-  public static String extractStatistic(FMetric metric) {
-    FTag tag = new FTag();
+  public static String extractStatistic(FMetric metric, FTag tag) {
     for (int i = 0; i < metric.tagsLength(); i++) {
       tag = metric.tags(tag, i);
       if (MetricResponseWrapper.STATISTIC_TAG.equals(tag.key())) {
@@ -337,11 +367,6 @@ public class TableDataFactory {
   private static List<Metric> managerCompactionMetrics() {
     return metricList(m -> !m.getName().startsWith(MINC.getPrefix())
         && !m.getName().startsWith(MINC_COMPACTION.getPrefix()), MetricDocSection.COMPACTION);
-  }
-
-  private static List<Metric> scanServerMetrics() {
-    return metricList(null, MetricDocSection.GENERAL_SERVER, MetricDocSection.SCAN_SERVER,
-        MetricDocSection.SCAN, MetricDocSection.BLOCK_CACHE);
   }
 
   /**
