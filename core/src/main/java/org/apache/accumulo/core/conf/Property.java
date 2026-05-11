@@ -355,8 +355,10 @@ public enum Property {
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
       PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
       "4.0.0"),
-  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
+      "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
+          + " is dependent on metrics being enabled to function correctly.",
+      "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN,
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
@@ -368,9 +370,7 @@ public enum Property {
       natively instruments Log4j2 and Logback. Valid values for this property are 'none', \
       'log4j2' or 'logback'.
       """, "2.1.4"),
-  GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
-      PropertyType.CLASSNAMELIST,
+  GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAMELIST,
       """
           A comma separated list of one or more class names that implements \
           org.apache.accumulo.core.spi.metrics.MeterRegistryFactory. Prior to \

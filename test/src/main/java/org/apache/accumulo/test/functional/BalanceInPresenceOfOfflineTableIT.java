@@ -72,7 +72,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
+    siteConfig.put(Property.GENERAL_MICROMETER_FACTORY.getKey(),
+        "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory");
     siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers

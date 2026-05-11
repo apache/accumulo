@@ -175,7 +175,8 @@ public class MiniAccumuloConfigImpl {
       }
 
       // enable metrics reporting - by default will appear in standard log files.
-      mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
+      mergeProp(Property.GENERAL_MICROMETER_FACTORY.getKey(),
+          "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory");
 
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
