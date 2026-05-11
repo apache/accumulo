@@ -24,11 +24,38 @@
         </div>
       </div>
       <div class="row d-flex justify-content-center">
+        <div class="col-xs-12" id="instance-info">
+			<div class="card mx-auto" style="width: 24rem;">
+			  <div class="card-header text-center">
+			    <strong id="instance-name"></strong>
+			  </div>			
+			  <div class="card-body">
+	            <div class="row justify-content-evenly">
+	              <div class="col-sm-4 text-end">Volumes</div>
+	              <div id="instance-volumes" class="col-sm-8 text-start"></div>
+	            </div>
+	            <div class="row justify-content-evenly">
+	              <div class="col-sm-4 text-end">ZooKeepers</div>
+	              <div id="instance-zookeepers" class="col-sm-8 text-start"></div>
+	            </div>
+	            <div class="row justify-content-evenly">
+	              <div class="col-sm-4 text-end">Version</div>
+	              <div id="instance-version" class="col-sm-8 text-start"></div>
+	            </div>			  
+			  </div>
+			  <div class="card-footer text-center text-muted" id="instance-uuid">
+			  </div>			  
+			</div>        
+        </div>
+      </div>
+      <br />
+      <br />
+      <div class="row d-flex justify-content-center">
         <div class="col-xs-12" id="deploymentOverview">
           <div id="deploymentWarning"></div>
           <div class="deployment-overview-content">
             <div class="table-responsive">
-              <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
+              <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0 fs-4">
                 <#include "table_loading.ftl" >
               </table>
             </div>
