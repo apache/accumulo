@@ -57,6 +57,25 @@
         </div>
       </div>
       <br><br>
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="tabletServersList" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Tablet Server Summary</span></caption>
+            <thead>
+              <tr>
+                <th class="big-num">Tablet Count</th>
+                <th>Tablet Server</th>
+                <th class="big-num">Estimated Entries</th>
+                <th class="big-size">Estimated Size</th>
+                <th class="big-num">Files</th>
+                <th class="big-num">WALs</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <br><br>
       <!-- Section for tablets details DataTable -->
       <div class="row">
         <div class="col-xs-12">
