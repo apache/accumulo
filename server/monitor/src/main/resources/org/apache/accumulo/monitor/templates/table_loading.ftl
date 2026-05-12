@@ -18,16 +18,25 @@
     under the License.
 
 -->
-    <div id="sserversStatusBanner" style="display: none;">
-      <div id="sservers-banner-message" class="alert" role="alert"></div>
-    </div>
-    <div class="row">
-      <div class="col-xs-12">
-        <table id="sservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Scan Servers</span><br />
-            <span class="table-subcaption">The following Scan Servers reported status.</span><br />
-          </caption>
-          <#include "table_loading.ftl" >
-        </table>
-      </div>
-    </div>
+
+<#--
+  This snippet is meant to be included in HTML tables that are
+  used in the Monitor with DataTables. This snippet adds a
+  spinner with a label when the HTML table loads. The javascript
+  that creates the DataTable should clear the HTML table to
+  remove the spinner.
+-->
+
+            <thead><tr><th /></tr></thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="text-center">
+					<div class="spinner-border spinner-border-sm" role="status">
+					  <span class="visually-hidden">Loading...</span>
+					</div>
+					<span>Loading...</span>
+				  </div>
+                </td>
+              </tr>
+            </tbody>
