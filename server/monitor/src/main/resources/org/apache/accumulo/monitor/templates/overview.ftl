@@ -25,7 +25,7 @@
       </div>
       <div class="row d-flex justify-content-center">
         <div class="col-xs-12" id="instance-info">
-			<div class="card mx-auto" style="width: 24rem;">
+			<div class="card mx-auto collapse" style="width: 24rem;" id="instance-card">
 			  <div class="card-header text-center">
 			    <strong id="instance-name"></strong>
 			  </div>			

@@ -19,6 +19,7 @@
 "use strict";
 
 const deploymentTable = '#deployment-table';
+const instanceCard = '#instance-card';
 const instanceName = '#instance-name';
 const instanceVolumes = '#instance-volumes';
 const instanceUUID = '#instance-uuid';
@@ -60,6 +61,7 @@ function refreshInstanceInfo() {
   $(instanceUUID).text(data.instanceUUID);
   $(instanceZooKeepers).text(data.zooKeepers);
   $(instanceVolumes).text(data.volumes);
+  $(instanceCard).removeClass('collapse');
 }
 
 /**
