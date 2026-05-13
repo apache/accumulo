@@ -60,7 +60,7 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="tabletServersList" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Tablet Server Summary</span></caption>
+            <caption><span class="table-caption">Tablet Distribution Summary</span></caption>
             <thead>
               <tr>
                 <th class="big-num">Tablet Count</th>
