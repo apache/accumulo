@@ -41,8 +41,10 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  $.when(getInstanceInfo(), getDeployment()).then(function () {
+  getInstanceInfo().then(function () {
     refreshInstanceInfo();
+  });
+  getDeployment().then(function () {
     refreshDeploymentTables();
   });
 }
