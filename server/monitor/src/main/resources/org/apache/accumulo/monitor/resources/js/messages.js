@@ -18,120 +18,10 @@
  */
 "use strict";
 
-const messageCategoryList = '#message-category-list';
-const messagePriorityList = '#message-priority-list';
 const messageHtmlTable = '#messagesTable';
-const messagePriorities = ['High', 'Info'];
 
 var dataTableRef;
-
-/**
- * Updates the list of message priorities
- */
-function updateMessagePriorities() {
-  var priorityList = $(messagePriorityList);
-  $.each(messagePriorities, function (index, pri) {
-    var switchId = "msg-pri-switch-" + pri;
-    var switchElement = "#" + switchId;
-    var savedValue = localStorage.getItem(switchId + "-state");
-
-    if ($(switchElement).length) {
-      // update it
-      if (savedValue === null || savedValue === 'true') {
-        $(switchElement).prop('checked', true);
-      } else {
-        $(switchElement).prop('checked', false);
-      }
-    } else {
-      // create it
-      var div = $(document.createElement("div"));
-      div.addClass("form-check form-switch");
-
-      var input = $(document.createElement("input"));
-      input.addClass("form-check-input");
-      input.attr("type", "checkbox");
-      input.attr("role", "switch");
-      input.attr("id", switchId);
-
-      if (savedValue === null || savedValue === 'true') {
-        input.prop('checked', true);
-      } else {
-        input.prop('checked', false);
-      }
-
-      input.on("change", function () {
-        localStorage.setItem("msg-pri-switch-" + pri + "-state", $(this).is(':checked'));
-        refresh();
-      });
-      div.append(input);
-
-      var label = $(document.createElement("label"));
-      label.addClass("form-check-label fs-6");
-      label.attr("for", switchId);
-      label.text(pri);
-      div.append(label);
-
-      priorityList.append(div);
-    }
-  });
-
-}
-
-/**
- * Updates the list of message categories
- */
-function updateMessageCategories() {
-
-  var categories = getStoredArray(MESSAGE_CATEGORIES);
-
-  var categoryList = $(messageCategoryList);
-  $.each(categories, function (index, cat) {
-
-    var switchId = "msg-cat-switch-" + cat;
-    var switchElement = "#" + switchId;
-    var savedValue = localStorage.getItem(switchId + "-state");
-
-    if ($(switchElement).length) {
-      // update it
-      if (savedValue === null || savedValue === 'true') {
-        $(switchElement).prop('checked', true);
-      } else {
-        $(switchElement).prop('checked', false);
-      }
-    } else {
-      // create it
-      var div = $(document.createElement("div"));
-      div.addClass("form-check form-check-inline form-switch");
-
-      var input = $(document.createElement("input"));
-      input.addClass("form-check-input");
-      input.attr("type", "checkbox");
-      input.attr("role", "switch");
-      input.attr("id", switchId);
-
-      if (savedValue === null || savedValue === 'true') {
-        input.prop('checked', true);
-      } else {
-        input.prop('checked', false);
-      }
-
-      input.on("change", function () {
-        localStorage.setItem("msg-cat-switch-" + cat + "-state", $(this).is(':checked'));
-        refresh();
-      });
-      div.append(input);
-
-      var label = $(document.createElement("label"));
-      label.addClass("form-check-label fs-6");
-      label.attr("for", switchId);
-      label.text(cat);
-      div.append(label);
-
-      categoryList.append(div);
-    }
-  });
-
-}
+var categories;
 
 function fetchTableData() {
 
@@ -170,15 +60,19 @@ function getTableData() {
 }
 
 function loadMessagesPageData() {
-  return getMessageCategories().then(function () {
+
+  categories = getStoredArray(MESSAGE_CATEGORIES);
+  if (categories.length === 0) {
+    return getMessageCategories().then(function () {
+      return fetchTableData();
+    });
+  } else {
     return fetchTableData();
-  });
+  }
 }
 
 function refresh() {
   return loadMessagesPageData().then(function () {
-    updateMessagePriorities();
-    updateMessageCategories();
     if (dataTableRef) {
       ajaxReloadTable(dataTableRef);
     }
@@ -214,8 +108,6 @@ function createDataTable() {
 
 $(function () {
   loadMessagesPageData().then(function () {
-    updateMessagePriorities();
-    updateMessageCategories();
     createDataTable();
   });
 });

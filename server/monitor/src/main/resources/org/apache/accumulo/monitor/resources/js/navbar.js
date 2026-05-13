@@ -58,6 +58,8 @@ const NAVBAR_COMPONENTS = [{
   countId: 'compactorStatusCount'
 }];
 
+var categories;
+
 /**
  * Remove other bootstrap color classes and add the given class to the given element
  * @param {string} elementId the element id to update
@@ -148,7 +150,17 @@ function updateServerNotifications(statusData) {
 $(function () {
   setTheme();
   updateDarkThemeSwitch();
+  updateMessagePriorities();
   refreshSidebar();
+
+  categories = getStoredArray(MESSAGE_CATEGORIES);
+  if (categories.length === 0) {
+    getMessageCategories().then(function () {
+      updateMessageCategories();
+    });
+  } else {
+    updateMessageCategories();
+  }
 });
 
 /**
@@ -219,4 +231,94 @@ function updateDarkThemeSwitch() {
     localStorage.setItem(storageKey, enableDarkTheme);
     document.documentElement.setAttribute('data-bs-theme', enableDarkTheme ? 'dark' : 'light');
   });
+}
+
+/**
+ * Update the High and Info Message Category Switches
+ */
+function updateMessagePriorities() {
+  var messagePriorities = ['High', 'Info'];
+  $.each(messagePriorities, function (index, pri) {
+    var switchId = "msg-pri-switch-" + pri;
+    var switchElement = "#" + switchId;
+    var savedValue = localStorage.getItem(switchId + "-state");
+
+    // update it
+    if (savedValue === null || savedValue === 'true') {
+      $(switchElement).prop('checked', true);
+    } else {
+      $(switchElement).prop('checked', false);
+    }
+
+    $(switchElement).on("change", function () {
+      localStorage.setItem("msg-pri-switch-" + pri + "-state", $(this).is(':checked'));
+      if (window.location.pathname == '/messages') {
+        refresh();
+      }
+    });
+  });
+}
+
+/**
+ * Update the High and Info Message Category Switches
+ */
+function updateMessageCategories() {
+  const messageCategoryList = '#categories-list';
+
+  var categoryList = $(messageCategoryList);
+  $.each(categories, function (index, cat) {
+
+    var switchId = "msg-cat-switch-" + cat;
+    var switchElement = "#" + switchId;
+    var savedValue = localStorage.getItem(switchId + "-state");
+
+    if ($(switchElement).length) {
+      // update it
+      if (savedValue === null || savedValue === 'true') {
+        $(switchElement).prop('checked', true);
+      } else {
+        $(switchElement).prop('checked', false);
+      }
+    } else {
+      // create it
+      var li = $(document.createElement("li"));
+
+      var outerDiv = $(document.createElement("div"));
+      outerDiv.addClass("dropdown-item d-flex justify-content-between align-items-center");
+
+      var div = $(document.createElement("div"));
+      div.addClass("form-check form-switch mb-0 ms-3");
+
+      var input = $(document.createElement("input"));
+      input.addClass("form-check-input mt-0");
+      input.attr("type", "checkbox");
+      input.attr("role", "switch");
+      input.attr("id", switchId);
+
+      if (savedValue === null || savedValue === 'true') {
+        input.prop('checked', true);
+      } else {
+        input.prop('checked', false);
+      }
+
+      input.on("change", function () {
+        localStorage.setItem("msg-cat-switch-" + cat + "-state", $(this).is(':checked'));
+        if (window.location.pathname == '/messages') {
+          refresh();
+        }
+      });
+      div.append(input);
+
+      var label = $(document.createElement("label"));
+      label.addClass("mb-0");
+      label.attr("for", switchId);
+      label.text(cat);
+
+      outerDiv.append(label);
+      outerDiv.append(div);
+      li.append(outerDiv);
+      categoryList.append(li);
+    }
+  });
+
 }
