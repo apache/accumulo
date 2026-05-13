@@ -92,6 +92,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
     // Make sessions time out much more quickly. This will cause a session to be classified as a
     // zombie scan much sooner.
     cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "6s");
+    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
     cfg.setProperty("general.custom.metrics.opts.logging.step", "1s");
     String clazzList = LoggingMeterRegistryFactory.class.getName() + ","

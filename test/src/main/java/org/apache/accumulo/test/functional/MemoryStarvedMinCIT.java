@@ -69,6 +69,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.GENERAL_LOW_MEM_MINC_PROTECTION, "true");
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
+      cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
       cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY,
           TestStatsDRegistryFactory.class.getName());
       Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",

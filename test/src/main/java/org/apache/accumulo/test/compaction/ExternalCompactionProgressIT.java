@@ -115,6 +115,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
     cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
+    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, TestStatsDRegistryFactory.class.getName());
     Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
         TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));

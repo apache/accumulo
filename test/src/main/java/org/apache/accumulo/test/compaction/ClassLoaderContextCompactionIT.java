@@ -105,6 +105,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
     cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
     // Tell the server processes to use a StatsDMeterRegistry and the simple logging registry
     // that will be configured to push all metrics to the sink we started.
+    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
     cfg.setProperty("general.custom.metrics.opts.logging.step", "1s");
     String clazzList = LoggingMeterRegistryFactory.class.getName() + ","

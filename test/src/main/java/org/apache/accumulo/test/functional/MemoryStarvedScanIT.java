@@ -82,6 +82,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.GENERAL_LOW_MEM_SCAN_PROTECTION, "true");
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
+      cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
       cfg.setProperty("general.custom.metrics.opts.logging.step", "5s");
       String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
           + TestStatsDRegistryFactory.class.getName();
