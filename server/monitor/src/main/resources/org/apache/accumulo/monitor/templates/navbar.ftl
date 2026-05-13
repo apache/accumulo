@@ -94,7 +94,6 @@
                     </div>
                   </div>
                 </li>
-                <li><a class="link-body-emphasis dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
               </ul>
             </li>
           </ul>
