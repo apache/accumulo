@@ -55,7 +55,7 @@
           <div id="deploymentWarning"></div>
           <div class="deployment-overview-content">
             <div class="table-responsive">
-              <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0 fs-4">
+              <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
                 <#include "table_loading.ftl" >
               </table>
             </div>
