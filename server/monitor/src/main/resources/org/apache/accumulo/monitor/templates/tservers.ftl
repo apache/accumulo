@@ -31,7 +31,7 @@
           <caption><span class="table-caption">Tablet Servers</span><br />
             <span class="table-subcaption">The following Tablet Servers reported status.</span><br />
           </caption>
-          <tbody></tbody>
+          <#include "table_loading.ftl" >
         </table>
       </div>
     </div>
