@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
 public interface MetricsInfo {
@@ -90,6 +91,17 @@ public interface MetricsInfo {
   }
 
   boolean isMetricsEnabled();
+
+  /**
+   * @return true if the MonitorMeterRegistry has been enabled.
+   */
+  public boolean isMonitorRegistryEnabled();
+
+  /**
+   *
+   * @return Monitor MeterRegistry, or null
+   */
+  public MeterRegistry getMonitorRegistry();
 
   /**
    * Common tags for all services.

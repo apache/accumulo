@@ -41,6 +41,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
@@ -53,7 +54,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
-import org.apache.accumulo.server.metrics.MetricsInfoImpl;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -405,9 +405,9 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
-    var registry = MetricsInfoImpl.MONITOR_REGISTRY.get();
-    if (registry != null) {
-      registry.getMeters().forEach(m -> {
+    final MetricsInfo mi = getContext().getMetricsInfo();
+    if (mi.isMonitorRegistryEnabled()) {
+      mi.getMonitorRegistry().getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")
             || m.getId().getName().equals(Metric.EXECUTOR_COMPLETED.getName())
             || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())) {

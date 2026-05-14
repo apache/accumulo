@@ -284,7 +284,7 @@ public class CompressionAlgorithm extends Configured {
       clazz = System.getProperty(codecClazzProp, getConf().get(codecClazzProp, defaultClazz));
     }
     try {
-      LOG.info("Trying to load codec class {}", clazz);
+      LOG.debug("Trying to load codec class {}", clazz);
       Configuration config = new Configuration(getConf());
       updateBuffer(config, bufferSizeConfigOpt, bufferSize);
       return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
