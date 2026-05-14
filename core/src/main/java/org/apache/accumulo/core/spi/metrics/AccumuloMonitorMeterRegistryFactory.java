@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.metrics;
+package org.apache.accumulo.core.spi.metrics;
 
-import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
+import org.apache.accumulo.core.metrics.MonitorMeterRegistry;
 
 import io.micrometer.core.instrument.MeterRegistry;
 

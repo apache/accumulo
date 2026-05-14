@@ -373,7 +373,7 @@ public enum Property {
       'log4j2' or 'logback'.
       """, "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.metrics.AccumuloMonitorMeterRegistryFactory",
+      "org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
       """
           A comma separated list of one or more class names that implements \
