@@ -63,6 +63,7 @@ public class FateTestUtil {
    */
   public static void createFateTable(ClientContext client, ServerContext serverContext,
       String table) throws Exception {
+    // Read the real FATE table as the server, but create the test table as the test client.
     final var fateTableProps =
         serverContext.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
