@@ -1208,7 +1208,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     if (caches == null) {
       caches = Caches.getInstance();
-      if (micrometer != null
+      if (micrometer != null && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED)
           && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
         caches.registerMetrics(micrometer);
       }

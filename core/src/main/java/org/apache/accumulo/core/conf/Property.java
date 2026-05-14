@@ -353,10 +353,14 @@ public enum Property {
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
+      PropertyType.BOOLEAN,
+      "Enables Caffeine Cache metrics functionality using Micrometer. Requires "
+          + " property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "4.0.0"),
-  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
+      "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
+          + " is dependent on metrics being enabled to function correctly.",
+      "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN,
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
@@ -369,7 +373,7 @@ public enum Property {
       'log4j2' or 'logback'.
       """, "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
+      "org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
       """
           A comma separated list of one or more class names that implements \
