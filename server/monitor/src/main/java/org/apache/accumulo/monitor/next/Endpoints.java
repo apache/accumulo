@@ -60,6 +60,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary
 import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
 import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
 import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
+import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -426,6 +427,14 @@ public class Endpoints {
       throw new NotFoundException(tableId + " not found");
     }
     return ti;
+  }
+
+  @GET
+  @Path("recovery")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns information about tservers performing recovery and tablets needing recovery")
+  public RecoveryInformation getTabletRecoveries() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getRecoveryInformation();
   }
 
   @GET

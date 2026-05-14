@@ -41,6 +41,7 @@ const AUTO_REFRESH_KEY = 'auto-refresh';
 const MESSAGE_CATEGORIES = 'messageCategories';
 const MESSAGES = 'messages';
 const FATE = 'fate';
+const RECOVERY = 'recovery';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -491,13 +492,6 @@ function getServerStats() {
 }
 
 /**
- * REST GET call for the recovery list, stores it on a sessionStorage variable
- */
-function getRecoveryList() {
-  return getJSONForTable(contextPath + 'rest/tservers/recovery', 'recoveryList');
-}
-
-/**
  * REST GET call for the participating tablet servers,
  * stores it on a sessionStorage variable
  *
@@ -620,6 +614,14 @@ function getTableTablets(name) {
  */
 function getMetrics() {
   return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /recovery,
+ * stores it on a sessionStorage variable
+ */
+function getRecoveryInformation() {
+  return getJSONForTable(REST_V2_PREFIX + '/recovery', RECOVERY);
 }
 
 /**

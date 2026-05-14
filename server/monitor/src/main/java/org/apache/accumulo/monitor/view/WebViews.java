@@ -224,6 +224,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the recovery template
+   *
+   * @return Recovery model
+   */
+  @GET
+  @Path("recovery")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getRecoveryInformation() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Tablet Recoveries");
+    model.put("template", "recovery.ftl");
+    model.put("js", "recovery.js");
+
+    return model;
+  }
+
+  /**
    * Returns the scans template
    *
    * @return Scans model

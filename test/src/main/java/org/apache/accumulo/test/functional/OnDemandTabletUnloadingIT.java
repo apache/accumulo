@@ -106,7 +106,6 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
-
       cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
       cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY,
           TestStatsDRegistryFactory.class.getName());

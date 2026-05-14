@@ -56,8 +56,6 @@ public class BalanceIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
-    siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
     cfg.setSiteConfig(siteConfig);
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
   }
