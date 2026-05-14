@@ -42,6 +42,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
@@ -60,12 +61,13 @@ public class FateTestUtil {
    * Create the fate table with the exact configuration as the real Fate user instance table
    * including table properties and TabletAvailability. For use in testing UserFateStore
    */
-  public static void createFateTable(ClientContext client, String table) throws Exception {
+  public static void createFateTable(ClientContext client, ServerContext serverContext,
+      String table) throws Exception {
     final var fateTableProps =
-        client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
+        serverContext.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
     TabletAvailability availability;
-    try (var tabletStream = client.tableOperations()
+    try (var tabletStream = serverContext.tableOperations()
         .getTabletInformation(SystemTables.FATE.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());

@@ -232,7 +232,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       List<Entry<Key,Value>> metadataEntries = null;
       try (Scanner scanner2 =
-          client.createScanner(SystemTables.SCAN_REF.tableName(), Authorizations.EMPTY)) {
+          ctx.createScanner(SystemTables.SCAN_REF.tableName(), Authorizations.EMPTY)) {
         metadataEntries = scanner2.stream().distinct().collect(Collectors.toList());
       }
       assertEquals(fileCount, metadataEntries.size());
