@@ -334,6 +334,24 @@ public class WebViews {
    * @return GC model
    */
   @GET
+  @Path("fate")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getFate() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Fate Transaction Details");
+    model.put("template", "fate.ftl");
+    model.put("js", "fate.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the garbage collector template
+   *
+   * @return GC model
+   */
+  @GET
   @Path("gc")
   @Template(name = "/default.ftl")
   public Map<String,Object> getGC() {

@@ -40,6 +40,7 @@ const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
 const MESSAGE_CATEGORIES = 'messageCategories';
 const MESSAGES = 'messages';
+const FATE = 'fate';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -702,6 +703,14 @@ function getGroups() {
  */
 function getDeployment() {
   return getJSONForTable(REST_V2_PREFIX + '/deployment', 'deployment');
+}
+
+/**
+ * REST GET call for /fate,
+ * stores it on a sessionStorage variable
+ */
+function getFate() {
+  return getJSONForTable(REST_V2_PREFIX + '/fate', FATE);
 }
 
 function getServerProcessView(table, storageKey) {

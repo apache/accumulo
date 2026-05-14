@@ -64,6 +64,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.fate.AdminUtil.TransactionStatus;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metrics.Metric;
@@ -379,6 +383,10 @@ public class SystemInformation {
     Configuration, Table;
   }
 
+  public record FateTransaction(FateInstanceType type, FateOperation op, String id, TStatus status,
+      long created, List<String> heldLocks, List<String> waitingLocks, String lockRange) {
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -445,6 +453,8 @@ public class SystemInformation {
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
+  private final List<FateTransaction> fateTransactions = new ArrayList<>();
+
   private final AtomicLong timestamp = new AtomicLong(0);
   private final EnumMap<ServerId.Type,Status> componentStatuses =
       new EnumMap<>(ServerId.Type.class);
@@ -491,6 +501,7 @@ public class SystemInformation {
     componentStatuses.clear();
     managerGoalState = null;
     serverMetricsView.clear();
+    fateTransactions.clear();
   }
 
   private void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
@@ -680,6 +691,14 @@ public class SystemInformation {
       addMessage(Info, Table, "Tablet " + sti.getTabletId().toString() + " (tid: "
           + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
     }
+  }
+
+  public void processFateTransactions(List<TransactionStatus> transactions) {
+    transactions.forEach(t -> {
+      fateTransactions.add(new FateTransaction(t.getInstanceType(), t.getFateOp(),
+          t.getFateId().getTxUUIDStr(), t.getStatus(), t.getTimeCreated(), t.getHeldLocks(),
+          t.getWaitingLocks(), t.getLockRange().toString()));
+    });
   }
 
   public void processError(ServerId server) {
@@ -985,6 +1004,10 @@ public class SystemInformation {
 
   public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
     return this.messages;
+  }
+
+  public List<FateTransaction> getFateTransactions() {
+    return this.fateTransactions;
   }
 
   public long getTimestamp() {
