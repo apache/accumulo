@@ -521,6 +521,8 @@ public class SystemInformation {
 
   private final Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
       new EnumMap<>(MessagePriority.class);
+  private final EnumMap<MessagePriority,AtomicLong> messageCounts =
+      new EnumMap<>(MessagePriority.class);
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
@@ -538,6 +540,9 @@ public class SystemInformation {
     this.ctx = ctx;
     this.rgLongRunningCompactionSize =
         this.ctx.getConfiguration().getCount(Property.MONITOR_LONG_RUNNING_COMPACTION_LIMIT);
+    for (MessagePriority p : MessagePriority.values()) {
+      messageCounts.put(p, new AtomicLong(0));
+    }
   }
 
   public void clear() {
@@ -570,16 +575,25 @@ public class SystemInformation {
     componentStatuses.clear();
     managerGoalState = null;
     serverMetricsView.clear();
+    messageCounts.clear();
   }
 
   public void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
     messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
         .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
+    messageCounts.get(pri).incrementAndGet();
   }
 
   public void removeMessage(MessagePriority pri, MessageCategory cat, String part) {
     messages.getOrDefault(pri, new EnumMap<>(MessageCategory.class))
         .getOrDefault(cat, new HashSet<String>()).removeIf(s -> s.contains(part));
+    messageCounts.get(pri).updateAndGet(val -> {
+      if (val > 0) {
+        return val - 1;
+      } else {
+        return 0;
+      }
+    });
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -1350,6 +1364,10 @@ public class SystemInformation {
 
   public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
     return this.messages;
+  }
+
+  public Map<MessagePriority,AtomicLong> getMessageCounts() {
+    return this.messageCounts;
   }
 
   public long getTimestamp() {

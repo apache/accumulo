@@ -62,7 +62,7 @@
               </ul>
             </li>
             <li>
-              <a class="nav-link" aria-current="page" href="messages">Messages</a>
+              <a id="message-anchor" class="nav-link" aria-current="page" href="messages">Messages</a>
             </li>            
             <li class="dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"

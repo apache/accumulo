@@ -40,6 +40,7 @@ const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
 const MESSAGE_CATEGORIES = 'messageCategories';
 const MESSAGES = 'messages';
+const MESSAGE_COUNTS = 'messageCounts'
 const RECOVERY = 'recovery';
 
 // Override Length Menu options for dataTables
@@ -545,6 +546,14 @@ function getTserversSummary(group) {
  */
 function getMessageCategories() {
   return getJSONForTable(REST_V2_PREFIX + '/message/categories', MESSAGE_CATEGORIES);
+}
+
+/**
+ * REST GET call for /message/counts
+ * store it on a sessionStorage variable
+ */
+function getMessageCounts() {
+  return getJSONForTable(REST_V2_PREFIX + '/message/counts', MESSAGE_COUNTS);
 }
 
 /**
