@@ -19,12 +19,6 @@
 "use strict";
 
 const deploymentTable = '#deployment-table';
-const instanceCard = '#instance-card';
-const instanceName = '#instance-name';
-const instanceVolumes = '#instance-volumes';
-const instanceUUID = '#instance-uuid';
-const instanceVersion = '#instance-version';
-const instanceZooKeepers = '#instance-zookeepers';
 
 var deploymentBreakdown = [];
 
@@ -41,12 +35,7 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  getInstanceInfo().then(function () {
-    refreshInstanceInfo();
-  });
-  getDeployment().then(function () {
-    refreshDeploymentTables();
-  });
+  refreshDeploymentTables();
 }
 
 /**
@@ -56,32 +45,24 @@ function refresh() {
   refreshOverview();
 }
 
-function refreshInstanceInfo() {
-  const data = JSON.parse(sessionStorage.instance);
-  $(instanceVersion).text(data.version);
-  $(instanceName).text(data.instanceName);
-  $(instanceUUID).text(data.instanceUUID);
-  $(instanceZooKeepers).text(data.zooKeepers);
-  $(instanceVolumes).text(data.volumes);
-  $(instanceCard).removeClass('collapse');
-}
-
 /**
  * Refreshes the deployment overview tables
  */
 function refreshDeploymentTables() {
-  var data = JSON.parse(sessionStorage.deployment);
-  var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
-  deploymentBreakdown = breakdown;
+  getDeployment().then(function () {
+    var data = JSON.parse(sessionStorage.deployment);
+    var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+    deploymentBreakdown = breakdown;
 
-  if (breakdown.length === 0) {
-    $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
-      'No deployment data is currently available.</div>');
-  } else {
-    $('#deploymentWarning').empty();
-  }
+    if (breakdown.length === 0) {
+      $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
+        'No deployment data is currently available.</div>');
+    } else {
+      $('#deploymentWarning').empty();
+    }
 
-  renderDeploymentMatrix(breakdown);
+    renderDeploymentMatrix(breakdown);
+  });
 }
 
 function renderDeploymentMatrix(breakdown) {
