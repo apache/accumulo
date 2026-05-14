@@ -18,13 +18,16 @@
  */
 package org.apache.accumulo.manager.compaction.queue;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -33,6 +36,8 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CompactionJobQueues {
 
@@ -48,6 +53,9 @@ public class CompactionJobQueues {
       new ConcurrentHashMap<>();
 
   private volatile long queueSize;
+
+  private final AtomicReference<Set<ResourceGroupId>> allowedGroups =
+      new AtomicReference<>(Set.of());
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
 
@@ -89,7 +97,7 @@ public class CompactionJobQueues {
     }
   }
 
-  public KeySetView<ResourceGroupId,CompactionJobPriorityQueue> getQueueIds() {
+  public Set<ResourceGroupId> getQueueIds() {
     return priorityQueues.keySet();
   }
 
@@ -98,12 +106,12 @@ public class CompactionJobQueues {
   }
 
   public long getQueueMaxSize(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
+    var prioQ = getQueue(groupId);
     return prioQ == null ? 0 : prioQ.getMaxSize();
   }
 
   public long getQueuedJobs(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
+    var prioQ = getQueue(groupId);
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
@@ -119,8 +127,20 @@ public class CompactionJobQueues {
     return count;
   }
 
+  private CompactionJobPriorityQueue getOrCreateQueue(ResourceGroupId groupId) {
+    var pq = priorityQueues.computeIfAbsent(groupId, gid -> {
+      if (allowedGroups.get().contains(gid)) {
+        return new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER);
+      } else {
+        return null;
+      }
+    });
+
+    return pq;
+  }
+
   public CompactionJob poll(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
+    var prioQ = getQueue(groupId);
     if (prioQ == null) {
       return null;
     }
@@ -136,13 +156,37 @@ public class CompactionJobQueues {
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
     }
 
-    var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
+    var pq = getOrCreateQueue(groupId);
+    if (pq == null) {
+      log.trace("Ignored request to add jobs extent:{} group:{} #jobs:{}", extent, groupId,
+          jobs.size());
+      return;
+    }
     pq.add(extent, jobs, currentGenerations.get(DataLevel.of(extent.tableId())).get());
   }
 
   public void resetMaxSize(long size) {
     this.queueSize = size;
     priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(this.queueSize));
+  }
+
+  @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET",
+      justification = "reads from atomic ref in getter, setter only wants one thread cleaning queues so it syncs")
+  public Set<ResourceGroupId> getAllowedGroups() {
+    return allowedGroups.get();
+  }
+
+  public synchronized void setAllowedGroups(Set<ResourceGroupId> groups) {
+    var snapshot = Set.copyOf(requireNonNull(groups));
+
+    allowedGroups.set(snapshot);
+
+    priorityQueues.forEach((rg, pq) -> {
+      if (!snapshot.contains(rg)) {
+        pq.clear();
+      }
+    });
+
+    priorityQueues.keySet().removeIf(rg -> !snapshot.contains(rg));
   }
 }

@@ -49,7 +49,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.server.AccumuloDataVersion;
+import org.apache.accumulo.manager.upgrade.UpgradeCheck;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -68,6 +68,7 @@ public class FateWorker implements FateWorkerService.Iface {
   private final LiveTServerSet liveTserverSet;
   private final FateFactory fateFactory;
   private final Map<FateInstanceType,Fate<FateEnv>> fates = new ConcurrentHashMap<>();
+  private final UpgradeCheck upgradeCheck;
 
   public interface FateFactory {
     Fate<FateEnv> create(FateEnv env, FateStore<FateEnv> store, ServerContext context);
@@ -78,6 +79,7 @@ public class FateWorker implements FateWorkerService.Iface {
     this.security = ctx.getSecurityOperation();
     this.liveTserverSet = liveTServerSet;
     this.fateFactory = fateFactory;
+    this.upgradeCheck = new UpgradeCheck(ctx);
   }
 
   public synchronized void setLock(ServiceLock lock) {
@@ -121,18 +123,6 @@ public class FateWorker implements FateWorkerService.Iface {
     }
   }
 
-  private boolean upgradeComplete = false;
-
-  // Checks in persistent storage if upgrade is complete. Once it sees its complete remembers this
-  // and stops checking.
-  private synchronized boolean isUpgradeComplete() {
-    if (!upgradeComplete) {
-      upgradeComplete = AccumuloDataVersion.getCurrentVersion(context) >= AccumuloDataVersion.get();
-    }
-
-    return upgradeComplete;
-  }
-
   @Override
   public boolean setPartitions(TInfo tinfo, TCredentials credentials, long updateId,
       List<TFatePartition> desired) throws ThriftSecurityException {
@@ -143,7 +133,7 @@ public class FateWorker implements FateWorkerService.Iface {
 
     synchronized (this) {
       // The primary manager should not assign any fate partitions until after upgrade is complete.
-      Preconditions.checkState(isUpgradeComplete());
+      Preconditions.checkState(upgradeCheck.isUpgradeComplete());
 
       if (expectedUpdateId != null && updateId == expectedUpdateId) {
         // Set to null which makes it so that an update id can only be used once.
