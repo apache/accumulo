@@ -179,11 +179,13 @@ function initTabletsTable() {
 function initTabletServersTable() {
   tabletServersTable = $('#tabletServersList').DataTable({
     "stateSave": true,
+    "colReorder": true,
     "searching": false,
     "paging": false,
     "info": false,
     "order": [
-      [0, 'asc']
+      // Sort by tablet count to surface uneven tablet distribution.
+      [1, 'asc']
     ],
     "columnDefs": [{
         "targets": "big-num",
@@ -205,12 +207,12 @@ function initTabletServersTable() {
       }
     ],
     "columns": [{
-        "data": "tabletCount",
-        "title": "Tablet Count"
-      },
-      {
         "data": "tabletServer",
         "title": "Tablet Server"
+      },
+      {
+        "data": "tabletCount",
+        "title": "Tablet Count"
       },
       {
         "data": "estimatedEntries",

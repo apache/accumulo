@@ -63,8 +63,8 @@
             <caption><span class="table-caption">Tablet Distribution Summary</span></caption>
             <thead>
               <tr>
-                <th class="big-num">Tablet Count</th>
                 <th>Tablet Server</th>
+                <th class="big-num">Tablet Count</th>
                 <th class="big-num">Estimated Entries</th>
                 <th class="big-size">Estimated Size</th>
                 <th class="big-num">Files</th>
