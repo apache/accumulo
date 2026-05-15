@@ -904,17 +904,19 @@ public class Manager extends AbstractServer
   // This is called after getting the primary manager lock
   private void setupPrimaryMetrics() {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
-    // ensure all tablet group watchers are setup
-    Preconditions.checkState(watchers.size() == DataLevel.values().length);
-    watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
-    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
-    // ensure fate is completely setup
-    metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
-        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
-        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    metricsInfo.addMetricsProducers(this);
+    if (metricsInfo.isMetricsEnabled()) {
+      metricsInfo.addMetricsProducers(balanceManager.getMetrics());
+      // ensure all tablet group watchers are setup
+      Preconditions.checkState(watchers.size() == DataLevel.values().length);
+      watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
+      metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
+      // ensure fate is completely setup
+      metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+      metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+      metricsInfo.addMetricsProducers(this);
+    }
   }
 
   @Override

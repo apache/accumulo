@@ -26,7 +26,6 @@
     </div>    
     <div class="row">
       <div class="col-xs-12">
-        <span id="recovery-caption" style="background-color: gold; display: none;">Highlighted rows correspond to tservers in recovery mode.</span>
         <table id="tservers" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Tablet Servers</span><br />
             <span class="table-subcaption">The following Tablet Servers reported status.</span><br />
