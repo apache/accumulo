@@ -52,6 +52,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -172,6 +173,30 @@ import io.opentelemetry.context.Scope;
 public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
     CurrentState, HighlyAvailableService, ServerProcessService.Iface {
 
+  private final class MergeLocks {
+
+    private final Object lock = new Object();
+    private Map<TableId,ReentrantLock> lockStorage = new HashMap<TableId,ReentrantLock>();
+
+    private ReentrantLock getLock(TableId tid) {
+      synchronized (lock) {
+        return lockStorage.computeIfAbsent(tid, k -> new ReentrantLock(true));
+      }
+    }
+
+    private void cleanup() {
+      synchronized (lock) {
+        Set<TableId> removals = new HashSet<>();
+        for (Entry<TableId,ReentrantLock> e : lockStorage.entrySet()) {
+          if (!getContext().tableNodeExists(e.getKey()) && !e.getValue().isLocked()) {
+            removals.add(e.getKey());
+          }
+        }
+        removals.forEach(lockStorage::remove);
+      }
+    }
+  }
+
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   // When in safe mode totalAssignedOrHosted() is called every 10s
@@ -201,8 +226,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
+  private final MergeLocks mergeLocks = new MergeLocks();
   final EventCoordinator nextEvent = new EventCoordinator();
-  private final Object mergeLock = new Object();
   private Thread replicationWorkThread;
   private Thread replicationAssignerThread;
   RecoveryManager recoveryManager = null;
@@ -477,7 +502,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   public MergeInfo getMergeInfo(TableId tableId) {
     ServerContext context = getContext();
-    synchronized (mergeLock) {
+    mergeLocks.getLock(tableId).lock();
+    try {
       try {
         String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
         if (!context.getZooReaderWriter().exists(path)) {
@@ -496,15 +522,18 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         log.warn("Unexpected error reading merge state", ex);
         return new MergeInfo();
       }
+    } finally {
+      mergeLocks.getLock(tableId).unlock();
     }
   }
 
   public void setMergeState(MergeInfo info, MergeState state)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
-    synchronized (mergeLock) {
-      String path =
-          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().tableId() + "/merge";
+    final TableId tid = info.getExtent().tableId();
+    mergeLocks.getLock(tid).lock();
+    try {
+      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tid + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -519,16 +548,19 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
                 : ZooUtil.NodeExistsPolicy.OVERWRITE);
       }
-      mergeLock.notifyAll();
+    } finally {
+      mergeLocks.getLock(tid).unlock();
     }
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
-    synchronized (mergeLock) {
+    mergeLocks.getLock(tableId).lock();
+    try {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
-      mergeLock.notifyAll();
+    } finally {
+      mergeLocks.getLock(tableId).unlock();
     }
     nextEvent.event("Merge state of %s cleared", tableId);
   }
@@ -1478,6 +1510,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
+
+    ThreadPools.watchCriticalScheduledTask(
+        context.getScheduledExecutor().scheduleWithFixedDelay(mergeLocks::cleanup, 3, 3, HOURS));
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
