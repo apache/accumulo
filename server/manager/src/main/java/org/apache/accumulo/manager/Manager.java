@@ -502,7 +502,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   public MergeInfo getMergeInfo(TableId tableId) {
     ServerContext context = getContext();
-    mergeLocks.getLock(tableId).lock();
+    final ReentrantLock l = mergeLocks.getLock(tableId);
+    l.lock();
     try {
       try {
         String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
@@ -523,7 +524,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         return new MergeInfo();
       }
     } finally {
-      mergeLocks.getLock(tableId).unlock();
+      l.unlock();
     }
   }
 
@@ -531,7 +532,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     final TableId tid = info.getExtent().tableId();
-    mergeLocks.getLock(tid).lock();
+    final ReentrantLock l = mergeLocks.getLock(tid);
+    l.lock();
     try {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tid + "/merge";
       info.setState(state);
@@ -549,18 +551,19 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                 : ZooUtil.NodeExistsPolicy.OVERWRITE);
       }
     } finally {
-      mergeLocks.getLock(tid).unlock();
+      l.unlock();
     }
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
-    mergeLocks.getLock(tableId).lock();
+    final ReentrantLock l = mergeLocks.getLock(tableId);
+    l.lock();
     try {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
     } finally {
-      mergeLocks.getLock(tableId).unlock();
+      l.unlock();
     }
     nextEvent.event("Merge state of %s cleared", tableId);
   }
