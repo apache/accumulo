@@ -218,6 +218,21 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
+  public void replaceAll(@NonNull PropStoreKey propStoreKey, Map<String,String> expected,
+      @NonNull Map<String,String> props) {
+    BiFunction<VersionedProperties,Map<String,String>,VersionedProperties> action =
+        (current, p) -> {
+          if (!current.asMap().equals(expected)) {
+            throw new ConcurrentModificationException(
+                "Current properties do not match expected, key:" + propStoreKey);
+          }
+          return current.replaceAll(p);
+        };
+
+    mutateVersionedProps(propStoreKey, action, props);
+  }
+
+  @Override
   public void replaceAll(@NonNull PropStoreKey propStoreKey, long version,
       @NonNull Map<String,String> props) {
     mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
