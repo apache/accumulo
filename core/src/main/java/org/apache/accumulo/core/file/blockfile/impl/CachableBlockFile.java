@@ -183,13 +183,18 @@ public class CachableBlockFile {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {
+        IOException ioe = null;
         RateLimitedInputStream fsIn =
             new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
         BCFile.Reader tmpReader = null;
         byte[] serializedMetadata = cachedMetadataSupplier.get();
         if (serializedMetadata == null) {
           if (fileLenCache == null) {
-            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
+            try {
+              tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
+            } catch (IOException e) {
+              ioe = e;
+            }
           } else {
             long len = getCachedFileLen();
             try {
@@ -201,11 +206,23 @@ public class CachableBlockFile {
 
             if (tmpReader == null) {
               len = getCachedFileLen();
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              try {
+                tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              } catch (IOException e) {
+                ioe = e;
+              }
             }
           }
         } else {
           tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
+        }
+
+        if (ioe != null) {
+          fsIn.close();
+          if (fileLenCache != null) {
+            fileLenCache.invalidate(cacheId);
+          }
+          throw new IOException("Error creating BCFile.Reader", ioe);
         }
 
         if (bcfr.compareAndSet(null, tmpReader)) {
@@ -213,7 +230,9 @@ public class CachableBlockFile {
           return tmpReader;
         } else {
           fsIn.close();
-          tmpReader.close();
+          if (tmpReader != null) {
+            tmpReader.close();
+          }
           return bcfr.get();
         }
       }
