@@ -186,8 +186,8 @@ public class CachableBlockFile {
         RateLimitedInputStream fsIn =
             new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
         BCFile.Reader tmpReader = null;
-        byte[] serializedMetadata = cachedMetadataSupplier.get();
         try {
+          byte[] serializedMetadata = cachedMetadataSupplier.get();
           if (serializedMetadata == null) {
             if (fileLenCache == null) {
               tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
