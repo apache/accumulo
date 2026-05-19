@@ -186,26 +186,34 @@ public class CachableBlockFile {
         RateLimitedInputStream fsIn =
             new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
         BCFile.Reader tmpReader = null;
-        byte[] serializedMetadata = cachedMetadataSupplier.get();
-        if (serializedMetadata == null) {
-          if (fileLenCache == null) {
-            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
-          } else {
-            long len = getCachedFileLen();
-            try {
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
-            } catch (Exception e) {
-              log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
-              fileLenCache.invalidate(cacheId);
-            }
+        try {
+          byte[] serializedMetadata = cachedMetadataSupplier.get();
+          if (serializedMetadata == null) {
+            if (fileLenCache == null) {
+              tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
+            } else {
+              long len = getCachedFileLen();
+              try {
+                tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              } catch (Exception e) {
+                log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
+                fileLenCache.invalidate(cacheId);
+              }
 
-            if (tmpReader == null) {
-              len = getCachedFileLen();
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              if (tmpReader == null) {
+                len = getCachedFileLen();
+                tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              }
             }
+          } else {
+            tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
           }
-        } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
+        } catch (IOException | RuntimeException e) {
+          fsIn.close();
+          if (fileLenCache != null) {
+            fileLenCache.invalidate(cacheId);
+          }
+          throw e;
         }
 
         if (bcfr.compareAndSet(null, tmpReader)) {
