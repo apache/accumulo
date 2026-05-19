@@ -156,6 +156,7 @@ $(function () {
   categories = getStoredArray(MESSAGE_CATEGORIES);
   if (categories.length === 0) {
     getMessageCategories().then(function () {
+      categories = getStoredArray(MESSAGE_CATEGORIES);
       updateMessageCategories();
     });
   } else {
@@ -193,19 +194,21 @@ function refreshSideBarNotifications() {
 }
 
 /**
- * Set the theme based on the user
- * preferences
+ * Returns the effective dark theme preference.
  */
-function setTheme() {
-  var setDarkMode = false;
+function isDarkThemeEnabled() {
   var storedValue = localStorage.getItem("dark-theme-enabled");
   if (storedValue === null) {
-    setDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  } else {
-    setDarkMode = storedValue === 'true';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
+  return storedValue === 'true';
+}
 
-  if (setDarkMode === true) {
+/**
+ * Set the theme based on the user preferences
+ */
+function setTheme() {
+  if (isDarkThemeEnabled() === true) {
     document.documentElement.setAttribute('data-bs-theme', 'dark');
   } else {
     document.documentElement.setAttribute('data-bs-theme', 'light');
@@ -218,9 +221,8 @@ function setTheme() {
 function updateDarkThemeSwitch() {
   var storageKey = "dark-theme-enabled";
   var darkThemeSwitchElement = $('#darkThemeSwitch');
-  var savedValue = localStorage.getItem(storageKey);
 
-  if (savedValue === 'true') {
+  if (isDarkThemeEnabled() === true) {
     darkThemeSwitchElement.prop('checked', true);
   } else {
     darkThemeSwitchElement.prop('checked', false);
@@ -252,7 +254,7 @@ function updateMessagePriorities() {
 
     $(switchElement).on("change", function () {
       localStorage.setItem("msg-pri-switch-" + pri + "-state", $(this).is(':checked'));
-      if (window.location.pathname == '/messages') {
+      if (window.location.pathname.endsWith('/messages')) {
         refresh();
       }
     });
@@ -284,13 +286,13 @@ function updateMessageCategories() {
       var li = $(document.createElement("li"));
 
       var outerDiv = $(document.createElement("div"));
-      outerDiv.addClass("dropdown-item d-flex justify-content-between align-items-center");
+      outerDiv.addClass("dropdown-item d-flex justify-content-between align-items-center small");
 
       var div = $(document.createElement("div"));
-      div.addClass("form-check form-switch mb-0 ms-3");
+      div.addClass("form-check form-switch d-flex align-items-center mb-0 p-0 fs-6");
 
       var input = $(document.createElement("input"));
-      input.addClass("form-check-input mt-0");
+      input.addClass("form-check-input float-none m-0");
       input.attr("type", "checkbox");
       input.attr("role", "switch");
       input.attr("id", switchId);
@@ -303,14 +305,14 @@ function updateMessageCategories() {
 
       input.on("change", function () {
         localStorage.setItem("msg-cat-switch-" + cat + "-state", $(this).is(':checked'));
-        if (window.location.pathname == '/messages') {
+        if (window.location.pathname.endsWith('/messages')) {
           refresh();
         }
       });
       div.append(input);
 
       var label = $(document.createElement("label"));
-      label.addClass("mb-0");
+      label.addClass("form-check-label");
       label.attr("for", switchId);
       label.text(cat);
 
