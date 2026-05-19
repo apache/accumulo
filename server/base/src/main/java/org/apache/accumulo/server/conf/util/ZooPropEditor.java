@@ -76,7 +76,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   @Override
   public String keyword() {
-    return "zoo-prop-editor";
+    return "prop-editor";
   }
 
   @Override

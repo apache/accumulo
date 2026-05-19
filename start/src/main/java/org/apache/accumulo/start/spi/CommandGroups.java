@@ -260,12 +260,12 @@ public class CommandGroups {
 
     @Override
     public String title() {
-      return "Zookeeper";
+      return "ZooKeeper";
     }
 
     @Override
     public String description() {
-      return "Zookeeper related commands";
+      return "ZooKeeper related commands";
     }
   }
 

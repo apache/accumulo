@@ -65,12 +65,12 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
 
   @Override
   public String keyword() {
-    return "zoo-zap";
+    return "zap";
   }
 
   @Override
   public String description() {
-    return "Utility for zapping Zookeeper locks";
+    return "Utility for zapping ZooKeeper locks";
   }
 
   @Override

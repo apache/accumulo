@@ -185,7 +185,7 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "binary-rows", TestBinaryRows.class));
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "cancel", CancelCompaction.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "change-secret", ChangeSecret.class));
-    expectSet.add(new CommandInfo(CommandGroups.CHECK, "check", SystemCheck.class));
+    expectSet.add(new CommandInfo(CommandGroups.CHECK, "system", SystemCheck.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-accumulo-properties",
         CheckAccumuloProperties.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-compaction-config",
@@ -196,7 +196,7 @@ public class KeywordStartIT {
     expectSet
         .add(new CommandInfo(CommandGroups.INSTANCE, "delete-instance", DeleteZooInstance.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-config", DumpConfig.class));
-    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "dump-zoo", DumpZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "dump", DumpZookeeper.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "import", ImportConfigCommand.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "export", ExportConfigCommand.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "fate", Fate.class));
@@ -232,8 +232,7 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "random-writer", RandomWriter.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "remove-scan-server-references",
         ScanServerMetadataEntries.class));
-    expectSet
-        .add(new CommandInfo(CommandGroups.ZOOKEEPER, "restore-zookeeper", RestoreZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "restore", RestoreZookeeper.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "rfile-info", PrintInfo.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "service-status", ServiceStatus.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "shell", Shell.class));
@@ -251,10 +250,10 @@ public class KeywordStartIT {
         VerifyTabletAssignments.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "version", Version.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "wal-info", LogReader.class));
-    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zoo-info-viewer", ZooInfoViewer.class));
-    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zoo-prop-editor", ZooPropEditor.class));
-    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zoo-zap", ZooZap.class));
-    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zk-cli", ZooKeeperMain.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "info-viewer", ZooInfoViewer.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "prop-editor", ZooPropEditor.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zap", ZooZap.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "cli", ZooKeeperMain.class));
 
     Map<CommandGroup,Map<String,KeywordExecutable>> actualExecutables = getKeywordExecutables();
     SortedSet<CommandInfo> actualSet = new TreeSet<>();
