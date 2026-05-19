@@ -347,9 +347,9 @@ public class WebViews {
   }
 
   /**
-   * Returns the garbage collector template
+   * Returns the Fate template
    *
-   * @return GC model
+   * @return Fate model
    */
   @GET
   @Path("fate")
