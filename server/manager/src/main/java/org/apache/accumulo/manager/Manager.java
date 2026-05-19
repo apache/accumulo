@@ -158,6 +158,9 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -172,30 +175,6 @@ import io.opentelemetry.context.Scope;
  */
 public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
     CurrentState, HighlyAvailableService, ServerProcessService.Iface {
-
-  private final class MergeLocks {
-
-    private final Object lock = new Object();
-    private Map<TableId,ReentrantLock> lockStorage = new HashMap<TableId,ReentrantLock>();
-
-    private ReentrantLock getLock(TableId tid) {
-      synchronized (lock) {
-        return lockStorage.computeIfAbsent(tid, k -> new ReentrantLock(true));
-      }
-    }
-
-    private void cleanup() {
-      synchronized (lock) {
-        Set<TableId> removals = new HashSet<>();
-        for (Entry<TableId,ReentrantLock> e : lockStorage.entrySet()) {
-          if (!getContext().tableNodeExists(e.getKey()) && !e.getValue().isLocked()) {
-            removals.add(e.getKey());
-          }
-        }
-        removals.forEach(lockStorage::remove);
-      }
-    }
-  }
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -226,7 +205,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
-  private final MergeLocks mergeLocks = new MergeLocks();
+
+  private final LoadingCache<String,ReentrantLock> mergeLocks = Caffeine.newBuilder().weakValues()
+      .scheduler(Scheduler.systemScheduler()).build(k -> new ReentrantLock());
+
   final EventCoordinator nextEvent = new EventCoordinator();
   private Thread replicationWorkThread;
   private Thread replicationAssignerThread;
@@ -502,7 +484,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   public MergeInfo getMergeInfo(TableId tableId) {
     ServerContext context = getContext();
-    final ReentrantLock l = mergeLocks.getLock(tableId);
+    final ReentrantLock l = mergeLocks.get(tableId.canonical());
     l.lock();
     try {
       try {
@@ -532,7 +514,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     final TableId tid = info.getExtent().tableId();
-    final ReentrantLock l = mergeLocks.getLock(tid);
+    final ReentrantLock l = mergeLocks.get(tid.canonical());
     l.lock();
     try {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tid + "/merge";
@@ -557,7 +539,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
-    final ReentrantLock l = mergeLocks.getLock(tableId);
+    final ReentrantLock l = mergeLocks.get(tableId.canonical());
     l.lock();
     try {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
@@ -1513,9 +1495,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
-
-    ThreadPools.watchCriticalScheduledTask(
-        context.getScheduledExecutor().scheduleWithFixedDelay(mergeLocks::cleanup, 3, 3, HOURS));
 
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
