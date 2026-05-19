@@ -58,6 +58,8 @@ const NAVBAR_COMPONENTS = [{
   countId: 'compactorStatusCount'
 }];
 
+var categories;
+
 /**
  * Remove other bootstrap color classes and add the given class to the given element
  * @param {string} elementId the element id to update
@@ -148,8 +150,19 @@ function updateServerNotifications(statusData) {
 $(function () {
   setTheme();
   updateDarkThemeSwitch();
+  updateMessagePriorities();
   refreshSidebar();
   refreshMessageBadge();
+
+  categories = getStoredArray(MESSAGE_CATEGORIES);
+  if (categories.length === 0) {
+    getMessageCategories().then(function () {
+      categories = getStoredArray(MESSAGE_CATEGORIES);
+      updateMessageCategories();
+    });
+  } else {
+    updateMessageCategories();
+  }
 });
 
 /**
@@ -183,19 +196,21 @@ function refreshSideBarNotifications() {
 }
 
 /**
- * Set the theme based on the user
- * preferences
+ * Returns the effective dark theme preference.
  */
-function setTheme() {
-  var setDarkMode = false;
+function isDarkThemeEnabled() {
   var storedValue = localStorage.getItem("dark-theme-enabled");
   if (storedValue === null) {
-    setDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  } else {
-    setDarkMode = storedValue === 'true';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
+  return storedValue === 'true';
+}
 
-  if (setDarkMode === true) {
+/**
+ * Set the theme based on the user preferences
+ */
+function setTheme() {
+  if (isDarkThemeEnabled() === true) {
     document.documentElement.setAttribute('data-bs-theme', 'dark');
   } else {
     document.documentElement.setAttribute('data-bs-theme', 'light');
@@ -208,9 +223,8 @@ function setTheme() {
 function updateDarkThemeSwitch() {
   var storageKey = "dark-theme-enabled";
   var darkThemeSwitchElement = $('#darkThemeSwitch');
-  var savedValue = localStorage.getItem(storageKey);
 
-  if (savedValue === 'true') {
+  if (isDarkThemeEnabled() === true) {
     darkThemeSwitchElement.prop('checked', true);
   } else {
     darkThemeSwitchElement.prop('checked', false);
@@ -250,4 +264,94 @@ function refreshMessageBadge() {
         highMsgCount + '</span>');
     }
   });
+}
+
+/**
+ * Update the High and Info Message Category Switches
+ */
+function updateMessagePriorities() {
+  var messagePriorities = ['High', 'Info'];
+  $.each(messagePriorities, function (index, pri) {
+    var switchId = "msg-pri-switch-" + pri;
+    var switchElement = "#" + switchId;
+    var savedValue = localStorage.getItem(switchId + "-state");
+
+    // update it
+    if (savedValue === null || savedValue === 'true') {
+      $(switchElement).prop('checked', true);
+    } else {
+      $(switchElement).prop('checked', false);
+    }
+
+    $(switchElement).on("change", function () {
+      localStorage.setItem("msg-pri-switch-" + pri + "-state", $(this).is(':checked'));
+      if (window.location.pathname.endsWith('/messages')) {
+        refresh();
+      }
+    });
+  });
+}
+
+/**
+ * Update the High and Info Message Category Switches
+ */
+function updateMessageCategories() {
+  const messageCategoryList = '#categories-list';
+
+  var categoryList = $(messageCategoryList);
+  $.each(categories, function (index, cat) {
+
+    var switchId = "msg-cat-switch-" + cat;
+    var switchElement = "#" + switchId;
+    var savedValue = localStorage.getItem(switchId + "-state");
+
+    if ($(switchElement).length) {
+      // update it
+      if (savedValue === null || savedValue === 'true') {
+        $(switchElement).prop('checked', true);
+      } else {
+        $(switchElement).prop('checked', false);
+      }
+    } else {
+      // create it
+      var li = $(document.createElement("li"));
+
+      var outerDiv = $(document.createElement("div"));
+      outerDiv.addClass("dropdown-item d-flex justify-content-between align-items-center small");
+
+      var div = $(document.createElement("div"));
+      div.addClass("form-check form-switch d-flex align-items-center mb-0 p-0 fs-6");
+
+      var input = $(document.createElement("input"));
+      input.addClass("form-check-input float-none m-0");
+      input.attr("type", "checkbox");
+      input.attr("role", "switch");
+      input.attr("id", switchId);
+
+      if (savedValue === null || savedValue === 'true') {
+        input.prop('checked', true);
+      } else {
+        input.prop('checked', false);
+      }
+
+      input.on("change", function () {
+        localStorage.setItem("msg-cat-switch-" + cat + "-state", $(this).is(':checked'));
+        if (window.location.pathname.endsWith('/messages')) {
+          refresh();
+        }
+      });
+      div.append(input);
+
+      var label = $(document.createElement("label"));
+      label.addClass("form-check-label");
+      label.attr("for", switchId);
+      label.text(cat);
+
+      outerDiv.append(label);
+      outerDiv.append(div);
+      li.append(outerDiv);
+      categoryList.append(li);
+    }
+  });
+
 }
