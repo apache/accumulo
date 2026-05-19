@@ -183,46 +183,37 @@ public class CachableBlockFile {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {
-        IOException ioe = null;
         RateLimitedInputStream fsIn =
             new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
         BCFile.Reader tmpReader = null;
         byte[] serializedMetadata = cachedMetadataSupplier.get();
-        if (serializedMetadata == null) {
-          if (fileLenCache == null) {
-            try {
+        try {
+          if (serializedMetadata == null) {
+            if (fileLenCache == null) {
               tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
-            } catch (IOException e) {
-              ioe = e;
-            }
-          } else {
-            long len = getCachedFileLen();
-            try {
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
-            } catch (Exception e) {
-              log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
-              fileLenCache.invalidate(cacheId);
-            }
-
-            if (tmpReader == null) {
-              len = getCachedFileLen();
+            } else {
+              long len = getCachedFileLen();
               try {
                 tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
-              } catch (IOException e) {
-                ioe = e;
+              } catch (Exception e) {
+                log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
+                fileLenCache.invalidate(cacheId);
+              }
+
+              if (tmpReader == null) {
+                len = getCachedFileLen();
+                tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
               }
             }
+          } else {
+            tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
           }
-        } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
-        }
-
-        if (ioe != null) {
+        } catch (IOException | RuntimeException e) {
           fsIn.close();
           if (fileLenCache != null) {
             fileLenCache.invalidate(cacheId);
           }
-          throw new IOException("Error creating BCFile.Reader", ioe);
+          throw e;
         }
 
         if (bcfr.compareAndSet(null, tmpReader)) {
@@ -230,9 +221,7 @@ public class CachableBlockFile {
           return tmpReader;
         } else {
           fsIn.close();
-          if (tmpReader != null) {
-            tmpReader.close();
-          }
+          tmpReader.close();
           return bcfr.get();
         }
       }
