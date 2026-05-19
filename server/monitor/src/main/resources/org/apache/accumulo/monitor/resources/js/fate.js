@@ -85,7 +85,7 @@ function createDataTable() {
       },
       {
         "data": "lockRange",
-        "title": "Lock Range"
+        "title": "Lock Range Type"
       }
     ]
   });

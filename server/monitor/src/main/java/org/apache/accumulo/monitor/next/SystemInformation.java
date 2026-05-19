@@ -461,8 +461,12 @@ public class SystemInformation {
     }
   }
 
+  public enum LockRangeType {
+    FULL, PARTIAL;
+  }
+
   public record FateTransaction(FateInstanceType type, FateOperation op, String id, TStatus status,
-      long created, List<String> heldLocks, List<String> waitingLocks, String lockRange) {
+      long created, List<String> heldLocks, List<String> waitingLocks, LockRangeType lockRange) {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
@@ -900,9 +904,10 @@ public class SystemInformation {
 
   public void processFateTransactions(List<TransactionStatus> transactions) {
     transactions.forEach(t -> {
-      fateTransactions.add(new FateTransaction(t.getInstanceType(), t.getFateOp(),
-          t.getFateId().getTxUUIDStr(), t.getStatus(), t.getTimeCreated(), t.getHeldLocks(),
-          t.getWaitingLocks(), t.getLockRange().toString()));
+      fateTransactions
+          .add(new FateTransaction(t.getInstanceType(), t.getFateOp(), t.getFateId().getTxUUIDStr(),
+              t.getStatus(), t.getTimeCreated(), t.getHeldLocks(), t.getWaitingLocks(),
+              t.getLockRange().isInfinite() ? LockRangeType.FULL : LockRangeType.PARTIAL));
     });
   }
 
