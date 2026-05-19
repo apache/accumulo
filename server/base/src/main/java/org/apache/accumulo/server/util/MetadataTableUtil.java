@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -179,6 +180,48 @@ public class MetadataTableUtil {
     return new Pair<>(result, sizes);
   }
 
+  private static void markTabletFilesAsShared(ServerContext ctx, TabletMetadata srcTablet) {
+    if (srcTablet.getFiles().isEmpty()) {
+      return;
+    }
+
+    Map<StoredTabletFile,DataFileValue> currentFilesMap = srcTablet.getFilesMap();
+
+    // Skip if all files are already shared
+    boolean anyNonShared = currentFilesMap.values().stream().anyMatch(dfv -> !dfv.isShared());
+    if (!anyNonShared) {
+      return;
+    }
+
+    try (var conditionalMutator = ctx.getAmple().conditionallyMutateTablets()) {
+      var tabletMutator = conditionalMutator.mutateTablet(srcTablet.getExtent())
+          .requireAbsentOperation().requireFiles(currentFilesMap);
+
+      // Write updated DataFileValues with shared=true for any non-shared files
+      for (var entry : currentFilesMap.entrySet()) {
+        StoredTabletFile file = entry.getKey();
+        DataFileValue dfv = entry.getValue();
+        if (!dfv.isShared()) {
+          DataFileValue sharedDfv = new DataFileValue(dfv.getSize(), dfv.getNumEntries(),
+              dfv.isTimeSet() ? dfv.getTime() : -1, true);
+          tabletMutator.putFile(file, sharedDfv);
+          log.debug("Marking file {} as shared in source tablet {} (conditional)",
+              file.getFileName(), srcTablet.getExtent());
+        }
+      }
+
+      tabletMutator.submit(tm -> false, () -> "mark source files as shared for clone");
+
+      var result = conditionalMutator.process().get(srcTablet.getExtent());
+      if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
+        log.debug(
+            "Conditional mutation to mark files as shared was rejected for tablet {} — "
+                + "tablet changed concurrently, clone will retry for this tablet",
+            srcTablet.getExtent());
+      }
+    }
+  }
+
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
       Iterable<Entry<Key,Value>> tablet) {
 
@@ -191,7 +234,12 @@ public class MetadataTableUtil {
         if (!cf.startsWith("../") && !cf.contains(":")) {
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
         }
-        m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
+
+        DataFileValue ogVal = new DataFileValue(entry.getValue().get());
+        DataFileValue newSharedVal = new DataFileValue(ogVal.getSize(), ogVal.getNumEntries(),
+            ogVal.isTimeSet() ? ogVal.getTime() : -1, true);
+
+        m.put(entry.getKey().getColumnFamily(), new Text(cf), newSharedVal.encodeAsValue());
       } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
         m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
       } else if (entry.getKey().getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
@@ -350,6 +398,11 @@ public class MetadataTableUtil {
       while (true) {
 
         try {
+          try (TabletsMetadata tabletsMetadata = createCloneScanner(null, srcTableId, context)) {
+            for (TabletMetadata tablet : tabletsMetadata) {
+              markTabletFilesAsShared(context, tablet);
+            }
+          }
           initializeClone(null, srcTableId, tableId, context, bw);
 
           // the following loop looks changes in the file that occurred during the copy.. if files
