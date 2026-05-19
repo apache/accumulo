@@ -28,7 +28,6 @@ import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -57,11 +56,9 @@ import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
@@ -427,8 +424,6 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   class FateTransactionFetcher implements UpdateTask<Void> {
 
     private final SystemInformation summary;
-    private Map<FateId,List<String>> emptyLocks = new HashMap<>();
-    private Map<FateId,LockRange> emptyRanges = new HashMap<>();
 
     public FateTransactionFetcher(SystemInformation summary) {
       this.summary = summary;
@@ -436,9 +431,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     @Override
     public void run() {
-      FateStatus status = AdminUtil.getTransactionStatus(stores, null, null, null, emptyLocks,
-          emptyLocks, emptyRanges);
-      summary.processFateTransactions(status.getTransactions());
+      try {
+        AdminUtil<Fate> admin = new AdminUtil<>();
+        var zTableLocksPath = ctx.getServerPaths().createTableLocksPath();
+        var zk = ctx.getZooSession();
+        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null);
+        summary.processFateTransactions(status.getTransactions());
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
     }
 
     @Override
