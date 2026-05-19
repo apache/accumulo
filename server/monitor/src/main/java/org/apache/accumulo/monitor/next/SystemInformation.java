@@ -581,19 +581,27 @@ public class SystemInformation {
   public void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
     messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
         .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
-    messageCounts.get(pri).incrementAndGet();
   }
 
   public void removeMessage(MessagePriority pri, MessageCategory cat, String part) {
     messages.getOrDefault(pri, new EnumMap<>(MessageCategory.class))
         .getOrDefault(cat, new HashSet<String>()).removeIf(s -> s.contains(part));
-    messageCounts.get(pri).updateAndGet(val -> {
-      if (val > 0) {
-        return val - 1;
-      } else {
-        return 0;
+  }
+
+  private void computeMessageCounts() {
+    for (MessagePriority pri : MessagePriority.values()) {
+      long count = 0;
+      Map<MessageCategory,Set<String>> cats = messages.get(pri);
+      if (cats != null) {
+        for (MessageCategory cat : MessageCategory.values()) {
+          Set<String> msgs = cats.get(cat);
+          if (msgs != null) {
+            count += msgs.size();
+          }
+        }
       }
-    });
+      messageCounts.get(pri).set(count);
+    }
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -1195,6 +1203,7 @@ public class SystemInformation {
       }
     }
     deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
+    computeMessageCounts();
   }
 
   public Set<String> getResourceGroups() {
