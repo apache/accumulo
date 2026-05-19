@@ -68,7 +68,7 @@ public class UserFateIT_SimpleSuite extends FateITBase {
     table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      createFateTable(client, table);
+      createFateTable(client, getCluster().getServerContext(), table);
       try (FateStore<TestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
           maxDeferred, fateIdGenerator)) {
         testMethod.execute(fs, getCluster().getServerContext());
@@ -81,45 +81,42 @@ public class UserFateIT_SimpleSuite extends FateITBase {
   // are initialized correctly
   @Test
   public void testFateInitialConfigCorrectness() throws Exception {
-    try (ClientContext client =
-        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
 
-      // It is important here to use getTableProperties() and not getConfiguration()
-      // because we want only the table properties and not a merged view
-      var fateTableProps =
-          client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
+    // It is important here to use getTableProperties() and not getConfiguration()
+    // because we want only the table properties and not a merged view
+    var fateTableProps = getCluster().getServerContext().tableOperations()
+        .getTableProperties(SystemTables.FATE.tableName());
 
-      // Verify properties all have a table. prefix
-      assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+    // Verify properties all have a table. prefix
+    assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
 
-      // Verify properties are correctly set
-      assertEquals("5", fateTableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
-      assertEquals("sync", fateTableProps.get(Property.TABLE_DURABILITY.getKey()));
-      assertEquals("false", fateTableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
-      assertEquals("", fateTableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
+    // Verify properties are correctly set
+    assertEquals("5", fateTableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
+    assertEquals("sync", fateTableProps.get(Property.TABLE_DURABILITY.getKey()));
+    assertEquals("false", fateTableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
+    assertEquals("", fateTableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
 
-      // Verify VersioningIterator related properties are correct
-      var iterClass = "10," + VersioningIterator.class.getName();
-      var maxVersions = "1";
-      assertEquals(iterClass,
-          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
-      assertEquals(maxVersions, fateTableProps
-          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
-      assertEquals(iterClass,
-          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
-      assertEquals(maxVersions, fateTableProps
-          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
-      assertEquals(iterClass,
-          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
-      assertEquals(maxVersions, fateTableProps
-          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+    // Verify VersioningIterator related properties are correct
+    var iterClass = "10," + VersioningIterator.class.getName();
+    var maxVersions = "1";
+    assertEquals(iterClass,
+        fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
+    assertEquals(maxVersions,
+        fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
+    assertEquals(iterClass,
+        fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
+    assertEquals(maxVersions,
+        fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
+    assertEquals(iterClass,
+        fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
+    assertEquals(maxVersions,
+        fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
 
-      // Verify all tablets are HOSTED
-      try (var tablets =
-          client.getAmple().readTablets().forTable(SystemTables.FATE.tableId()).build()) {
-        assertTrue(tablets.stream()
-            .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
-      }
+    // Verify all tablets are HOSTED
+    try (var tablets = getCluster().getServerContext().getAmple().readTablets()
+        .forTable(SystemTables.FATE.tableId()).build()) {
+      assertTrue(
+          tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
     }
   }
 

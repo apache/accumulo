@@ -30,8 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -138,10 +136,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
     for (int i = 0; i < 3; i++) {
       try {
         cluster.start();
-        try (AccumuloClient ac = Accumulo.newClient().from(getClientProperties()).build()) {
-          AccumuloITBase.setSystemTablePermsForITs(ac,
-              cluster.getServerContext().securityOperations());
-        }
         return;
       } catch (ZooKeeperBindException e) {
         lastException = e;
