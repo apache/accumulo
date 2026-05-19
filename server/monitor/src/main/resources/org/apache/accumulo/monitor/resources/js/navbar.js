@@ -152,6 +152,7 @@ $(function () {
   updateDarkThemeSwitch();
   updateMessagePriorities();
   refreshSidebar();
+  refreshMessageBadge();
 
   categories = getStoredArray(MESSAGE_CATEGORIES);
   if (categories.length === 0) {
@@ -178,6 +179,7 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
+  refreshMessageBadge();
 }
 
 /**
@@ -232,6 +234,35 @@ function updateDarkThemeSwitch() {
     var enableDarkTheme = $(this).is(':checked');
     localStorage.setItem(storageKey, enableDarkTheme);
     document.documentElement.setAttribute('data-bs-theme', enableDarkTheme ? 'dark' : 'light');
+  });
+}
+
+/**
+ * Updates the badge on the Messages label on the Nav Bar
+ */
+function refreshMessageBadge() {
+  getMessageCounts().then(function () {
+
+    var messageAnchor = $('#message-anchor');
+
+    var msgCounts = getStoredJson(MESSAGE_COUNTS, {
+      "Critical": 0,
+      "High": 0,
+      "Info": 0
+    });
+    var critMsgCount = msgCounts.Critical;
+    var highMsgCount = msgCounts.High;
+
+    messageAnchor.find('span').remove();
+
+    if (critMsgCount > 0) {
+      messageAnchor.append('<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-danger">' +
+        critMsgCount + '</span>');
+    } else if (highMsgCount > 0) {
+      messageAnchor.append(
+        '<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-warning">' +
+        highMsgCount + '</span>');
+    }
   });
 }
 
