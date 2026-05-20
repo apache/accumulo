@@ -19,13 +19,44 @@
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import java.io.Serializable;
+import java.lang.reflect.Type;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.BulkInfoSerializer;
+import org.apache.hadoop.io.Text;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.annotations.JsonAdapter;
 
 /**
  * Package private class to hold all the information used for bulk import2
  */
+@JsonAdapter(BulkInfoSerializer.class)
 class BulkInfo implements Serializable {
+
+  public static class BulkInfoSerializer implements JsonSerializer<BulkInfo> {
+
+    @Override
+    public JsonElement serialize(BulkInfo src, Type typeOfSrc, JsonSerializationContext context) {
+      JsonObject obj = new JsonObject();
+      obj.addProperty("tableId", src.tableId.canonical());
+      obj.addProperty("sourceDir", src.sourceDir);
+      obj.addProperty("bulkDir", src.bulkDir);
+      obj.addProperty("setTime", src.setTime);
+      if (src.firstSplit != null) {
+        obj.addProperty("firstSplit", new Text(src.firstSplit).toString());
+      }
+      if (src.lastSplit != null) {
+        obj.addProperty("lastSplit", new Text(src.lastSplit).toString());
+      }
+      return obj;
+    }
+
+  }
+
   private static final long serialVersionUID = 1L;
 
   TableId tableId;
