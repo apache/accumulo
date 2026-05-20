@@ -68,7 +68,7 @@ $(function () {
         "render": function (data, type) {
           var age = Number(data);
           if (type === 'display') {
-            return age > 0 ? new Date(age) : "-";
+            return age > 0 ? new Date(age) : '&mdash;';
           }
           return age > 0 ? age : 0;
         }

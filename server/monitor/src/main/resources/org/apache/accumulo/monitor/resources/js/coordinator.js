@@ -81,7 +81,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
         targets: '_all',
-        defaultContent: '-'
+        defaultContent: '&mdash;'
       },
       {
         "targets": 0,
@@ -112,7 +112,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "groupId"
