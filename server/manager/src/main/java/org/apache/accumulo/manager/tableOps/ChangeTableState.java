@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -29,6 +31,8 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public class ChangeTableState extends AbstractFateOperation {
 
@@ -79,4 +83,14 @@ public class ChangeTableState extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
   }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("newState", top.name());
+    return GSON.get().toJson(details);
+  }
+
 }

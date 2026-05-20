@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tserverOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.tserverOps.BeginTserverShutdown.createPath;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -40,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import com.google.gson.JsonObject;
 
 public class ShutdownTServer extends AbstractFateOperation {
 
@@ -126,4 +128,14 @@ public class ShutdownTServer extends AbstractFateOperation {
 
   @Override
   public void undo(FateId fateId, FateEnv env) {}
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("resourceGroup", resourceGroup.canonical());
+    details.addProperty("hostAndPort", hostAndPort.toString());
+    details.addProperty("serverSession", serverSession);
+    details.addProperty("force", force);
+    return GSON.get().toJson(details);
+  }
 }
