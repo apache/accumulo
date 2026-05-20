@@ -347,6 +347,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the Fate template
+   *
+   * @return Fate model
+   */
+  @GET
+  @Path("fate")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getFate() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Fate Transaction Details");
+    model.put("template", "fate.ftl");
+    model.put("js", "fate.js");
+
+    return model;
+  }
+
+  /**
    * Returns the garbage collector template
    *
    * @return GC model
