@@ -479,13 +479,6 @@ function getScans() {
 }
 
 /**
- * REST GET call for the bulk imports, stores it on a sessionStorage variable
- */
-function getBulkImports() {
-  return getJSONForTable(contextPath + 'rest/bulkImports', 'bulkImports');
-}
-
-/**
  * REST GET call for the server stats, stores it on a sessionStorage variable
  */
 function getServerStats() {

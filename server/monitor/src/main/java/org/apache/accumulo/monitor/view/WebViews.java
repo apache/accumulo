@@ -329,24 +329,6 @@ public class WebViews {
   }
 
   /**
-   * Returns the bulk import template
-   *
-   * @return Bulk Import model
-   */
-  @GET
-  @Path("bulkImports")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getBulkImports() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Bulk Imports");
-    model.put("template", "bulkImport.ftl");
-    model.put("js", "bulkImport.js");
-
-    return model;
-  }
-
-  /**
    * Returns the Fate template
    *
    * @return Fate model
