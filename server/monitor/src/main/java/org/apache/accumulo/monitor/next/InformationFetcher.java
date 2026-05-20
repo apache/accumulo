@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -53,6 +54,12 @@ import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -74,6 +81,8 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
+import org.apache.accumulo.server.util.adminCommand.Fate;
+import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
@@ -173,7 +182,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   enum UpdateType {
-    COMPACTION, COMPACTION_RGS, METRIC, TABLE;
+    COMPACTION, COMPACTION_RGS, FATE, METRIC, TABLE;
   }
 
   interface UpdateTask<T extends Object> extends Runnable, Comparable<UpdateTask<T>> {
@@ -412,6 +421,71 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
+  class FateTransactionFetcher implements UpdateTask<Void> {
+
+    private final SystemInformation summary;
+
+    public FateTransactionFetcher(SystemInformation summary) {
+      this.summary = summary;
+    }
+
+    @Override
+    public void run() {
+      try {
+        AdminUtil<Fate> admin = new AdminUtil<>();
+        var zTableLocksPath = ctx.getServerPaths().createTableLocksPath();
+        var zk = ctx.getZooSession();
+        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null);
+        summary.processFateTransactions(status.getTransactions());
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      FateTransactionFetcher other = (FateTransactionFetcher) obj;
+      return Objects.equals(getType(), other.getType());
+    }
+
+    @Override
+    public int compareTo(UpdateTask<Void> other) {
+      return this.getType().compareTo(other.getType());
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.FATE;
+    }
+
+    @Override
+    public Void getResource() {
+      return null;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Error fetching fate transaction details";
+    }
+  }
+
   class ConfiguredCompactionResourceGroupFetcher implements UpdateTask<Void> {
 
     private final SystemInformation summary;
@@ -486,6 +560,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private final Cache<ServerId,MetricResponse> allMetrics;
   private final Cache<ServerId,Boolean> retainedProblemServers;
   private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
+  private final ReadOnlyFateStore<Fate> readOnlyMFS;
+  private final ReadOnlyFateStore<Fate> readOnlyUFS;
+  private final Map<FateInstanceType,ReadOnlyFateStore<Fate>> stores;
   private final TabletMetadataFilter noLocation = new NoCurrentLocationFilter();
 
   public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
@@ -495,6 +572,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         .expireAfterWrite(Duration.ofMinutes(10)).evictionListener(this::onRemoval).build();
     this.retainedProblemServers = Caffeine.newBuilder().executor(pool)
         .scheduler(Scheduler.systemScheduler()).expireAfterWrite(Duration.ofMinutes(10)).build();
+    try {
+      this.readOnlyMFS = new MetaFateStore<>(ctx.getZooSession(), null, null);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Exception creating MetaFateStore", e);
+    }
+    this.readOnlyUFS = new UserFateStore<>(ctx, SystemTables.FATE.tableName(), null, null);
+    this.stores = Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
   }
 
   public void newConnectionEvent() {
@@ -659,8 +743,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       final UpdateTasks futures = new UpdateTasks();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
+
+      // Fetch set of registered compactors
       Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
       summary.processExternalCompactionInventory(compactors);
+
+      // Fetch Fate transaction information
+      FateTransactionFetcher fateFetcher = new FateTransactionFetcher(summary);
+      Future<?> fff = this.pool.submit(fateFetcher);
+      futures.add(new UpdateTaskFuture(fff, fateFetcher));
 
       // Fetch metrics from the other server processes. This
       // makes an RPC call to AbstractServer.getMetrics
@@ -674,7 +765,6 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           futures.add(new UpdateTaskFuture(mff, mf));
         }
       }
-      ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
       // Fetch external compaction information from the Compactors
       RunningCompactionFetcher rcf = new RunningCompactionFetcher(summary, pool);
@@ -691,6 +781,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           new ConfiguredCompactionResourceGroupFetcher(summary);
       Future<?> f = this.pool.submit(r);
       futures.add(new UpdateTaskFuture(f, r));
+
+      ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
       final long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
