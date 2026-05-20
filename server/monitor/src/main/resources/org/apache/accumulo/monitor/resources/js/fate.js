@@ -26,6 +26,22 @@ function getTableData() {
   return getStoredArray(FATE);
 }
 
+/**
+ * Renders array as comma separated list or a dash if the list is empty
+ */
+function renderListOrDash(data, type) {
+  if (Array.isArray(data)) {
+    if (data.length === 0) {
+      return type === 'display' ? '&mdash;' : '';
+    }
+    return data.join(', ');
+  }
+  if (data === null || data === undefined || data === '') {
+    return type === 'display' ? '&mdash;' : '';
+  }
+  return data;
+}
+
 function createDataTable() {
   $(fateHtmlTable).find('thead').remove();
   $(fateHtmlTable).find('tbody').remove();
@@ -77,11 +93,13 @@ function createDataTable() {
       },
       {
         "data": "heldLocks",
-        "title": "Locks Held"
+        "title": "Locks Held",
+        "render": renderListOrDash
       },
       {
         "data": "waitingLocks",
-        "title": "Locks Waiting On"
+        "title": "Locks Waiting On",
+        "render": renderListOrDash
       },
       {
         "data": "lockRange",
