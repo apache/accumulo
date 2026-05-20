@@ -67,6 +67,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.fate.AdminUtil.TransactionStatus;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -457,6 +461,14 @@ public class SystemInformation {
     }
   }
 
+  public enum LockRangeType {
+    FULL, PARTIAL;
+  }
+
+  public record FateTransaction(FateInstanceType type, FateOperation op, String id, TStatus status,
+      long created, List<String> heldLocks, List<String> waitingLocks, LockRangeType lockRange) {
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -526,6 +538,8 @@ public class SystemInformation {
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
+  private final List<FateTransaction> fateTransactions = new ArrayList<>();
+
   private final AtomicLong timestamp = new AtomicLong(0);
   private final EnumMap<ServerId.Type,Status> componentStatuses =
       new EnumMap<>(ServerId.Type.class);
@@ -575,6 +589,7 @@ public class SystemInformation {
     componentStatuses.clear();
     managerGoalState = null;
     serverMetricsView.clear();
+    fateTransactions.clear();
     messageCounts.clear();
   }
 
@@ -907,6 +922,15 @@ public class SystemInformation {
                 sti.getTabletId().toString(), sti.getTabletDir(), sti.getLocation().orElse("")));
       }
     }
+  }
+
+  public void processFateTransactions(List<TransactionStatus> transactions) {
+    transactions.forEach(t -> {
+      fateTransactions
+          .add(new FateTransaction(t.getInstanceType(), t.getFateOp(), t.getFateId().getTxUUIDStr(),
+              t.getStatus(), t.getTimeCreated(), t.getHeldLocks(), t.getWaitingLocks(),
+              t.getLockRange().isInfinite() ? LockRangeType.FULL : LockRangeType.PARTIAL));
+    });
   }
 
   public void processError(ServerId server) {
@@ -1373,6 +1397,10 @@ public class SystemInformation {
 
   public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
     return this.messages;
+  }
+
+  public List<FateTransaction> getFateTransactions() {
+    return this.fateTransactions;
   }
 
   public Map<MessagePriority,AtomicLong> getMessageCounts() {

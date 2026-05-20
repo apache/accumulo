@@ -58,6 +58,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
 import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
 import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
 import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
@@ -385,6 +386,14 @@ public class Endpoints {
   public CompactorsSummary getExternalCompactors() {
     var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
     return new CompactorsSummary(summary.getCompactorServers(), summary.getTimestamp());
+  }
+
+  @GET
+  @Path("fate")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of fate transaction details")
+  public List<FateTransaction> getFateTransactions() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getFateTransactions();
   }
 
   @GET
