@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
@@ -77,4 +78,8 @@ public class VerifyMergeability extends AbstractFateOperation {
     return new MergeTablets(data);
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
+  }
 }

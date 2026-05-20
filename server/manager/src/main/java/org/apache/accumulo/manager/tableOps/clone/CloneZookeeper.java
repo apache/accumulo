@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -76,4 +78,8 @@ class CloneZookeeper extends AbstractFateOperation {
     environment.getContext().clearTableListCache();
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(cloneInfo);
+  }
 }

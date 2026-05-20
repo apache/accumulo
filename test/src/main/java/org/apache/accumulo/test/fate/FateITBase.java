@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,6 +67,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public abstract class FateITBase extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
@@ -122,6 +125,13 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     @Override
     public String getReturn() {
       return data + "_ret";
+    }
+
+    @Override
+    public String getDetails() {
+      JsonObject details = new JsonObject();
+      details.addProperty("data", data);
+      return GSON.get().toJson(details);
     }
   }
 
@@ -184,6 +194,14 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     public String getReturn() {
       return "none";
     }
+
+    @Override
+    public String getDetails() {
+      JsonObject details = new JsonObject();
+      details.addProperty("opName", opName);
+      details.addProperty("opNum", opNum);
+      return GSON.get().toJson(details);
+    }
   }
 
   /**
@@ -230,6 +248,13 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     @Override
     public String getReturn() {
       return data + "_ret";
+    }
+
+    @Override
+    public String getDetails() {
+      JsonObject details = new JsonObject();
+      details.addProperty("data", data);
+      return GSON.get().toJson(details);
     }
   }
 
@@ -665,6 +690,11 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     @Override
     public String getName() {
       return "none";
+    }
+
+    @Override
+    public String getDetails() {
+      return null;
     }
   }
 

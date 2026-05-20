@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.time.Duration;
 import java.util.Set;
@@ -68,6 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonObject;
 
 public class CompactionDriver extends AbstractFateOperation {
 
@@ -419,4 +421,13 @@ public class CompactionDriver extends AbstractFateOperation {
     }
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("startRow", startRow == null ? null : new Text(startRow).toString());
+    details.addProperty("endRow", endRow == null ? null : new Text(endRow).toString());
+    return GSON.get().toJson(details);
+  }
 }

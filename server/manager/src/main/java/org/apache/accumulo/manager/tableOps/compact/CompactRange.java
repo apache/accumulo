@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.compact;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Optional;
 
@@ -43,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonObject;
 
 public class CompactRange extends AbstractFateOperation {
 
@@ -115,4 +117,13 @@ public class CompactRange extends AbstractFateOperation {
     }
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("startRow", startRow == null ? null : new Text(startRow).toString());
+    details.addProperty("endRow", endRow == null ? null : new Text(endRow).toString());
+    return GSON.get().toJson(details);
+  }
 }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -27,6 +29,9 @@ import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public class UnreserveAndError extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
@@ -50,5 +55,14 @@ public class UnreserveAndError extends AbstractFateOperation {
         TableOperationExceptionType.OTHER,
         "Aborted merge because it would produce a tablets with more files than the configured limit of "
             + maxFiles + ". Observed " + totalFiles + " files in the merge range.");
+  }
+
+  @Override
+  public String getDetails() {
+    Gson gson = GSON.get();
+    JsonObject details = gson.toJsonTree(mergeInfo).getAsJsonObject();
+    details.addProperty("totalFiles", totalFiles);
+    details.addProperty("maxFiles", maxFiles);
+    return gson.toJson(details);
   }
 }

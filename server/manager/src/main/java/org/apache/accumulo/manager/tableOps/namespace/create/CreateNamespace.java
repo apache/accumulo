@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,4 +61,8 @@ public class CreateNamespace extends AbstractFateOperation {
     // nothing to do, the namespace id was allocated!
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(namespaceInfo);
+  }
 }
