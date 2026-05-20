@@ -91,7 +91,7 @@ function createDataTable() {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "priority"

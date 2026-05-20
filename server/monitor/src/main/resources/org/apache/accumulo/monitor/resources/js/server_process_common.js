@@ -257,7 +257,7 @@ function createDataTable(table, storageKey) {
     "colReorder": true,
     "columnDefs": [{
         targets: '_all',
-        defaultContent: '-'
+        defaultContent: '&mdash;'
       },
       {
         "targets": "big-num",

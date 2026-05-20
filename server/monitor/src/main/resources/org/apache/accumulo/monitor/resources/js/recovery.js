@@ -114,7 +114,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "rootTabletRecovering"
@@ -138,7 +138,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "tableId"
@@ -165,7 +165,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "server"
@@ -221,7 +221,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "server"
