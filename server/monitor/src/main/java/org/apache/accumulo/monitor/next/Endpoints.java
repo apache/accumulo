@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
@@ -455,6 +456,14 @@ public class Endpoints {
   }
 
   public record Message(String priority, String category, String message) {
+  }
+
+  @GET
+  @Path("message/counts")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns count of messages by priority")
+  public Map<MessagePriority,AtomicLong> getMessageCounts() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getMessageCounts();
   }
 
   @GET

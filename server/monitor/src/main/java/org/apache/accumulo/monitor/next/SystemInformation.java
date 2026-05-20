@@ -533,6 +533,8 @@ public class SystemInformation {
 
   private final Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
       new EnumMap<>(MessagePriority.class);
+  private final EnumMap<MessagePriority,AtomicLong> messageCounts =
+      new EnumMap<>(MessagePriority.class);
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
@@ -552,6 +554,9 @@ public class SystemInformation {
     this.ctx = ctx;
     this.rgLongRunningCompactionSize =
         this.ctx.getConfiguration().getCount(Property.MONITOR_LONG_RUNNING_COMPACTION_LIMIT);
+    for (MessagePriority p : MessagePriority.values()) {
+      messageCounts.put(p, new AtomicLong(0));
+    }
   }
 
   public void clear() {
@@ -585,6 +590,7 @@ public class SystemInformation {
     managerGoalState = null;
     serverMetricsView.clear();
     fateTransactions.clear();
+    messageCounts.clear();
   }
 
   public void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
@@ -595,6 +601,22 @@ public class SystemInformation {
   public void removeMessage(MessagePriority pri, MessageCategory cat, String part) {
     messages.getOrDefault(pri, new EnumMap<>(MessageCategory.class))
         .getOrDefault(cat, new HashSet<String>()).removeIf(s -> s.contains(part));
+  }
+
+  private void computeMessageCounts() {
+    for (MessagePriority pri : MessagePriority.values()) {
+      long count = 0;
+      Map<MessageCategory,Set<String>> cats = messages.get(pri);
+      if (cats != null) {
+        for (MessageCategory cat : MessageCategory.values()) {
+          Set<String> msgs = cats.get(cat);
+          if (msgs != null) {
+            count += msgs.size();
+          }
+        }
+      }
+      messageCounts.get(pri).set(count);
+    }
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -1205,6 +1227,7 @@ public class SystemInformation {
       }
     }
     deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
+    computeMessageCounts();
   }
 
   public Set<String> getResourceGroups() {
@@ -1378,6 +1401,10 @@ public class SystemInformation {
 
   public List<FateTransaction> getFateTransactions() {
     return this.fateTransactions;
+  }
+
+  public Map<MessagePriority,AtomicLong> getMessageCounts() {
+    return this.messageCounts;
   }
 
   public long getTimestamp() {
