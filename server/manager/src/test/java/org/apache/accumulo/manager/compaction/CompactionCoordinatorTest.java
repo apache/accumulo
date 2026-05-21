@@ -163,6 +163,17 @@ public class CompactionCoordinatorTest {
     }
   }
 
+  private TExternalCompaction createMockCompaction() {
+    TExternalCompaction mockCompaction = EasyMock.createMock(TExternalCompaction.class);
+    expect(mockCompaction.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(mockCompaction.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(mockCompaction.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
+        .anyTimes();
+    return mockCompaction;
+  }
+
+  @Test
+  public void testCoordinatorColdStart() throws Exception {
   private TableId tableId;
   private Manager manager;
   private ServerContext context;
@@ -264,5 +275,95 @@ public class CompactionCoordinatorTest {
         GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
     assertEquals(3, nextJob.getCompactorCount());
     assertNull(nextJob.getJob().getExternalCompactionId());
+
+    EasyMock.verify(context, creds, security);
   }
+
+  @Test
+  public void testCleanUpRunning() throws Exception {
+
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
+    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
+
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
+
+    TExternalCompaction ext1 = createMockCompaction();
+    TExternalCompaction ext2 = createMockCompaction();
+    TExternalCompaction ext3 = createMockCompaction();
+
+    EasyMock.replay(context, creds, security, manager, ext1, ext2, ext3);
+
+    TestCoordinator coordinator =
+        new TestCoordinator(context, security, new ArrayList<>(), manager);
+
+    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    coordinator.getRunning().put(ecid1, new RunningCompaction(ext1));
+    coordinator.getRunning().put(ecid2, new RunningCompaction(ext2));
+    coordinator.getRunning().put(ecid3, new RunningCompaction(ext3));
+
+    coordinator.cleanUpInternalState();
+
+    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
+
+    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
+
+    coordinator.cleanUpInternalState();
+
+    assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
+
+    EasyMock.verify(context, creds, security, manager, ext1, ext2, ext3);
+
+  }
+
+  @Test
+  public void testCleanUpMultipleDeadCompactions() throws Exception {
+
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
+    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
+
+    ExternalCompactionId ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionId ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionId ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    TExternalCompaction deadCompaction1 = createMockCompaction();
+    TExternalCompaction deadCompaction2 = createMockCompaction();
+    TExternalCompaction deadCompaction3 = createMockCompaction();
+
+    EasyMock.replay(context, creds, security, manager, deadCompaction1, deadCompaction2,
+        deadCompaction3);
+
+    TestCoordinator coordinator =
+        new TestCoordinator(context, security, new ArrayList<>(), manager);
+
+    coordinator.getRunning().put(ecid1, new RunningCompaction(deadCompaction1));
+    coordinator.getRunning().put(ecid2, new RunningCompaction(deadCompaction2));
+    coordinator.getRunning().put(ecid3, new RunningCompaction(deadCompaction3));
+
+    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
+
+    coordinator.setMetadataCompactionIds(Set.of(ecid1));
+    coordinator.cleanUpInternalState();
+
+    assertEquals(Set.of(ecid1), coordinator.getRunning().keySet());
+
+    EasyMock.verify(context, creds, security, manager, deadCompaction1, deadCompaction2,
+        deadCompaction3);
+  }
+
 }
