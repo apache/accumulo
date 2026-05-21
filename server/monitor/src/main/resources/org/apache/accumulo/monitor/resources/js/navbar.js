@@ -150,18 +150,18 @@ function updateServerNotifications(statusData) {
 $(function () {
   setTheme();
   updateDarkThemeSwitch();
-  updateMessagePriorities();
+  updateAlertPriorities();
   refreshSidebar();
-  refreshMessageBadge();
+  refreshAlertBadge();
 
-  categories = getStoredArray(MESSAGE_CATEGORIES);
+  categories = getStoredArray(ALERT_CATEGORIES);
   if (categories.length === 0) {
-    getMessageCategories().then(function () {
-      categories = getStoredArray(MESSAGE_CATEGORIES);
-      updateMessageCategories();
+    getAlertCategories().then(function () {
+      categories = getStoredArray(ALERT_CATEGORIES);
+      updateAlertCategories();
     });
   } else {
-    updateMessageCategories();
+    updateAlertCategories();
   }
 });
 
@@ -179,7 +179,7 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  refreshMessageBadge();
+  refreshAlertBadge();
 }
 
 /**
@@ -238,41 +238,41 @@ function updateDarkThemeSwitch() {
 }
 
 /**
- * Updates the badge on the Messages label on the Nav Bar
+ * Updates the badge on the Alerts label on the Nav Bar
  */
-function refreshMessageBadge() {
-  getMessageCounts().then(function () {
+function refreshAlertBadge() {
+  getAlertCounts().then(function () {
 
-    var messageAnchor = $('#message-anchor');
+    var alertAnchor = $('#alert-anchor');
 
-    var msgCounts = getStoredJson(MESSAGE_COUNTS, {
+    var alertCounts = getStoredJson(ALERT_COUNTS, {
       "Critical": 0,
       "High": 0,
       "Info": 0
     });
-    var critMsgCount = msgCounts.Critical;
-    var highMsgCount = msgCounts.High;
+    var criticalAlertCount = alertCounts.Critical;
+    var highAlertCount = alertCounts.High;
 
-    messageAnchor.find('span').remove();
+    alertAnchor.find('span').remove();
 
-    if (critMsgCount > 0) {
-      messageAnchor.append('<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-danger">' +
-        critMsgCount + '</span>');
-    } else if (highMsgCount > 0) {
-      messageAnchor.append(
+    if (criticalAlertCount > 0) {
+      alertAnchor.append('<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-danger">' +
+        criticalAlertCount + '</span>');
+    } else if (highAlertCount > 0) {
+      alertAnchor.append(
         '<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-warning">' +
-        highMsgCount + '</span>');
+        highAlertCount + '</span>');
     }
   });
 }
 
 /**
- * Update the High and Info Message Category Switches
+ * Update the High and Info Alert Priority Switches
  */
-function updateMessagePriorities() {
-  var messagePriorities = ['High', 'Info'];
-  $.each(messagePriorities, function (index, pri) {
-    var switchId = "msg-pri-switch-" + pri;
+function updateAlertPriorities() {
+  var alertPriorities = ['High', 'Info'];
+  $.each(alertPriorities, function (index, pri) {
+    var switchId = "alert-pri-switch-" + pri;
     var switchElement = "#" + switchId;
     var savedValue = localStorage.getItem(switchId + "-state");
 
@@ -284,8 +284,8 @@ function updateMessagePriorities() {
     }
 
     $(switchElement).on("change", function () {
-      localStorage.setItem("msg-pri-switch-" + pri + "-state", $(this).is(':checked'));
-      if (window.location.pathname.endsWith('/messages')) {
+      localStorage.setItem("alert-pri-switch-" + pri + "-state", $(this).is(':checked'));
+      if (window.location.pathname.endsWith('/alerts')) {
         refresh();
       }
     });
@@ -293,15 +293,15 @@ function updateMessagePriorities() {
 }
 
 /**
- * Update the High and Info Message Category Switches
+ * Update the Alert Category Switches
  */
-function updateMessageCategories() {
-  const messageCategoryList = '#categories-list';
+function updateAlertCategories() {
+  const alertCategoryList = '#categories-list';
 
-  var categoryList = $(messageCategoryList);
+  var categoryList = $(alertCategoryList);
   $.each(categories, function (index, cat) {
 
-    var switchId = "msg-cat-switch-" + cat;
+    var switchId = "alert-cat-switch-" + cat;
     var switchElement = "#" + switchId;
     var savedValue = localStorage.getItem(switchId + "-state");
 
@@ -335,8 +335,8 @@ function updateMessageCategories() {
       }
 
       input.on("change", function () {
-        localStorage.setItem("msg-cat-switch-" + cat + "-state", $(this).is(':checked'));
-        if (window.location.pathname.endsWith('/messages')) {
+        localStorage.setItem("alert-cat-switch-" + cat + "-state", $(this).is(':checked'));
+        if (window.location.pathname.endsWith('/alerts')) {
           refresh();
         }
       });

@@ -19,15 +19,15 @@
 
 -->
     <br />
-    <div class="col-xs-12" id="messages">
-      <h5>Messages</h5>
-      <table id="messagesTable"
+    <div class="col-xs-12" id="alerts">
+      <h5>Alerts</h5>
+      <table id="alertsTable"
         class="table table-bordered table-striped table-condensed" style="width: 100%;">
         <thead>
           <tr>
             <th class="col-xs-2">Priority</th>
             <th class="col-xs-2">Category</th>
-            <th class="col-xs-8">Message</th>
+            <th class="col-xs-8">Alert</th>
           </tr>
         </thead>
         <tbody></tbody>
