@@ -545,7 +545,7 @@ public class SystemInformation {
       new EnumMap<>(ServerId.Type.class);
   private final EnumMap<TableDataFactory.TableName,Supplier<TableData>> serverMetricsView =
       new EnumMap<>(TableDataFactory.TableName.class);
-  private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
+  private DeploymentOverview deploymentOverview = new DeploymentOverview(List.of());
   private String managerGoalState;
   private final int rgLongRunningCompactionSize;
 
@@ -788,9 +788,9 @@ public class SystemInformation {
 
     if (!qm.isEmpty()) {
       // Create a ServersView object from the MetricResponse for each queue
-      return TableDataFactory.forColumns(qm.keySet(), qm, timestamp.get(), cols);
+      return TableDataFactory.forColumns(qm.keySet(), qm, cols);
     }
-    return TableDataFactory.forColumns(Set.of(), Map.of(), timestamp.get(), cols);
+    return TableDataFactory.forColumns(Set.of(), Map.of(), cols);
   }
 
   public void processResponse(final ServerId server, final MetricResponse response,
@@ -1173,7 +1173,6 @@ public class SystemInformation {
 
     computeMessages(failures, cancelled);
 
-    timestamp.set(System.currentTimeMillis());
     componentStatuses.clear();
     for (final ServerId.Type type : ServerId.Type.values()) {
       if (type == ServerId.Type.MONITOR) {
@@ -1226,8 +1225,9 @@ public class SystemInformation {
           break;
       }
     }
-    deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
+    deploymentOverview = DeploymentOverview.fromSummary(deployment);
     computeMessageCounts();
+    timestamp.set(System.currentTimeMillis());
   }
 
   public Set<String> getResourceGroups() {
@@ -1415,8 +1415,8 @@ public class SystemInformation {
    * Cache a ServersView for the given table and set of servers.
    */
   private void cacheServerProcessView(TableDataFactory.TableName table, Set<ServerId> servers) {
-    serverMetricsView.put(table, memoize(
-        () -> TableDataFactory.forTable(table, servers, allMetrics.asMap(), timestamp.get())));
+    serverMetricsView.put(table,
+        memoize(() -> TableDataFactory.forTable(table, servers, allMetrics.asMap())));
   }
 
   public TableData getServerProcessView(TableDataFactory.TableName table) {
