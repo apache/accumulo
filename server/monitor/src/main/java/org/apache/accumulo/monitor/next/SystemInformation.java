@@ -55,6 +55,8 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
@@ -110,6 +112,159 @@ import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class SystemInformation {
+
+  public static class InstanceOverview {
+    private final AtomicLong numKVs = new AtomicLong(0);
+    private final AtomicLong numFiles = new AtomicLong(0);
+    private final AtomicLong numTables = new AtomicLong(0);
+    private final AtomicLong numNamespaces = new AtomicLong(0);
+    private final AtomicLong numTablets = new AtomicLong(0);
+    private final AtomicLong totalFileSize = new AtomicLong(0);
+    private final AtomicLong tabletsAssignedToDeadTServers = new AtomicLong(0);
+    private final AtomicLong totalSuspendedTablets = new AtomicLong(0);
+    private final AtomicLong tabletsNeedingRecovery = new AtomicLong(0);
+    private final AtomicLong compactionsQueued = new AtomicLong(0);
+    private final AtomicLong compactionsDequeued = new AtomicLong(0);
+    private final AtomicLong compactionsRunning = new AtomicLong(0);
+    private final AtomicLong compactionsFailed = new AtomicLong(0);
+    private final AtomicLong scansTotalInProgress = new AtomicLong(0);
+    private final AtomicLong scanTotalOpenFiles = new AtomicLong(0);
+    private final AtomicLong scansTotalKvScanned = new AtomicLong(0);
+    private final AtomicLong scansTotalKvReturned = new AtomicLong(0);
+    private final AtomicLong scansTotalKvReturnedBytes = new AtomicLong(0);
+    private final AtomicLong ingestTotalEntries = new AtomicLong(0);
+    private final AtomicLong ingestTotalEntriesBytes = new AtomicLong(0);
+    private final AtomicLong ingestNumTServersHolding = new AtomicLong(0);
+    private final AtomicLong ingestTotalEntriesInMem = new AtomicLong(0);
+    private final AtomicLong ingestBulkImportQueued = new AtomicLong(0);
+    private final AtomicLong ingestBulkImportRunning = new AtomicLong(0);
+    private final AtomicLong totalMinCQueued = new AtomicLong(0);
+    private final AtomicLong totalMinCRunning = new AtomicLong(0);
+    private final AtomicLong totalMinCCompleted = new AtomicLong(0);
+    private final AtomicLong totalFateSubmitted = new AtomicLong(0);
+    private final AtomicLong totalFateRunning = new AtomicLong(0);
+    private final AtomicLong totalServersLowMem = new AtomicLong(0);
+
+    public AtomicLong getNumKVs() {
+      return numKVs;
+    }
+
+    public AtomicLong getNumFiles() {
+      return numFiles;
+    }
+
+    public AtomicLong getNumTablets() {
+      return numTablets;
+    }
+
+    public AtomicLong getNumTables() {
+      return numTables;
+    }
+
+    public AtomicLong getNumNamespaces() {
+      return numNamespaces;
+    }
+
+    public AtomicLong getTotalFileSize() {
+      return totalFileSize;
+    }
+
+    public AtomicLong getTabletsAssignedToDeadTServers() {
+      return tabletsAssignedToDeadTServers;
+    }
+
+    public AtomicLong getTotalSuspendedTablets() {
+      return totalSuspendedTablets;
+    }
+
+    public AtomicLong getTabletsNeedingRecovery() {
+      return tabletsNeedingRecovery;
+    }
+
+    public AtomicLong getCompactionsQueued() {
+      return compactionsQueued;
+    }
+
+    public AtomicLong getCompactionsDequeued() {
+      return compactionsDequeued;
+    }
+
+    public AtomicLong getCompactionsRunning() {
+      return compactionsRunning;
+    }
+
+    public AtomicLong getCompactionsFailed() {
+      return compactionsFailed;
+    }
+
+    public AtomicLong getScansTotalInProgress() {
+      return scansTotalInProgress;
+    }
+
+    public AtomicLong getScanTotalOpenFiles() {
+      return scanTotalOpenFiles;
+    }
+
+    public AtomicLong getScansTotalKvScanned() {
+      return scansTotalKvScanned;
+    }
+
+    public AtomicLong getScansTotalKvReturned() {
+      return scansTotalKvReturned;
+    }
+
+    public AtomicLong getScansTotalKvReturnedBytes() {
+      return scansTotalKvReturnedBytes;
+    }
+
+    public AtomicLong getIngestTotalEntries() {
+      return ingestTotalEntries;
+    }
+
+    public AtomicLong getIngestTotalEntriesBytes() {
+      return ingestTotalEntriesBytes;
+    }
+
+    public AtomicLong getIngestNumTServersHolding() {
+      return ingestNumTServersHolding;
+    }
+
+    public AtomicLong getIngestTotalEntriesInMem() {
+      return ingestTotalEntriesInMem;
+    }
+
+    public AtomicLong getIngestBulkImportQueued() {
+      return ingestBulkImportQueued;
+    }
+
+    public AtomicLong getIngestBulkImportRunning() {
+      return ingestBulkImportRunning;
+    }
+
+    public AtomicLong getTotalMinCQueued() {
+      return totalMinCQueued;
+    }
+
+    public AtomicLong getTotalMinCRunning() {
+      return totalMinCRunning;
+    }
+
+    public AtomicLong getTotalMinCCompleted() {
+      return totalMinCCompleted;
+    }
+
+    public AtomicLong getTotalFateSubmitted() {
+      return totalFateSubmitted;
+    }
+
+    public AtomicLong getTotalFateRunning() {
+      return totalFateRunning;
+    }
+
+    public AtomicLong getTotalServersLowMem() {
+      return totalServersLowMem;
+    }
+  }
 
   public static class ObfuscatedTabletId extends TabletIdImpl {
 
@@ -261,12 +416,16 @@ public class SystemInformation {
       return tableName;
     }
 
-    public void addTablet(TabletInformation info) {
+    public void addTablet(TabletInformation info, InstanceOverview io) {
       totalEntries.addAndGet(info.getEstimatedEntries());
+      io.getNumKVs().addAndGet(info.getEstimatedEntries());
       totalSizeOnDisk.addAndGet(info.getEstimatedSize());
+      io.getTotalFileSize().addAndGet(info.getEstimatedSize());
       totalFiles.addAndGet(info.getNumFiles());
+      io.getNumFiles().addAndGet(info.getNumFiles());
       totalWals.addAndGet(info.getNumWalLogs());
       totalTablets.addAndGet(1);
+      io.getNumTablets().incrementAndGet();
       switch (info.getTabletAvailability()) {
         case HOSTED:
           availableAlways.addAndGet(1);
@@ -288,12 +447,14 @@ public class SystemInformation {
           break;
         case ASSIGNED_TO_DEAD_SERVER:
           totalAssignedToDeadServerTablets.addAndGet(1);
+          io.getTabletsAssignedToDeadTServers().incrementAndGet();
           break;
         case HOSTED:
           totalHostedTablets.addAndGet(1);
           break;
         case SUSPENDED:
           totalSuspendedTablets.addAndGet(1);
+          io.getTotalSuspendedTablets().incrementAndGet();
           break;
         case UNASSIGNED:
           totalUnassignedTablets.addAndGet(1);
@@ -549,6 +710,8 @@ public class SystemInformation {
   private String managerGoalState;
   private final int rgLongRunningCompactionSize;
 
+  private final InstanceOverview instanceOverview = new InstanceOverview();
+
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
     this.allMetrics = allMetrics;
     this.ctx = ctx;
@@ -803,21 +966,48 @@ public class SystemInformation {
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
         .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
     captureRecoveriesInProgress(server, response);
+    FMetric flatbuffer = new FMetric();
     switch (response.serverType) {
       case COMPACTOR:
         compactors
             .computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
         updateAggregates(response, totalCompactorMetrics, rgCompactorMetrics);
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.COMPACTOR_MAJC_IN_PROGRESS.getName())) {
+            long running = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getCompactionsRunning().addAndGet(running);
+          } else if (metricName.equals(Metric.COMPACTOR_MAJC_FAILED.getName())) {
+            long failed = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getCompactionsFailed().addAndGet(failed);
+          } else if (metricName.equals(Metric.LOW_MEMORY.getName())) {
+            long lowMem = getMetricValue(flatbuffer).longValue();
+            if (lowMem > 0) {
+              this.instanceOverview.getTotalServersLowMem().incrementAndGet();
+            }
+          }
+        }
         break;
       case GARBAGE_COLLECTOR:
         if (gc.get() == null || !gc.get().equals(server)) {
           gc.set(server);
         }
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.LOW_MEMORY.getName())) {
+            long lowMem = getMetricValue(flatbuffer).longValue();
+            if (lowMem > 0) {
+              this.instanceOverview.getTotalServersLowMem().incrementAndGet();
+            }
+            break;
+          }
+        }
         break;
       case MANAGER:
         managers.add(server);
-        FMetric flatbuffer = new FMetric();
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
@@ -825,11 +1015,13 @@ public class SystemInformation {
             boolean recovering = getMetricValue(flatbuffer).longValue() > 0;
             this.recoveries.getOverview().setRootTabletRecovering(recovering);
             if (recovering) {
+              this.instanceOverview.getTabletsNeedingRecovery().incrementAndGet();
               addMessage(Critical, Table, "The root table requires recovery");
             }
           } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
             long tablets = getMetricValue(flatbuffer).longValue();
             this.recoveries.getOverview().setMetadataTabletsRecovering(tablets);
+            this.instanceOverview.getTabletsNeedingRecovery().addAndGet(tablets);
             if (tablets > 0) {
               addMessage(Critical, Table,
                   "At least " + tablets + " metadata table tablets require recovery");
@@ -837,9 +1029,22 @@ public class SystemInformation {
           } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
             long tablets = getMetricValue(flatbuffer).longValue();
             this.recoveries.getOverview().setUserTabletsRecovering(tablets);
+            this.instanceOverview.getTabletsNeedingRecovery().addAndGet(tablets);
             if (tablets > 0) {
               addMessage(High, Table,
                   "At least " + tablets + " user table tablets require recovery");
+            }
+          } else if (metricName.equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())) {
+            long queued = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getCompactionsQueued().addAndGet(queued);
+          } else if (metricName
+              .equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName())) {
+            long dequeued = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getCompactionsDequeued().addAndGet(dequeued);
+          } else if (metricName.equals(Metric.LOW_MEMORY.getName())) {
+            long lowMem = getMetricValue(flatbuffer).longValue();
+            if (lowMem > 0) {
+              this.instanceOverview.getTotalServersLowMem().incrementAndGet();
             }
           }
         }
@@ -848,11 +1053,84 @@ public class SystemInformation {
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
         updateAggregates(response, totalSServerMetrics, rgSServerMetrics);
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.SCAN_CONTINUE.getName())) {
+            long inProgress = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalInProgress().addAndGet(inProgress);
+          } else if (metricName.equals(Metric.SCAN_OPEN_FILES.getName())) {
+            long files = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScanTotalOpenFiles().addAndGet(files);
+          } else if (metricName.equals(Metric.SCAN_SCANNED_ENTRIES.getName())) {
+            long scanned = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalKvScanned().addAndGet(scanned);
+          } else if (metricName.equals(Metric.SCAN_QUERY_SCAN_RESULTS.getName())) {
+            long results = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalKvReturned().addAndGet(results);
+          } else if (metricName.equals(Metric.SCAN_QUERY_SCAN_RESULTS_BYTES.getName())) {
+            long resultSize = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalKvReturnedBytes().addAndGet(resultSize);
+          } else if (metricName.equals(Metric.LOW_MEMORY.getName())) {
+            long lowMem = getMetricValue(flatbuffer).longValue();
+            if (lowMem > 0) {
+              this.instanceOverview.getTotalServersLowMem().incrementAndGet();
+            }
+          }
+        }
         break;
       case TABLET_SERVER:
         tservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
         updateAggregates(response, totalTServerMetrics, rgTServerMetrics);
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.SCAN_CONTINUE.getName())) {
+            long inProgress = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalInProgress().addAndGet(inProgress);
+          } else if (metricName.equals(Metric.SCAN_OPEN_FILES.getName())) {
+            long files = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScanTotalOpenFiles().addAndGet(files);
+          } else if (metricName.equals(Metric.SCAN_SCANNED_ENTRIES.getName())) {
+            long scanned = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalKvScanned().addAndGet(scanned);
+          } else if (metricName.equals(Metric.SCAN_QUERY_SCAN_RESULTS.getName())) {
+            long results = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalKvReturned().addAndGet(results);
+          } else if (metricName.equals(Metric.SCAN_QUERY_SCAN_RESULTS_BYTES.getName())) {
+            long resultSize = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getScansTotalKvReturnedBytes().addAndGet(resultSize);
+          } else if (metricName.equals(Metric.TSERVER_HOLD.getName())) {
+            long held = getMetricValue(flatbuffer).longValue();
+            if (held > 0) {
+              this.instanceOverview.ingestNumTServersHolding.incrementAndGet();
+            }
+          } else if (metricName.equals(Metric.TSERVER_INGEST_ENTRIES.getName())) {
+            long ingestEntries = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getIngestTotalEntries().addAndGet(ingestEntries);
+          } else if (metricName.equals(Metric.TSERVER_INGEST_BYTES.getName())) {
+            long ingestEntriesBytes = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getIngestTotalEntriesBytes().addAndGet(ingestEntriesBytes);
+          } else if (metricName.equals(Metric.TSERVER_MEM_ENTRIES.getName())) {
+            long entriesInMem = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getIngestTotalEntriesInMem().addAndGet(entriesInMem);
+          } else if (metricName.equals(Metric.TSERVER_MINC_QUEUED.getName())) {
+            long mincQueued = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getTotalMinCQueued().addAndGet(mincQueued);
+          } else if (metricName.equals(Metric.TSERVER_MINC_RUNNING.getName())) {
+            long mincRunning = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getTotalMinCRunning().addAndGet(mincRunning);
+          } else if (metricName.equals(Metric.TSERVER_MINC_TOTAL.getName())) {
+            long mincCompleted = getMetricValue(flatbuffer).longValue();
+            this.instanceOverview.getTotalMinCCompleted().addAndGet(mincCompleted);
+          } else if (metricName.equals(Metric.LOW_MEMORY.getName())) {
+            long lowMem = getMetricValue(flatbuffer).longValue();
+            if (lowMem > 0) {
+              this.instanceOverview.getTotalServersLowMem().incrementAndGet();
+            }
+          }
+        }
         break;
       default:
         LOG.error("Unhandled server type in fetch metric response: {}", response.serverType);
@@ -884,7 +1162,8 @@ public class SystemInformation {
     final SanitizedTabletInformation sti = new SanitizedTabletInformation(info);
     tablets.computeIfAbsent(tableId, (t) -> Collections.synchronizedList(new ArrayList<>()))
         .add(sti);
-    tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
+    tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti,
+        instanceOverview);
     if (sti.getNumWalLogs() > 0) {
       String loc = sti.getLocation().orElse("");
       int idx = loc.indexOf(':');
@@ -926,9 +1205,22 @@ public class SystemInformation {
 
   public void processFateTransactions(List<TransactionStatus> transactions) {
     transactions.forEach(t -> {
+      FateOperation op = t.getFateOp();
+      TStatus status = t.getStatus();
+      if (status == TStatus.SUBMITTED) {
+        instanceOverview.getTotalFateSubmitted().incrementAndGet();
+        if (op == FateOperation.TABLE_BULK_IMPORT2) {
+          instanceOverview.getIngestBulkImportQueued().incrementAndGet();
+        }
+      } else if (status == TStatus.IN_PROGRESS) {
+        instanceOverview.getTotalFateRunning().incrementAndGet();
+        if (op == FateOperation.TABLE_BULK_IMPORT2) {
+          instanceOverview.getIngestBulkImportRunning().incrementAndGet();
+        }
+      }
       fateTransactions
-          .add(new FateTransaction(t.getInstanceType(), t.getFateOp(), t.getFateId().getTxUUIDStr(),
-              t.getStatus(), t.getTimeCreated(), t.getHeldLocks(), t.getWaitingLocks(),
+          .add(new FateTransaction(t.getInstanceType(), op, t.getFateId().getTxUUIDStr(), status,
+              t.getTimeCreated(), t.getHeldLocks(), t.getWaitingLocks(),
               t.getLockRange().isInfinite() ? LockRangeType.FULL : LockRangeType.PARTIAL));
     });
   }
@@ -1226,6 +1518,12 @@ public class SystemInformation {
           break;
       }
     }
+    try {
+      this.instanceOverview.getNumNamespaces().set(ctx.namespaceOperations().list().size());
+    } catch (AccumuloException | AccumuloSecurityException e1) {
+      LOG.error("Error getting list of namespaces for Monitor overview", e1);
+    }
+    this.instanceOverview.getNumTables().set(this.tables.size());
     deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
     computeMessageCounts();
   }
@@ -1409,6 +1707,10 @@ public class SystemInformation {
 
   public long getTimestamp() {
     return this.timestamp.get();
+  }
+
+  public InstanceOverview getInstanceOverview() {
+    return this.instanceOverview;
   }
 
   /**

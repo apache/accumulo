@@ -59,6 +59,7 @@ import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
+import org.apache.accumulo.monitor.next.SystemInformation.InstanceOverview;
 import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
 import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
 import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
@@ -186,7 +187,7 @@ public class Endpoints {
   }
 
   @GET
-  @Path("instance")
+  @Path("instance/info")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the instance name, instance id, version, zookeepers, and volumes")
   public InstanceSummary getInstanceSummary() {
@@ -196,6 +197,14 @@ public class Endpoints {
         monitor.getContext().getVolumeManager().getVolumes().stream().map(Object::toString)
             .collect(Collectors.toSet()),
         Constants.VERSION);
+  }
+
+  @GET
+  @Path("instance/overview")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns an overview of instance level activity")
+  public InstanceOverview getInstanceOverview() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getInstanceOverview();
   }
 
   @GET
