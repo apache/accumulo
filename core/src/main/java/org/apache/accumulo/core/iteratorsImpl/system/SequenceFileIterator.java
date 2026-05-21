@@ -36,9 +36,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
-import org.apache.hadoop.io.Text;
 
-public class SequenceFileIterator implements FileSKVIterator {
+public final class SequenceFileIterator implements FileSKVIterator {
 
   private final Reader reader;
   private Value top_value;
@@ -118,13 +117,8 @@ public class SequenceFileIterator implements FileSKVIterator {
   }
 
   @Override
-  public Text getFirstRow() throws IOException {
-    throw new UnsupportedOperationException("getFirstKey() not supported");
-  }
-
-  @Override
-  public Text getLastRow() throws IOException {
-    throw new UnsupportedOperationException("getLastKey() not supported");
+  public FileRange getFileRange() {
+    throw new UnsupportedOperationException("getFileRange() not supported");
   }
 
   @Override

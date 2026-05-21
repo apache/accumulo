@@ -39,7 +39,6 @@ public class Constants {
 
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
-  public static final String ZTABLE_NAME = "/name";
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
@@ -50,8 +49,11 @@ public class Constants {
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
+  public static final String ZMANAGER_ASSISTANT_LOCK = ZMANAGERS + "/assistants";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
   public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
+  public static final String ZMANAGER_ASSIGNMENTS = ZMANAGERS + "/assignments";
+  public static final String ZMANAGER_FATE_ASSIGNMENTS = ZMANAGER_ASSIGNMENTS + "/fate";
 
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
@@ -74,6 +76,8 @@ public class Constants {
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
 
+  public static final String ZSHUTTING_DOWN_TSERVERS = "/shutting-down-tservers";
+
   public static final String ZFATE = "/fate";
 
   public static final String ZNEXT_FILE = "/next_file";
@@ -81,7 +85,10 @@ public class Constants {
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
   public static final String ZRECOVERY = "/recovery";
 
+  public static final String ZPREPARE_FOR_UPGRADE = "/upgrade_ready";
   public static final String ZUPGRADE_PROGRESS = "/upgrade_progress";
+
+  public static final String ZRESOURCEGROUPS = "/resource_groups";
 
   /**
    * Base znode for storing secret keys that back delegation tokens

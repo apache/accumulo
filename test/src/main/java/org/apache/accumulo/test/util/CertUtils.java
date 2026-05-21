@@ -19,11 +19,13 @@
 package org.apache.accumulo.test.util;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -131,7 +133,7 @@ public class CertUtils {
       if (accumuloPropsFile == null) {
         return SiteConfiguration.auto();
       } else {
-        return SiteConfiguration.fromFile(new File(accumuloPropsFile)).build();
+        return SiteConfiguration.fromFile(Path.of(accumuloPropsFile).toFile()).build();
       }
     }
   }
@@ -155,15 +157,15 @@ public class CertUtils {
         opts.keysize, opts.signingAlg);
 
     if ("generate-all".equals(operation)) {
-      certUtils.createAll(new File(opts.rootKeystore), new File(opts.localKeystore),
-          new File(opts.truststore), opts.keyNamePrefix, rootKeyPassword, keyPassword,
+      certUtils.createAll(Path.of(opts.rootKeystore).toFile(), Path.of(opts.localKeystore).toFile(),
+          Path.of(opts.truststore).toFile(), opts.keyNamePrefix, rootKeyPassword, keyPassword,
           opts.truststorePassword);
     } else if ("generate-local".equals(operation)) {
-      certUtils.createSignedCert(new File(opts.localKeystore), opts.keyNamePrefix + "-local",
-          keyPassword, opts.rootKeystore, rootKeyPassword);
+      certUtils.createSignedCert(Path.of(opts.localKeystore).toFile(),
+          opts.keyNamePrefix + "-local", keyPassword, opts.rootKeystore, rootKeyPassword);
     } else if ("generate-self-trusted".equals(operation)) {
-      certUtils.createSelfSignedCert(new File(opts.truststore), opts.keyNamePrefix + "-selfTrusted",
-          keyPassword);
+      certUtils.createSelfSignedCert(Path.of(opts.truststore).toFile(),
+          opts.keyNamePrefix + "-selfTrusted", keyPassword);
     } else {
       JCommander jcommander = new JCommander(opts);
       jcommander.setProgramName(CertUtils.class.getName());
@@ -206,7 +208,7 @@ public class CertUtils {
       CertificateException, FileNotFoundException, IOException, KeyStoreException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = rootKeystorePassword.toCharArray();
-    try (FileInputStream fis = new FileInputStream(rootKeystorePath)) {
+    try (InputStream fis = Files.newInputStream(Path.of(rootKeystorePath))) {
       signerKeystore.load(fis, signerPasswordArray);
     }
     Certificate rootCert = findCert(signerKeystore);
@@ -214,7 +216,7 @@ public class CertUtils {
     KeyStore keystore = KeyStore.getInstance(keystoreType);
     keystore.load(null, null);
     keystore.setCertificateEntry(keyName + "Cert", rootCert);
-    try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
+    try (OutputStream fos = Files.newOutputStream(targetKeystoreFile.toPath())) {
       keystore.store(fos, truststorePassword.toCharArray());
     }
   }
@@ -226,7 +228,7 @@ public class CertUtils {
       OperatorCreationException, UnrecoverableKeyException {
     KeyStore signerKeystore = KeyStore.getInstance(keystoreType);
     char[] signerPasswordArray = signerKeystorePassword.toCharArray();
-    try (FileInputStream fis = new FileInputStream(signerKeystorePath)) {
+    try (InputStream fis = Files.newInputStream(Path.of(signerKeystorePath))) {
       signerKeystore.load(fis, signerPasswordArray);
     }
     Certificate signerCert = findCert(signerKeystore);
@@ -241,7 +243,7 @@ public class CertUtils {
     keystore.setCertificateEntry(keyName + "Cert", cert);
     keystore.setKeyEntry(keyName + "Key", kp.getPrivate(), password,
         new Certificate[] {cert, signerCert});
-    try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
+    try (OutputStream fos = Files.newOutputStream(targetKeystoreFile.toPath())) {
       keystore.store(fos, password);
     }
   }
@@ -262,7 +264,7 @@ public class CertUtils {
     keystore.load(null, null);
     keystore.setCertificateEntry(keyName + "Cert", cert);
     keystore.setKeyEntry(keyName + "Key", kp.getPrivate(), password, new Certificate[] {cert});
-    try (FileOutputStream fos = new FileOutputStream(targetKeystoreFile)) {
+    try (OutputStream fos = Files.newOutputStream(targetKeystoreFile.toPath())) {
       keystore.store(fos, password);
     }
   }

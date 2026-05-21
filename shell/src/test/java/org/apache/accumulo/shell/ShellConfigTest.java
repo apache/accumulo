@@ -18,16 +18,16 @@
  */
 package org.apache.accumulo.shell;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -37,8 +37,6 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ShellConfigTest {
 
@@ -62,15 +60,14 @@ public class ShellConfigTest {
   TestOutputStream output;
   Shell shell;
   PrintStream out;
-  File config;
-  private static final Logger log = LoggerFactory.getLogger(ShellConfigTest.class);
+  Path config;
 
   @BeforeEach
   public void setUp() throws Exception {
     out = System.out;
     output = new TestOutputStream();
     System.setOut(new PrintStream(output));
-    config = Files.createTempFile(null, null).toFile();
+    config = Files.createTempFile(null, null);
     Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
     terminal.setSize(new Size(80, 24));
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -83,11 +80,7 @@ public class ShellConfigTest {
     shell.shutdown();
     output.clear();
     System.setOut(out);
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
-    }
+    Files.deleteIfExists(config);
   }
 
   public String[] args(String... args) {
@@ -103,14 +96,15 @@ public class ShellConfigTest {
   }
 
   @Test
-  public void testHelp() throws IOException {
-    assertFalse(shell.config(args("--help")));
+  public void testHelp() throws Exception {
+    shell.execute(args("--help"));
     assertTrue(output.get().startsWith("Usage"), "Did not print usage");
   }
 
   @Test
-  public void testBadArg() throws IOException {
-    assertFalse(shell.config(args("--bogus")));
+  public void testBadArg() throws Exception {
+    shell.execute(args("--bogus"));
+    assertNotEquals(0, shell.getExitCode());
     // JCommander versions after 1.60 will cause the Shell to detect the arg as Unrecognized option
     assertTrue(output.get().startsWith("ERROR"), "Did not print Error");
     assertTrue(output.get().contains("Usage"), "Did not print usage");

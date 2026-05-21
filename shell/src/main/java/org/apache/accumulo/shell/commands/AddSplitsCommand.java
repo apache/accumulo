@@ -31,7 +31,8 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class AddSplitsCommand extends Command {
-  private Option optSplitsFile, base64Opt;
+  private Option optSplitsFile;
+  private Option base64Opt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

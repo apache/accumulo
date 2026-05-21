@@ -68,9 +68,9 @@ public class SplitInfo implements Serializable {
 
   NavigableMap<Text,TabletMergeability> getSplits() {
     NavigableMap<Text,TabletMergeability> splits = new TreeMap<>();
-    for (int i = 0; i < this.splits.length; i++) {
-      var split = TabletMergeabilityUtil.decode(ByteBuffer.wrap(this.splits[i]));
-      splits.put(split.getFirst(), split.getSecond());
+    for (byte[] split : this.splits) {
+      var splitMergeability = TabletMergeabilityUtil.decode(ByteBuffer.wrap(split));
+      splits.put(splitMergeability.split(), splitMergeability.mergeability());
     }
     return splits;
   }

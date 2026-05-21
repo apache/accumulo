@@ -29,6 +29,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -222,6 +226,31 @@ public class KeyExtentTest {
     assertThrows(IllegalArgumentException.class,
         () -> ke.clip(new Range(new Key("r_0004").followingKey(PartialKey.ROW), true,
             new Key("").followingKey(PartialKey.ROW), false)));
+  }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    KeyExtent key = new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a"));
+    int hashCode1 = key.hashCode();
+    int hashCode2 = key.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    KeyExtent k1 = new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a"));
+    KeyExtent k2 = new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a"));
+    assertEquals(k1.hashCode(), k2.hashCode());
+
+    // Testing even distribution
+    List<KeyExtent> keys = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      keys.add(new KeyExtent(TableId.of("r1" + i), new Text("b" + i), new Text("a" + i)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (KeyExtent k : keys) {
+      hashCodes.add(k.hashCode());
+    }
+    assertEquals(keys.size(), hashCodes.size(), 10);
   }
 
 }

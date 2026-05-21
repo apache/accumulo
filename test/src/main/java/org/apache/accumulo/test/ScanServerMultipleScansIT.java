@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -62,8 +64,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
@@ -90,7 +90,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         "localhost");
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
   }
 
   @AfterAll
@@ -118,20 +118,23 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
-      final CountDownLatch latch = new CountDownLatch(1);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
-            fail("InterruptedException waiting for latch");
+            fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRange(new Range());
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            assertEquals(ingestedEntryCount, Iterables.size(scanner));
+            assertEquals(ingestedEntryCount, scanner.stream().count());
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
@@ -139,7 +142,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
         futures.add(future);
       }
-      latch.countDown();
+      assertEquals(NUM_SCANS, futures.size());
       for (Future<?> future : futures) {
         future.get();
       }
@@ -161,7 +164,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(ingestedEntryCount, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, scanner.stream().count());
       }
     }
   }
@@ -182,9 +185,11 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
       log.debug("Splits found: {}", splitsFound);
 
-      final CountDownLatch latch = new CountDownLatch(1);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-      final AtomicInteger counter = new AtomicInteger(0);
+      final AtomicLong counter = new AtomicLong(0);
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
 
@@ -192,9 +197,10 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         final int threadNum = i;
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
-            fail("InterruptedException waiting for latch");
+            fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             switch (threadNum) {
@@ -215,7 +221,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             }
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
 
-            counter.addAndGet(Iterables.size(scanner));
+            counter.addAndGet(scanner.stream().count());
 
           } catch (TableNotFoundException e) {
             fail("Table not found");
@@ -224,7 +230,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
         futures.add(future);
       }
-      latch.countDown();
+      assertEquals(NUM_SCANS, futures.size());
       for (Future<?> future : futures) {
         future.get();
       }
@@ -240,28 +246,31 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
-      final CountDownLatch latch = new CountDownLatch(1);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
 
       for (int i = 0; i < NUM_SCANS; i++) {
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
             fail("InterruptedException waiting for latch");
           }
           try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRanges(Collections.singletonList(new Range()));
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-            assertEquals(ingestedEntryCount, Iterables.size(scanner));
+            assertEquals(ingestedEntryCount, scanner.stream().count());
           } catch (TableNotFoundException e) {
             fail("Table not found");
           }
         });
         futures.add(future);
       }
-      latch.countDown();
+      assertEquals(NUM_SCANS, futures.size());
       for (Future<?> future : futures) {
         future.get();
       }
@@ -284,7 +293,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
           client.createBatchScanner(tableName, Authorizations.EMPTY, NUM_SCANS)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(ingestedEntryCount, Iterables.size(scanner));
+        assertEquals(ingestedEntryCount, scanner.stream().count());
       }
     }
   }
@@ -305,16 +314,16 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
       log.debug("Splits found: {}", splitsFound);
 
-      final CountDownLatch latch = new CountDownLatch(1);
-
-      final AtomicInteger counter = new AtomicInteger(0);
-
-      List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
+      List<Future<Long>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         final int threadNum = i;
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
             fail("InterruptedException waiting for latch");
           }
@@ -340,19 +349,21 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             }
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
 
-            counter.addAndGet(Iterables.size(scanner));
+            return scanner.stream().count();
           } catch (TableNotFoundException e) {
             fail("Table not found");
+            return 0L;
           }
         });
         futures.add(future);
       }
-      latch.countDown();
-      for (Future<?> future : futures) {
-        future.get();
+      assertEquals(NUM_SCANS, futures.size());
+      long total = 0;
+      for (Future<Long> future : futures) {
+        total += future.get();
       }
 
-      assertEquals(ingestedEntryCount, counter.get());
+      assertEquals(ingestedEntryCount, total);
     }
   }
 

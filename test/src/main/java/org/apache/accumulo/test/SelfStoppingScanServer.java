@@ -20,7 +20,7 @@ package org.apache.accumulo.test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.tserver.ScanServer;
@@ -34,7 +34,7 @@ public class SelfStoppingScanServer extends ScanServer {
 
   private final AtomicInteger scanCount = new AtomicInteger(0);
 
-  public SelfStoppingScanServer(ConfigOpts opts, String[] args) {
+  public SelfStoppingScanServer(ServerOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -48,7 +48,7 @@ public class SelfStoppingScanServer extends ScanServer {
   }
 
   public static void main(String[] args) throws Exception {
-    try (SelfStoppingScanServer tserver = new SelfStoppingScanServer(new ConfigOpts(), args)) {
+    try (SelfStoppingScanServer tserver = new SelfStoppingScanServer(new ServerOpts(), args)) {
       tserver.runServer();
     }
   }

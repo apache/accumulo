@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -28,6 +29,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.crypto.streams.BlockedInputStream;
 import org.apache.accumulo.core.crypto.streams.BlockedOutputStream;
@@ -35,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 public class BlockedIOStreamTest {
 
-  private static final SecureRandom random = new SecureRandom();
+  private static final SecureRandom random = RANDOM.get();
 
   @Test
   public void testLargeBlockIO() throws IOException {
@@ -44,7 +46,8 @@ public class BlockedIOStreamTest {
 
   private void writeRead(int blockSize, int expectedSize) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, 1);
+    BlockedOutputStream blockOut =
+        new BlockedOutputStream(baos, blockSize, 1, new AtomicBoolean(true));
 
     String contentString = "My Blocked Content String";
     byte[] content = contentString.getBytes(UTF_8);
@@ -86,7 +89,7 @@ public class BlockedIOStreamTest {
   public void testSpillingOverOutputStream() throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     // buffer will be size 12
-    BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16);
+    BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16, new AtomicBoolean(true));
 
     byte[] undersized = new byte[11];
     byte[] perfectSized = new byte[12];
@@ -129,7 +132,8 @@ public class BlockedIOStreamTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     int blockSize = 16;
     // buffer will be size 12
-    BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, blockSize);
+    BlockedOutputStream blockOut =
+        new BlockedOutputStream(baos, blockSize, blockSize, new AtomicBoolean(true));
 
     int size = 1024 * 1024 * 128;
     byte[] giant = new byte[size];

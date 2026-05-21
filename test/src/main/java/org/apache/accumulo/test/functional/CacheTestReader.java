@@ -21,8 +21,10 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +49,7 @@ public class CacheTestReader {
     String keepers = args[2];
     int numData = CacheTestWriter.NUM_DATA;
 
-    File myfile = new File(reportDir + "/" + UUID.randomUUID());
+    File myfile = Path.of(reportDir + "/" + UUID.randomUUID()).toFile();
     myfile.deleteOnExit();
 
     try {
@@ -87,7 +89,7 @@ public class CacheTestReader {
 
           LOG.info("Data: {}", readData);
 
-          try (FileOutputStream fos = new FileOutputStream(myfile);
+          try (OutputStream fos = Files.newOutputStream(myfile.toPath());
               ObjectOutputStream oos = new ObjectOutputStream(fos)) {
             oos.writeObject(readData);
           }

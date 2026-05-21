@@ -48,7 +48,8 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       final String[] tables = getUniqueNames(2);
-      final String table1 = tables[0], table2 = tables[1];
+      final String table1 = tables[0];
+      final String table2 = tables[1];
       final TableOperations tops = client.tableOperations();
       tops.create(table1);
       tops.create(table2);
@@ -66,12 +67,13 @@ public class KeyValueEqualityIT extends AccumuloClusterHarness {
         }
       }
 
-      Iterator<Entry<Key,Value>> t1 = client.createScanner(table1, Authorizations.EMPTY).iterator(),
-          t2 = client.createScanner(table2, Authorizations.EMPTY).iterator();
+      Iterator<Entry<Key,Value>> t1 = client.createScanner(table1, Authorizations.EMPTY).iterator();
+      Iterator<Entry<Key,Value>> t2 = client.createScanner(table2, Authorizations.EMPTY).iterator();
       while (t1.hasNext() && t2.hasNext()) {
         // KeyValue, the implementation of Entry<Key,Value>, should support equality and hashCode
         // properly
-        Entry<Key,Value> e1 = t1.next(), e2 = t2.next();
+        Entry<Key,Value> e1 = t1.next();
+        Entry<Key,Value> e2 = t2.next();
         assertEquals(e1, e2);
         assertEquals(e1.hashCode(), e2.hashCode());
       }

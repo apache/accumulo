@@ -31,7 +31,9 @@ import org.apache.commons.cli.Options;
 
 public class PingCommand extends Command {
 
-  private Option serverOption, tserverOption, disablePaginationOpt;
+  private Option serverOption;
+  private Option tserverOption;
+  private Option disablePaginationOpt;
 
   @Override
   public String description() {

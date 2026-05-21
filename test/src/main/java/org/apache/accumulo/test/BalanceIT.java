@@ -38,7 +38,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -56,8 +56,6 @@ public class BalanceIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
-    siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
     cfg.setSiteConfig(siteConfig);
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
   }
@@ -97,13 +95,13 @@ public class BalanceIT extends ConfigurableMacBase {
 
       var metaSplits = IntStream.range(1, 100).mapToObj(i -> Integer.toString(i, 36)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
-      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
+      c.tableOperations().addSplits(SystemTables.METADATA.tableName(), metaSplits);
 
-      var locCounts = countLocations(c, AccumuloTable.METADATA.tableName());
+      var locCounts = countLocations(c, SystemTables.METADATA.tableName());
 
       c.instanceOperations().waitForBalance();
 
-      locCounts = countLocations(c, AccumuloTable.METADATA.tableName());
+      locCounts = countLocations(c, SystemTables.METADATA.tableName());
       var stats = locCounts.values().stream().mapToInt(i -> i).summaryStatistics();
       assertTrue(stats.getMax() <= 51, locCounts.toString());
       assertTrue(stats.getMin() >= 50, locCounts.toString());
@@ -115,14 +113,14 @@ public class BalanceIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       Wait.waitFor(() -> {
-        var lc = countLocations(c, AccumuloTable.METADATA.tableName());
+        var lc = countLocations(c, SystemTables.METADATA.tableName());
         log.info("locations:{}", lc);
         return lc.size() == 4;
       });
 
       c.instanceOperations().waitForBalance();
 
-      locCounts = countLocations(c, AccumuloTable.METADATA.tableName());
+      locCounts = countLocations(c, SystemTables.METADATA.tableName());
       stats = locCounts.values().stream().mapToInt(i -> i).summaryStatistics();
       assertTrue(stats.getMax() <= 26, locCounts.toString());
       assertTrue(stats.getMin() >= 25, locCounts.toString());
@@ -143,7 +141,7 @@ public class BalanceIT extends ConfigurableMacBase {
     }
   }
 
-  private Map<String,Integer> countLocations(AccumuloClient client, String tableName)
+  static Map<String,Integer> countLocations(AccumuloClient client, String tableName)
       throws Exception {
     var ctx = ((ClientContext) client);
     var ample = ctx.getAmple();

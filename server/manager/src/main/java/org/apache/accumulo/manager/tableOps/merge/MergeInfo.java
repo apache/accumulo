@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.merge;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -37,7 +38,11 @@ public class MergeInfo implements Serializable {
   private static final long serialVersionUID = 1L;
 
   public enum Operation {
-    MERGE, DELETE,
+    MERGE, SYSTEM_MERGE, DELETE;
+
+    public boolean isMergeOp() {
+      return this == MERGE || this == SYSTEM_MERGE;
+    }
   }
 
   final TableId tableId;
@@ -60,7 +65,7 @@ public class MergeInfo implements Serializable {
     this.namespaceId = namespaceId;
     this.startRow = startRow;
     this.endRow = endRow;
-    this.op = op;
+    this.op = Objects.requireNonNull(op);
     this.mergeRangeSet = mergeRange != null;
     if (mergeRange != null) {
       mergeStartRow =
@@ -102,6 +107,7 @@ public class MergeInfo implements Serializable {
   public KeyExtent getReserveExtent() {
     switch (op) {
       case MERGE:
+      case SYSTEM_MERGE:
         return getOriginalExtent();
       case DELETE: {
         if (endRow == null) {

@@ -58,7 +58,7 @@ public class FateCleaner<T> {
   private final Duration ageOffTime;
   private final TimeSource timeSource;
 
-  private static class AgeOffInfo {
+  private static final class AgeOffInfo {
     final SteadyTime setTime;
     final TStatus status;
 

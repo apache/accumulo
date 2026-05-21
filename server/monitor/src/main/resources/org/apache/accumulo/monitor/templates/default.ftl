@@ -21,29 +21,42 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <base href="${rootContext}"/>
     <title>${title} - Accumulo ${version}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <!-- Set the saved theme before loading CSS to reduce light-mode flash on reload -->
+    <script>
+      (function() {
+        if (localStorage.getItem('dark-theme-enabled') === 'true') {
+          document.documentElement.setAttribute('data-bs-theme', 'dark');
+        }
+      })();
+    </script>
     <!-- external resources configurable by setting monitor.resources.external -->
-    <!-- make sure jquery is included first - other scripts depend on it -->
     <#if externalResources?has_content>
       <#list externalResources as val>
         ${val}
       </#list>
     <#else>
-      <script src="/resources/external/jquery/jquery-3.7.1.js"></script>
-      <script src="/resources/external/bootstrap/js/bootstrap.bundle.js"></script>
-      <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
-      <script src="/resources/external/datatables/js/dataTables.bootstrap5.js"></script>
-      <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
-      <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-icons.css" />
-      <link rel="stylesheet" href="/resources/external/datatables/css/dataTables.bootstrap5.css" />
+      <!-- make sure jquery is included first - other scripts depend on it -->
+      <script src="resources/external/jquery/jquery-3.7.1.js"></script>
+      <script src="resources/external/bootstrap/js/bootstrap.bundle.js"></script>
+      <script src="resources/external/datatables/js/jquery.dataTables.js"></script>
+      <script src="resources/external/datatables/js/dataTables.colReorder.js"></script>
+      <script src="resources/external/datatables/js/dataTables.bootstrap5.js"></script>
+      <script src="resources/external/datatables/js/colReorder.bootstrap5.js"></script>
+      <link rel="stylesheet" href="resources/external/bootstrap/css/bootstrap.css" />
+      <link rel="stylesheet" href="resources/external/bootstrap/css/bootstrap-icons.css" />
+      <link rel="stylesheet" href="resources/external/datatables/css/dataTables.bootstrap5.css" />
+      <link rel="stylesheet" href="resources/external/datatables/css/colReorder.bootstrap5.css" />
     </#if>
 
     <!-- accumulo resources -->
-    <link rel="shortcut icon" type="image/jng" href="/resources/images/favicon.png" />
-    <script src="/resources/js/global.js"></script>
-    <script src="/resources/js/functions.js"></script>
-    <link rel="stylesheet" type="text/css" href="/resources/css/screen.css" media="screen" />
+    <link rel="shortcut icon" type="image/jng" href="resources/images/favicon.png" />
+    <script src="resources/js/global.js"></script>
+    <script src="resources/js/functions.js"></script>
+    <script src="resources/js/server_process_common.js"></script>
+    <link rel="stylesheet" type="text/css" href="resources/css/screen.css" media="screen" />
 
     <script>
       /**
@@ -54,18 +67,16 @@
       });
     </script>
     <#if js??>
-      <script src="/resources/js/${js}"></script>
+      <script src="resources/js/${js}"></script>
     </#if>
-    <script src="/resources/js/navbar.js"></script>
-    <script src="/resources/js/systemAlert.js"></script>
-    <script src="/resources/js/modals.js"></script>
+    <script src="resources/js/navbar.js"></script>
+    <script src="resources/js/modals.js"></script>
   </head>
 
   <body>
     <#include "navbar.ftl">
 
     <div id="main" class="container-fluid">
-      <#include "systemAlert.ftl">
       <#include "${template}">
     </div>
 

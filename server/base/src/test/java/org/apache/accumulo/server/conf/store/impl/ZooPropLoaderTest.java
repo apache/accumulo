@@ -39,10 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -61,9 +59,8 @@ import org.junit.jupiter.api.Test;
 public class ZooPropLoaderTest {
 
   private PropCacheCaffeineImplTest.TestTicker ticker;
-  private InstanceId instanceId;
   private ZooSession zk;
-  private PropStoreKey<?> propStoreKey;
+  private PropStoreKey propStoreKey;
   private VersionedPropCodec propCodec;
 
   // mocks
@@ -75,9 +72,8 @@ public class ZooPropLoaderTest {
   @BeforeEach
   public void initCommonMocks() {
     ticker = new PropCacheCaffeineImplTest.TestTicker();
-    instanceId = InstanceId.of(UUID.randomUUID());
 
-    propStoreKey = TablePropKey.of(instanceId, TableId.of("1abc"));
+    propStoreKey = TablePropKey.of(TableId.of("1abc"));
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
@@ -286,8 +282,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeTest() throws Exception {
-    final var sysPropKey = SystemPropKey.of(instanceId);
-    final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
+    final var sysPropKey = SystemPropKey.of();
+    final var tablePropKey = TablePropKey.of(TableId.of("t1"));
 
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);
@@ -334,8 +330,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeAllTest() throws Exception {
-    final var sysPropKey = SystemPropKey.of(instanceId);
-    final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
+    final var sysPropKey = SystemPropKey.of();
+    final var tablePropKey = TablePropKey.of(TableId.of("t1"));
 
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);

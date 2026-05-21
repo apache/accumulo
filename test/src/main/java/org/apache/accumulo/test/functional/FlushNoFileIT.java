@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -52,8 +53,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Tests that Accumulo will flush but not create a file that has 0 entries.
@@ -72,7 +71,7 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
 
       NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting iteratorSetting = new IteratorSetting(20, NullIterator.class);
+      IteratorSetting iteratorSetting = new IteratorSetting(30, NullIterator.class);
       ntc.attachIterator(iteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.minc));
       ntc.withSplits(new TreeSet<>(Set.of(new Text("a"), new Text("s"))));
 
@@ -128,7 +127,8 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       });
 
       // Host all tablets
-      c.tableOperations().setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(tableName, RowRange.all(),
+          TabletAvailability.HOSTED);
       // Wait for all tablets to be hosted
       Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, tableId) == 3);
 
@@ -144,7 +144,7 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       });
 
       try (Scanner scanner = c.createScanner(tableName)) {
-        assertEquals(0, Iterables.size(scanner), "Expected 0 Entries in table");
+        assertEquals(0, scanner.stream().count(), "Expected 0 Entries in table");
       }
     }
   }

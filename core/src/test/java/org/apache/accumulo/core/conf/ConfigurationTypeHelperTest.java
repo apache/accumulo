@@ -26,10 +26,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.file.FilePrefix;
 import org.junit.jupiter.api.Test;
 
 public class ConfigurationTypeHelperTest {
@@ -181,5 +183,19 @@ public class ConfigurationTypeHelperTest {
     iae = assertThrows(IllegalArgumentException.class,
         () -> ConfigurationTypeHelper.getVolumeUris("hdfs:/volA,hdfs :/::/volB"));
     assertEquals("volume contains 'hdfs :/::/volB' which has a syntax error", iae.getMessage());
+  }
+
+  @Test
+  public void testGetDropCacheBehindFilePrefixes() {
+    assertEquals(EnumSet.noneOf(FilePrefix.class),
+        ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("NONE"));
+    assertEquals(EnumSet.allOf(FilePrefix.class),
+        ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("ALL"));
+    assertEquals(
+        EnumSet.of(FilePrefix.FLUSH, FilePrefix.FULL_COMPACTION, FilePrefix.COMPACTION,
+            FilePrefix.MERGING_MINOR_COMPACTION),
+        ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("NON-IMPORT"));
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("A"));
   }
 }

@@ -49,7 +49,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     // ChaoticLoadBalancer balances across all tables
-    siteConfig.put(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
+    siteConfig.put(Property.MANAGER_TABLET_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
     cfg.setSiteConfig(siteConfig);
   }
 

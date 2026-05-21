@@ -103,7 +103,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     private static final Property prop = Property.TABLE_SPLIT_THRESHOLD;
     private AccumuloConfiguration tableConf;
     private CountDownLatch countDown;
-    private int iterations, randMax;
+    private int iterations;
+    private int randMax;
 
     public TableConfRunner(int randMax, int iterations, AccumuloConfiguration tableConf,
         CountDownLatch countDown) {

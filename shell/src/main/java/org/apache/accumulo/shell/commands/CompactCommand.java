@@ -39,13 +39,30 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class CompactCommand extends TableOperation {
-  private Option noFlushOption, waitOpt, profileOpt, cancelOpt;
+  private Option noFlushOption;
+  private Option waitOpt;
+  private Option profileOpt;
+  private Option cancelOpt;
 
   // file selection and file output options
-  private Option enameOption, epathOption, sizeLtOption, sizeGtOption, minFilesOption,
-      outBlockSizeOpt, outHdfsBlockSizeOpt, outIndexBlockSizeOpt, outCompressionOpt, outReplication,
-      enoSampleOption, extraSummaryOption, enoSummaryOption, hintsOption, configurerOpt,
-      configurerConfigOpt, selectorOpt, selectorConfigOpt;
+  private Option enameOption;
+  private Option epathOption;
+  private Option sizeLtOption;
+  private Option sizeGtOption;
+  private Option minFilesOption;
+  private Option outBlockSizeOpt;
+  private Option outHdfsBlockSizeOpt;
+  private Option outIndexBlockSizeOpt;
+  private Option outCompressionOpt;
+  private Option outReplication;
+  private Option enoSampleOption;
+  private Option extraSummaryOption;
+  private Option enoSummaryOption;
+  private Option hintsOption;
+  private Option configurerOpt;
+  private Option configurerConfigOpt;
+  private Option selectorOpt;
+  private Option selectorConfigOpt;
 
   private CompactionConfig compactionConfig = null;
 

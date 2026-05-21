@@ -165,7 +165,9 @@ public class TCredentialsUpdatingInvocationHandlerTest {
 
   @Test
   public void testAllowedImpersonationFromSpecificHost() throws Exception {
-    final String proxyServer = "proxy", client = "client", host = "host.domain.com";
+    final String proxyServer = "proxy";
+    final String client = "client";
+    final String host = "host.domain.com";
     conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":" + client);
     conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, host);
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);
@@ -178,7 +180,9 @@ public class TCredentialsUpdatingInvocationHandlerTest {
 
   @Test
   public void testDisallowedImpersonationFromSpecificHost() {
-    final String proxyServer = "proxy", client = "client", host = "host.domain.com";
+    final String proxyServer = "proxy";
+    final String client = "client";
+    final String host = "host.domain.com";
     conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, proxyServer + ":" + client);
     conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, host);
     proxy = new TCredentialsUpdatingInvocationHandler<>(new Object(), conf);

@@ -120,8 +120,10 @@ public class UserImpersonation {
   }
 
   public static class UsersWithHosts {
-    private Set<String> users = new HashSet<>(), hosts = new HashSet<>();
-    private boolean allUsers, allHosts;
+    private Set<String> users = new HashSet<>();
+    private Set<String> hosts = new HashSet<>();
+    private boolean allUsers;
+    private boolean allHosts;
 
     public UsersWithHosts() {
       allUsers = allHosts = false;

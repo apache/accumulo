@@ -20,7 +20,7 @@ package org.apache.accumulo.core.client.admin.compaction;
 
 import java.net.URI;
 
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 
 /**
@@ -40,24 +40,31 @@ public interface CompactableFile {
    *         not have a range then an infinite range is returned. The URI plus this range uniquely
    *         identify a file.
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
-  public Range getRange();
+  public RowRange getRange();
 
   public long getEstimatedSize();
 
   public long getEstimatedEntries();
 
+  /**
+   * Creates a new CompactableFile object that implements this interface. The returned object
+   * implements equals() and hashCode() based only on the file uri and an infinite range.
+   */
   static CompactableFile create(URI uri, long estimatedSize, long estimatedEntries) {
     return new CompactableFileImpl(uri, estimatedSize, estimatedEntries);
   }
 
   /**
-   * Creates a new CompactableFile object that implements this interface.
+   * Creates a new CompactableFile object that implements this interface. The returned object
+   * implements equals() and hashCode() based only on the file uri and range.
    *
-   * @since 3.1.0
+   * @param range must be of the form (startRow, endRow]
+   * @since 4.0.0
    */
-  static CompactableFile create(URI uri, Range range, long estimatedSize, long estimatedEntries) {
+  static CompactableFile create(URI uri, RowRange range, long estimatedSize,
+      long estimatedEntries) {
     return new CompactableFileImpl(uri, range, estimatedSize, estimatedEntries);
   }
 }

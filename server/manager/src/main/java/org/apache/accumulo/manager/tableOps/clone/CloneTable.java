@@ -27,54 +27,45 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class CloneTable extends ManagerRepo {
+public class CloneTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final CloneInfo cloneInfo;
 
-  public CloneTable(String user, NamespaceId namespaceId, TableId srcTableId, String tableName,
-      Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline) {
-    cloneInfo = new CloneInfo();
-    cloneInfo.user = user;
-    cloneInfo.srcTableId = srcTableId;
-    cloneInfo.tableName = tableName;
-    cloneInfo.propertiesToExclude = propertiesToExclude;
-    cloneInfo.propertiesToSet = propertiesToSet;
-    cloneInfo.srcNamespaceId = namespaceId;
-    cloneInfo.keepOffline = keepOffline;
+  public CloneTable(String user, NamespaceId srcNamespaceId, TableId srcTableId,
+      NamespaceId namespaceId, String tableName, Map<String,String> propertiesToSet,
+      Set<String> propertiesToExclude, boolean keepOffline) {
+    cloneInfo = new CloneInfo(srcNamespaceId, srcTableId, namespaceId, tableName, propertiesToSet,
+        propertiesToExclude, keepOffline, user);
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
-    long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, fateId, LockType.READ,
-        true, TableOperation.CLONE);
-    val += Utils.reserveTable(environment, cloneInfo.srcTableId, fateId, LockType.READ, true,
-        TableOperation.CLONE);
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    long val = Utils.reserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+        LockType.READ, true, TableOperation.CLONE);
+    val += Utils.reserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
+        LockType.READ, true, TableOperation.CLONE);
     return val;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
 
-    Utils.getIdLock().lock();
-    try {
-      cloneInfo.tableId =
-          Utils.getNextId(cloneInfo.tableName, environment.getContext(), TableId::of);
-
-      return new ClonePermissions(cloneInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    cloneInfo.setTableId(
+        Utils.getNextId(cloneInfo.getTableName(), environment.getContext(), TableId::of));
+    return new ClonePermissions(cloneInfo);
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) {
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, fateId, LockType.READ);
+  public void undo(FateId fateId, FateEnv environment) {
+    Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+        LockType.READ);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
+        LockType.READ);
   }
 
 }

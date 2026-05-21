@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -43,11 +44,15 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.manager.tableOps.split.UpdateTabletsTest.newSTF;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -55,6 +60,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -83,7 +89,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
@@ -109,10 +115,10 @@ public class MergeTabletsTest {
    * implications for merging tablets. For a column to be in this set it means an Accumulo developer
    * has determined that merge code can handle that column OR has opened an issue about handling it.
    */
-  private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE =
-      EnumSet.of(TIME, LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED,
-          USER_COMPACTION_REQUESTED, MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE,
-          SUSPEND, AVAILABILITY, HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE, MERGEABILITY);
+  private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE = EnumSet.of(TIME,
+      LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED, USER_COMPACTION_REQUESTED,
+      MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE, SUSPEND, AVAILABILITY,
+      HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE, MERGEABILITY, MIGRATION);
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -153,6 +159,7 @@ public class MergeTabletsTest {
     var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
     var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
     var mergeability = TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS));
+    var migration = new TServerInstance("localhost:1234", 56L);
 
     var tablet1 =
         TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
@@ -199,8 +206,12 @@ public class MergeTabletsTest {
     EasyMock.expect(lastTabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getUnSplittable()).andReturn(unsplittableMeta).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getTabletMergeability()).andReturn(mergeability).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getMigration()).andReturn(migration).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getDirName()).andReturn("td3").atLeastOnce();
 
     EasyMock.replay(lastTabletMeta, compactions);
+
+    Set<Ample.OrphanedCompaction> orphanedCompactions = new HashSet<>();
 
     testMerge(List.of(tablet1, tablet2, lastTabletMeta), tableId, null, null, tabletMutator -> {
       EasyMock.expect(tabletMutator.putTime(MetadataTime.parse("L30"))).andReturn(tabletMutator)
@@ -238,10 +249,15 @@ public class MergeTabletsTest {
           .expect(tabletMutator.putTabletMergeability(
               TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS))))
           .andReturn(tabletMutator).once();
+      EasyMock.expect(tabletMutator.deleteMigration()).andReturn(tabletMutator);
 
-    });
+    }, orphanedCompactions::add);
 
     EasyMock.verify(lastTabletMeta, compactions);
+
+    assertEquals(Set.of(new Ample.OrphanedCompaction(cid1, tableId, "td3"),
+        new Ample.OrphanedCompaction(cid2, tableId, "td3"),
+        new Ample.OrphanedCompaction(cid3, tableId, "td3")), orphanedCompactions);
   }
 
   @Test
@@ -386,17 +402,17 @@ public class MergeTabletsTest {
           .putTime(MetadataTime.parse(times[0])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE, MERGEABILITY);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
       var tablet2 = TabletMetadata.builder(ke2).putOperation(opid).putDirName("td2")
           .putTime(MetadataTime.parse(times[1])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE, MERGEABILITY);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
       var tablet3 = TabletMetadata.builder(ke3).putOperation(opid).putDirName("td3")
           .putTime(MetadataTime.parse(times[2])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE, MERGEABILITY);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
 
       testMerge(List.of(tablet1, tablet2, tablet3), tableId, null, null, tabletMutator -> {
         EasyMock.expect(tabletMutator.putTime(MetadataTime.parse("L30"))).andReturn(tabletMutator)
@@ -416,12 +432,18 @@ public class MergeTabletsTest {
 
   private static void testMerge(List<TabletMetadata> inputTablets, TableId tableId, String start,
       String end, Consumer<ConditionalTabletMutatorImpl> expectationsSetter) throws Exception {
+    testMerge(inputTablets, tableId, start, end, expectationsSetter, removedCompaction -> fail());
+  }
+
+  private static void testMerge(List<TabletMetadata> inputTablets, TableId tableId, String start,
+      String end, Consumer<ConditionalTabletMutatorImpl> expectationsSetter,
+      Consumer<Ample.OrphanedCompaction> orphanedCompactionConsumer) throws Exception {
     MergeInfo mergeInfo =
         new MergeInfo(tableId, NamespaceId.of("1"), start == null ? null : start.getBytes(UTF_8),
             end == null ? null : end.getBytes(UTF_8), MergeInfo.Operation.MERGE);
     MergeTablets mergeTablets = new MergeTablets(mergeInfo);
 
-    Manager manager = EasyMock.mock(Manager.class);
+    FateEnv fateEnv = EasyMock.mock(FateEnv.class);
     ServerContext context = EasyMock.mock(ServerContext.class);
     Ample ample = EasyMock.mock(Ample.class);
     TabletsMetadata.Builder tabletBuilder = EasyMock.mock(TabletsMetadata.Builder.class);
@@ -430,11 +452,29 @@ public class MergeTabletsTest {
         EasyMock.mock(ConditionalTabletsMutatorImpl.class);
     ConditionalTabletMutatorImpl tabletMutator = EasyMock.mock(ConditionalTabletMutatorImpl.class);
 
+    Ample.OrphanedCompactionStore orphanedCompactionStore = new Ample.OrphanedCompactionStore() {
+      @Override
+      public Stream<Ample.OrphanedCompaction> list() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public void add(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        removedCompactions.forEach(orphanedCompactionConsumer);
+      }
+
+      @Override
+      public void delete(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        throw new UnsupportedOperationException();
+      }
+    };
+    EasyMock.expect(ample.orphanedCompactions()).andReturn(orphanedCompactionStore);
+
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
 
     // setup reading the tablets
-    EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
+    EasyMock.expect(fateEnv.getContext()).andReturn(context).atLeastOnce();
     EasyMock.expect(context.getAmple()).andReturn(ample).atLeastOnce();
     EasyMock.expect(ample.readTablets()).andReturn(tabletBuilder).once();
     EasyMock.expect(tabletBuilder.forTable(tableId)).andReturn(tabletBuilder).once();
@@ -474,12 +514,12 @@ public class MergeTabletsTest {
     ample.putGcFileAndDirCandidates(tableId, dirs);
     EasyMock.expectLastCall().once();
 
-    EasyMock.replay(manager, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
+    EasyMock.replay(fateEnv, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
         tabletMutator, cr, managerLock);
 
-    mergeTablets.call(fateId, manager);
+    mergeTablets.call(fateId, fateEnv);
 
-    EasyMock.verify(manager, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
+    EasyMock.verify(fateEnv, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
         tabletMutator, cr, managerLock);
   }
 }

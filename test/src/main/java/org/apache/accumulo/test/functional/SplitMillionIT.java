@@ -42,10 +42,11 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -92,7 +93,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
         String metaSplit = String.format("%s;%010d", tableId, 100_000_000 / 10 * i);
         metaSplits.add(new Text(metaSplit));
       }
-      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
+      c.tableOperations().addSplits(SystemTables.METADATA.tableName(), metaSplits);
 
       SortedSet<Text> splits = new TreeSet<>();
 
@@ -153,7 +154,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
       long count;
       t1 = System.currentTimeMillis();
       try (var tabletInformation =
-          c.tableOperations().getTabletInformation(tableName, new Range())) {
+          c.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
         count = tabletInformation.count();
       }
       t2 = System.currentTimeMillis();
@@ -175,7 +176,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
       // of the tablets for the clone table will be hosted. The subsequent merge operation
       // is a metadata-only operation unless the tablet is hosted. If the tablet is hosted
       // then the tablet has to be closed making the merge operation take longer.
-      c.tableOperations().setTabletAvailability(tableName, new Range(),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.all(),
           TabletAvailability.UNHOSTED);
 
       // clone the table to test cloning with lots of tablets and also to give merge its own table

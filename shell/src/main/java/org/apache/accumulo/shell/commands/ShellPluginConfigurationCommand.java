@@ -36,7 +36,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public abstract class ShellPluginConfigurationCommand extends Command {
-  private Option removePluginOption, pluginClassOption, listPluginOption;
+  private Option removePluginOption;
+  private Option pluginClassOption;
+  private Option listPluginOption;
 
   private String pluginType;
 

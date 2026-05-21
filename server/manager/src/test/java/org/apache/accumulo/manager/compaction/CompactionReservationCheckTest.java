@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -59,7 +60,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionReservationCheck;
 import org.apache.hadoop.fs.Path;
@@ -78,7 +78,7 @@ public class CompactionReservationCheckTest {
     FateId fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     FateId fateId2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
-    CompactorGroupId cgid = CompactorGroupId.of("G1");
+    ResourceGroupId cgid = ResourceGroupId.of("G1");
     ReferencedTabletFile tmp1 =
         ReferencedTabletFile.of(new Path("file:///accumulo/tables/1/default_tablet/C00005.rf_tmp"));
     CompactionMetadata cm1 = new CompactionMetadata(Set.of(file1, file2), tmp1, "localhost:4444",

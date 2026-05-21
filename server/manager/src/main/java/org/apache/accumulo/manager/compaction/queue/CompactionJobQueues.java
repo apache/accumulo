@@ -22,16 +22,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,7 +44,7 @@ public class CompactionJobQueues {
   // can be observed that scoped locks are acquired. Other concurrent map impls may run the compute
   // lambdas concurrently for a given key, which may still be correct but is more difficult to
   // analyze.
-  private final ConcurrentHashMap<CompactorGroupId,CompactionJobPriorityQueue> priorityQueues =
+  private final ConcurrentHashMap<ResourceGroupId,CompactionJobPriorityQueue> priorityQueues =
       new ConcurrentHashMap<>();
 
   private volatile long queueSize;
@@ -90,37 +89,22 @@ public class CompactionJobQueues {
     }
   }
 
-  public KeySetView<CompactorGroupId,CompactionJobPriorityQueue> getQueueIds() {
+  public KeySetView<ResourceGroupId,CompactionJobPriorityQueue> getQueueIds() {
     return priorityQueues.keySet();
   }
 
-  public CompactionJobPriorityQueue getQueue(CompactorGroupId groupId) {
+  public CompactionJobPriorityQueue getQueue(ResourceGroupId groupId) {
     return priorityQueues.get(groupId);
   }
 
-  public long getQueueMaxSize(CompactorGroupId groupId) {
+  public long getQueueMaxSize(ResourceGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getMaxSize();
   }
 
-  public long getQueuedJobs(CompactorGroupId groupId) {
+  public long getQueuedJobs(ResourceGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
-  }
-
-  public long getDequeuedJobs(CompactorGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getDequeuedJobs();
-  }
-
-  public long getRejectedJobs(CompactorGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getRejectedJobs();
-  }
-
-  public long getLowestPriority(CompactorGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getLowestPriority();
   }
 
   public long getQueueCount() {
@@ -135,19 +119,7 @@ public class CompactionJobQueues {
     return count;
   }
 
-  /**
-   * Asynchronously get a compaction job from the queue. If the queue currently has jobs then a
-   * completed future will be returned containing the highest priority job in the queue. If the
-   * queue is currently empty, then an uncompleted future will be returned and later when something
-   * is added to the queue the future will be completed.
-   */
-  public CompletableFuture<CompactionJob> getAsync(CompactorGroupId groupId) {
-    var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
-    return pq.getAsync();
-  }
-
-  public CompactionJob poll(CompactorGroupId groupId) {
+  public CompactionJob poll(ResourceGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     if (prioQ == null) {
       return null;
@@ -156,7 +128,7 @@ public class CompactionJobQueues {
     return prioQ.poll();
   }
 
-  private void add(KeyExtent extent, CompactorGroupId groupId, Collection<CompactionJob> jobs) {
+  private void add(KeyExtent extent, ResourceGroupId groupId, Collection<CompactionJob> jobs) {
 
     if (log.isTraceEnabled()) {
       log.trace("Adding jobs to queue {} {} {}", groupId, extent,

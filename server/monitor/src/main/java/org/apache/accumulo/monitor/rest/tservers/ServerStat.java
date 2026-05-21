@@ -29,7 +29,8 @@ public class ServerStat {
   public int max;
   public boolean adjustMax;
   public float significance;
-  public String description, name;
+  public String description;
+  public String name;
   public boolean derived;
 
   public ServerStat() {}

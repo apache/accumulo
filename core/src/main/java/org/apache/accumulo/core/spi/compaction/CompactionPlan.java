@@ -21,6 +21,7 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Collection;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters;
 
 /**
@@ -46,7 +47,7 @@ public interface CompactionPlan {
      * @param files The files to compact.
      * @return this
      */
-    Builder addJob(short priority, CompactorGroupId group, Collection<CompactableFile> files);
+    Builder addJob(short priority, ResourceGroupId group, Collection<CompactableFile> files);
 
     CompactionPlan build();
   }

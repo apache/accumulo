@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12.SPLIT_RATIO_COLUMN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -47,9 +47,9 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -64,7 +64,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.manager.upgrade.SplitRecovery12to13;
+import org.apache.accumulo.manager.upgrade.SplitRecovery11to12;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -178,7 +178,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     // Ample is not used here because it does not recognize some of the old columns that this
     // upgrade code is dealing with.
     try (Scanner scanner =
-        context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
       Map<FateId,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
@@ -204,10 +204,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    SplitRecovery12to13.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
-        lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+    SplitRecovery11to12.splitDatafiles(midRow, splitRatio, dataFiles, lowDatafileSizes,
+        highDatafileSizes, highDatafilesToRemove);
 
-    SplitRecovery12to13.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
+    SplitRecovery11to12.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
@@ -222,14 +222,14 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           new MetadataTime(0, TimeType.LOGICAL), -1L);
     }
     if (steps >= 2) {
-      SplitRecovery12to13.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context);
+      SplitRecovery11to12.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context);
     }
 
     if (steps < 2) {
       Double persistedSplitRatio = null;
 
       try (var scanner =
-          context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(high.toMetaRange());
         for (var entry : scanner) {
           if (SPLIT_RATIO_COLUMN.hasColumns(entry.getKey())) {
@@ -240,7 +240,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       assertEquals(splitRatio, persistedSplitRatio, 0.0);
     }
 
-    KeyExtent fixedExtent = SplitRecovery12to13.fixSplit(context, high.toMetaRow());
+    KeyExtent fixedExtent = SplitRecovery11to12.fixSplit(context, high.toMetaRow());
 
     if (steps >= 1) {
       assertEquals(high, fixedExtent);
@@ -268,7 +268,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
       SortedMap<StoredTabletFile,DataFileValue> expectedDataFiles) throws Exception {
     try (Scanner scanner =
-        new ScannerImpl(context, AccumuloTable.METADATA.tableId(), Authorizations.EMPTY)) {
+        new ScannerImpl(context, SystemTables.METADATA.tableId(), Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
@@ -294,7 +294,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
         if (!key.getRow().equals(extent.toMetaRow())) {
           throw new Exception("Tablet " + extent + " contained unexpected "
-              + AccumuloTable.METADATA.tableName() + " entry " + key);
+              + SystemTables.METADATA.tableName() + " entry " + key);
         }
 
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
@@ -313,7 +313,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         }
 
         throw new Exception("Tablet " + extent + " contained unexpected "
-            + AccumuloTable.METADATA.tableName() + " entry " + key);
+            + SystemTables.METADATA.tableName() + " entry " + key);
       }
 
       // This is not always present

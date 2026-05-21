@@ -29,7 +29,6 @@ import jakarta.ws.rs.core.Response.Status;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.manager.ManagerResource;
 import org.apache.accumulo.monitor.rest.tables.TablesResource;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
@@ -58,8 +57,8 @@ public class XMLResource {
     }
 
     // Add Monitor information
-    SummaryInformation xml = new SummaryInformation(mmi.tServerInfo.size(),
-        ManagerResource.getTables(monitor), TablesResource.getTables(monitor));
+    SummaryInformation xml =
+        new SummaryInformation(mmi.tServerInfo.size(), TablesResource.getTables(monitor));
 
     // Add tserver information
     for (TabletServerStatus status : mmi.tServerInfo) {

@@ -30,6 +30,7 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -44,7 +45,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
@@ -72,7 +72,7 @@ public class CommitCompactionTest {
     var fateId1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var fateId2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
-    var groupId = CompactorGroupId.of("Q1");
+    var groupId = ResourceGroupId.of("Q1");
 
     assertFalse(canCommitCompaction(cid1, null));
 

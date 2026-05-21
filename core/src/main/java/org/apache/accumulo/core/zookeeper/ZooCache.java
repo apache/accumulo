@@ -52,9 +52,13 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ZooCache {
 
   public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
@@ -64,7 +68,7 @@ public class ZooCache {
   private final NavigableSet<String> watchedPaths;
 
   // visible for tests
-  protected final ZCacheWatcher watcher = new ZCacheWatcher();
+  public final ZCacheWatcher watcher = new ZCacheWatcher();
   private final List<ZooCacheWatcher> externalWatchers =
       Collections.synchronizedList(new ArrayList<>());
 
@@ -85,7 +89,7 @@ public class ZooCache {
 
   private final AtomicLong zkClientTracker = new AtomicLong();
 
-  class ZCacheWatcher implements Watcher {
+  public class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {
@@ -228,9 +232,16 @@ public class ZooCache {
 
     for (String left : watchedPaths) {
       for (String right : watchedPaths) {
-        if (!left.equals(right) && left.contains(right)) {
+        if (!right.startsWith("/")) {
+          throw new IllegalArgumentException("Watched path must start with slash: '" + right + "'");
+        }
+        if (right.length() > 1 && right.endsWith("/")) {
           throw new IllegalArgumentException(
-              "Overlapping paths found in paths to watch. left: " + left + ", right: " + right);
+              "Watched path must not end with slash: '" + right + "'");
+        }
+        if ((left.equals("/") && right.length() > 1) || right.startsWith(left + "/")) {
+          throw new IllegalArgumentException(
+              "Overlapping paths found in paths to watch. '" + left + "' contains '" + right + "'");
         }
       }
     }

@@ -110,9 +110,9 @@ public class Column implements WritableComparable<Column> {
     }
   }
 
-  public byte[] columnFamily;
-  public byte[] columnQualifier;
-  public byte[] columnVisibility;
+  private byte[] columnFamily;
+  private byte[] columnQualifier;
+  private byte[] columnVisibility;
 
   /**
    * Creates a new blank column.

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.client;
 
+import org.apache.accumulo.core.data.TableId;
+
 /**
  * This exception is thrown if a table is deleted after an operation starts.
  *
@@ -27,22 +29,28 @@ package org.apache.accumulo.core.client;
 public class TableDeletedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
-  private final String tableId;
+  private final TableId tableId;
 
+  @Deprecated(since = "4.0.0")
   public TableDeletedException(String tableId) {
+    super("Table ID " + tableId + " was deleted");
+    this.tableId = TableId.of(tableId);
+  }
+
+  public TableDeletedException(TableId tableId) {
     super("Table ID " + tableId + " was deleted");
     this.tableId = tableId;
   }
 
   /**
-   * @since 2.0.0
+   * @since 4.0.0
    */
-  public TableDeletedException(String tableId, Exception cause) {
+  public TableDeletedException(TableId tableId, Exception cause) {
     super("Table ID " + tableId + " was deleted", cause);
     this.tableId = tableId;
   }
 
-  public String getTableId() {
+  public TableId getTableId() {
     return tableId;
   }
 }

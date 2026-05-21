@@ -30,6 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 public class DeleteRowsFlakyFateIT extends DeleteRowsIT {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
+    cfg.setServerClass(ServerType.MANAGER, rg -> FlakyFateManager.class);
   }
 }

@@ -30,7 +30,9 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class DeleteShellIterCommand extends Command {
-  private Option nameOpt, allOpt, profileOpt;
+  private Option nameOpt;
+  private Option allOpt;
+  private Option profileOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

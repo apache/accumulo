@@ -23,20 +23,18 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue.CompactionJobPriorityQueueStats;
@@ -46,7 +44,7 @@ import org.junit.jupiter.api.Test;
 
 public class CompactionJobPriorityQueueTest {
 
-  private static final CompactorGroupId GROUP = CompactorGroupId.of("TEST");
+  private static final ResourceGroupId GROUP = ResourceGroupId.of("TEST");
 
   @Test
   public void testTabletFileReplacement() {
@@ -291,39 +289,6 @@ public class CompactionJobPriorityQueueTest {
     assertEquals(0, stats.getMinAge().toMillis());
     assertEquals(0, stats.getMaxAge().toMillis());
     assertEquals(0, stats.getAvgAge().toMillis());
-  }
-
-  /**
-   * Test to ensure that canceled futures do not build up in memory.
-   */
-  @Test
-  public void testAsyncCancelCleanup() {
-    CompactionJobPriorityQueue queue = new CompactionJobPriorityQueue(GROUP, 100, mj -> 1);
-
-    List<CompletableFuture<CompactionJob>> futures = new ArrayList<>();
-
-    int maxFuturesSize = 0;
-
-    // Add 11 below so that cadence of clearing differs from the internal check cadence
-    final int CANCEL_THRESHOLD = CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD / 10 + 11;
-    final int ITERATIONS = CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD * 20;
-
-    for (int x = 0; x < ITERATIONS; x++) {
-      futures.add(queue.getAsync());
-
-      maxFuturesSize = Math.max(maxFuturesSize, queue.futuresSize());
-
-      if (futures.size() >= CANCEL_THRESHOLD) {
-        futures.forEach(f -> f.cancel(true));
-        futures.clear();
-      }
-    }
-
-    maxFuturesSize = Math.max(maxFuturesSize, queue.futuresSize());
-
-    assertTrue(maxFuturesSize
-        < 2 * (CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD + CANCEL_THRESHOLD));
-    assertTrue(maxFuturesSize > 2 * CompactionJobPriorityQueue.FUTURE_CHECK_THRESHOLD);
   }
 
   @Test

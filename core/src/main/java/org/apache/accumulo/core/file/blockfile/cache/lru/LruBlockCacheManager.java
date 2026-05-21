@@ -24,7 +24,7 @@ import org.apache.accumulo.core.spi.cache.CacheType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Deprecated(since = "3.1.0")
+@Deprecated(since = "4.0.0")
 public class LruBlockCacheManager extends BlockCacheManager {
 
   private static final Logger LOG = LoggerFactory.getLogger(LruBlockCacheManager.class);

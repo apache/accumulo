@@ -20,15 +20,20 @@ package org.apache.accumulo.shell;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.shell.ShellOptions.helpLongOption;
+import static org.apache.accumulo.shell.ShellOptions.helpOption;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,12 +48,12 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -67,8 +72,11 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
@@ -87,6 +95,7 @@ import org.apache.accumulo.shell.commands.CompactCommand;
 import org.apache.accumulo.shell.commands.ConfigCommand;
 import org.apache.accumulo.shell.commands.ConstraintCommand;
 import org.apache.accumulo.shell.commands.CreateNamespaceCommand;
+import org.apache.accumulo.shell.commands.CreateResourceGroupCommand;
 import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
@@ -95,6 +104,7 @@ import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
+import org.apache.accumulo.shell.commands.DeleteResourceGroupCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
@@ -121,9 +131,9 @@ import org.apache.accumulo.shell.commands.ImportDirectoryCommand;
 import org.apache.accumulo.shell.commands.ImportTableCommand;
 import org.apache.accumulo.shell.commands.InfoCommand;
 import org.apache.accumulo.shell.commands.InsertCommand;
-import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
+import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.shell.commands.ListTabletsCommand;
@@ -160,6 +170,8 @@ import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
 import org.apache.accumulo.shell.commands.WhoAmICommand;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -185,13 +197,15 @@ import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help,
  * and quoted strings with escape sequences
  */
 @AutoService(KeywordExecutable.class)
-public class Shell extends ShellOptions implements KeywordExecutable {
+public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
 
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
@@ -233,8 +247,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
-  private long authTimeout;
-  private long lastUserActivity = System.nanoTime();
+  private Duration authTimeout;
+  private final Timer lastUserActivity = Timer.startNew();
   private boolean logErrorsToConsole = false;
   private boolean askAgain = false;
   private boolean usedClientProps = false;
@@ -256,9 +270,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   // no arg constructor should do minimal work since it's used in Main ServiceLoader
-  public Shell() {}
+  public Shell() {
+    super(new ShellOptionsJC());
+  }
 
   public Shell(LineReader reader) {
+    super(new ShellOptionsJC());
     this.reader = reader;
     this.terminal = reader.getTerminal();
     this.writer = terminal.writer();
@@ -300,35 +317,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    * @return true if the shell was successfully configured, false otherwise.
    * @throws IOException if problems occur creating the LineReader
    */
-  public boolean config(String... args) throws IOException {
+  public boolean config(JCommander jc, ShellOptionsJC options) throws IOException {
     if (this.terminal == null) {
       this.terminal =
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
-      this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
+      this.reader = newLineReaderBuilder().terminal(this.terminal).build();
     }
     this.writer = this.terminal.writer();
-
-    ShellOptionsJC options = new ShellOptionsJC();
-    JCommander jc = new JCommander();
-
-    jc.setProgramName("accumulo shell");
-    jc.addObject(options);
-    try {
-      jc.parse(args);
-    } catch (ParameterException e) {
-      jc.usage();
-      exitCode = 1;
-      return false;
-    }
-
-    if (options.isHelpEnabled()) {
-      jc.usage();
-      // Not an error
-      exitCode = 0;
-      return false;
-    }
 
     if (options.getUnrecognizedOptions() != null) {
       logError("Unrecognized Options: " + options.getUnrecognizedOptions());
@@ -337,10 +334,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return false;
     }
 
-    authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
+    authTimeout = Duration.ofMinutes(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
-    clientProperties = options.getClientProperties();
+    clientProperties = options.getClientProps();
     if (ClientProperty.SASL_ENABLED.getBoolean(clientProperties)) {
       log.debug("SASL is enabled, disabling authorization timeout");
       disableAuthTimeout = true;
@@ -350,25 +347,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     this.setTableName("");
 
     if (accumuloClient == null) {
-      if (ClientProperty.INSTANCE_ZOOKEEPERS.isEmpty(clientProperties)) {
-        throw new IllegalArgumentException("ZooKeepers must be set using -z or -zh on command line"
-            + " or in accumulo-client.properties");
-      }
-      if (ClientProperty.INSTANCE_NAME.isEmpty(clientProperties)) {
-        throw new IllegalArgumentException("Instance name must be set using -z or -zi on command "
-            + "line or in accumulo-client.properties");
-      }
-      final String principal;
-      try {
-        principal = options.getUsername();
-      } catch (Exception e) {
-        logError(e.getMessage());
-        exitCode = 1;
-        return false;
-      }
-      String authenticationString = options.getPassword();
-      final AuthenticationToken token =
-          getAuthenticationToken(principal, authenticationString, "Password: ");
+      final String principal = ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties);
+      final AuthenticationToken token = ClientProperty.getAuthenticationToken(clientProperties);
       try {
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
@@ -403,7 +383,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands =
         {new ClasspathCommand(), new ListScansCommand(), new ListCompactionsCommand(),
-            new TraceCommand(), new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
+            new TraceCommand(), new PingCommand(), new ListTabletsCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands =
@@ -415,6 +395,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
+    Command[] resourceGroupCommands = {new CreateResourceGroupCommand(),
+        new DeleteResourceGroupCommand(), new ListResourceGroupsCommand()};
     Command[] stateCommands =
         {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
             new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};
@@ -438,6 +420,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     commandGrouping.put("-- Help Commands ------------------------", helpCommands);
     commandGrouping.put("-- Iterator Configuration ---------------", iteratorCommands);
     commandGrouping.put("-- Permissions Administration Commands --", permissionsCommands);
+    commandGrouping.put("-- Resource Group Commands --------------", resourceGroupCommands);
     commandGrouping.put("-- Shell State Commands -----------------", stateCommands);
     commandGrouping.put("-- Table Administration Commands --------", tableCommands);
     commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);
@@ -459,7 +442,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      ContextClassLoaderException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
@@ -495,8 +479,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.CLIENT;
   }
 
   @Override
@@ -504,22 +488,28 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return "Runs Accumulo shell";
   }
 
-  @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit() from a main class is okay")
   @Override
-  public void execute(final String[] args) throws IOException {
+  public void execute(JCommander cl, ShellOptionsJC options) throws Exception {
     try {
-      if (!config(args)) {
-        System.exit(getExitCode());
+      if (config(cl, options)) {
+        start();
       }
-
-      System.exit(start());
     } finally {
       shutdown();
     }
   }
 
-  public static void main(String[] args) throws IOException {
-    LineReader reader = LineReaderBuilder.builder().build();
+  private static LineReaderBuilder newLineReaderBuilder() {
+    var builder = LineReaderBuilder.builder();
+    // workaround for https://github.com/jline/jline3/pull/1413
+    if ("on".equals(System.getProperty("org.jline.reader.props.disable-event-expansion"))) {
+      builder.option(LineReader.Option.DISABLE_EVENT_EXPANSION, true);
+    }
+    return builder;
+  }
+
+  public static void main(String[] args) throws Exception {
+    LineReader reader = newLineReaderBuilder().build();
     new Shell(reader).execute(args);
   }
 
@@ -533,13 +523,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     String home = System.getProperty("HOME");
     if (home == null) {
-      home = System.getenv("HOME");
+      home = System.getProperty("user.home");
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
-      log.warn("Unable to make directory for history at {}", accumuloDir);
+    Path accumuloDir = Path.of(configDir);
+    if (Files.notExists(accumuloDir)) {
+      try {
+        Files.createDirectories(accumuloDir);
+      } catch (IOException e) {
+        log.warn("Unable to make directory for history at {}", accumuloDir, e);
+      }
     }
 
     // Disable shell highlighting
@@ -552,7 +546,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
     // Set history file
-    reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.setVariable(LineReader.HISTORY_FILE, Path.of(historyPath));
 
     // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
@@ -640,7 +634,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       sb.append("- Authorization timeout: disabled\n");
     } else {
       sb.append("- Authorization timeout: ")
-          .append(String.format("%ds%n", TimeUnit.NANOSECONDS.toSeconds(authTimeout)));
+          .append(String.format("%ds%n", authTimeout.toSeconds()));
     }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -718,9 +712,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           return;
         }
 
-        long duration = System.nanoTime() - lastUserActivity;
         if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout
-            && (duration < 0 || duration > authTimeout)) {
+            && lastUserActivity.hasElapsed(authTimeout)) {
           writer.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
@@ -743,7 +736,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               }
             }
           } while (authFailed);
-          lastUserActivity = System.nanoTime();
+          lastUserActivity.restart();
         }
 
         // Get the options from the command on how to parse the string
@@ -767,9 +760,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               expectedArgLen == 1 ? "" : "s", actualArgLen == 1 ? "was" : "were", actualArgLen)));
           sc.printHelp(this);
         } else {
-          int tmpCode = sc.execute(input, cl, this);
-          exitCode += tmpCode;
-          writer.flush();
+          Span span = TraceUtil.startSpan(this.getClass(), "command::" + command);
+          span.setAttribute("shell.commandLine", input);
+          try (Scope scope = span.makeCurrent()) {
+            int tmpCode = sc.execute(input, cl, this);
+            exitCode += tmpCode;
+            writer.flush();
+          } finally {
+            span.end();
+          }
         }
 
       } catch (ConstraintViolationException e) {
@@ -998,8 +997,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
         justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      try {
+        writer = new PrintWriter(new BufferedWriter(
+            new OutputStreamWriter(Files.newOutputStream(Path.of(filename)), UTF_8)));
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error creating output stream for file: " + filename, e);
+      }
     }
 
     @Override
@@ -1101,7 +1104,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
-    int COL1 = 50, COL2 = 14;
+    int COL1 = 50;
+    int COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, terminal.getWidth() - COL1 - COL2 - 6));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));

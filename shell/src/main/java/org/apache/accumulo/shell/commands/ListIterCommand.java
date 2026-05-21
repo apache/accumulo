@@ -35,7 +35,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class ListIterCommand extends Command {
-  private Option nameOpt, allScopesOpt;
+  private Option nameOpt;
+  private Option allScopesOpt;
   private Map<IteratorScope,Option> scopeOpts;
 
   @Override

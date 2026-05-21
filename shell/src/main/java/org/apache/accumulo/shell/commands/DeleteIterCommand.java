@@ -29,7 +29,11 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class DeleteIterCommand extends Command {
-  private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
+  private Option allScopeOpt;
+  private Option mincScopeOpt;
+  private Option majcScopeOpt;
+  private Option scanScopeOpt;
+  private Option nameOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

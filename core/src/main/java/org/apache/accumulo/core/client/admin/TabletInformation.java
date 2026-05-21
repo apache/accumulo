@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.accumulo.core.data.TabletId;
@@ -28,37 +29,65 @@ import org.apache.accumulo.core.data.TabletId;
 public interface TabletInformation {
 
   /**
+   * Used to limit what information is obtained per tablet when calling
+   * {@link TableOperations#getTabletInformation(String, List, Field...)}
+   *
+   * @since 4.0.0
+   */
+  enum Field {
+    LOCATION, FILES, AVAILABILITY, MERGEABILITY
+  }
+
+  /**
    * @return the TabletId for this tablet.
    */
   TabletId getTabletId();
 
   /**
+   * Requires {@link Field#FILES} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return the number of files in the tablet directory.
    */
   int getNumFiles();
 
   /**
+   * Requires {@link Field#FILES} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return the number of write-ahead logs associated with the tablet.
    */
   int getNumWalLogs();
 
   /**
+   * Requires {@link Field#FILES} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return an estimated number of entries in the tablet.
    */
   long getEstimatedEntries();
 
   /**
+   * Requires {@link Field#FILES} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return an estimated size of the tablet data on disk, which is likely the compressed size of
    *         the data.
    */
   long getEstimatedSize();
 
   /**
+   * Requires {@link Field#LOCATION} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return the tablet hosting state.
    */
   String getTabletState();
 
   /**
+   * Requires {@link Field#LOCATION} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return the Location of the tablet as a String or empty if the location in the TabletMetadata
    *         does not exist. When not empty, the String will be of the form
    *         "{@code <location type>:<host>:<port>}", where the location type is one of
@@ -67,16 +96,25 @@ public interface TabletInformation {
   Optional<String> getLocation();
 
   /**
+   * Requires {@link Field#FILES} to be specified at acquisition otherwise an exception will be
+   * thrown.
+   *
    * @return the directory name of the tablet.
    */
   String getTabletDir();
 
   /**
+   * Requires {@link Field#AVAILABILITY} to be specified at acquisition otherwise an exception will
+   * be thrown.
+   *
    * @return the TabletAvailability object.
    */
   TabletAvailability getTabletAvailability();
 
   /**
+   * Requires {@link Field#MERGEABILITY} to be specified at acquisition otherwise an exception will
+   * be thrown.
+   *
    * @return the TabletMergeabilityInfo object
    *
    * @since 4.0.0

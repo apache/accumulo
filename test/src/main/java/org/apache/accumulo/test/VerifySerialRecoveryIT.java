@@ -35,13 +35,13 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
@@ -117,7 +117,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
       ts.getProcess().waitFor();
       String result = ts.readStdOut();
       log.info(result);
@@ -130,8 +130,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata and root tables
-        if (line.contains(AccumuloTable.METADATA.tableId().canonical())
-            || line.contains(AccumuloTable.ROOT.tableId().canonical())) {
+        if (line.contains(SystemTables.METADATA.tableId().canonical())
+            || line.contains(SystemTables.ROOT.tableId().canonical())) {
           continue;
         }
         if (line.contains("recovering data from walogs")) {

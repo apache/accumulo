@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,19 +46,19 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
   private final List<TabletMigration> migrationsOut;
   private final SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus;
   private final Set<KeyExtent> thriftCurrentMigrations;
-  private final Map<String,Set<TabletServerId>> tserverResourceGroups;
+  private final Map<ResourceGroupId,Set<TabletServerId>> tserverResourceGroups;
   private final DataLevel currentDataLevel;
   private final Map<String,TableId> tablesToBalance;
 
   public static BalanceParamsImpl fromThrift(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Map<String,Set<TServerInstance>> currentTServerGrouping,
+      Map<ResourceGroupId,Set<TServerInstance>> currentTServerGrouping,
       SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus,
       Set<KeyExtent> thriftCurrentMigrations, DataLevel currentLevel,
       Map<String,TableId> tablesToBalance) {
     Set<TabletId> currentMigrations = thriftCurrentMigrations.stream().map(TabletIdImpl::new)
         .collect(Collectors.toUnmodifiableSet());
 
-    Map<String,Set<TabletServerId>> tserverGroups = new HashMap<>();
+    Map<ResourceGroupId,Set<TabletServerId>> tserverGroups = new HashMap<>();
     currentTServerGrouping.forEach((k, v) -> {
       Set<TabletServerId> servers = new HashSet<>();
       v.forEach(tsi -> servers.add(TabletServerIdImpl.fromThrift(tsi)));
@@ -69,7 +70,7 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
   }
 
   public BalanceParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Map<String,Set<TabletServerId>> currentGroups, Set<TabletId> currentMigrations,
+      Map<ResourceGroupId,Set<TabletServerId>> currentGroups, Set<TabletId> currentMigrations,
       List<TabletMigration> migrationsOut, DataLevel currentLevel,
       Map<String,TableId> tablesToBalance) {
     this.currentStatus = currentStatus;
@@ -83,7 +84,7 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
   }
 
   private BalanceParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Map<String,Set<TabletServerId>> currentGroups, Set<TabletId> currentMigrations,
+      Map<ResourceGroupId,Set<TabletServerId>> currentGroups, Set<TabletId> currentMigrations,
       List<TabletMigration> migrationsOut,
       SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus,
       Set<KeyExtent> thriftCurrentMigrations, DataLevel currentLevel,
@@ -129,7 +130,7 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
   }
 
   @Override
-  public Map<String,Set<TabletServerId>> currentResourceGroups() {
+  public Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups() {
     return tserverResourceGroups;
   }
 

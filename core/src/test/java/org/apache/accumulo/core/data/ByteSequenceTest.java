@@ -18,7 +18,13 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +44,31 @@ public class ByteSequenceTest {
   private void assertLessThan(ByteSequence lhs, ByteSequence rhs) {
     int result = ByteSequence.compareBytes(lhs, rhs);
     assertTrue(result < 0);
+  }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    ByteSequence byteSeq = new ArrayByteSequence("value");
+    int hashCode1 = byteSeq.hashCode();
+    int hashCode2 = byteSeq.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    ByteSequence byteOne = new ArrayByteSequence("value");
+    ByteSequence byteTwo = new ArrayByteSequence("value");
+    assertEquals(byteOne.hashCode(), byteTwo.hashCode());
+
+    // Testing even distribution
+    List<ByteSequence> byteSequences = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      byteSequences.add(new ArrayByteSequence("value" + i));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (ByteSequence bytes : byteSequences) {
+      hashCodes.add(bytes.hashCode());
+    }
+    assertEquals(byteSequences.size(), hashCodes.size(), 10);
   }
 
 }

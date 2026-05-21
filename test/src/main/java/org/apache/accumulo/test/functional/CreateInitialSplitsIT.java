@@ -139,10 +139,10 @@ public class CreateInitialSplitsIT extends SharedMiniClusterBase {
     var tableId = getCluster().getServerContext().getTableId(tableName);
     try (var tablets =
         getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
-      // default tablet (null end row) should have a default TabletMergeability of never for user
+      // default tablet (null end row) should have a default TabletMergeability of always for user
       // created tablets
       assertTrue(tablets.stream()
-          .anyMatch(tm -> tm.getEndRow() == null && tm.getTabletMergeability().isNever()));
+          .anyMatch(tm -> tm.getEndRow() == null && tm.getTabletMergeability().isAlways()));
       // other splits should be created with a duration of 10 seconds
       assertEquals(10, tablets.stream().filter(tm -> tm.getTabletMergeability().getDelay()
           .map(delay -> delay.equals(splitDuration)).orElse(false)).count());

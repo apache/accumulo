@@ -62,17 +62,17 @@ public class TabletNameGenerator {
     String extension =
         FileOperations.getNewFileExtension(context.getTableConfiguration(extent.tableId()));
     return new ReferencedTabletFile(
-        new Path(chooseTabletDir(context, extent, dirName, dirCreator) + "/" + prefix.toPrefix()
+        new Path(chooseTabletDir(context, extent, dirName, dirCreator) + "/" + prefix.getPrefix()
             + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
   public static ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes,
       ServerContext context, KeyExtent extent, String tabletDir, Consumer<String> dirCreator,
       ExternalCompactionId ecid) {
-    String tmpFileName = getNextDataFilename(
-        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION,
-        context, extent, tabletDir, dirCreator).insert().getMetadataPath() + "_tmp_"
-        + ecid.canonical();
+    String tmpFileName =
+        getNextDataFilename(!propagateDeletes ? FilePrefix.FULL_COMPACTION : FilePrefix.COMPACTION,
+            context, extent, tabletDir, dirCreator).insert().getMetadataPath() + "_tmp_"
+            + ecid.canonical();
     return new ReferencedTabletFile(new Path(tmpFileName));
   }
 

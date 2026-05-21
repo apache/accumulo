@@ -136,11 +136,9 @@ public class IteratorTestOutput {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof IteratorTestOutput)) {
+    if (!(o instanceof IteratorTestOutput other)) {
       return false;
     }
-
-    IteratorTestOutput other = (IteratorTestOutput) o;
 
     if (outcome != other.outcome) {
       return false;

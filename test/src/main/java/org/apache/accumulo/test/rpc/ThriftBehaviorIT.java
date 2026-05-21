@@ -108,6 +108,16 @@ public class ThriftBehaviorIT extends WithTestNames {
   }
 
   @Test
+  public void echoPassVoidHandler() throws TException {
+    handler.echoPassVoid(KITTY_MSG);
+  }
+
+  @Test
+  public void echoPassVoid() throws TException {
+    client.echoPassVoid(KITTY_MSG);
+  }
+
+  @Test
   public void onewayFailHandler() throws TException {
     var e = assertThrows(TException.class, () -> handler.onewayFail(KITTY_MSG));
     assertTrue(e.getCause() instanceof UnsupportedOperationException);

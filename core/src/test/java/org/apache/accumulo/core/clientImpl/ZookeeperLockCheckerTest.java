@@ -26,11 +26,8 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 
-import java.util.UUID;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,10 +40,8 @@ public class ZookeeperLockCheckerTest {
 
   @BeforeEach
   public void setUp() {
-    var instanceId = InstanceId.of(UUID.randomUUID());
     zc = createMock(ZooCache.class);
     context = createMock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceId)).anyTimes();
     expect(context.getZooCache()).andReturn(zc).anyTimes();
     replay(context, zc);
   }
@@ -58,7 +53,7 @@ public class ZookeeperLockCheckerTest {
 
   @Test
   public void testInvalidateCache() {
-    var zklc = new ZookeeperLockChecker(zc, context.getZooKeeperRoot());
+    var zklc = new ZookeeperLockChecker(zc);
 
     verify(zc);
     reset(zc);

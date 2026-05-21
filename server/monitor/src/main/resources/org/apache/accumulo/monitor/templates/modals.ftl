@@ -27,7 +27,7 @@
             <div class="modal-header justify-content-center">
               <span class="modal-title">
                 <div class="text-center">
-                  <a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="/resources/images/accumulo-logo.png" /></a>
+                  <a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="resources/images/accumulo-logo.png" /></a>
               </span>
             </div>
           </div>

@@ -34,8 +34,8 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +72,7 @@ public class ColumnSliceFilterTest {
   @BeforeEach
   public void setUp() {
     columnSliceFilter.describeOptions();
-    iteratorEnvironment = new DefaultIteratorEnvironment();
+    iteratorEnvironment = ClientIteratorEnvironment.DEFAULT;
     is = new IteratorSetting(1, ColumnSliceFilter.class);
   }
 

@@ -25,6 +25,7 @@ import org.apache.hadoop.conf.Configuration;
  * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml
  * file used by the MiniAccumuloCluster
  */
+@FunctionalInterface
 public interface MiniClusterConfigurationCallback {
 
   class NoCallback implements MiniClusterConfigurationCallback {

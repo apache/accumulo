@@ -32,11 +32,15 @@ import org.apache.accumulo.monitor.rest.tables.CompactionsTypes;
 import org.apache.accumulo.monitor.rest.trace.RecoveryStatusInformation;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Generates tserver information
  *
  * @since 2.0.0
  */
+@SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
+    justification = "public member variables only referenced from tests, class used for serialization")
 public class TabletServerInformation {
 
   // Variable names become JSON keys

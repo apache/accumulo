@@ -56,7 +56,8 @@ public class AuthenticationKeyTest {
   public void testAuthKey() {
     SecretKey secretKey = keyGen.generateKey();
     int keyId = 20;
-    long creationDate = 38383838L, expirationDate = 83838383L;
+    long creationDate = 38383838L;
+    long expirationDate = 83838383L;
     AuthenticationKey authKey =
         new AuthenticationKey(keyId, creationDate, expirationDate, secretKey);
     assertEquals(secretKey, authKey.getKey());
@@ -80,7 +81,8 @@ public class AuthenticationKeyTest {
   public void testWritable() throws IOException {
     SecretKey secretKey = keyGen.generateKey();
     int keyId = 20;
-    long creationDate = 38383838L, expirationDate = 83838383L;
+    long creationDate = 38383838L;
+    long expirationDate = 83838383L;
     AuthenticationKey authKey =
         new AuthenticationKey(keyId, creationDate, expirationDate, secretKey);
     ByteArrayOutputStream baos = new ByteArrayOutputStream();

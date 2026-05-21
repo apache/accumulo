@@ -60,6 +60,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Path("/")
 @Produces(MediaType.TEXT_HTML)
 public class WebViews {
+  /**
+   * A {@code String} constant representing table to display its problem details, used in query
+   * parameter.
+   */
+  private static final String TABLE_PARAM_KEY = "table";
+
+  /**
+   * A {@code String} constant representing tableId Table ID for participating tservers, used in
+   * path parameter.
+   */
+  private static final String TABLEID_PARAM_KEY = "tableId";
+
+  /**
+   * A {@code String} constant representing TServer to show details for, used in query parameter.
+   */
+  private static final String TSERVER_PARAM_KEY = "s";
 
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
@@ -93,12 +109,18 @@ public class WebViews {
   }
 
   private Map<String,Object> getModel() {
-
+    AccumuloConfiguration conf = monitor.getContext().getConfiguration();
+    String rootContext = conf.get(Property.MONITOR_ROOT_CONTEXT);
+    // Add trailing slash if it doesn't exist
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
     model.put("zk_hosts", monitor.getContext().getZooKeepers());
+    model.put("rootContext", rootContext);
     addExternalResources(model);
     return model;
   }
@@ -141,6 +163,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the messages template
+   *
+   * @return Messages model
+   */
+  @GET
+  @Path("messages")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getMessages() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Messages"); // Need this for the browser tab title
+    model.put("tablesTitle", "Messages");
+    model.put("template", "messages.ftl");
+    model.put("js", "messages.js");
+    return model;
+  }
+
+  /**
    * Returns the tservers templates
    *
    * @param server TServer to show details
@@ -149,8 +189,8 @@ public class WebViews {
   @GET
   @Path("tservers")
   @Template(name = "/default.ftl")
-  public Map<String,Object>
-      getTabletServers(@QueryParam("s") @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
+  public Map<String,Object> getTabletServers(
+      @QueryParam(TSERVER_PARAM_KEY) @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
@@ -162,6 +202,42 @@ public class WebViews {
     }
     model.put("template", "tservers.ftl");
     model.put("js", "tservers.js");
+    return model;
+  }
+
+  /**
+   * Returns the scan servers template
+   *
+   * @return scan server model
+   */
+  @GET
+  @Path("sservers")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getScanServers() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Scan Server Status");
+    model.put("template", "sservers.ftl");
+    model.put("js", "sservers.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the recovery template
+   *
+   * @return Recovery model
+   */
+  @GET
+  @Path("recovery")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getRecoveryInformation() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Tablet Recoveries");
+    model.put("template", "recovery.ftl");
+    model.put("js", "recovery.js");
+
     return model;
   }
 
@@ -202,22 +278,52 @@ public class WebViews {
   }
 
   /**
-   * Returns the compactions template
+   * Returns the active compactions template.
    *
-   * @return Scans model
+   * @return Active compactions model
    */
   @GET
   @Path("ec")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getExternalCompactions() {
-    var ccHost = monitor.getCoordinatorHost();
-
+  public Map<String,Object> getActiveCompactions() {
     Map<String,Object> model = getModel();
-    model.put("title", "External Compactions");
+    model.put("title", "Active Compactions");
     model.put("template", "ec.ftl");
-
-    model.put("coordinatorRunning", ccHost.isPresent());
     model.put("js", "ec.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
+  @Path("coordinator")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactionOverview() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compaction Overview");
+    model.put("template", "coordinator.ftl");
+    model.put("js", "coordinator.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
+  @Path("compactors")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactors() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compactors");
+    model.put("template", "compactors.ftl");
+    model.put("js", "compactors.js");
 
     return model;
   }
@@ -236,6 +342,24 @@ public class WebViews {
     model.put("title", "Bulk Imports");
     model.put("template", "bulkImport.ftl");
     model.put("js", "bulkImport.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the Fate template
+   *
+   * @return Fate model
+   */
+  @GET
+  @Path("fate")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getFate() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Fate Transaction Details");
+    model.put("template", "fate.ftl");
+    model.put("js", "fate.js");
 
     return model;
   }
@@ -279,24 +403,22 @@ public class WebViews {
   /**
    * Returns participating tservers template
    *
-   * @param tableID Table ID for participating tservers
+   * @param tableId Table ID for participating tservers
    * @return Participating tservers model
    */
   @GET
-  @Path("tables/{tableID}")
+  @Path("tables/{" + TABLEID_PARAM_KEY + "}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables(
-      @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
-      throws TableNotFoundException {
-
-    String tableName = monitor.getContext().getTableName(TableId.of(tableID));
+  public Map<String,Object> getTables(@PathParam(TABLEID_PARAM_KEY) @NotNull @Pattern(
+      regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableId) throws TableNotFoundException {
+    String tableName = monitor.getContext().getQualifiedTableName(TableId.of(tableId));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
 
     model.put("template", "table.ftl");
     model.put("js", "table.js");
-    model.put("tableID", tableID);
+    model.put("tableId", tableId);
     model.put("table", tableName);
 
     return model;
@@ -311,8 +433,8 @@ public class WebViews {
   @GET
   @Path("problems")
   @Template(name = "/default.ftl")
-  public Map<String,Object>
-      getProblems(@QueryParam("table") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
+  public Map<String,Object> getProblems(
+      @QueryParam(TABLE_PARAM_KEY) @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Per-Table Problem Report");

@@ -22,18 +22,6 @@ import java.util.Base64;
 
 public class Encoding {
 
-  public static String encodeAsBase64FileName(byte[] data) {
-    String encodedRow = Base64.getUrlEncoder().encodeToString(data);
-
-    int index = encodedRow.length() - 1;
-    while (index >= 0 && encodedRow.charAt(index) == '=') {
-      index--;
-    }
-
-    encodedRow = encodedRow.substring(0, index + 1);
-    return encodedRow;
-  }
-
   public static byte[] decodeBase64FileName(String node) {
     return Base64.getUrlDecoder().decode(node);
   }

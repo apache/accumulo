@@ -24,11 +24,11 @@ import org.apache.accumulo.test.ample.FlakyAmpleManager;
 import org.apache.accumulo.test.ample.FlakyAmpleTserver;
 import org.apache.hadoop.conf.Configuration;
 
-public class CompactionFlakyAmpleIT extends CompactionBaseIT {
+public class CompactionFlakyAmpleIT extends CompactionITBase {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configureMiniCluster(cfg, hadoopCoreSite);
-    cfg.setServerClass(ServerType.MANAGER, FlakyAmpleManager.class);
-    cfg.setServerClass(ServerType.TABLET_SERVER, FlakyAmpleTserver.class);
+    cfg.setServerClass(ServerType.MANAGER, rg -> FlakyAmpleManager.class);
+    cfg.setServerClass(ServerType.TABLET_SERVER, rg -> FlakyAmpleTserver.class);
   }
 }

@@ -36,8 +36,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
@@ -85,19 +85,17 @@ public class RootConditionalWriter implements ConditionalWriter {
     TConditionalMutation tcm =
         ConditionalWriterImpl.convertConditionalMutation(compressedIters, mutation, 1);
     ConditionCheckerContext checkerContext = new ConditionCheckerContext(context, compressedIters,
-        context.getTableConfiguration(AccumuloTable.ROOT.tableId()));
+        context.getTableConfiguration(SystemTables.ROOT.tableId()));
 
     ServerConditionalMutation scm = new ServerConditionalMutation(tcm);
 
-    String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-
-    context.getZooCache().clear(zpath);
+    context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
     List<ServerConditionalMutation> okMutations = new ArrayList<>();
     List<TCMResult> results = new ArrayList<>();
 
     try {
-      context.getZooSession().asReaderWriter().mutateExisting(zpath, currVal -> {
+      context.getZooSession().asReaderWriter().mutateExisting(RootTable.ZROOT_TABLET, currVal -> {
         String currJson = new String(currVal, UTF_8);
 
         var rtm = new RootTabletMetadata(currJson);
@@ -122,7 +120,7 @@ public class RootConditionalWriter implements ConditionalWriter {
 
         } catch (IOException e) {
           throw new UncheckedIOException(e);
-        } catch (AccumuloException e) {
+        } catch (AccumuloException | ReflectiveOperationException e) {
           throw new RuntimeException(e);
         } catch (AccumuloSecurityException e) {
           throw new RuntimeException(e);
@@ -133,7 +131,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     }
 
     // TODO this is racy...
-    context.getZooCache().clear(zpath);
+    context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
     return getResult(okMutations, results, mutation);
   }

@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -44,8 +45,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-public class DeleteRows extends ManagerRepo {
+public class DeleteRows extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -68,25 +69,24 @@ public class DeleteRows extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // delete or fence files within the deletion range
-    var mergeRange = deleteTabletFiles(manager, fateId);
+    var mergeRange = deleteTabletFiles(env.getContext().getAmple(), fateId);
 
     // merge away empty tablets in the deletion range
-    return new MergeTablets(mergeRange.map(mre -> data.useMergeRange(mre)).orElse(data));
+    return new MergeTablets(mergeRange.map(data::useMergeRange).orElse(data));
   }
 
-  private Optional<KeyExtent> deleteTabletFiles(Manager manager, FateId fateId) {
+  private Optional<KeyExtent> deleteTabletFiles(Ample ample, FateId fateId) {
     // Only delete data within the original extent specified by the user
     KeyExtent range = data.getOriginalExtent();
     log.debug("{} deleting tablet files in range {}", fateId, range);
     var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     try (
-        var tabletsMetadata =
-            manager.getContext().getAmple().readTablets().forTable(range.tableId())
-                .overlapping(range.prevEndRow(), range.endRow()).checkConsistency().build();
-        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+        var tabletsMetadata = ample.readTablets().forTable(range.tableId())
+            .overlapping(range.prevEndRow(), range.endRow()).checkConsistency().build();
+        var tabletsMutator = ample.conditionallyMutateTablets()) {
 
       KeyExtent firstCompleteContained = null;
       KeyExtent lastCompletelyContained = null;
@@ -113,7 +113,7 @@ public class DeleteRows extends ManagerRepo {
 
           // Create the ranges for fencing the files, this takes the place of
           // chop compactions and splits
-          final List<Range> ranges = createRangesForDeletion(tabletMetadata, range);
+          final List<Range> ranges = createRangesForDeletion(fateId, tabletMetadata, range);
           Preconditions.checkState(!ranges.isEmpty(),
               "No ranges found that overlap deletion range.");
 
@@ -274,7 +274,7 @@ public class DeleteRows extends ManagerRepo {
 
   // Instead of splitting or chopping tablets for a delete we instead create ranges
   // to exclude the portion of the tablet that should be deleted
-  private List<Range> createRangesForDeletion(TabletMetadata tabletMetadata,
+  private List<Range> createRangesForDeletion(FateId fateId, TabletMetadata tabletMetadata,
       final KeyExtent deleteRange) {
     final KeyExtent tabletExtent = tabletMetadata.getExtent();
 
@@ -286,24 +286,28 @@ public class DeleteRows extends ManagerRepo {
     final List<Range> ranges = new ArrayList<>();
 
     if (deleteRange.overlaps(tabletExtent)) {
+      // Following checks that deleteRange.prevEndRow() is > tabletExtent.prevEndRow() and falls
+      // within tabletExtent.
       if (deleteRange.prevEndRow() != null
-          && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))) {
-        log.trace("Fencing tablet {} files to ({},{}]", tabletExtent, tabletExtent.prevEndRow(),
-            deleteRange.prevEndRow());
+          && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))
+          && !Objects.equals(tabletExtent.prevEndRow(), deleteRange.prevEndRow())) {
+        log.trace("{} Fencing tablet {} files to ({},{}]", fateId, tabletExtent,
+            tabletExtent.prevEndRow(), deleteRange.prevEndRow());
         ranges.add(new Range(tabletExtent.prevEndRow(), false, deleteRange.prevEndRow(), true));
       }
 
       // This covers the case of when a deletion range overlaps the last tablet. We need to create a
-      // range that excludes the deletion.
-      if (deleteRange.endRow() != null
-          && tabletMetadata.getExtent().contains(deleteRange.endRow())) {
-        log.trace("Fencing tablet {} files to ({},{}]", tabletExtent, deleteRange.endRow(),
-            tabletExtent.endRow());
+      // range that excludes the deletion. Following checks that deleteRange.endRow() is <
+      // tabletExtent.endRow() and falls within tabletExtent.
+      if (deleteRange.endRow() != null && tabletMetadata.getExtent().contains(deleteRange.endRow())
+          && !Objects.equals(deleteRange.endRow(), tabletExtent.endRow())) {
+        log.trace("{} Fencing tablet {} files to ({},{}]", fateId, tabletExtent,
+            deleteRange.endRow(), tabletExtent.endRow());
         ranges.add(new Range(deleteRange.endRow(), false, tabletExtent.endRow(), true));
       }
     } else {
-      log.trace("Fencing tablet {} files to itself because it does not overlap delete range",
-          tabletExtent);
+      log.trace("{} Fencing tablet {} files to itself because it does not overlap delete range",
+          fateId, tabletExtent);
       ranges.add(tabletExtent.toDataRange());
     }
 

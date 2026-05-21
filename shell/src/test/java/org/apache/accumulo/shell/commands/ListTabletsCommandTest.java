@@ -39,7 +39,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -126,6 +126,44 @@ public class ListTabletsCommandTest {
 
   }
 
+  private static class NoOpListTabletsCommand extends ListTabletsCommand {
+
+    @Override
+    protected void printResults(CommandLine cl, Shell shellState, List<String> lines) {
+      // no-op for range option testing
+    }
+  }
+
+  private void runRangeTest(String[] args, RowRange expectedRange) throws Exception {
+    ListTabletsCommand cmd = new NoOpListTabletsCommand();
+
+    TableId tableId = TableId.of("123");
+
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
+    ClientContext context = EasyMock.createMock(ClientContext.class);
+    TableOperations tableOps = EasyMock.createMock(TableOperations.class);
+    Shell shellState = EasyMock.createMock(Shell.class);
+
+    Options opts = cmd.getOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine cli = parser.parse(opts, args);
+
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();
+    EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
+    EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.expect(context.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.expect(tableOps.getTabletInformation(tableName, List.of(expectedRange)))
+        .andReturn(Stream.empty());
+
+    Map<String,String> idMap = new TreeMap<>();
+    idMap.put(tableName, tableId.canonical());
+    EasyMock.expect(tableOps.tableIdMap()).andReturn(idMap);
+
+    EasyMock.replay(client, context, tableOps, shellState);
+    cmd.execute(String.join(" ", args), cli, shellState);
+    EasyMock.verify(client, context, tableOps, shellState);
+  }
+
   @Test
   public void mockTest() throws Exception {
     ListTabletsCommand cmd = new TestListTabletsCommand();
@@ -174,9 +212,9 @@ public class ListTabletsCommandTest {
 
     TabletInformationImpl[] tabletInformation = new TabletInformationImpl[3];
     Supplier<Duration> currentTime = () -> Duration.ofHours(1);
-    tabletInformation[0] = new TabletInformationImpl(tm1, "HOSTED", currentTime);
-    tabletInformation[1] = new TabletInformationImpl(tm2, "HOSTED", currentTime);
-    tabletInformation[2] = new TabletInformationImpl(tm3, "UNASSIGNED", currentTime);
+    tabletInformation[0] = new TabletInformationImpl(tm1, () -> "HOSTED", currentTime);
+    tabletInformation[1] = new TabletInformationImpl(tm2, () -> "HOSTED", currentTime);
+    tabletInformation[2] = new TabletInformationImpl(tm3, () -> "UNASSIGNED", currentTime);
 
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     ClientContext context = EasyMock.createMock(ClientContext.class);
@@ -193,7 +231,7 @@ public class ListTabletsCommandTest {
     EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
     EasyMock.expect(context.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(tableOps.getTabletInformation(tableName, new Range()))
+    EasyMock.expect(tableOps.getTabletInformation(tableName, List.of(RowRange.all())))
         .andReturn(Stream.of(tabletInformation));
 
     Map<String,String> idMap = new TreeMap<>();
@@ -203,6 +241,19 @@ public class ListTabletsCommandTest {
     EasyMock.replay(client, context, tableOps, instOps, shellState);
     cmd.execute("listtablets -t " + tableName, cli, shellState);
     EasyMock.verify(client, context, tableOps, instOps, shellState);
+  }
+
+  @Test
+  public void mockTestRangeOptions() throws Exception {
+    runRangeTest(new String[] {"-t", tableName}, RowRange.all());
+    runRangeTest(new String[] {"-t", tableName, "-b", "n"},
+        RowRange.range(new Text("n"), true, null, true));
+    runRangeTest(new String[] {"-t", tableName, "-e", "n"},
+        RowRange.range(null, true, new Text("n"), true));
+    runRangeTest(new String[] {"-t", tableName, "-b", "h", "-e", "t"},
+        RowRange.range(new Text("h"), true, new Text("t"), true));
+    runRangeTest(new String[] {"-t", tableName, "-b", "n", "-e", "u", "-be"},
+        RowRange.range(new Text("n"), false, new Text("u"), true));
   }
 
 }

@@ -50,7 +50,7 @@ public class SyncingClientTabletCache extends ClientTabletCache {
   }
 
   public SyncingClientTabletCache(final ClientContext context, final TableId tableId) {
-    this(() -> ClientTabletCache.getInstance(context, tableId));
+    this(() -> context.getTabletLocationCache(tableId));
   }
 
   private ClientTabletCache syncLocator() {
@@ -110,10 +110,5 @@ public class SyncingClientTabletCache extends ClientTabletCache {
   @Override
   public void invalidateCache() {
     syncLocator().invalidateCache();
-  }
-
-  @Override
-  public void invalidateCache(ClientContext context, String server) {
-    syncLocator().invalidateCache(context, server);
   }
 }

@@ -21,7 +21,7 @@ package org.apache.accumulo.core.fate;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 
 public enum FateInstanceType {
   META, USER;
@@ -32,28 +32,20 @@ public enum FateInstanceType {
   }
 
   public TFateInstanceType toThrift() {
-    switch (this) {
-      case USER:
-        return TFateInstanceType.USER;
-      case META:
-        return TFateInstanceType.META;
-      default:
-        throw new IllegalStateException("Unknown FateInstance type " + this);
-    }
+    return switch (this) {
+      case USER -> TFateInstanceType.USER;
+      case META -> TFateInstanceType.META;
+    };
   }
 
   public static FateInstanceType fromThrift(TFateInstanceType tfit) {
-    switch (tfit) {
-      case USER:
-        return FateInstanceType.USER;
-      case META:
-        return FateInstanceType.META;
-      default:
-        throw new IllegalStateException("Unknown type " + tfit);
-    }
+    return switch (tfit) {
+      case USER -> FateInstanceType.USER;
+      case META -> FateInstanceType.META;
+    };
   }
 
   public static FateInstanceType fromTableId(TableId tableId) {
-    return AccumuloTable.allTableIds().contains(tableId) ? META : USER;
+    return SystemTables.containsTableId(tableId) ? META : USER;
   }
 }

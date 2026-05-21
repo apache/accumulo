@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
+
 /**
  * Information about a scan server.
  *
@@ -31,10 +33,9 @@ public interface ScanServerInfo {
   String getAddress();
 
   /**
-   * @return the group name set when the scan server was started. If a group name was not set for
-   *         the scan server, then the string
-   *         {@value ScanServerSelector#DEFAULT_SCAN_SERVER_GROUP_NAME} is returned.
+   * @return the group set when the scan server was started. If a group name was not set for the
+   *         scan server, then {@code ResourceGroupId#DEFAULT} is returned.
    */
-  String getGroup();
+  ResourceGroupId getGroup();
 
 }

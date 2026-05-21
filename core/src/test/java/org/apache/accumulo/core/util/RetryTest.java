@@ -131,11 +131,13 @@ public class RetryTest {
     retry.setMaxRetries(MAX_RETRIES);
     retry.setBackOffFactor(1.5);
     retry.setStartWait(INITIAL_WAIT);
-    Duration waitIncrement, currentWait = INITIAL_WAIT;
+    Duration waitIncrement;
+    Duration currentWait = INITIAL_WAIT;
     retry.setWaitIncrement(WAIT_INC);
     retry.setMaxWait(Duration.ofSeconds(128).multipliedBy(MAX_RETRIES));
     retry.setDoTimeJitter(false);
-    double backOfFactor = 1.5, originalBackoff = 1.5;
+    double backOfFactor = 1.5;
+    double originalBackoff = 1.5;
 
     for (int i = 1; i <= MAX_RETRIES; i++) {
       retry.sleep(currentWait);

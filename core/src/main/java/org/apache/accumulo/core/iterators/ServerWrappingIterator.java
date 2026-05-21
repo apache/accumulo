@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
  * source can only be assigned in the constructor. As with the WrappingIterator, the
  * {@link #deepCopy(IteratorEnvironment)} method is not supported.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public abstract class ServerWrappingIterator implements SortedKeyValueIterator<Key,Value> {
 

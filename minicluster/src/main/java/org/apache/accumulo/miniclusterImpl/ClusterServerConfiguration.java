@@ -27,6 +27,7 @@ import org.apache.accumulo.core.Constants;
 
 public class ClusterServerConfiguration {
 
+  private int managers = 1;
   private final Map<String,Integer> compactors;
   private final Map<String,Integer> sservers;
   private final Map<String,Integer> tservers;
@@ -53,6 +54,14 @@ public class ClusterServerConfiguration {
     sservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numSServers);
     tservers = new HashMap<>();
     tservers.put(Constants.DEFAULT_RESOURCE_GROUP_NAME, numTServers);
+  }
+
+  public void setNumManagers(int mgrs) {
+    managers = mgrs;
+  }
+
+  public int getNumManagers() {
+    return managers;
   }
 
   public void setNumDefaultCompactors(int numCompactors) {
@@ -93,6 +102,16 @@ public class ClusterServerConfiguration {
 
   public void clearCompactorResourceGroups() {
     Iterator<String> iter = compactors.keySet().iterator();
+    while (iter.hasNext()) {
+      String resourceGroup = iter.next();
+      if (!resourceGroup.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
+        iter.remove();
+      }
+    }
+  }
+
+  public void clearSServerResourceGroups() {
+    Iterator<String> iter = sservers.keySet().iterator();
     while (iter.hasNext()) {
       String resourceGroup = iter.next();
       if (!resourceGroup.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {

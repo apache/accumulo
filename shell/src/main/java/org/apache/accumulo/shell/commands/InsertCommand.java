@@ -47,7 +47,8 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class InsertCommand extends Command {
-  private Option insertOptAuths, timestampOpt;
+  private Option insertOptAuths;
+  private Option timestampOpt;
   private Option timeoutOption;
   private Option durabilityOption;
 

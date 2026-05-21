@@ -26,10 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,18 +83,20 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
 public class RFileClientTest {
 
+  @TempDir
+  private static java.nio.file.Path tempDir;
+
   private String createTmpTestFile() throws IOException {
-    File dir = new File(System.getProperty("user.dir") + "/target/rfile-test");
-    assertTrue(dir.mkdirs() || dir.isDirectory());
-    File testFile = File.createTempFile("test", ".rf", dir);
-    assertTrue(testFile.delete() || !testFile.exists());
-    return testFile.getAbsolutePath();
+    java.nio.file.Path testFile = Files.createTempFile(tempDir, "test", ".rf");
+    Files.deleteIfExists(testFile);
+    return testFile.toAbsolutePath().toString();
   }
 
   String rowStr(int r) {
@@ -242,9 +244,9 @@ public class RFileClientTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
     Range range = new Range(rowStr(3), false, rowStr(14), true);
-    Scanner scanner =
-        RFile.newScanner().from(new FencedPath(new Path(new File(testFile).toURI()), range))
-            .withFileSystem(localFs).build();
+    Scanner scanner = RFile.newScanner()
+        .from(new FencedPath(new Path(java.nio.file.Path.of(testFile).toUri()), range))
+        .withFileSystem(localFs).build();
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
 
@@ -265,32 +267,27 @@ public class RFileClientTest {
     // Lastly only the row portion of a key is allowed.
 
     // Test valid Row Ranges
-    new FencedPath(new Path(new File(testFile).toURI()), new Range());
+    URI testFileURI = java.nio.file.Path.of(testFile).toUri();
+    new FencedPath(new Path(testFileURI), new Range());
     // This constructor converts to the proper inclusive/exclusive rows
-    new FencedPath(new Path(new File(testFile).toURI()),
-        new Range(rowStr(3), false, rowStr(14), true));
-    new FencedPath(new Path(new File(testFile).toURI()),
-        new Range(new Key(rowStr(3)).followingKey(PartialKey.ROW), true,
-            new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
+    new FencedPath(new Path(testFileURI), new Range(rowStr(3), false, rowStr(14), true));
+    new FencedPath(new Path(testFileURI), new Range(new Key(rowStr(3)).followingKey(PartialKey.ROW),
+        true, new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
 
     // Test invalid Row Ranges
     // Missing 0x00 byte
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
     // End key inclusive
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
     // Start key exclusive
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
     // CF is set which is not allowed
     assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3), colStr(3)), true,
-                new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
+        () -> new FencedPath(new Path(testFileURI), new Range(new Key(rowStr(3), colStr(3)), true,
+            new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
   }
 
   @Test
@@ -303,8 +300,8 @@ public class RFileClientTest {
 
     Range range = new Range(rowStr(3), false, rowStr(14), true);
 
-    RFileSKVIterator reader =
-        getReader(localFs, UnreferencedTabletFile.ofRanged(localFs, new File(testFile), range));
+    RFileSKVIterator reader = getReader(localFs,
+        UnreferencedTabletFile.ofRanged(localFs, java.nio.file.Path.of(testFile).toFile(), range));
     reader.seek(new Range(), List.of(), false);
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
@@ -331,8 +328,8 @@ public class RFileClientTest {
     writer.append(testData1.entrySet());
     writer.close();
 
-    RFileSKVIterator reader =
-        getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
+    RFileSKVIterator reader = getReader(localFs,
+        UnreferencedTabletFile.of(localFs, java.nio.file.Path.of(testFile).toFile()));
     FileSKVIterator iiter = reader.getIndex();
 
     int count = 0;
@@ -394,8 +391,8 @@ public class RFileClientTest {
 
     scanner.close();
 
-    Reader reader =
-        (Reader) getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
+    Reader reader = (Reader) getReader(localFs,
+        UnreferencedTabletFile.of(localFs, java.nio.file.Path.of(testFile).toFile()));
     Map<String,ArrayList<ByteSequence>> lGroups = reader.getLocalityGroupCF();
     assertTrue(lGroups.containsKey("z"));
     assertEquals(2, lGroups.get("z").size());
@@ -1045,6 +1042,47 @@ public class RFileClientTest {
     var expectedLoadPlan =
         LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "001", "009").build();
     assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+    assertEquals(expectedLoadPlan.toJson(), LoadPlan.compute(new URI(testFile)).toJson());
+
+    // put the first row in the default LG and last row in the first LG
+    testFile = createTmpTestFile();
+    var writer2 = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer2) {
+      writer2.startNewLocalityGroup("LG1", "F1");
+      writer2.append(new Key("007", "F1"), "V1");
+      writer2.append(new Key("009", "F1"), "V2");
+      writer2.startNewLocalityGroup("LG2", "F3");
+      writer2.append(new Key("003", "F3"), "V3");
+      writer2.append(new Key("004", "F3"), "V4");
+      writer2.startDefaultLocalityGroup();
+      writer2.append(new Key("002", "F4"), "V5");
+      writer2.append(new Key("008", "F4"), "V6");
+    }
+
+    filename = new Path(testFile).getName();
+    loadPlan = writer2.getLoadPlan(filename);
+    assertEquals(1, loadPlan.getDestinations().size());
+    expectedLoadPlan =
+        LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "002", "009").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+    assertEquals(expectedLoadPlan.toJson(), LoadPlan.compute(new URI(testFile)).toJson());
+
+    // create a file w/ a single LG
+    testFile = createTmpTestFile();
+    var writer3 = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer3) {
+      writer3.startDefaultLocalityGroup();
+      writer3.append(new Key("003", "F4"), "V5");
+      writer3.append(new Key("008", "F4"), "V6");
+    }
+
+    filename = new Path(testFile).getName();
+    loadPlan = writer3.getLoadPlan(filename);
+    assertEquals(1, loadPlan.getDestinations().size());
+    expectedLoadPlan =
+        LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "003", "008").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+    assertEquals(expectedLoadPlan.toJson(), LoadPlan.compute(new URI(testFile)).toJson());
   }
 
   @Test

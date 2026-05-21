@@ -21,14 +21,15 @@ package org.apache.accumulo.core.data;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -36,7 +37,16 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.RowRangeUtil;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -45,6 +55,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -72,7 +84,7 @@ public class LoadPlan {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "this code is validating the input")
   private static String checkFileName(String fileName) {
-    Preconditions.checkArgument(Paths.get(fileName).getNameCount() == 1,
+    Preconditions.checkArgument(java.nio.file.Path.of(fileName).getNameCount() == 1,
         "Expected only filename, but got %s", fileName);
     return fileName;
   }
@@ -86,13 +98,19 @@ public class LoadPlan {
      * row and end row can be null. The start row is exclusive and the end row is inclusive (like
      * Accumulo tablets). A common use case for this would be when files were partitioned using a
      * table's splits. When using this range type, the start and end row must exist as splits in the
-     * table or an exception will be thrown at load time.
+     * table or an exception will be thrown at load time. This RangeType is the most efficient for
+     * accumulo to load, and it enables only loading files to tablets that overlap data in the file.
      */
     TABLE,
     /**
-     * Range that correspond to known rows in a file. For this range type, the start row and end row
-     * must be non-null. The start row and end row are both considered inclusive. At load time,
-     * these data ranges will be mapped to table ranges.
+     * Range that corresponds to the minimum and maximum rows in a file. For this range type, the
+     * start row and end row must be non-null. The start row and end row are both considered
+     * inclusive. At load time, these data ranges will be mapped to table ranges. For this RangeType
+     * Accumulo has to do more work at load to map the file range to tablets. Also, this will map a
+     * file to all tablets in the range even if the file has no data for that tablet. For example if
+     * a range overlapped 10 tablets but the file only had data for 8 of those tablets, the file
+     * would still be loaded to all 10. This will not cause problems for scans or compactions other
+     * than the unnecessary work of opening a file and finding it has no data for the tablet.
      */
     FILE
   }
@@ -102,7 +120,7 @@ public class LoadPlan {
    *
    * @since 2.0.0
    */
-  public static class Destination {
+  public static final class Destination {
 
     private final String fileName;
     private final byte[] startRow;
@@ -139,7 +157,7 @@ public class LoadPlan {
               "Start row is greater than or equal to end row : " + srs + " " + ers);
         }
       } else {
-        throw new IllegalStateException();
+        throw new IllegalStateException("Unknown range type : " + rangeType);
       }
 
     }
@@ -159,6 +177,28 @@ public class LoadPlan {
     public RangeType getRangeType() {
       return rangeType;
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(Arrays.hashCode(endRow), Arrays.hashCode(startRow), fileName, rangeType);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      Destination other = (Destination) obj;
+      return Objects.equals(fileName, other.fileName) && rangeType == other.rangeType
+          && Arrays.equals(endRow, other.endRow) && Arrays.equals(startRow, other.startRow);
+    }
+
   }
 
   private LoadPlan(List<Destination> destinations) {
@@ -325,15 +365,50 @@ public class LoadPlan {
     return gson.toJson(new JsonAll(destinations));
   }
 
+  private static final Set<String> EXPECTED_FIELDS = Arrays
+      .stream(JsonAll.class.getDeclaredFields()).map(Field::getName).collect(Collectors.toSet());
+  private static final Set<String> EXPECTED_DEST_FIELDS =
+      Arrays.stream(JsonDestination.class.getDeclaredFields()).map(Field::getName)
+          .collect(Collectors.toSet());
+
   /**
    * Deserializes json to a load plan.
    *
    * @param json produced by {@link #toJson()}
+   * @throws IllegalArgumentException when illegal json is given or legal json that does not follow
+   *         the load plan schema is given. The minimal acceptable json is
+   *         {@code {"destinations":[]}}.
+   * @throws NullPointerException when json argument is null
+   * @since 2.1.4
    */
   public static LoadPlan fromJson(String json) {
-    var dests = gson.fromJson(json, JsonAll.class).destinations.stream()
-        .map(JsonDestination::toDestination).collect(Collectors.toUnmodifiableList());
-    return new LoadPlan(dests);
+    try {
+      Objects.requireNonNull(json);
+      Preconditions.checkArgument(!json.isBlank(), "Empty json is not accepted.");
+      // https://github.com/google/gson/issues/188 Gson does not support failing when extra fields
+      // are present. This is custom code to check for extra fields.
+      var jsonObj = gson.fromJson(json, JsonObject.class);
+      Preconditions.checkArgument(jsonObj.keySet().equals(EXPECTED_FIELDS),
+          "Expected fields %s and saw %s", EXPECTED_FIELDS, jsonObj.keySet());
+      Preconditions.checkArgument(jsonObj.get("destinations") instanceof JsonArray,
+          "Expected value of destinations field to be array");
+      var destinations = jsonObj.getAsJsonArray("destinations");
+      destinations.forEach(dest -> {
+        var keySet = dest.getAsJsonObject().keySet();
+        Preconditions.checkArgument(keySet.equals(EXPECTED_DEST_FIELDS),
+            "Expected fields %s and saw %s", EXPECTED_DEST_FIELDS, keySet);
+      });
+
+      var dests = gson.fromJson(json, JsonAll.class).destinations.stream()
+          .map(JsonDestination::toDestination).collect(Collectors.toUnmodifiableList());
+      return new LoadPlan(dests);
+    } catch (NullPointerException | IllegalArgumentException e) {
+      throw e;
+    } catch (RuntimeException e) {
+      // GSon code can throw a few runtime exceptions, lets not let Gson exceptions escape directly
+      // so that its easier to change the implementation away from gson in the future.
+      throw new IllegalArgumentException(e);
+    }
   }
 
   /**
@@ -420,6 +495,7 @@ public class LoadPlan {
    * Computes a load plan for a given rfile. This will open the rfile and find every
    * {@link TableSplits} that overlaps rows in the file and add those to the returned load plan.
    *
+   * @return a load plan of type {@link RangeType#TABLE}
    * @since 2.1.4
    */
   public static LoadPlan compute(URI file, SplitResolver splitResolver) throws IOException {
@@ -436,6 +512,7 @@ public class LoadPlan {
    *
    * @param properties used when opening the rfile, see
    *        {@link org.apache.accumulo.core.client.rfile.RFile.ScannerOptions#withTableProperties(Map)}
+   * @return a load plan of type {@link RangeType#TABLE}
    * @since 2.1.4
    */
   public static LoadPlan compute(URI file, Map<String,String> properties,
@@ -471,4 +548,67 @@ public class LoadPlan {
       return builder.build();
     }
   }
+
+  /**
+   * Computes a load plan for a rfile based on the minimum and maximum row present across all
+   * locality groups.
+   *
+   * @param properties used when opening the rfile, see
+   *        {@link org.apache.accumulo.core.client.rfile.RFile.ScannerOptions#withTableProperties(Map)}
+   *
+   * @return a load plan of type {@link RangeType#FILE}
+   * @since 2.1.5
+   */
+  public static LoadPlan compute(URI file, Map<String,String> properties) throws IOException {
+    var path = new Path(file);
+    var conf = new Configuration();
+    var fs = FileSystem.get(path.toUri(), conf);
+    CryptoService cs =
+        CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, properties);
+    var tableConf = new ConfigurationCopy(properties);
+    var tabletFile = UnreferencedTabletFile.of(fs, path);
+    try (var reader = FileOperations.getInstance().newReaderBuilder()
+        .forFile(tabletFile, fs, conf, cs).withTableConfiguration(tableConf).build()) {
+      var fileRange = reader.getFileRange();
+      var rowRange = RowRangeUtil.toRowRange(fileRange.rowRange);
+      Preconditions
+          .checkState(rowRange.isLowerBoundInclusive() && rowRange.isUpperBoundInclusive());
+      var firstRow = rowRange.getLowerBound();
+      var lastRow = rowRange.getUpperBound();
+      return LoadPlan.builder().loadFileTo(path.getName(), RangeType.FILE, firstRow, lastRow)
+          .build();
+    }
+  }
+
+  /**
+   * Computes a load plan for a rfile based on the minimum and maximum row present across all
+   * locality groups.
+   *
+   * @return a load plan of type {@link RangeType#FILE}
+   * @since 2.1.5
+   */
+  public static LoadPlan compute(URI file) throws IOException {
+    return compute(file, Map.of());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(destinations);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    LoadPlan other = (LoadPlan) obj;
+    return Objects.equals(destinations, other.destinations);
+  }
+
 }

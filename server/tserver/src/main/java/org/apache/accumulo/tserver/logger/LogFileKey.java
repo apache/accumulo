@@ -45,13 +45,62 @@ import com.google.common.base.Preconditions;
 public class LogFileKey implements WritableComparable<LogFileKey> {
   private static final Logger log = LoggerFactory.getLogger(LogFileKey.class);
 
-  public LogEvents event;
-  public String filename = null;
-  public KeyExtent tablet = null;
-  public long seq = -1;
-  public int tabletId = -1;
   public static final int VERSION = 2;
-  public String tserverSession;
+
+  private LogEvents event;
+  private String filename = null;
+  private KeyExtent tablet = null;
+  private long seq = -1;
+  private int tabletId = -1;
+  private String tserverSession;
+
+  public LogEvents getEvent() {
+    return event;
+  }
+
+  public String getFilename() {
+    return filename;
+  }
+
+  public KeyExtent getTablet() {
+    return tablet;
+  }
+
+  public long getSeq() {
+    return seq;
+  }
+
+  public int getTabletId() {
+    return tabletId;
+  }
+
+  public String getTserverSession() {
+    return tserverSession;
+  }
+
+  public void setEvent(LogEvents event) {
+    this.event = event;
+  }
+
+  public void setFilename(String filename) {
+    this.filename = filename;
+  }
+
+  public void setTablet(KeyExtent tablet) {
+    this.tablet = tablet;
+  }
+
+  public void setSeq(long seq) {
+    this.seq = seq;
+  }
+
+  public void setTabletId(int tabletId) {
+    this.tabletId = tabletId;
+  }
+
+  public void setTserverSession(String tserverSession) {
+    this.tserverSession = tserverSession;
+  }
 
   @Override
   public void readFields(DataInput in) throws IOException {
@@ -189,21 +238,14 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
 
   @Override
   public String toString() {
-    switch (event) {
-      case OPEN:
-        return String.format("OPEN %s", tserverSession);
-      case COMPACTION_FINISH:
-        return String.format("COMPACTION_FINISH %d %d", tabletId, seq);
-      case COMPACTION_START:
-        return String.format("COMPACTION_START %d %d %s", tabletId, seq, filename);
-      case MUTATION:
-        return String.format("MUTATION %d %d", tabletId, seq);
-      case MANY_MUTATIONS:
-        return String.format("MANY_MUTATIONS %d %d", tabletId, seq);
-      case DEFINE_TABLET:
-        return String.format("DEFINE_TABLET %d %d %s", tabletId, seq, tablet);
-    }
-    throw new RuntimeException("Unknown type of entry: " + event);
+    return switch (event) {
+      case OPEN -> String.format("OPEN %s", tserverSession);
+      case COMPACTION_FINISH -> String.format("COMPACTION_FINISH %d %d", tabletId, seq);
+      case COMPACTION_START -> String.format("COMPACTION_START %d %d %s", tabletId, seq, filename);
+      case MUTATION -> String.format("MUTATION %d %d", tabletId, seq);
+      case MANY_MUTATIONS -> String.format("MANY_MUTATIONS %d %d", tabletId, seq);
+      case DEFINE_TABLET -> String.format("DEFINE_TABLET %d %d %s", tabletId, seq, tablet);
+    };
   }
 
   /**
@@ -293,7 +335,9 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     row[11] = (byte) ((seq >>> 8) & mask);
     row[12] = (byte) (seq & mask);
 
-    log.trace("Convert {} {} {} to row {}", event, tabletId, seq, Arrays.toString(row));
+    if (log.isTraceEnabled()) {
+      log.trace("Convert {} {} {} to row {}", event, tabletId, seq, Arrays.toString(row));
+    }
     return row;
   }
 
@@ -347,8 +391,10 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     if (eventType(logFileKey.event) != rowParts[0]) {
       throw new AssertionError("Event in row differs from column family. Key: " + key);
     }
-    log.trace("From row {} get {} {} {}", Arrays.toString(rowParts), logFileKey.event,
-        logFileKey.tabletId, logFileKey.seq);
+    if (log.isTraceEnabled()) {
+      log.trace("From row {} get {} {} {}", Arrays.toString(rowParts), logFileKey.event,
+          logFileKey.tabletId, logFileKey.seq);
+    }
 
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {

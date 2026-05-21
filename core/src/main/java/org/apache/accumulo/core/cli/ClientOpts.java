@@ -20,9 +20,9 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +81,7 @@ public class ClientOpts extends Help {
             justification = "app is run in same security context as user providing the filename")
         @Override
         String process(String value) {
-          try (Scanner scanner = new Scanner(new File(value), UTF_8)) {
+          try (Scanner scanner = new Scanner(Path.of(value), UTF_8)) {
             return scanner.nextLine();
           } catch (IOException e) {
             throw new ParameterException(e);
@@ -136,11 +136,13 @@ public class ClientOpts extends Help {
    * A catch all for older legacy options that have been dropped. Most of them were replaced with
    * accumulo-client.properties in 2.0. Others have been dropped completely.
    */
-  private String legacyClientOpts = "-p -tc --tokenClass -i --instance --site-file --keytab "
-      + "--debug -fake --mock --ssl --sasl";
+  private String[] legacyClientOpts = {"-p", "-tc", "--tokenClass", "-i", "--instance",
+      "--site-file", "--keytab", "--debug", "-fake", "--mock", "--ssl", "--sasl"};
+
   @Parameter(names = {"-p", "-tc", "--tokenClass", "-i", "--instance", "--site-file", "--keytab"},
       hidden = true)
   private String legacyOpts = null;
+
   @Parameter(names = {"--debug", "-fake", "--mock", "--ssl", "--sasl"}, hidden = true)
   private boolean legacyOptsBoolean = false;
 
@@ -170,27 +172,31 @@ public class ClientOpts extends Help {
       + "accumulo-client.properties. Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
 
-  @Parameter(names = "--trace", description = "turn on distributed tracing")
-  public boolean trace = false;
-
   public Map<String,String> getOverrides() {
-    return ConfigOpts.getOverrides(overrides);
+    return ServerOpts.getOverrides(overrides);
   }
 
   @Override
-  public void parseArgs(String programName, String[] args, Object... others) {
-    super.parseArgs(programName, args, others);
+  public void validateArgs() {
     if (legacyOpts != null || legacyOptsBoolean) {
-      // grab the bad options
-      StringBuilder badOptions = new StringBuilder();
-      for (String arg : args) {
-        if (legacyClientOpts.contains(arg)) {
-          badOptions.append(arg).append(" ");
+      if (legacyOpts != null) {
+        // grab the bad options
+        StringBuilder badOptions = new StringBuilder();
+        for (String badArg : legacyClientOpts) {
+          if (legacyOpts.contains(badArg)) {
+            badOptions.append(badArg).append(" ");
+          }
         }
+        throw new IllegalArgumentException("The Client options: " + badOptions
+            + "have been dropped. Use accumulo-client.properties for any connection or token "
+            + "options. See '-c, --config-file' option.");
       }
-      throw new IllegalArgumentException("The Client options: " + badOptions
-          + "have been dropped. Use accumulo-client.properties for any connection or token "
-          + "options. See '-c, --config-file' option.");
+      if (legacyOptsBoolean) {
+        throw new IllegalArgumentException(
+            "The Client options: --debug, -fake, --mock, --ssl, --sasl"
+                + "have been dropped. Use accumulo-client.properties for any connection or token "
+                + "options. See '-c, --config-file' option.");
+      }
     }
   }
 

@@ -234,11 +234,11 @@ public class SplitUtils {
     return common;
   }
 
-  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterator, int desiredSplits,
+  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterable, int desiredSplits,
       Predicate<ByteSequence> rowPredicate) {
     Preconditions.checkArgument(desiredSplits >= 1);
 
-    int numKeys = Iterables.size(tabletIndexIterator);
+    int numKeys = Iterables.size(tabletIndexIterable);
 
     double interSplitDistance = (double) numKeys / (double) (desiredSplits + 1);
 
@@ -249,7 +249,7 @@ public class SplitUtils {
     ByteSequence prevRow = null;
     ByteSequence lastRow = null;
 
-    for (Key key : tabletIndexIterator) {
+    for (Key key : tabletIndexIterable) {
       if (lastRow != null && !key.getRowData().equals(lastRow)) {
         prevRow = lastRow;
       }

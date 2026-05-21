@@ -20,6 +20,9 @@ package org.apache.accumulo.core.spi.cache;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
+
+import org.apache.accumulo.core.file.blockfile.cache.impl.NoopCache;
 
 /**
  * @since 2.0.0
@@ -108,9 +111,13 @@ public abstract class BlockCacheManager {
    * @param conf accumulo configuration
    */
   public void start(Configuration conf) {
+    Supplier<NoopCache> noop = () -> new NoopCache();
     for (CacheType type : CacheType.values()) {
-      BlockCache cache = this.createCache(conf, type);
-      this.caches.put(type, cache);
+      if (conf.getMaxSize(type) > 0) {
+        this.caches.put(type, createCache(conf, type));
+      } else {
+        this.caches.put(type, noop.get());
+      }
     }
   }
 

@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -58,7 +59,6 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TABLE_MAJC_RATIO, "5.0");
   }
 
   @Test
@@ -67,6 +67,8 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      c.namespaceOperations().setProperty(Namespace.DEFAULT.name(),
+          Property.TABLE_MAJC_RATIO.getKey(), "5.0");
       ArrayList<StoredTabletFile> files = super.loadData(super.getServerContext(), c, table);
       assertFalse(files.isEmpty());
       c.tableOperations().compact(table, new CompactionConfig());

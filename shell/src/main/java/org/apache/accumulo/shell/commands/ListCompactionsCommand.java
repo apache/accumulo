@@ -34,7 +34,11 @@ import org.apache.commons.cli.Options;
 
 public class ListCompactionsCommand extends Command {
 
-  private Option serverOpt, tserverOption, rgOpt, disablePaginationOpt, filterOption;
+  private Option serverOpt;
+  private Option tserverOption;
+  private Option rgOpt;
+  private Option disablePaginationOpt;
+  private Option filterOption;
 
   @Override
   public String description() {

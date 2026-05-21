@@ -28,5 +28,7 @@ var NAMESPACES = '';
  */
 var TIMER;
 
+const contextPath = $("base").attr("href");
+
 const EMPTY_CELL = "<td>-</td>";
 const EMPTY_ROW_THREE_CELLS = "<tr>" + EMPTY_CELL + EMPTY_CELL + EMPTY_CELL + "</tr>";

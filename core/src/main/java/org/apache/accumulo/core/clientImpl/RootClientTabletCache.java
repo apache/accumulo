@@ -108,11 +108,6 @@ public class RootClientTabletCache extends ClientTabletCache {
   }
 
   @Override
-  public void invalidateCache(ClientContext context, String server) {
-    // no-op see class level javadoc
-  }
-
-  @Override
   public void invalidateCache() {
     // no-op see class level javadoc
   }
@@ -123,18 +118,16 @@ public class RootClientTabletCache extends ClientTabletCache {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zookeeper.",
-          Thread.currentThread().getId());
+      log.trace("Looking up root tablet location in zookeeper.");
       timer = Timer.startNew();
     }
 
-    var zpath = RootTabletMetadata.zooPath(context);
     var zooCache = context.getZooCache();
-    Location loc = new RootTabletMetadata(new String(zooCache.get(zpath), UTF_8)).toTabletMetadata()
-        .getLocation();
+    Location loc = new RootTabletMetadata(new String(zooCache.get(RootTable.ZROOT_TABLET), UTF_8))
+        .toTabletMetadata().getLocation();
 
     if (timer != null) {
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
+      log.trace("Found root tablet at {} in {}", loc,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 

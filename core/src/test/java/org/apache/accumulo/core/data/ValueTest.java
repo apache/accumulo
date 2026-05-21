@@ -35,6 +35,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
@@ -164,9 +168,28 @@ public class ValueTest {
 
   @Test
   public void testHashCode() {
+    // Testing consistency
+    Value value = new Value(DATA);
+    int hashCode1 = value.hashCode();
+    int hashCode2 = value.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
     Value v1 = new Value(DATA);
     Value v2 = new Value(DATA);
     assertEquals(v1.hashCode(), v2.hashCode());
+
+    // Testing even distribution
+    List<Value> values = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      values.add(new Value(("data" + i).getBytes(UTF_8)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Value v : values) {
+      hashCodes.add(v.hashCode());
+    }
+
+    assertEquals(values.size(), hashCodes.size(), 10);
   }
 
   @Test

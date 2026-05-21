@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -57,6 +56,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -119,8 +119,10 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
   @BeforeEach
   public void setupMetricsTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
+    Wait.waitFor(
+        () -> getCluster().getServerContext().getServerPaths()
+            .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty(),
+        60_000);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       tableName = getUniqueNames(1)[0];
@@ -139,7 +141,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     }
     queueMetrics.clear();
     shutdownTailer.set(false);
-    metricsTailer = Threads.createThread("metric-tailer", () -> {
+    metricsTailer = Threads.createNonCriticalThread("metric-tailer", () -> {
       while (!shutdownTailer.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {
@@ -286,7 +288,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       justification = "path provided by test; sha-1 is okay for test")
   private String hash(String filename) {
     try {
-      byte[] data = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
+      byte[] data = Files.readAllBytes(java.nio.file.Path.of(filename.replaceFirst("^file:", "")));
       byte[] hash = MessageDigest.getInstance("SHA1").digest(data);
       return new BigInteger(1, hash).toString(16);
     } catch (IOException | NoSuchAlgorithmException e) {

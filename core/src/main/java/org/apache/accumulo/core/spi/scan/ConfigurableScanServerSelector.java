@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.spi.scan.RendezvousHasher.Mode.SERVER;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -26,23 +26,26 @@ import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.util.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 import com.google.gson.reflect.TypeToken;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -173,14 +176,37 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
-  public static final String PROFILES_DEFAULT = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-      + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], "
-      + "'attemptPlans':[{'servers':'3', 'busyTimeout':'33ms', 'salt':'one'},"
-      + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
-      + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
+  private static final Logger LOG = LoggerFactory.getLogger(ConfigurableScanServerSelector.class);
 
-  private Supplier<Map<String,List<String>>> orderedScanServersSupplier;
+  public static final String PROFILES_DEFAULT = """
+      [
+          {
+              "isDefault": true,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "scanTypeActivations": [
+              ],
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          }
+      ]
+      """;
 
+  private Supplier<Collection<ScanServerInfo>> serverSupplier;
   private Map<String,Profile> profiles;
   private Profile defaultProfile;
 
@@ -238,6 +264,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       return parsedBusyTimeout;
     }
 
+    @Override
+    public String toString() {
+      return "AttemptPlan [servers=" + servers + ", busyTimeout=" + busyTimeout + ", salt=" + salt
+          + "]";
+    }
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
@@ -248,7 +279,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     boolean isDefault = false;
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
-    String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    String group = Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String timeToWaitForScanServers = 100 * 365 + "d";
 
     transient boolean parsed = false;
@@ -293,6 +324,23 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedTimeToWaitForScanServers;
     }
+
+    ResourceGroupId getGroupId() {
+      return ResourceGroupId.of(group);
+    }
+
+    List<AttemptPlan> getAttemptPlans() {
+      return attemptPlans;
+    }
+
+    @Override
+    public String toString() {
+      return "Profile [attemptPlans=" + attemptPlans + ", scanTypeActivations="
+          + scanTypeActivations + ", isDefault=" + isDefault + ", busyTimeoutMultiplier="
+          + busyTimeoutMultiplier + ", maxBusyTimeout=" + maxBusyTimeout + ", group=" + group
+          + ", timeToWaitForScanServers=" + timeToWaitForScanServers + "]";
+    }
+
   }
 
   private void parseProfiles(Map<String,String> options) {
@@ -326,17 +374,37 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     }
   }
 
+  private RendezvousHasher rendezvous;
+  private Timer lastRendezvousServerCheck;
+
+  private synchronized RendezvousHasher getRendezvous() {
+    final int cacheSize = 64 * 1024 * 1024;
+
+    if (rendezvous == null) {
+      rendezvous = new RendezvousHasher(ScanServersSnapshot.from(serverSupplier.get()), cacheSize);
+      lastRendezvousServerCheck = Timer.startNew();
+      return rendezvous;
+    }
+
+    // do not check for changes in the set of servers too frequently
+    if (lastRendezvousServerCheck.hasElapsed(5, TimeUnit.SECONDS)) {
+      // check if the set of servers changed
+      var snapshot = ScanServersSnapshot.from(serverSupplier.get());
+      if (!snapshot.equals(rendezvous.getSnapshot())) {
+        // The set of servers changed, so create a new rendezvous hasher because it caches
+        // information derived from the snapshot.
+        rendezvous = new RendezvousHasher(snapshot, cacheSize);
+      }
+
+      lastRendezvousServerCheck.restart();
+    }
+
+    return rendezvous;
+  }
+
   @Override
-  public void init(ScanServerSelector.InitParameters params) {
-    // avoid constantly resorting the scan servers, just do it periodically in case they change
-    orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
-      Collection<ScanServerInfo> scanServers = params.getScanServers().get();
-      Map<String,List<String>> groupedServers = new HashMap<>();
-      scanServers.forEach(sserver -> groupedServers
-          .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
-      groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
-      return groupedServers;
-    }, 3, TimeUnit.SECONDS);
+  public synchronized void init(ScanServerSelector.InitParameters params) {
+    serverSupplier = params.getScanServers();
 
     var opts = params.getOptions();
 
@@ -344,7 +412,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Preconditions.checkArgument(diff.isEmpty(), "Unknown options %s", diff);
 
-    parseProfiles(params.getOptions());
+    parseProfiles(opts);
+
+    LOG.trace("init, default profile = {}, other profiles: {}", defaultProfile, profiles);
   }
 
   @Override
@@ -352,33 +422,42 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     String scanType = params.getHints().get("scan_type");
 
-    Profile profile = null;
+    final Profile profile;
 
     if (scanType != null) {
       profile = profiles.getOrDefault(scanType, defaultProfile);
+      LOG.trace("Found profile for scan type {}: {}", scanType, profile);
     } else {
+      LOG.trace("scan_type not set, using default profile");
       profile = defaultProfile;
     }
 
     // only get this once and use it for the entire method so that the method uses a consistent
-    // snapshot
-    List<String> orderedScanServers =
-        orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
+    // snapshot of the servers
+    var rhasher = getRendezvous();
 
     Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
 
-    var finalProfile = profile;
-    if (orderedScanServers.isEmpty() && !scanServerWaitTime.isZero()) {
+    if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()
+        && !scanServerWaitTime.isZero()) {
       // Wait for scan servers in the configured group to be present.
-      orderedScanServers = params.waitUntil(
-          () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
-          scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
+      rhasher = params.waitUntil(() -> {
+        var r2 = getRendezvous();
+        if (r2.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
+          return Optional.empty();
+        } else {
+          return Optional.of(r2);
+        }
+      }, scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
       // at this point the list should be non empty unless there is a bug
-      Preconditions.checkState(!orderedScanServers.isEmpty());
+      Preconditions
+          .checkState(!rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty());
     }
 
-    if (orderedScanServers.isEmpty()) {
+    if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
       // there are no scan servers so fall back to the tablet server
+      LOG.trace("No scan servers for group {}, falling back to tablet servers",
+          profile.getGroupId());
       return new ScanServerSelections() {
         @Override
         public String getScanServer(TabletId tabletId) {
@@ -397,12 +476,63 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       };
     }
 
-    Map<TabletId,String> serversToUse = new HashMap<>();
+    return selectServers(params, profile, rhasher);
+  }
 
-    int maxAttempts = selectServers(params, profile, orderedScanServers, serversToUse);
+  protected Duration computeDelay(int errorAttempts) {
+    if (errorAttempts == 0) {
+      return Duration.ZERO;
+    } else {
+      return Duration.ofMillis((long) Math.min(30_000, 100 * Math.pow(2, (errorAttempts - 1))));
+    }
+  }
 
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
+  ScanServerSelections selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      RendezvousHasher rhasher) {
+    int attempts = 0;
+    int errorAttempts = 0;
 
+    HashMap<TabletId,String> serversToUse = new HashMap<>();
+
+    for (TabletId tablet : params.getTablets()) {
+      attempts = Math.max(attempts, params.getAttempts(tablet).size());
+    }
+
+    int numServers = profile.getNumServers(attempts,
+        rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).size());
+    for (TabletId tablet : params.getTablets()) {
+      List<String> rendezvousServers = rhasher.rendezvous(SERVER, profile.getGroupId(), tablet,
+          profile.getSalt(attempts), numServers);
+
+      var tabletAttempts = params.getAttempts(tablet);
+      if (!tabletAttempts.isEmpty()) {
+        HashSet<String> attemptServers = new HashSet<>();
+        int errorCount = 0;
+        for (var attempt : tabletAttempts) {
+          attemptServers.add(attempt.getServer());
+          if (attempt.getResult() == ScanServerAttempt.Result.ERROR) {
+            errorCount++;
+          }
+        }
+        errorAttempts = Math.max(errorCount, errorAttempts);
+        // remove servers that failed in previous attempts
+
+        var copy = rendezvousServers.stream().filter(server -> !attemptServers.contains(server))
+            .collect(Collectors.toList());
+        if (!copy.isEmpty()) {
+          // pick from the servers that did not previously fail
+          rendezvousServers = copy;
+        } // else all servers have failed, so just try any one of them again
+      }
+      // pick a random server from the set of rendezvous servers
+      String serverToUse = rendezvousServers.get(RANDOM.get().nextInt(rendezvousServers.size()));
+      serversToUse.put(tablet, serverToUse);
+    }
+
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
+    Duration delay = computeDelay(errorAttempts);
+
+    LOG.trace("Returning delay:{} busyTimeout:{} servers to use: {}", delay, busyTO, serversToUse);
     return new ScanServerSelections() {
       @Override
       public String getScanServer(TabletId tabletId) {
@@ -411,7 +541,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
       @Override
       public Duration getDelay() {
-        return Duration.ZERO;
+        return delay;
       }
 
       @Override
@@ -419,52 +549,5 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         return busyTO;
       }
     };
-  }
-
-  protected int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
-      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
-
-    int attempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
-
-    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
-    for (TabletId tablet : params.getTablets()) {
-
-      String serverToUse = null;
-
-      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
-
-      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
-          % orderedScanServers.size();
-
-      serverToUse = orderedScanServers.get(serverIndex);
-
-      serversToUse.put(tablet, serverToUse);
-    }
-    return attempts;
-  }
-
-  final HashCode hashTablet(TabletId tablet, String salt) {
-    var hasher = Hashing.murmur3_128().newHasher();
-
-    if (tablet.getEndRow() != null) {
-      hasher.putBytes(tablet.getEndRow().getBytes(), 0, tablet.getEndRow().getLength());
-    } else {
-      hasher.putByte((byte) 5);
-    }
-
-    if (tablet.getPrevEndRow() != null) {
-      hasher.putBytes(tablet.getPrevEndRow().getBytes(), 0, tablet.getPrevEndRow().getLength());
-    } else {
-      hasher.putByte((byte) 7);
-    }
-
-    hasher.putString(tablet.getTable().canonical(), UTF_8);
-
-    if (salt != null && !salt.isEmpty()) {
-      hasher.putString(salt, UTF_8);
-    }
-
-    return hasher.hash();
   }
 }

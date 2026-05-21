@@ -44,9 +44,8 @@ import com.google.common.base.Preconditions;
 public class CompactionConfigStorage {
   static final String DELIMITER = "_";
 
-  private static String createPath(ServerContext context, FateId fateId) {
-    return context.getZooKeeperRoot() + Constants.ZCOMPACTIONS + "/" + fateId.getType() + DELIMITER
-        + fateId.getTxUUIDStr();
+  private static String createPath(FateId fateId) {
+    return Constants.ZCOMPACTIONS + "/" + fateId.getType() + DELIMITER + fateId.getTxUUIDStr();
   }
 
   public static byte[] encodeConfig(CompactionConfig config, TableId tableId) {
@@ -69,7 +68,7 @@ public class CompactionConfigStorage {
   public static CompactionConfig getConfig(ServerContext context, FateId fateId,
       Predicate<TableId> tableIdPredicate) throws InterruptedException, KeeperException {
     try {
-      byte[] data = context.getZooSession().asReader().getData(createPath(context, fateId));
+      byte[] data = context.getZooSession().asReader().getData(createPath(fateId));
       try (ByteArrayInputStream bais = new ByteArrayInputStream(data);
           DataInputStream dis = new DataInputStream(bais)) {
         var tableId = TableId.of(dis.readUTF());
@@ -89,13 +88,13 @@ public class CompactionConfigStorage {
 
   public static void setConfig(ServerContext context, FateId fateId, byte[] encConfig)
       throws InterruptedException, KeeperException {
-    context.getZooSession().asReaderWriter().putPrivatePersistentData(createPath(context, fateId),
-        encConfig, ZooUtil.NodeExistsPolicy.SKIP);
+    context.getZooSession().asReaderWriter().putPrivatePersistentData(createPath(fateId), encConfig,
+        ZooUtil.NodeExistsPolicy.SKIP);
   }
 
   public static void deleteConfig(ServerContext context, FateId fateId)
       throws InterruptedException, KeeperException {
-    context.getZooSession().asReaderWriter().delete(createPath(context, fateId));
+    context.getZooSession().asReaderWriter().delete(createPath(fateId));
   }
 
   public static Map<FateId,CompactionConfig> getAllConfig(ServerContext context,
@@ -103,8 +102,7 @@ public class CompactionConfigStorage {
 
     Map<FateId,CompactionConfig> configs = new HashMap<>();
 
-    var children = context.getZooSession().asReader()
-        .getChildren(context.getZooKeeperRoot() + Constants.ZCOMPACTIONS);
+    var children = context.getZooSession().asReader().getChildren(Constants.ZCOMPACTIONS);
     for (var child : children) {
       String[] fields = child.split(DELIMITER);
       Preconditions.checkState(fields.length == 2, "Unexpected child %s", child);

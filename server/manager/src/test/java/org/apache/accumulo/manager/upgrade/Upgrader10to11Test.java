@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -88,7 +88,7 @@ class Upgrader10to11Test {
     zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
 
-    expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
+    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zk, propStore);
@@ -116,7 +116,7 @@ class Upgrader10to11Test {
     expect(zk.getChildren(buildRepTablePath(instanceId), null)).andReturn(List.of());
     zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
-    expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
+    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zk, propStore);

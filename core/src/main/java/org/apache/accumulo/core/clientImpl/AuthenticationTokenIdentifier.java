@@ -170,8 +170,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     if (o == null) {
       return false;
     }
-    if (o instanceof AuthenticationTokenIdentifier) {
-      AuthenticationTokenIdentifier other = (AuthenticationTokenIdentifier) o;
+    if (o instanceof AuthenticationTokenIdentifier other) {
       return impl.equals(other.impl);
     }
     return false;

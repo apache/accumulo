@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate;
 
 import java.time.Duration;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -37,7 +38,8 @@ public class FastFate<T> extends Fate<T> {
 
   public FastFate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
-    super(environment, store, runDeadResCleaner, toLogStrFunc, conf);
+    super(environment, store, runDeadResCleaner, toLogStrFunc, conf,
+        new ScheduledThreadPoolExecutor(2));
   }
 
   @Override

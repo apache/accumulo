@@ -75,7 +75,7 @@ class MinorCompactionTask implements Runnable {
           while (true) {
             try {
               if (newFile == null) {
-                newFile = tablet.getNextDataFilename(FilePrefix.MINOR_COMPACTION);
+                newFile = tablet.getNextDataFilename(FilePrefix.FLUSH);
                 tmpFile =
                     new ReferencedTabletFile(new Path(newFile.getNormalizedPathStr() + "_tmp"));
               }

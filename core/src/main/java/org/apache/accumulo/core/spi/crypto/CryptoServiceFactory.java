@@ -25,7 +25,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 /**
  * A Factory that returns a CryptoService based on the environment and configuration.
  *
- * @since 2.1
+ * @since 2.1.0
  */
 public interface CryptoServiceFactory {
 

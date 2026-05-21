@@ -20,13 +20,13 @@ package org.apache.accumulo.hadoopImpl.mapreduce.lib;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -56,12 +56,15 @@ public class DistributedCacheHelper {
       justification = "arbitrary path provided by user, through MapReduce APIs")
   public static InputStream openCachedFile(String path, String fragment, Configuration conf) {
     // try to get it from the local copy provided by the distributed cache
-    File tempFile = new File(fragment);
-    if (tempFile.exists()) {
+    java.nio.file.Path p = java.nio.file.Path.of(fragment);
+    if (Files.exists(p)) {
       try {
-        return new FileInputStream(tempFile);
+        return Files.newInputStream(p);
       } catch (FileNotFoundException e) {
         throw new AssertionError("FileNotFoundException after verifying file exists", e);
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error opening input stream for file: " + p.toAbsolutePath(),
+            e);
       }
     } else {
 

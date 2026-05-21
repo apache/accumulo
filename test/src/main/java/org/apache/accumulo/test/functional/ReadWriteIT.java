@@ -24,7 +24,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.net.URL;
+import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.Optional;
@@ -49,7 +49,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -120,18 +119,17 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
-      URL url = new URL(monitorLocation);
+      var url = new URI(monitorLocation).toURL();
       log.debug("Fetching web page {}", url);
       String result = FunctionalTestUtils.readWebPage(url).body();
       assertTrue(result.length() > 100);
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
-      ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath = getServerContext().getServerPaths().createManagerPath();
       Optional<ServiceLockData> managerLockData;
       do {
-        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
+        managerLockData = ServiceLock.getLockData(cluster.getServerContext().getZooCache(),
+            getServerContext().getServerPaths().createManagerPath(), null);
         if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);

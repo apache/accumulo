@@ -304,10 +304,9 @@ public class Condition {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Condition)) {
+    if (!(o instanceof Condition condition)) {
       return false;
     }
-    Condition condition = (Condition) o;
     return Objects.equals(cf, condition.cf) && Objects.equals(cq, condition.cq)
         && Objects.equals(cv, condition.cv) && Objects.equals(val, condition.val)
         && Objects.equals(ts, condition.ts) && Arrays.equals(iterators, condition.iterators);

@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.hadoop.mapred;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -118,7 +118,7 @@ public class AccumuloOutputFormatTest {
       File file = File.createTempFile("accumulo-client", ".properties", null);
       file.deleteOnExit();
 
-      FileWriter writer = new FileWriter(file, UTF_8);
+      BufferedWriter writer = Files.newBufferedWriter(file.toPath());
       writer.write("auth.type=password\n");
       writer.write("instance.zookeepers=zk\n");
       writer.write("instance.name=test\n");

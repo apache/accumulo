@@ -24,9 +24,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
-import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 
@@ -38,20 +37,21 @@ import org.apache.accumulo.core.data.Mutation;
  * <li>2 = insufficient authorization</li>
  * </ul>
  *
- * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
+ * <p>
+ * This was moved from the org.apache.accumulo.core.constraints package since 2.1.0
+ *
+ * @since 2.1.0
  */
 public class VisibilityConstraint implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-    switch (violationCode) {
-      case 1:
-        return "Malformed column visibility";
-      case 2:
-        return "User does not have authorization on column visibility";
-    }
+    return switch (violationCode) {
+      case 1 -> "Malformed column visibility";
+      case 2 -> "User does not have authorization on column visibility";
+      default -> null;
+    };
 
-    return null;
   }
 
   @Override
@@ -63,7 +63,7 @@ public class VisibilityConstraint implements Constraint {
       ok = new HashSet<>();
     }
 
-    AccessEvaluator ve = null;
+    BytesAccess.BytesEvaluator ve = null;
 
     for (ColumnUpdate update : updates) {
 
@@ -78,7 +78,7 @@ public class VisibilityConstraint implements Constraint {
 
           if (ve == null) {
             var authContainer = env.getAuthorizationsContainer();
-            ve = AccessEvaluator.of(auth -> authContainer.contains(new ArrayByteSequence(auth)));
+            ve = BytesAccess.newEvaluator(authContainer);
           }
 
           if (!ve.canAccess(cv)) {

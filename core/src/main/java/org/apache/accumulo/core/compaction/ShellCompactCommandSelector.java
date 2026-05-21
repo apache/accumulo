@@ -132,8 +132,8 @@ public class ShellCompactCommandSelector implements CompactionSelector {
   private abstract static class FileSizeTest extends Test {
     private final long esize;
 
-    private FileSizeTest(String s) {
-      this.esize = Long.parseLong(s);
+    private FileSizeTest(long esize) {
+      this.esize = esize;
     }
 
     @Override
@@ -186,7 +186,7 @@ public class ShellCompactCommandSelector implements CompactionSelector {
           tests.add(new NoSampleTest());
           break;
         case SF_LT_ESIZE_OPT:
-          tests.add(new FileSizeTest(entry.getValue()) {
+          tests.add(new FileSizeTest(Long.parseLong(entry.getValue())) {
             @Override
             public boolean shouldCompact(long fsize, long esize) {
               return fsize < esize;
@@ -194,7 +194,7 @@ public class ShellCompactCommandSelector implements CompactionSelector {
           });
           break;
         case SF_GT_ESIZE_OPT:
-          tests.add(new FileSizeTest(entry.getValue()) {
+          tests.add(new FileSizeTest(Long.parseLong(entry.getValue())) {
             @Override
             public boolean shouldCompact(long fsize, long esize) {
               return fsize > esize;

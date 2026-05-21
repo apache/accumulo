@@ -51,19 +51,58 @@ public class Threads {
     return new NamedRunnable(name, r);
   }
 
-  public static Thread createThread(String name, Runnable r) {
-    return createThread(name, OptionalInt.empty(), r, UEH);
+  public static Thread createNonCriticalThread(String name, Runnable r) {
+    return createNonCriticalThread(name, OptionalInt.empty(), r, UEH);
   }
 
-  public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    return createThread(name, priority, r, UEH);
+  public static Thread createNonCriticalThread(String name, OptionalInt priority, Runnable r) {
+    return createNonCriticalThread(name, priority, r, UEH);
   }
 
-  public static Thread createThread(String name, OptionalInt priority, Runnable r,
+  public static Thread createNonCriticalThread(String name, OptionalInt priority, Runnable r,
       UncaughtExceptionHandler ueh) {
     Thread thread = new AccumuloDaemonThread(TraceUtil.wrap(r), name, ueh);
     priority.ifPresent(thread::setPriority);
     return thread;
+  }
+
+  public static Thread createCriticalThread(String name, Runnable r) {
+    return createCriticalThread(name, OptionalInt.empty(), r);
+  }
+
+  public static Thread createCriticalThread(String name, OptionalInt priority, Runnable r) {
+    Runnable wrapped = () -> {
+      try {
+        r.run();
+      } catch (RuntimeException e) {
+        try {
+          e.printStackTrace();
+          System.err.println("Critical thread died: " + Thread.currentThread() + ", halting VM.");
+          System.err.flush();
+        } catch (Throwable e1) {
+          // If e == OutOfMemoryError, then it's probable that another Error might be
+          // thrown when trying to print to System.err.
+        } finally {
+          Runtime.getRuntime().halt(-1);
+        }
+      }
+    };
+
+    return createNonCriticalThread(name, priority, wrapped);
+  }
+
+  // only Java 19 and later have the thread ID in the toString; this can be removed when the
+  // required Java version is at least 19
+  public static String toString(Thread t) {
+    StringBuilder sb = new StringBuilder("Thread[#");
+    sb.append(t.getId()).append(",").append(t.getName()).append(",").append(t.getPriority())
+        .append(",");
+    ThreadGroup group = t.getThreadGroup();
+    if (group != null) {
+      sb.append(group.getName());
+    }
+    sb.append("]");
+    return sb.toString();
   }
 
 }

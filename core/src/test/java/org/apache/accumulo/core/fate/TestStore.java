@@ -29,10 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.util.Pair;
 
 /**
@@ -53,9 +55,17 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey,
-      Repo<String> repo, boolean autoCleanUp) {
-    return Optional.empty();
+  public Seeder<String> beginSeeding() {
+    return new Seeder<>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<String> repo, boolean autoCleanUp) {
+        return CompletableFuture.completedFuture(Optional.empty());
+      }
+
+      @Override
+      public void close() {}
+    };
   }
 
   @Override
@@ -76,6 +86,9 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
+  public void seeded() {}
+
+  @Override
   public Optional<FateTxStore<String>> tryReserve(FateId fateId) {
     synchronized (this) {
       if (!reserved.contains(fateId)) {
@@ -87,13 +100,13 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Map<FateId,FateReservation> getActiveReservations() {
+  public Map<FateId,FateReservation> getActiveReservations(Set<FatePartition> partitions) {
     // This method only makes sense for the FateStores that don't store their reservations in memory
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void deleteDeadReservations() {
+  public void deleteDeadReservations(Set<FatePartition> partitions) {
     // This method only makes sense for the FateStores that don't store their reservations in memory
     throw new UnsupportedOperationException();
   }
@@ -243,6 +256,12 @@ public class TestStore implements FateStore<String> {
         throw new UnsupportedOperationException(
             "Only the 'reserved' set should be used for reservations in the test store");
       }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
+        throw new UnsupportedOperationException("Test not configured or expected to be calling "
+            + "this method. Functionality can be added if needed.");
+      }
     });
   }
 
@@ -257,7 +276,8 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+  public void runnable(Set<FatePartition> partitions, BooleanSupplier keepWaiting,
+      Consumer<FateIdStatus> idConsumer) {
     throw new UnsupportedOperationException();
   }
 
@@ -274,5 +294,10 @@ public class TestStore implements FateStore<String> {
   @Override
   public boolean isDeferredOverflow() {
     return false;
+  }
+
+  @Override
+  public void close() {
+    // no-op
   }
 }

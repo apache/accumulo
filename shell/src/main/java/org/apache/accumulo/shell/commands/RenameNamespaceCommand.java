@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,8 +27,6 @@ import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -43,21 +40,16 @@ public class RenameNamespaceCommand extends Command {
       TableExistsException, NamespaceNotFoundException, NamespaceExistsException {
     String old = cl.getArgs()[0];
     String newer = cl.getArgs()[1];
-    boolean resetContext = false;
-    TableId currentTableId = null;
-    if (shellState.getTableName() != null && !shellState.getTableName().isEmpty()) {
-      NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), old);
-      List<TableId> tableIds = Namespaces.getTableIds(shellState.getContext(), namespaceId);
-      currentTableId = shellState.getContext().getTableId(shellState.getTableName());
-      resetContext = tableIds.contains(currentTableId);
-    }
+    String currentTableName = shellState.getTableName();
+    TableId currentTableId = currentTableName == null || currentTableName.isEmpty() ? null
+        : shellState.getContext().getTableId(currentTableName);
 
     shellState.getAccumuloClient().namespaceOperations().rename(old, newer);
 
-    if (resetContext) {
-      shellState.setTableName(shellState.getContext().getTableName(currentTableId));
+    // update the shell prompt, in case the current table was in the renamed namespace
+    if (currentTableId != null) {
+      shellState.setTableName(shellState.getContext().getQualifiedTableName(currentTableId));
     }
-
     return 0;
   }
 

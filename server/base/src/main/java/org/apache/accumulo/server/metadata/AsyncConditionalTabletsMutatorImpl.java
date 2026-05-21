@@ -49,7 +49,7 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     this.mutatorFactory = mutatorFactory;
     this.bufferingMutator = mutatorFactory.get();
     var creatorId = Thread.currentThread().getId();
-    this.executor = Executors.newSingleThreadExecutor(runnable -> Threads.createThread(
+    this.executor = Executors.newSingleThreadExecutor(runnable -> Threads.createCriticalThread(
         "Async conditional tablets mutator background thread, created by : #" + creatorId,
         runnable));
   }

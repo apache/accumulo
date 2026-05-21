@@ -22,10 +22,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.LoggerFactory;
 
 public class ZooReservation {
@@ -59,9 +59,10 @@ public class ZooReservation {
   public static void release(ZooReaderWriter zk, String path, FateId fateId)
       throws KeeperException, InterruptedException {
     byte[] zooData;
+    Stat stat = new Stat();
 
     try {
-      zooData = zk.getData(path);
+      zooData = zk.getData(path, stat);
     } catch (NoNodeException e) {
       // Just logging a warning, if data is gone then our work here is done.
       LoggerFactory.getLogger(ZooReservation.class).debug("Node does not exist {}", path);
@@ -76,7 +77,9 @@ public class ZooReservation {
           + " with data mismatch " + fateId + " " + zooDataStr);
     }
 
-    zk.recursiveDelete(path, NodeMissingPolicy.SKIP);
+    // Only delete the node if the version is the same. It should be the same as this holds the
+    // reservation, so for it to change at this point would probably indicate a bug.
+    zk.deleteStrict(path, stat.getVersion());
   }
 
 }

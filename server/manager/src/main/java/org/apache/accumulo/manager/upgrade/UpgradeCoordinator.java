@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.upgrade;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_UPGRADE_COORDINATOR_METADATA_POOL;
-import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
 import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
 
@@ -48,10 +47,11 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 
@@ -128,33 +128,33 @@ public class UpgradeCoordinator {
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
-  private final Map<Integer,
-      Upgrader> upgraders = Collections.unmodifiableMap(new TreeMap<>(
-          Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11(), REMOVE_DEPRECATIONS_FOR_VERSION_3,
-              new Upgrader11to12(), METADATA_FILE_JSON_ENCODING, new Upgrader12to13())));
+  private final Map<Integer,Upgrader> upgraders =
+      Collections.unmodifiableMap(new TreeMap<>(Map.of(ROOT_TABLET_META_CHANGES,
+          new Upgrader10to11(), REMOVE_DEPRECATIONS_FOR_VERSION_3, new Upgrader11to12())));
 
   private final ServerContext context;
   private final UpgradeProgressTracker progressTracker;
-  private final PreUpgradeValidation preUpgradeValidator;
 
   private volatile UpgradeStatus status;
 
   public UpgradeCoordinator(ServerContext context) {
     this.context = context;
     progressTracker = new UpgradeProgressTracker(context);
-    preUpgradeValidator = new PreUpgradeValidation();
     status = UpgradeStatus.INITIAL;
   }
 
-  public void preUpgradeValidation() {
-    preUpgradeValidator.validate(context);
-  }
-
-  public void startOrContinueUpgrade() {
+  public void continueUpgrade() {
+    // No need to continue an upgrade if we are at the correct
+    // version
+    if (AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get()) {
+      status = UpgradeStatus.COMPLETE;
+      return;
+    }
     // The following check will fail if an upgrade is in progress
     // but the target version is not the current version of the
     // software.
-    progressTracker.startOrContinueUpgrade();
+    progressTracker.continueUpgrade();
+    status = UpgradeStatus.INITIAL;
   }
 
   private void setStatus(UpgradeStatus status, EventCoordinator eventCoordinator) {
@@ -176,9 +176,6 @@ public class UpgradeCoordinator {
 
   public synchronized void upgradeZookeeper(EventCoordinator eventCoordinator) {
 
-    Preconditions.checkState(status == UpgradeStatus.INITIAL,
-        "Not currently in a suitable state to do zookeeper upgrade %s", status);
-
     try {
       int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
@@ -188,6 +185,9 @@ public class UpgradeCoordinator {
         return;
       }
 
+      Preconditions.checkState(status == UpgradeStatus.INITIAL,
+          "Not currently in a suitable state to do zookeeper upgrade %s", status);
+
       if (currentVersion < AccumuloDataVersion.get()) {
         abortIfFateTransactions();
 
@@ -195,9 +195,9 @@ public class UpgradeCoordinator {
 
         for (int upgradeVersion = currentVersion; upgradeVersion < AccumuloDataVersion.get();
             upgradeVersion++) {
-          if (progress.getZooKeeperVersion() >= upgradeVersion) {
+          if (progress.getZooKeeperVersion() > upgradeVersion) {
             log.info(
-                "ZooKeeper has already been upgraded to version {}, moving on to next upgrader",
+                "ZooKeeper has already run upgrader for version {}, moving on to next upgrader",
                 upgradeVersion);
             continue;
           }
@@ -207,10 +207,16 @@ public class UpgradeCoordinator {
           Objects.requireNonNull(upgrader,
               "upgrade ZooKeeper: failed to find upgrader for version " + upgradeVersion);
           upgrader.upgradeZookeeper(context);
-          progressTracker.updateZooKeeperVersion(upgradeVersion);
+          // The current version and the versions in the upgraders map are equal. For example,
+          // if the current version is 10, then the code above will get the Upgrader for version
+          // 10 from the upgraders map. It will run the Upgrader10to11 code, which means that the
+          // current version of ZooKeeper after running the upgrade is 11.
+          final int nextVersion = upgradeVersion + 1;
+          progressTracker.updateZooKeeperVersion(nextVersion);
+          log.info("ZooKeeper upgrade from version {} to version {} complete.", upgradeVersion,
+              nextVersion);
         }
       }
-
       setStatus(UpgradeStatus.UPGRADED_ZOOKEEPER, eventCoordinator);
     } catch (Exception e) {
       handleFailure(e);
@@ -235,9 +241,9 @@ public class UpgradeCoordinator {
               UpgradeProgress progress = progressTracker.getProgress();
               for (int upgradeVersion = currentVersion; upgradeVersion < AccumuloDataVersion.get();
                   upgradeVersion++) {
-                if (progress.getRootVersion() >= upgradeVersion) {
+                if (progress.getRootVersion() > upgradeVersion) {
                   log.info(
-                      "Root table has already been upgraded to version {}, moving on to next upgrader",
+                      "Root table has already run upgrader for version {}, moving on to next upgrader",
                       upgradeVersion);
                   continue;
                 }
@@ -247,15 +253,22 @@ public class UpgradeCoordinator {
                 Objects.requireNonNull(upgrader,
                     "upgrade root: failed to find root upgrader for version " + upgradeVersion);
                 upgraders.get(upgradeVersion).upgradeRoot(context);
-                progressTracker.updateRootVersion(upgradeVersion);
+                // The current version and the versions in the upgraders map are equal. For example,
+                // if the current version is 10, then the code above will get the Upgrader for
+                // version 10 from the upgraders map. It will run the Upgrader10to11 code, which
+                // means that the current version of ZooKeeper after running the upgrade is 11.
+                final int nextVersion = upgradeVersion + 1;
+                progressTracker.updateRootVersion(nextVersion);
+                log.info("Root upgrade from version {} to version {} complete.", upgradeVersion,
+                    nextVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int upgradeVersion = currentVersion; upgradeVersion < AccumuloDataVersion.get();
                   upgradeVersion++) {
-                if (progress.getMetadataVersion() >= upgradeVersion) {
+                if (progress.getMetadataVersion() > upgradeVersion) {
                   log.info(
-                      "Metadata table has already been upgraded to version {}, moving on to next upgrader",
+                      "Metadata table has already run upgrader for version {}, moving on to next upgrader",
                       upgradeVersion);
                   continue;
                 }
@@ -266,7 +279,14 @@ public class UpgradeCoordinator {
                 Objects.requireNonNull(upgrader,
                     "upgrade metadata: failed to find upgrader for version " + upgradeVersion);
                 upgraders.get(upgradeVersion).upgradeMetadata(context);
-                progressTracker.updateMetadataVersion(upgradeVersion);
+                // The current version and the versions in the upgraders map are equal. For example,
+                // if the current version is 10, then the code above will get the Upgrader for
+                // version 10 from the upgraders map. It will run the Upgrader10to11 code, which
+                // means that the current version of ZooKeeper after running the upgrade is 11.
+                final int nextVersion = upgradeVersion + 1;
+                progressTracker.updateMetadataVersion(nextVersion);
+                log.info("Metadata upgrade from version {} to version {} complete.", upgradeVersion,
+                    nextVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 
@@ -307,7 +327,7 @@ public class UpgradeCoordinator {
       throw new IllegalStateException("Error checking properties", e);
     }
     try {
-      CheckCompactionConfig.validate(context.getConfiguration(), Level.INFO);
+      CheckCompactionConfig.validate(context.getConfiguration(), Logger::info);
     } catch (RuntimeException | ReflectiveOperationException e) {
       throw new IllegalStateException("Error validating compaction configuration", e);
     }
@@ -363,8 +383,7 @@ public class UpgradeCoordinator {
       // as tablets are not assigned when this is called. The Fate code is not used to read from
       // zookeeper below because the serialization format changed in zookeeper, that is why a direct
       // read is performed.
-      if (!context.getZooSession().asReader()
-          .getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
+      if (!context.getZooSession().asReader().getChildren(Constants.ZFATE).isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "

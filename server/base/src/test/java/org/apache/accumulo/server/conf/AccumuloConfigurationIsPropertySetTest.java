@@ -86,7 +86,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
       LoggerFactory.getLogger(AccumuloConfigurationIsPropertySetTest.class);
   private static final InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-  private final SystemPropKey sysPropKey = SystemPropKey.of(instanceId);
+  private final SystemPropKey sysPropKey = SystemPropKey.of();
   private final ArrayList<Object> mocks = new ArrayList<>();
 
   private ZooPropStore propStore;
@@ -162,7 +162,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   @Test
   public void testNamespaceConfiguration() {
     var namespaceId = NamespaceId.of("namespace");
-    var nsPropKey = NamespacePropKey.of(instanceId, namespaceId);
+    var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var setOnParent = Set.of(TABLE_BLOOM_SIZE);
     var parent = new ConfigurationCopy(setToMap(setOnParent));
@@ -233,7 +233,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     // now set a few fixed properties on the parent to simulate a user setting a fixed property that
     // requires a restart
     var shouldBeSetMore = new HashSet<Property>(shouldBeSet);
-    Property.fixedProperties.stream().limit(5).forEach(p -> {
+    Property.FIXED_PROPERTIES.stream().limit(5).forEach(p -> {
       // use the default value so we can verify it's actually set, and not just looks set because it
       // has the same value as the default
       parent.set(p.getKey(), p.getDefaultValue());
@@ -256,10 +256,10 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   @Test
   public void testTableConfiguration() {
     var namespaceId = NamespaceId.of("namespace");
-    var nsPropKey = NamespacePropKey.of(instanceId, namespaceId);
+    var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var tableId = TableId.of("3");
-    var tablePropKey = TablePropKey.of(instanceId, tableId);
+    var tablePropKey = TablePropKey.of(tableId);
 
     var setOnNamespace = Set.of(TABLE_FILE_MAX);
     var nsProps = new VersionedProperties(2, Instant.now(), setToMap(setOnNamespace));

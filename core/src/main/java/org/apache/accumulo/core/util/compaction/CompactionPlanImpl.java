@@ -26,10 +26,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 
 import com.google.common.base.Preconditions;
 
@@ -64,7 +64,7 @@ public class CompactionPlanImpl implements CompactionPlan {
     }
 
     @Override
-    public Builder addJob(short priority, CompactorGroupId group,
+    public Builder addJob(short priority, ResourceGroupId group,
         Collection<CompactableFile> files) {
       Set<CompactableFile> filesSet =
           files instanceof Set ? (Set<CompactableFile>) files : Set.copyOf(files);

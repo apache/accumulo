@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -68,6 +70,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.ColumnFamilySizeLimitIterator;
+import org.apache.accumulo.server.metadata.iterators.CurrentLocationNotEqualToIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
@@ -162,6 +165,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     mutation.addCondition(condition1);
     mutation.addCondition(condition2);
 
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireCurrentLocationNotEqualTo(TServerInstance tsi) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = CurrentLocationNotEqualToIterator.createCondition(tsi);
+    mutation.addCondition(c);
     return this;
   }
 
@@ -379,6 +390,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
+  public ConditionalTabletMutator requireMigration(TServerInstance tserver) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition condition =
+        new Condition(MIGRATION_COLUMN.getColumnFamily(), MIGRATION_COLUMN.getColumnQualifier())
+            .setValue(tserver.getHostPortSession());
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
@@ -389,7 +410,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       mutation.addCondition(c);
     }
     if (putServerLock) {
-      this.putZooLock(context.getZooKeeperRoot(), lock);
+      this.putZooLock(lock);
     }
     getMutation();
     mutationConsumer.accept(mutation);

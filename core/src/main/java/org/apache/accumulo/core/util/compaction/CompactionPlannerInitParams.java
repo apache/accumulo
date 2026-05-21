@@ -22,17 +22,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.spi.compaction.GroupManager;
 
 import com.google.common.base.Preconditions;
 
 public class CompactionPlannerInitParams implements CompactionPlanner.InitParameters {
   private final Map<String,String> plannerOpts;
-  private final Set<CompactorGroupId> requestedGroups;
+  private final Set<ResourceGroupId> requestedGroups;
   private final ServiceEnvironment senv;
   private final CompactionServiceId serviceId;
   private final String prefix;
@@ -66,8 +66,8 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
     return new GroupManager() {
 
       @Override
-      public CompactorGroupId getGroup(String name) {
-        var cgid = CompactorGroupId.of(name);
+      public ResourceGroupId getGroup(String name) {
+        var cgid = ResourceGroupId.of(name);
         Preconditions.checkArgument(!getRequestedGroups().contains(cgid),
             "Duplicate compactor group for group: " + name);
         getRequestedGroups().add(cgid);
@@ -76,7 +76,7 @@ public class CompactionPlannerInitParams implements CompactionPlanner.InitParame
     };
   }
 
-  public Set<CompactorGroupId> getRequestedGroups() {
+  public Set<ResourceGroupId> getRequestedGroups() {
     return requestedGroups;
   }
 }

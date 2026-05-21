@@ -47,14 +47,14 @@ public class LogFileTest {
       KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult, LogFileValue valueResult)
       throws IOException {
     LogFileKey key = new LogFileKey();
-    key.event = event;
-    key.seq = seq;
-    key.tabletId = tid;
-    key.filename = filename;
-    key.tablet = tablet;
-    key.tserverSession = keyResult.tserverSession;
+    key.setEvent(event);
+    key.setSeq(seq);
+    key.setTabletId(tid);
+    key.setFilename(filename);
+    key.setTablet(tablet);
+    key.setTserverSession(keyResult.getTserverSession());
     LogFileValue value = new LogFileValue();
-    value.mutations = Arrays.asList(mutations != null ? mutations : new Mutation[0]);
+    value.setMutations(Arrays.asList(mutations != null ? mutations : new Mutation[0]));
     DataOutputBuffer out = new DataOutputBuffer();
     key.write(out);
     value.write(out);
@@ -64,7 +64,7 @@ public class LogFileTest {
     keyResult.readFields(in);
     valueResult.readFields(in);
     assertEquals(0, key.compareTo(keyResult));
-    assertEquals(value.mutations, valueResult.mutations);
+    assertEquals(value.getMutations(), valueResult.getMutations());
     assertEquals(in.read(), -1);
   }
 
@@ -72,45 +72,45 @@ public class LogFileTest {
   public void testReadFields() throws IOException {
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
-    key.tserverSession = "";
+    key.setTserverSession("");
     readWrite(OPEN, -1, -1, null, null, null, key, value);
-    assertEquals(key.event, OPEN);
+    assertEquals(key.getEvent(), OPEN);
     readWrite(COMPACTION_FINISH, 1, 2, null, null, null, key, value);
-    assertEquals(key.event, COMPACTION_FINISH);
-    assertEquals(key.seq, 1);
-    assertEquals(key.tabletId, 2);
+    assertEquals(key.getEvent(), COMPACTION_FINISH);
+    assertEquals(key.getSeq(), 1);
+    assertEquals(key.getTabletId(), 2);
     readWrite(COMPACTION_START, 3, 4, "some file", null, null, key, value);
-    assertEquals(key.event, COMPACTION_START);
-    assertEquals(key.seq, 3);
-    assertEquals(key.tabletId, 4);
-    assertEquals(key.filename, "some file");
+    assertEquals(key.getEvent(), COMPACTION_START);
+    assertEquals(key.getSeq(), 3);
+    assertEquals(key.getTabletId(), 4);
+    assertEquals(key.getFilename(), "some file");
     KeyExtent tablet = new KeyExtent(TableId.of("table"), new Text("bbbb"), new Text("aaaa"));
     readWrite(DEFINE_TABLET, 5, 6, null, tablet, null, key, value);
-    assertEquals(key.event, DEFINE_TABLET);
-    assertEquals(key.seq, 5);
-    assertEquals(key.tabletId, 6);
-    assertEquals(key.tablet, tablet);
+    assertEquals(key.getEvent(), DEFINE_TABLET);
+    assertEquals(key.getSeq(), 5);
+    assertEquals(key.getTabletId(), 6);
+    assertEquals(key.getTablet(), tablet);
     Mutation m = new ServerMutation(new Text("row"));
     m.put("cf", "cq", "value");
     readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
-    assertEquals(key.event, MUTATION);
-    assertEquals(key.seq, 7);
-    assertEquals(key.tabletId, 8);
-    assertEquals(value.mutations, Arrays.asList(m));
+    assertEquals(key.getEvent(), MUTATION);
+    assertEquals(key.getSeq(), 7);
+    assertEquals(key.getTabletId(), 8);
+    assertEquals(value.getMutations(), Arrays.asList(m));
     m = new ServerMutation(new Text("row"));
     m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345, new Value("value"));
     m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"), new Value("value"));
     m.putDelete(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"));
     readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
-    assertEquals(key.event, MUTATION);
-    assertEquals(key.seq, 8);
-    assertEquals(key.tabletId, 9);
-    assertEquals(value.mutations, Arrays.asList(m));
+    assertEquals(key.getEvent(), MUTATION);
+    assertEquals(key.getSeq(), 8);
+    assertEquals(key.getTabletId(), 9);
+    assertEquals(value.getMutations(), Arrays.asList(m));
     readWrite(MANY_MUTATIONS, 9, 10, null, null, new Mutation[] {m, m}, key, value);
-    assertEquals(key.event, MANY_MUTATIONS);
-    assertEquals(key.seq, 9);
-    assertEquals(key.tabletId, 10);
-    assertEquals(value.mutations, Arrays.asList(m, m));
+    assertEquals(key.getEvent(), MANY_MUTATIONS);
+    assertEquals(key.getSeq(), 9);
+    assertEquals(key.getTabletId(), 10);
+    assertEquals(value.getMutations(), Arrays.asList(m, m));
   }
 
   @Test

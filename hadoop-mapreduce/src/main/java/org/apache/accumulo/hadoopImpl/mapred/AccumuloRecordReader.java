@@ -150,9 +150,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
     log.debug("Creating scanner for table: " + table);
     log.debug("Authorizations are: " + authorizations);
 
-    if (baseSplit instanceof BatchInputSplit) {
+    if (baseSplit instanceof BatchInputSplit multiRangeSplit) {
       BatchScanner scanner;
-      BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
 
       try {
         // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit

@@ -63,8 +63,7 @@ public class DelegationTokenConfig {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof DelegationTokenConfig) {
-      DelegationTokenConfig other = (DelegationTokenConfig) o;
+    if (o instanceof DelegationTokenConfig other) {
       return lifetime == other.lifetime;
     }
     return false;

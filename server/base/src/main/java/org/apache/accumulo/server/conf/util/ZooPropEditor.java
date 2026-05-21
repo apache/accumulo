@@ -30,32 +30,39 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.IdBasedPropStoreKey;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.conf.util.ZooPropEditor.EditorOpts;
 import org.apache.accumulo.server.util.PropUtil;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ZooPropEditor implements KeywordExecutable {
+public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditor.class);
   private NullWatcher nullWatcher;
@@ -63,7 +70,9 @@ public class ZooPropEditor implements KeywordExecutable {
   /**
    * No-op constructor - provided so ServiceLoader autoload does not consume resources.
    */
-  public ZooPropEditor() {}
+  public ZooPropEditor() {
+    super(new EditorOpts());
+  }
 
   @Override
   public String keyword() {
@@ -77,37 +86,36 @@ public class ZooPropEditor implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  public CommandGroup commandGroup() {
+    return CommandGroups.CONFIG;
+  }
 
-    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
-    opts.parseArgs(ZooPropEditor.class.getName(), args);
+  @Override
+  public void execute(JCommander cl, EditorOpts opts) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooPropEditor.class.getSimpleName(), 20_000L));
 
-    var siteConfig = opts.getSiteConfiguration();
-    try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig);
-        var context = new ServerContext(siteConfig)) {
-      var zrw = zk.asReaderWriter();
+    var context = getServerContext();
+    var zrw = context.getZooSession().asReaderWriter();
 
-      PropStoreKey<?> propKey = getPropKey(context, opts);
-      switch (opts.getCmdMode()) {
-        case SET:
-          setProperty(context, propKey, opts);
-          break;
-        case DELETE:
-          deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
-          break;
-        case PRINT:
-          printProperties(context, propKey, readPropNode(propKey, zrw));
-          break;
-        case ERROR:
-        default:
-          throw new IllegalArgumentException("Invalid operation requested");
-      }
+    var propKey = getPropKey(context, opts);
+    switch (opts.getCmdMode()) {
+      case SET:
+        setProperty(context, propKey, opts);
+        break;
+      case DELETE:
+        deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
+        break;
+      case PRINT:
+        printProperties(context, propKey, readPropNode(propKey, zrw));
+        break;
+      case ERROR:
+      default:
+        throw new IllegalArgumentException("Invalid operation requested " + opts.getCmdMode());
     }
   }
 
-  private void setProperty(final ServerContext context, final PropStoreKey<?> propKey,
-      final Opts opts) {
+  private void setProperty(final ServerContext context, final PropStoreKey propKey,
+      final EditorOpts opts) {
     LOG.trace("set {}", propKey);
 
     if (!opts.setOpt.contains("=")) {
@@ -133,12 +141,12 @@ public class ZooPropEditor implements KeywordExecutable {
       }
     } catch (Exception ex) {
       throw new IllegalStateException(
-          "Failed to set property for " + targetName + " (id: " + propKey.getId() + ")", ex);
+          "Failed to set property for " + targetName + " (path: " + propKey.getPath() + ")", ex);
     }
   }
 
-  private void deleteProperty(final ServerContext context, final PropStoreKey<?> propKey,
-      VersionedProperties versionedProperties, final Opts opts) {
+  private void deleteProperty(final ServerContext context, final PropStoreKey propKey,
+      VersionedProperties versionedProperties, final EditorOpts opts) {
     LOG.trace("delete {} - {}", propKey, opts.deleteOpt);
     String p = opts.deleteOpt.trim();
     if (p.isEmpty() || !Property.isValidPropertyKey(p)) {
@@ -155,7 +163,7 @@ public class ZooPropEditor implements KeywordExecutable {
     LOG.info("{}: deleted {}", targetName, p);
   }
 
-  private void printProperties(final ServerContext context, final PropStoreKey<?> propKey,
+  private void printProperties(final ServerContext context, final PropStoreKey propKey,
       final VersionedProperties props) {
     LOG.trace("print {}", propKey);
 
@@ -164,6 +172,8 @@ public class ZooPropEditor implements KeywordExecutable {
     String scope;
     if (propKey instanceof SystemPropKey) {
       scope = "SYSTEM";
+    } else if (propKey instanceof ResourceGroupPropKey) {
+      scope = "RESOURCE GROUP";
     } else if (propKey instanceof NamespacePropKey) {
       scope = "NAMESPACE";
     } else if (propKey instanceof TablePropKey) {
@@ -180,22 +190,23 @@ public class ZooPropEditor implements KeywordExecutable {
       writer.printf(": Property scope: %s\n", scope);
       writer.printf(": ZooKeeper path: %s\n", propKey.getPath());
       writer.printf(": Name: %s\n", getDisplayName(propKey, context));
-      writer.printf(": Id: %s\n", propKey.getId());
-      writer.printf(": Data version: %d\n", props.getDataVersion());
-      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
+      writer.printf(": Id: %s\n", propKey instanceof IdBasedPropStoreKey
+          ? ((IdBasedPropStoreKey<?>) propKey).getId() : "N/A");
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
         return;
       }
 
+      writer.printf(": Data version: %d\n", props.getDataVersion());
+      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
+
       SortedMap<String,String> sortedMap = new TreeMap<>(props.asMap());
       sortedMap.forEach((name, value) -> writer.printf("%s=%s\n", name, value));
     }
   }
 
-  private VersionedProperties readPropNode(final PropStoreKey<?> propKey,
-      final ZooReader zooReader) {
+  private VersionedProperties readPropNode(final PropStoreKey propKey, final ZooReader zooReader) {
     try {
       return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
     } catch (IOException | KeeperException | InterruptedException ex) {
@@ -203,36 +214,45 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private PropStoreKey<?> getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
-    var iid = context.getInstanceID();
+  private PropStoreKey getPropKey(final ServerContext context,
+      final ZooPropEditor.EditorOpts opts) {
 
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
       TableId tid = getTableId(context, opts);
-      return TablePropKey.of(iid, tid);
+      return TablePropKey.of(tid);
     }
 
     // either nid of namespace name provided, get the namespace id.
     if (!opts.namespaceOpt.isEmpty() || !opts.namespaceIdOpt.isEmpty()) {
       NamespaceId nid = getNamespaceId(context, opts);
-      return NamespacePropKey.of(iid, nid);
+      return NamespacePropKey.of(nid);
     }
 
-    // no table or namespace, assume system.
-    return SystemPropKey.of(iid);
+    if (!opts.resourceGroupOpt.isEmpty()) {
+      if (!context.resourceGroupOperations().exists(opts.resourceGroupOpt)) {
+        throw new IllegalArgumentException(
+            "Could not find resource group " + opts.resourceGroupOpt);
+      }
+      return ResourceGroupPropKey.of(ResourceGroupId.of(opts.resourceGroupOpt));
+    }
+
+    // no table, namespace or resource group, assume system.
+    return SystemPropKey.of();
   }
 
-  private TableId getTableId(final ServerContext context, final ZooPropEditor.Opts opts) {
+  private TableId getTableId(final ServerContext context, final ZooPropEditor.EditorOpts opts) {
     if (!opts.tableIdOpt.isEmpty()) {
       return TableId.of(opts.tableIdOpt);
     }
-    Map<TableId,String> tids = context.getTableIdToNameMap();
+    Map<TableId,String> tids = context.createTableIdToQualifiedNameMap();
     return tids.entrySet().stream().filter(entry -> opts.tableOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny()
         .orElseThrow(() -> new IllegalArgumentException("Could not find table " + opts.tableOpt));
   }
 
-  private NamespaceId getNamespaceId(final ServerContext context, final ZooPropEditor.Opts opts) {
+  private NamespaceId getNamespaceId(final ServerContext context,
+      final ZooPropEditor.EditorOpts opts) {
     if (!opts.namespaceIdOpt.isEmpty()) {
       return NamespaceId.of(opts.namespaceIdOpt);
     }
@@ -242,13 +262,18 @@ public class ZooPropEditor implements KeywordExecutable {
             () -> new IllegalArgumentException("Could not find namespace " + opts.namespaceOpt));
   }
 
-  private String getDisplayName(final PropStoreKey<?> propStoreKey, final ServerContext context) {
+  private String getDisplayName(final PropStoreKey propStoreKey, final ServerContext context) {
 
     if (propStoreKey instanceof TablePropKey) {
-      return context.getTableIdToNameMap().getOrDefault(propStoreKey.getId(), "unknown");
+      return context.createTableIdToQualifiedNameMap()
+          .getOrDefault(((TablePropKey) propStoreKey).getId(), "unknown");
     }
     if (propStoreKey instanceof NamespacePropKey) {
-      return context.getNamespaceIdToNameMap().getOrDefault(propStoreKey.getId(), "unknown");
+      return context.getNamespaceIdToNameMap()
+          .getOrDefault(((NamespacePropKey) propStoreKey).getId(), "unknown");
+    }
+    if (propStoreKey instanceof ResourceGroupPropKey) {
+      return ((ResourceGroupPropKey) propStoreKey).getId().canonical();
     }
     if (propStoreKey instanceof SystemPropKey) {
       return "system";
@@ -258,7 +283,7 @@ public class ZooPropEditor implements KeywordExecutable {
     return "unknown";
   }
 
-  static class Opts extends ConfigOpts {
+  static class EditorOpts extends ServerOpts {
 
     @Parameter(names = {"-d", "--delete"}, description = "delete a property")
     public String deleteOpt = "";
@@ -276,12 +301,15 @@ public class ZooPropEditor implements KeywordExecutable {
     @Parameter(names = {"-tid", "--table-id"},
         description = "table id to display/set/delete properties for")
     public String tableIdOpt = "";
+    @Parameter(names = {"-r", "--resource-group"},
+        description = "resource group name to display/set/delete properties for")
+    private String resourceGroupOpt = "";
 
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {
       super.parseArgs(programName, args, others);
       var cmdMode = getCmdMode();
-      if (cmdMode == Opts.CmdMode.ERROR) {
+      if (cmdMode == EditorOpts.CmdMode.ERROR) {
         throw new IllegalArgumentException("Cannot use set and delete in one command");
       }
     }

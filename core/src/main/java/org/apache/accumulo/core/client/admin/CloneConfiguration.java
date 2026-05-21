@@ -27,7 +27,8 @@ import org.apache.accumulo.core.clientImpl.CloneConfigurationImpl;
  * A configuration object that can be used with the table clone command in the
  * {@link TableOperations}.
  *
- * @since 1.10 and 2.1
+ * @since 1.10.0
+ * @since 2.1.0
  */
 public interface CloneConfiguration {
   /**
@@ -63,7 +64,8 @@ public interface CloneConfiguration {
   /**
    * A CloneConfiguration builder
    *
-   * @since 1.10 and 2.1
+   * @since 1.10.0
+   * @since 2.1.0
    */
   interface Builder {
     /**

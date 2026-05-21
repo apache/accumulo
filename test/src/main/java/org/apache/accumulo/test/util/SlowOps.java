@@ -19,9 +19,9 @@
 package org.apache.accumulo.test.util;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
@@ -65,7 +67,7 @@ public class SlowOps {
 
   private final AccumuloClient client;
   private final String tableName;
-  private final long maxWaitMillis;
+  private final Duration maxWait;
 
   // private final int numRows = DEFAULT_NUM_DATA_ROWS;
 
@@ -76,7 +78,7 @@ public class SlowOps {
   public SlowOps(final AccumuloClient client, final String tableName, final long maxWaitMillis) {
     this.client = client;
     this.tableName = tableName;
-    this.maxWaitMillis = maxWaitMillis;
+    this.maxWait = Duration.ofMillis(maxWaitMillis);
     createData();
   }
 
@@ -105,10 +107,9 @@ public class SlowOps {
   }
 
   private void verifyRows() {
-    long startTimestamp = System.nanoTime();
+    Timer timer = Timer.startNew();
     int count = scanCount();
-    log.trace("Scan time for {} rows {} ms", NUM_DATA_ROWS,
-        NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
+    log.trace("Scan time for {} rows {} ms", NUM_DATA_ROWS, timer.elapsed(MILLISECONDS));
     if (count != NUM_DATA_ROWS) {
       throw new IllegalStateException(
           String.format("Number of rows %1$d does not match expected %2$d", count, NUM_DATA_ROWS));
@@ -152,7 +153,7 @@ public class SlowOps {
     @Override
     public void run() {
 
-      long startTimestamp = System.nanoTime();
+      Timer timer = Timer.startNew();
 
       IteratorSetting slow = new IteratorSetting(30, "slow", SlowIterator.class);
       SlowIterator.setSleepTime(slow, SLOW_SCAN_SLEEP_MS);
@@ -188,18 +189,18 @@ public class SlowOps {
       log.debug("Compaction wait is complete");
 
       log.trace("Slow compaction of {} rows took {} ms", NUM_DATA_ROWS,
-          NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
+          timer.elapsed(MILLISECONDS));
 
       // validate that number of rows matches expected.
 
-      startTimestamp = System.nanoTime();
+      timer.restart();
 
       // validate expected data created and exists in table.
 
       int count = scanCount();
 
       log.trace("After compaction, scan time for {} rows {} ms", NUM_DATA_ROWS,
-          NANOSECONDS.toMillis(System.nanoTime() - startTimestamp));
+          timer.elapsed(MILLISECONDS));
 
       if (count != NUM_DATA_ROWS) {
         throw new IllegalStateException(
@@ -215,21 +216,26 @@ public class SlowOps {
    * @return true if compaction and associate fate found.
    */
   private boolean blockUntilCompactionRunning() {
-    long startWaitNanos = System.nanoTime();
-    long maxWaitNanos = MILLISECONDS.toNanos(maxWaitMillis);
+    Timer timer = Timer.startNew();
 
     /*
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
      * that used to block a subsequent online command while the fate transaction lock was held.
      */
-    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     do {
-      boolean tableFound =
-          ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).stream()
-              .map(rc -> KeyExtent.fromThrift(rc.getJob().getExtent()).tableId())
-              .anyMatch(tableId::equals);
+      final AtomicBoolean tableFound = new AtomicBoolean(false);
+      try {
+        ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client, (e) -> {
+          if (KeyExtent.fromThrift(e.getJob().getExtent()).tableId().equals(tableId)) {
+            tableFound.compareAndSet(false, true);
+          }
+        });
+      } catch (InterruptedException e) {
+        throw new IllegalStateException("Interruped while getting compactions from compactors", e);
+      }
 
-      if (tableFound) {
+      if (tableFound.get()) {
         return true;
       }
 
@@ -238,10 +244,9 @@ public class SlowOps {
       } catch (InterruptedException ex) {
         throw new IllegalStateException("interrupted during sleep", ex);
       }
-    } while ((System.nanoTime() - startWaitNanos) < maxWaitNanos);
+    } while (!timer.hasElapsed(maxWait));
 
-    log.debug("Could not find compaction for {} after {} seconds", tableName,
-        MILLISECONDS.toSeconds(maxWaitMillis));
+    log.debug("Could not find compaction for {} after {} seconds", tableName, maxWait.toSeconds());
     return false;
   }
 

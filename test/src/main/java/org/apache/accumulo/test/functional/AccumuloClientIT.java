@@ -40,8 +40,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -145,12 +143,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     Scanner scanner;
 
-    assertEquals(1, SingletonManager.getReservationCount());
-    assertEquals(Mode.CLIENT, SingletonManager.getMode());
-
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      assertEquals(2, SingletonManager.getReservationCount());
-
       c.tableOperations().create(tableName);
 
       try (BatchWriter writer = c.createBatchWriter(tableName)) {
@@ -165,10 +158,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     // scanner created from closed client should fail
     expectClosed(() -> scanner.iterator().next());
 
-    assertEquals(1, SingletonManager.getReservationCount());
-
     AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
-    assertEquals(2, SingletonManager.getReservationCount());
 
     // ensure client created after everything was closed works
     Scanner scanner2 = c.createScanner(tableName, Authorizations.EMPTY);
@@ -182,8 +172,6 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     TableOperations tops = c.tableOperations();
 
     c.close();
-
-    assertEquals(1, SingletonManager.getReservationCount());
 
     expectClosed(() -> c.createScanner(tableName, Authorizations.EMPTY));
     expectClosed(() -> c.createConditionalWriter(tableName));

@@ -20,12 +20,15 @@ package org.apache.accumulo.core.util;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnFQ implements Comparable<ColumnFQ> {
   private Text colf;
   private Text colq;
@@ -41,10 +44,6 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
 
   public ColumnFQ(Key k) {
     this(k.getColumnFamily(), k.getColumnQualifier());
-  }
-
-  public ColumnFQ(ColumnUpdate cu) {
-    this(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier()));
   }
 
   public Text getColumnQualifier() {
@@ -73,13 +72,12 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ColumnFQ)) {
+    if (!(o instanceof ColumnFQ ocfq)) {
       return false;
     }
     if (this == o) {
       return true;
     }
-    ColumnFQ ocfq = (ColumnFQ) o;
     return ocfq.colf.equals(colf) && ocfq.colq.equals(colq);
   }
 

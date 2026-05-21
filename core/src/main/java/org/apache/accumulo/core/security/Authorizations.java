@@ -37,17 +37,19 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A collection of authorization strings.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
 
   private static final long serialVersionUID = 1L;
-  private static final Set<ByteSequence> EMPTY_AUTH_SET = Collections.emptySet();
-  private static final List<byte[]> EMPTY_AUTH_LIST = Collections.emptyList();
 
-  private final Set<ByteSequence> auths;
-  private final List<byte[]> authsList; // sorted order
+  private final HashSet<ByteSequence> auths; // type must be serializable
+  private final ArrayList<byte[]> authsList; // sorted order; type must be serializable
 
   /**
    * An empty set of authorizations.
@@ -103,21 +105,12 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
   }
 
-  private static Set<ByteSequence> createInternalSet(int size) {
-    if (size < 1) {
-      return EMPTY_AUTH_SET;
-    } else {
-      return new HashSet<>(size);
-    }
+  private static HashSet<ByteSequence> createInternalSet(int size) {
+    return new HashSet<>(size);
   }
 
-  private static List<byte[]> createInternalList(int size) {
-    if (size < 1) {
-      return EMPTY_AUTH_LIST;
-    } else {
-      return new ArrayList<>(size);
-    }
-
+  private static ArrayList<byte[]> createInternalList(int size) {
+    return new ArrayList<>(size);
   }
 
   /**
@@ -195,8 +188,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
         this.authsList = createInternalList(parts.length);
         setAuthorizations(parts);
       } else {
-        this.auths = EMPTY_AUTH_SET;
-        this.authsList = EMPTY_AUTH_LIST;
+        this.auths = createInternalSet(0);
+        this.authsList = createInternalList(0);
       }
     }
   }
@@ -207,8 +200,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #Authorizations(String...)
    */
   public Authorizations() {
-    this.auths = EMPTY_AUTH_SET;
-    this.authsList = EMPTY_AUTH_LIST;
+    this.auths = createInternalSet(0);
+    this.authsList = createInternalList(0);
   }
 
   /**
@@ -327,8 +320,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       return false;
     }
 
-    if (o instanceof Authorizations) {
-      Authorizations ao = (Authorizations) o;
+    if (o instanceof Authorizations ao) {
 
       return auths.equals(ao.auths);
     }
@@ -384,22 +376,5 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
 
     return sb.toString();
-  }
-
-  /**
-   * Converts to an Accumulo Access Authorizations object.
-   *
-   * @since 3.1.0
-   */
-  public org.apache.accumulo.access.Authorizations toAccessAuthorizations() {
-    if (auths.isEmpty()) {
-      return org.apache.accumulo.access.Authorizations.of();
-    } else {
-      Set<String> auths = new HashSet<>(authsList.size());
-      for (var auth : authsList) {
-        auths.add(new String(auth, UTF_8));
-      }
-      return org.apache.accumulo.access.Authorizations.of(auths);
-    }
   }
 }

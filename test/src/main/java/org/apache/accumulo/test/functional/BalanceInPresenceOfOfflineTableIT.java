@@ -72,8 +72,6 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
-    siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
     if (cfg.getClusterServerConfiguration().getTabletServerConfiguration()
@@ -84,7 +82,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private static final int NUM_SPLITS = 200;
 
-  private String UNUSED_TABLE, TEST_TABLE;
+  private String UNUSED_TABLE;
+  private String TEST_TABLE;
 
   private AccumuloClient accumuloClient;
 
@@ -189,7 +188,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
             List.of(tabletsPerServer));
         continue;
       }
-      long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);
+      long min = NumberUtils.min(tabletsPerServer);
+      long max = NumberUtils.max(tabletsPerServer);
       log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
         log.debug(

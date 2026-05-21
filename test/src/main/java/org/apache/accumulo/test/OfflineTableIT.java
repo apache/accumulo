@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -146,8 +146,8 @@ public class OfflineTableIT extends SharedMiniClusterBase {
             tabletMeta.getFiles().stream().findFirst().orElseThrow().getPath().getParent();
         var tmpFile = new Path(tabletDir, "C1234.rf_tmp");
         var cm = new CompactionMetadata(tabletMeta.getFiles(), ReferencedTabletFile.of(tmpFile),
-            "localhost:16789", CompactionKind.SYSTEM, (short) 10, CompactorGroupId.of(GROUP1),
-            false, null);
+            "localhost:16789", CompactionKind.SYSTEM, (short) 10, ResourceGroupId.of(GROUP1), false,
+            null);
         mutator.mutateTablet(tabletMeta.getExtent()).putExternalCompaction(ecid, cm).mutate();
       }
 

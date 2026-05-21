@@ -69,7 +69,7 @@ public class SetIterCommandTest {
     EasyMock.expect(cli.hasOption("regex")).andReturn(false);
     EasyMock.expect(cli.hasOption("reqvis")).andReturn(false);
     EasyMock.expect(cli.hasOption("vers")).andReturn(false);
-    EasyMock.expect(cli.getOptionValue("n", null)).andReturn(null);
+    EasyMock.expect(cli.getOptionValue("n")).andReturn(null);
 
     // Loading the class
     EasyMock.expect(shellState.getClassLoader(cli, shellState))

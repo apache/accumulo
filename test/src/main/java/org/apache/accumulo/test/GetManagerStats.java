@@ -23,7 +23,6 @@ import java.util.Date;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
@@ -61,12 +60,6 @@ public class GetManagerStats {
       out(1, "Dead tablet server: %s", dead.server);
       out(2, "Last report: %s", new SimpleDateFormat().format(new Date(dead.lastStatus)));
       out(2, "Cause: %s", dead.status);
-    }
-    out(0, "Bulk imports: %s", stats.bulkImports.size());
-    for (BulkImportStatus bulk : stats.bulkImports) {
-      out(1, "Import directory: %s", bulk.filename);
-      out(2, "Bulk state %s", bulk.state);
-      out(2, "Bulk start %s", bulk.startTime);
     }
     if (stats.tableMap != null && !stats.tableMap.isEmpty()) {
       out(0, "Tables");
@@ -117,13 +110,6 @@ public class GetManagerStats {
           out(3, "Progress: %.2f%%", sort.progress * 100);
           out(3, "Time running: %s", sort.runtime / 1000.);
         }
-        out(3, "Bulk imports: %s", stats.bulkImports.size());
-        for (BulkImportStatus bulk : stats.bulkImports) {
-          out(4, "Import file: %s", bulk.filename);
-          out(5, "Bulk state %s", bulk.state);
-          out(5, "Bulk start %s", bulk.startTime);
-        }
-
       }
     }
   }

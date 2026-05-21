@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -83,7 +83,7 @@ public class TestDualAssignment extends ConfigurableMacBase {
 
       // This operation will fail when there are two locations set on a tablet
       assertThrows(AccumuloException.class, () -> c.tableOperations().setTabletAvailability(table,
-          new Range(), TabletAvailability.HOSTED));
+          RowRange.all(), TabletAvailability.HOSTED));
 
       try (var scanner = c.createScanner(table)) {
         // should not be able to scan the table when a tablet has multiple locations
@@ -116,7 +116,7 @@ public class TestDualAssignment extends ConfigurableMacBase {
       }
 
       // this should no longer fail
-      c.tableOperations().setTabletAvailability(table, new Range(), TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(table, RowRange.all(), TabletAvailability.HOSTED);
     }
   }
 }

@@ -27,12 +27,14 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -54,15 +56,22 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.TestIngest.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class TestIngest {
+@AutoService(KeywordExecutable.class)
+public class TestIngest extends ClientKeywordExecutable<Opts> {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");
 
   public static class IngestParams {
@@ -252,11 +261,31 @@ public class TestIngest {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static IteratorSetting.Column generateColumn(IngestParams params, int column) {
+    return new IteratorSetting.Column(new Text(params.columnFamily), generateQualifier(column));
+  }
 
-    Opts opts = new Opts();
-    opts.parseArgs(TestIngest.class.getSimpleName(), args);
+  public TestIngest() {
+    super(new Opts());
+  }
 
+  @Override
+  public String keyword() {
+    return "ingest";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return TestCommandGroup.INSTANCE;
+  }
+
+  @Override
+  public String description() {
+    return "Inserts test data into a table";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       ingest(client, opts.getIngestPrams());
     }
@@ -306,7 +335,7 @@ public class TestIngest {
       Mutation m = new Mutation(row);
       for (int j = 0; j < params.cols; j++) {
         Text colf = new Text(params.columnFamily);
-        Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
+        Text colq = generateQualifier(j);
 
         if (writer != null) {
           Key key = new Key(row, colf, colq, labBA);
@@ -412,10 +441,20 @@ public class TestIngest {
         elapsed);
   }
 
+  private static Text generateQualifier(int j) {
+    Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
+    return colq;
+  }
+
   public static void ingest(AccumuloClient c, IngestParams params)
       throws MutationsRejectedException, IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TableExistsException {
     ClientContext cc = (ClientContext) c;
     ingest(c, FileSystem.get(cc.getHadoopConf()), params);
+  }
+
+  // For execution from ITs
+  public static void main(String[] args) throws Exception {
+    new TestIngest().execute(args);
   }
 }
