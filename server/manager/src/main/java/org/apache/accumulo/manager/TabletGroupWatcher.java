@@ -23,12 +23,22 @@ import static java.lang.Math.min;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_META_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_ROOT_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_USER_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_RECOVERY;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_RECOVERY;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_RECOVERY;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,10 +49,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
@@ -73,11 +83,15 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
-import org.apache.accumulo.manager.metrics.ManagerMetrics;
+import org.apache.accumulo.manager.EventCoordinator.Event;
+import org.apache.accumulo.manager.EventCoordinator.EventScope;
+import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -102,40 +116,104 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
 
-  private static final Logger TABLET_UNLOAD_LOGGER =
-      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
-
+  private static final EscalatingLogger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Logger::info);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
   private final EventHandler eventHandler;
-  private final ManagerMetrics metrics;
+  private final TabletGroupWatcherMetrics metrics;
   private final WalStateManager walStateManager;
   private volatile Set<TServerInstance> filteredServersToShutdown = Set.of();
 
-  TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
-      ManagerMetrics metrics) {
+  private static class TabletGroupWatcherMetrics implements MetricsProducer {
+    private final AtomicLong errorsGauge = new AtomicLong(0);
+    private final AtomicLong recoveryGauge = new AtomicLong(0);
+    private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
+    private final Ample.DataLevel level;
+
+    private TabletGroupWatcherMetrics(Ample.DataLevel level) {
+      this.level = level;
+    }
+
+    public void incrementTabletGroupWatcherError() {
+      errorsGauge.incrementAndGet();
+    }
+
+    public void setTabletGroupWatcherRecovery(long recoveries) {
+      recoveryGauge.set(recoveries);
+    }
+
+    public void setCompactionServiceConfigurationError() {
+      this.compactionConfigurationError.set(1);
+    }
+
+    public void clearCompactionServiceConfigurationError() {
+      this.compactionConfigurationError.set(0);
+    }
+
+    @Override
+    public void registerMetrics(MeterRegistry registry) {
+
+      Metric errorMetric;
+      Metric recoveryMetric;
+      Metric svcCfgErrorMetric;
+      switch (level) {
+        case USER -> {
+          errorMetric = MANAGER_USER_TGW_ERRORS;
+          recoveryMetric = MANAGER_USER_TGW_RECOVERY;
+          svcCfgErrorMetric = COMPACTION_USER_SVC_ERRORS;
+        }
+        case METADATA -> {
+          errorMetric = MANAGER_META_TGW_ERRORS;
+          recoveryMetric = MANAGER_META_TGW_RECOVERY;
+          svcCfgErrorMetric = COMPACTION_META_SVC_ERRORS;
+        }
+        case ROOT -> {
+          errorMetric = MANAGER_ROOT_TGW_ERRORS;
+          recoveryMetric = MANAGER_ROOT_TGW_RECOVERY;
+          svcCfgErrorMetric = COMPACTION_ROOT_SVC_ERRORS;
+        }
+        default -> throw new IllegalStateException("Unknown level " + level);
+      }
+      Gauge.builder(errorMetric.getName(), errorsGauge, AtomicLong::get)
+          .description(errorMetric.getDescription()).register(registry);
+      Gauge.builder(recoveryMetric.getName(), recoveryGauge, AtomicLong::get)
+          .description(recoveryMetric.getDescription()).register(registry);
+      Gauge.builder(svcCfgErrorMetric.getName(), compactionConfigurationError, AtomicInteger::get)
+          .description(svcCfgErrorMetric.getDescription()).register(registry);
+
+    }
+  }
+
+  TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    this.metrics = metrics;
+    this.metrics = new TabletGroupWatcherMetrics(store.getLevel());
     this.walStateManager = new WalStateManager(manager.getContext());
     this.eventHandler = new EventHandler();
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
+  }
+
+  public MetricsProducer getMetrics() {
+    return metrics;
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -229,26 +307,40 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // created, so just start off with full scan.
     private boolean needsFullScan = true;
 
-    private final BlockingQueue<Range> rangesToProcess;
+    private final EventQueue eventQueue;
 
-    class RangeProccessor implements Runnable {
+    class RangeProcessor implements Runnable {
       @Override
       public void run() {
         try {
           while (manager.stillManager()) {
-            var range = rangesToProcess.poll(100, TimeUnit.MILLISECONDS);
-            if (range == null) {
+            var events = eventQueue.poll(100, TimeUnit.MILLISECONDS);
+
+            if (events.isEmpty()) {
               // check to see if still the manager
               continue;
             }
 
-            ArrayList<Range> ranges = new ArrayList<>();
-            ranges.add(range);
+            EnumSet<EventScope> scopesSeen = EnumSet.noneOf(EventScope.class);
+            List<Range> ranges = new ArrayList<>(events.size());
+            for (var event : events) {
+              scopesSeen.add(event.getScope());
+              if (event.getScope() == EventScope.TABLE
+                  || event.getScope() == EventScope.TABLE_RANGE) {
+                ranges.add(event.getExtent().toMetaRange());
+              }
+            }
 
-            rangesToProcess.drainTo(ranges);
-
-            if (!processRanges(ranges)) {
+            if (scopesSeen.contains(EventScope.ALL) || scopesSeen.contains(EventScope.DATA_LEVEL)) {
+              // Since this code should only receive events for a single data level, and seeing a
+              // data level should squish all table and tablet events, then seeing ranges indicates
+              // assumptions this code is making are incorrect or there is a bug somewhere.
+              Preconditions.checkState(ranges.isEmpty());
               setNeedsFullScan();
+            } else {
+              if (!processRanges(ranges)) {
+                setNeedsFullScan();
+              }
             }
           }
         } catch (InterruptedException e) {
@@ -258,10 +350,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     EventHandler() {
-      rangesToProcess = new ArrayBlockingQueue<>(10000);
-
+      eventQueue = new EventQueue();
       Threads.createCriticalThread("TGW [" + store.name() + "] event range processor",
-          new RangeProccessor()).start();
+          new RangeProcessor()).start();
     }
 
     private synchronized void setNeedsFullScan() {
@@ -278,24 +369,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     @Override
-    public void process(EventCoordinator.Event event) {
-
-      switch (event.getScope()) {
-        case ALL:
-        case DATA_LEVEL:
-          setNeedsFullScan();
-          break;
-        case TABLE:
-        case TABLE_RANGE:
-          if (!rangesToProcess.offer(event.getExtent().toMetaRange())) {
-            Manager.log.debug("[{}] unable to process event range {} because queue is full",
-                store.name(), event.getExtent());
-            setNeedsFullScan();
-          }
-          break;
-        default:
-          throw new IllegalArgumentException("Unhandled scope " + event.getScope());
-      }
+    public void process(Event event) {
+      eventQueue.add(event);
     }
 
     synchronized void waitForFullScan(long millis) {
@@ -466,7 +541,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
 
     try {
-      CheckCompactionConfig.validate(manager.getConfiguration(), Level.TRACE);
+      CheckCompactionConfig.validate(manager.getConfiguration(), Logger::trace);
       this.metrics.clearCompactionServiceConfigurationError();
     } catch (RuntimeException | ReflectiveOperationException e) {
       this.metrics.setCompactionServiceConfigurationError();
@@ -479,6 +554,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
 
+    long tabletsNeedingRecovery = 0;
+
     while (iter.hasNext() && !manager.isShutdownRequested()) {
       final TabletManagement mti = iter.next();
       if (mti == null) {
@@ -490,10 +567,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         LOG.warn(
             "Error on TabletServer trying to get Tablet management information for metadata tablet. Error message: {}",
             mtiError);
-        this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
+        this.metrics.incrementTabletGroupWatcherError();
         tableMgmtStats.tabletsWithErrors++;
         continue;
       }
+
+      RecoveryManager.RecoverySession recoverySession =
+          manager.recoveryManager.newRecoverySession();
 
       final TabletMetadata tm = mti.getTabletMetadata();
       final TableId tableId = tm.getTableId();
@@ -552,8 +632,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final Set<ManagementAction> actions = mti.getActions();
 
       if (actions.contains(ManagementAction.NEEDS_RECOVERY) && goal != TabletGoalState.HOSTED) {
-        LOG.warn("Tablet has wals, but goal is not hosted. Tablet: {}, goal:{}", tm.getExtent(),
-            goal);
+        LOG.warn("Tablet has wals, but goal is not hosted. This is an error. Tablet: {}, goal:{}",
+            tm.getExtent(), goal);
       }
 
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
@@ -650,9 +730,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // have been sorted so that recovery can occur. Delay the hosting of
           // the Tablet until the sorting is finished.
           if ((state != TabletState.HOSTED && actions.contains(ManagementAction.NEEDS_RECOVERY))
-              && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
+              && recoverySession.recoverLogs(tm.getLogs())) {
             LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
                 tm.getLogs().size());
+            tabletsNeedingRecovery++;
             continue;
           }
           switch (state) {
@@ -689,7 +770,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               if (client != null) {
                 TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
                     store.name(), location.getServerInstance(), tm.getExtent(), goal.howUnload());
-                client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
+                client.unloadTablet(manager.primaryManagerLock, tm.getExtent(), goal.howUnload(),
                     manager.getSteadyTime().getMillis());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
@@ -704,6 +785,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
     }
+
+    this.metrics.setTabletGroupWatcherRecovery(tabletsNeedingRecovery);
 
     flushChanges(tLists);
 
@@ -963,10 +1046,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     var deadLogs = tLists.logsForDeadServers;
 
     if (!deadTablets.isEmpty()) {
-      int maxServersToShow = min(deadTablets.size(), 100);
-      Manager.log.debug("{} assigned to dead servers: {}...", deadTablets.size(),
-          deadTablets.subList(0, maxServersToShow));
-      Manager.log.debug("logs for dead servers: {}", deadLogs);
+      Manager.log.debug("[{}] {} tablets assigned to dead servers", store.name(),
+          deadTablets.size());
+      if (Manager.log.isTraceEnabled()) {
+        deadLogs.forEach((server, logs) -> Manager.log.trace("[{}] dead server: {} logs: {}",
+            store.name(), server, logs));
+      } else {
+        Manager.log.debug("[{}] {} logs exist for dead servers", store.name(), deadLogs.size());
+      }
       if (canSuspendTablets()) {
         store.suspend(deadTablets, deadLogs, manager.getSteadyTime());
       } else {
@@ -979,8 +1066,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     if (!tLists.suspendedToGoneServers.isEmpty()) {
       int maxServersToShow = min(deadTablets.size(), 100);
-      Manager.log.debug(deadTablets.size() + " suspended to gone servers: "
-          + deadTablets.subList(0, maxServersToShow) + "...");
+      Manager.log.debug("[{}] {} suspended to gone servers: {} ...", store.name(),
+          deadTablets.size(), deadTablets.subList(0, maxServersToShow));
       store.unsuspend(tLists.suspendedToGoneServers);
     }
   }
@@ -1061,7 +1148,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
         if (client != null) {
-          client.assignTablet(manager.managerLock, a.tablet);
+          client.assignTablet(manager.primaryManagerLock, a.tablet);
           manager.assignedTablet(a.tablet);
         } else {
           Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,

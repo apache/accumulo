@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
@@ -355,6 +354,7 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
+    // Allow all users to read root and metadata tables
     if ((table.equals(SystemTables.METADATA.tableId()) || table.equals(SystemTables.ROOT.tableId()))
         && permission.equals(TablePermission.READ)) {
       return true;
@@ -383,10 +383,6 @@ public class SecurityOperation {
     }
 
     targetUserExists(user);
-
-    if (namespace.equals(Namespace.ACCUMULO.id()) && permission.equals(NamespacePermission.READ)) {
-      return true;
-    }
 
     try {
       if (useCached) {

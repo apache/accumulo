@@ -19,7 +19,7 @@
 package org.apache.accumulo.manager.tableOps;
 
 import java.io.Serializable;
-import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -48,7 +48,7 @@ public class TableInfo implements Serializable {
   private String splitFile;
   private String splitDirsFile;
 
-  public Map<String,String> props;
+  public HashMap<String,String> props; // type must be serializable
 
   private TabletAvailability initialTabletAvailability;
 

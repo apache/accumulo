@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicLong;
@@ -108,21 +107,6 @@ public class CompactionJobQueues {
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
-  public long getDequeuedJobs(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getDequeuedJobs();
-  }
-
-  public long getRejectedJobs(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getRejectedJobs();
-  }
-
-  public long getLowestPriority(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getLowestPriority();
-  }
-
   public long getQueueCount() {
     return priorityQueues.mappingCount();
   }
@@ -133,18 +117,6 @@ public class CompactionJobQueues {
       count += queue.getQueuedJobs();
     }
     return count;
-  }
-
-  /**
-   * Asynchronously get a compaction job from the queue. If the queue currently has jobs then a
-   * completed future will be returned containing the highest priority job in the queue. If the
-   * queue is currently empty, then an uncompleted future will be returned and later when something
-   * is added to the queue the future will be completed.
-   */
-  public CompletableFuture<CompactionJob> getAsync(ResourceGroupId groupId) {
-    var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
-    return pq.getAsync();
   }
 
   public CompactionJob poll(ResourceGroupId groupId) {

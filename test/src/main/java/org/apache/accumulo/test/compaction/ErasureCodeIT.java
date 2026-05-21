@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -108,6 +109,7 @@ public class ErasureCodeIT extends ConfigurableMacBase {
     var table3 = names[2];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
+      var ctx = ((ClientContext) c);
       var policy1 = "XOR-2-1-1024k";
       var policy2 = "RS-3-2-1024k";
       var dfs = getCluster().getMiniDfs().getFileSystem();
@@ -122,14 +124,14 @@ public class ErasureCodeIT extends ConfigurableMacBase {
           Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
       c.tableOperations().create(table1, new NewTableConfiguration().setProperties(options));
 
-      var options2 = Map.of(Property.TABLE_ERASURE_CODE_POLICY.getKey(), policy1,
-          Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "inherit");
-      c.tableOperations().create(table2, new NewTableConfiguration().setProperties(options2));
+      // default should be to inherit
+      c.tableOperations().create(table2);
+      assertEquals("inherit", Property.TABLE_ENABLE_ERASURE_CODES.getDefaultValue());
 
-      var options3 = Map.of(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
-      c.tableOperations().create(table3, new NewTableConfiguration().setProperties(options3));
+      var options2 = Map.of(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
+      c.tableOperations().create(table3, new NewTableConfiguration().setProperties(options2));
 
-      SecureRandom random = new SecureRandom();
+      SecureRandom random = RANDOM.get();
 
       try (var writer = c.createMultiTableBatchWriter()) {
         byte[] bytes = new byte[50_000];
@@ -149,9 +151,9 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       }
       c.tableOperations().flush(table1, null, null, true);
       c.tableOperations().flush(table2, null, null, true);
+      // table2 will inherit this EC policy from dfs
+      dfs.setErasureCodingPolicy(getTableDir(ctx, table2), policy1);
       c.tableOperations().flush(table3, null, null, true);
-
-      var ctx = ((ClientContext) c);
 
       assertEquals(List.of(policy1), getECPolicies(dfs, ctx, table1));
       assertEquals(List.of("none"), getECPolicies(dfs, ctx, table2));
@@ -182,7 +184,7 @@ public class ErasureCodeIT extends ConfigurableMacBase {
               Map.of(ErasureCodeConfigurer.ERASURE_CODE_SIZE, "1M")))
           .setWait(true);
       c.tableOperations().compact(table2, cconfig);
-      assertEquals(List.of("none"), getECPolicies(dfs, ctx, table1));
+      assertEquals(List.of("none"), getECPolicies(dfs, ctx, table2));
 
       // set a different policy for this compaction than what is configured on the table
       cconfig = new CompactionConfig()
@@ -215,10 +217,11 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       c.tableOperations().flush(table2, null, null, true);
 
       assertEquals(List.of("none", policy1), getECPolicies(dfs, ctx, table1));
-      assertEquals(List.of("none", "none"), getECPolicies(dfs, ctx, table2));
+      assertEquals(List.of("none", policy1), getECPolicies(dfs, ctx, table2));
 
       // set the table dir erasure coding policy for all tables
       dfs.setErasureCodingPolicy(getTableDir(ctx, table1), policy2);
+      // should change table2 from policy1 -> policy2
       dfs.setErasureCodingPolicy(getTableDir(ctx, table2), policy2);
       dfs.setErasureCodingPolicy(getTableDir(ctx, table3), policy2);
       // compact all the tables and see how setting an EC policy on the table dir influenced the
@@ -243,7 +246,7 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       c.tableOperations().compact(table3, new CompactionConfig().setWait(true));
       // the table settings specify policy1 so that should win
       assertEquals(List.of(policy1), getECPolicies(dfs, ctx, table1));
-      // the table settings specify to use the dfs dir settings so that should win and iit should
+      // the table settings specify to use the dfs dir settings so that should win and it should
       // replicate
       assertEquals(List.of("none"), getECPolicies(dfs, ctx, table2));
       // the table setting specify to use replication and so do the directory settings
@@ -277,6 +280,11 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(table1, Property.TABLE_ERASURE_CODE_POLICY.getKey(), policy2);
       assertEquals(policy2, c.tableOperations().getConfiguration(table1)
           .get(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
+      // should be able to set it to the default value
+      c.tableOperations().setProperty(table1, Property.TABLE_ERASURE_CODE_POLICY.getKey(),
+          Property.TABLE_ERASURE_CODE_POLICY.getDefaultValue());
+      assertEquals(Property.TABLE_ERASURE_CODE_POLICY.getDefaultValue(), c.tableOperations()
+          .getConfiguration(table1).get(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
     }
   }
 }

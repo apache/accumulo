@@ -33,7 +33,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.DumpConfig;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -75,7 +75,7 @@ public class DumpConfigIT extends ConfigurableMacBase {
     }
     Path siteFileBackup = folder.resolve("accumulo.properties.bak");
     assertFalse(Files.exists(siteFileBackup));
-    assertEquals(0, exec(Admin.class, "dumpConfig", "-a", "-d", folder.toString()).waitFor());
+    assertEquals(0, exec(DumpConfig.class, "-a", "-d", folder.toString()).waitFor());
     assertTrue(Files.exists(siteFileBackup));
     String site = FunctionalTestUtils.readAll(Files.newInputStream(siteFileBackup));
     assertTrue(site.contains(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD.getKey()));

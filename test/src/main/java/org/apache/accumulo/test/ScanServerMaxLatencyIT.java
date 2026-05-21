@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.EVENTUAL;
 import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.IMMEDIATE;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -87,7 +88,7 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
 
       // Write to table4 once, this is different than the other tables that are continually being
       // written to. table4 should minor compact 3 seconds after this write.
-      writeElapsed(new SecureRandom(), client, table3, timer);
+      writeElapsed(RANDOM.get(), client, table3, timer);
       boolean sawDataInTable4 = false;
 
       List<Future<Void>> futures = new ArrayList<>();
@@ -178,7 +179,7 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
   }
 
   private static Callable<Void> createWriterTask(AccumuloClient client, String table, Timer timer) {
-    SecureRandom random = new SecureRandom();
+    SecureRandom random = RANDOM.get();
     return () -> {
       try (var writer = client.createBatchWriter(table)) {
         while (true) {

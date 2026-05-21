@@ -45,7 +45,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -80,6 +79,7 @@ import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
@@ -645,13 +645,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         if (rf != null) {
           if (log.isTraceEnabled()) {
-            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(),
-                rf.size());
+            log.trace("Requeuing {} failed mutations", rf.size());
           }
           addFailedMutations(rf);
         }
-      } catch (Exception t) {
-        updateUnknownErrors("tid=" + Thread.currentThread().getId()
+      } catch (RuntimeException t) {
+        updateUnknownErrors(Threads.toString(Thread.currentThread())
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
         executor.remove(task);
       }
@@ -874,11 +873,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
           Span span = TraceUtil.startSpan(this.getClass(), "sendMutations");
           try (Scope scope = span.makeCurrent()) {
 
-            TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
-            if (timeoutTracker == null) {
-              timeoutTracker = new TimeoutTracker(location, timeout);
-              timeoutTrackers.put(location, timeoutTracker);
-            }
+            TimeoutTracker timeoutTracker =
+                timeoutTrackers.computeIfAbsent(location, l -> new TimeoutTracker(l, timeout));
 
             long st1 = System.currentTimeMillis();
             try (SessionCloser sessionCloser = new SessionCloser(location)) {
@@ -1094,7 +1090,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         final HostAndPort parsedServer = HostAndPort.fromString(location);
 
-        long startTime = System.nanoTime();
+        Timer timer = Timer.startNew();
 
         // If somethingFailed is true then the batch writer will throw an exception on close or
         // flush, so no need to close this session. Only want to close the session for retryable
@@ -1147,7 +1143,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
 
           // if a timeout is set on the batch writer, then do not retry longer than the timeout
-          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > timeout) {
+          if (timer.hasElapsed(timeout, MILLISECONDS)) {
             log.debug("Giving up on canceling session {} {} and timing out.", location, usid);
             throw new TimedOutException(Set.of(location));
           }

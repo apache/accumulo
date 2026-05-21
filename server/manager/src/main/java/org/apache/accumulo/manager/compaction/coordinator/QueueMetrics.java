@@ -39,6 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
@@ -75,53 +76,53 @@ public class QueueMetrics implements MetricsProducer {
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName(), queue,
               q -> q.getQueuedJobs())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsQueuedSize = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName(), queue,
               q -> q.getQueuedJobsSize())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsDequeued = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName(), queue,
               q -> q.getDequeuedJobs())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsRejected = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName(), queue,
               q -> q.getRejectedJobs())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsLowestPriority = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName(), queue,
               q -> q.getLowestPriority())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsMinAge = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getName(), queue,
               q -> q.getJobQueueStats().getMinAge().toSeconds())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsMaxAge = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getName(), queue,
               q -> q.getJobQueueStats().getMaxAge().toSeconds())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsAvgAge = Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getName(), queue,
           // Divide by 1000.0 instead of using toSeconds() so we get a double
           q -> q.getJobQueueStats().getAvgAge().toMillis() / 1000.0)
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsQueueTimer = Timer.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getName())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getDescription())
-          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+          .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
       queue.setJobQueueTimerCallback(jobsQueueTimer);
     }
 

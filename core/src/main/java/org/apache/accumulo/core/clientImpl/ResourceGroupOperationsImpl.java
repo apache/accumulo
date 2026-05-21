@@ -40,7 +40,7 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Retry;
 import org.slf4j.LoggerFactory;
 
@@ -263,7 +263,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       try {
         LocalityGroupUtil
             .checkLocalityGroups(context.instanceOperations().getSystemConfiguration());
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' resulted in bad locality group config. This may be a transient situation since "
             + "the config spreads over multiple properties. Setting properties in a different "

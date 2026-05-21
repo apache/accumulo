@@ -336,10 +336,10 @@ public class ServerContext extends ClientContext {
   }
 
   public void waitForZookeeperAndHdfs() {
-    log.info("Attempting to talk to zookeeper");
+    log.debug("Attempting to talk to zookeeper");
     // Next line blocks until connection is established
     getZooSession();
-    log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
+    log.debug("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
     while (true) {
@@ -370,12 +370,12 @@ public class ServerContext extends ClientContext {
           throw e;
         }
       }
-      log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
+      log.debug("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
       sleep = Math.min(MINUTES.toMillis(1), sleep * 2);
     }
-    log.info("Connected to HDFS");
+    log.debug("Connected to HDFS");
   }
 
   /**

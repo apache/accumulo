@@ -29,6 +29,8 @@
             <caption><span class="table-caption">Bulk Imports</span><br /></caption>
             <thead>
               <tr>
+                <th>Table ID&nbsp;</th>
+                <th>Fate ID&nbsp;</th>
                 <th>Directory&nbsp;</th>
                 <th title="The age of the import.">Age&nbsp;</th>
                 <th title="The current state of the bulk import">State&nbsp;</th>

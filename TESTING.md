@@ -18,7 +18,6 @@
     under the License.
 
 -->
-
 # Testing Apache Accumulo
 
 This document is meant to serve as a quick reference to the automated test suites of Accumulo.

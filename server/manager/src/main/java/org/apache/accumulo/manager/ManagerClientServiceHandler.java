@@ -20,6 +20,7 @@ package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil.checkIteratorPriorityConflicts;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -32,7 +33,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -51,19 +54,25 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
@@ -78,8 +87,8 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
-import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
+import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.manager.tserverOps.BeginTserverShutdown;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -168,7 +177,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         try {
           final TServerConnection server = manager.tserverSet.getConnection(instance);
           if (server != null) {
-            server.flush(manager.managerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
+            server.flush(manager.primaryManagerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
                 ByteBufferUtil.toBytes(endRowBB));
           }
         } catch (TException ex) {
@@ -271,6 +280,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
+      checkIteratorPriorityConflicts("table:" + tableName + " tableId:" + tableId,
+          properties.getProperties(), context.getNamespaceConfiguration(namespaceId)
+              .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
       PropUtil.replaceProperties(context, TablePropKey.of(tableId), properties.getVersion(),
           properties.getProperties());
     } catch (ConcurrentModificationException cme) {
@@ -326,17 +338,17 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
     }
 
-    Fate<Manager> fate = manager.fate(FateInstanceType.META);
-    FateId fateId = fate.startTransaction();
+    FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
 
-    String msg = "Shutdown tserver " + tabletServer;
+    var repo = new TraceRepo<>(
+        new BeginTserverShutdown(doomed, manager.tserverSet.getResourceGroup(doomed), force));
 
-    fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, fateId,
-        new TraceRepo<>(
-            new ShutdownTServer(doomed, manager.tserverSet.getResourceGroup(doomed), force)),
-        false, msg);
-    fate.waitForCompletion(fateId);
-    fate.delete(fateId);
+    CompletableFuture<Optional<FateId>> future;
+    try (var seeder = fate.beginSeeding()) {
+      future = seeder.attemptToSeedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER,
+          FateKey.forShutdown(doomed), repo, true);
+    }
+    future.join().ifPresent(fate::waitForCompletion);
 
     log.debug("FATE op shutting down " + tabletServer + " finished");
   }
@@ -351,17 +363,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
     var tserver = new TServerInstance(tabletServer);
-    if (manager.shutdownTServer(tserver)) {
-      // If there is an exception seeding the fate tx this should cause the RPC to fail which should
-      // cause the tserver to halt. Because of that not making an attempt to handle failure here.
-      Fate<Manager> fate = manager.fate(FateInstanceType.META);
-      var tid = fate.startTransaction();
-      String msg = "Shutdown tserver " + tabletServer;
+    // If there is an exception seeding the fate tx this should cause the RPC to fail which should
+    // cause the tserver to halt. Because of that not making an attempt to handle failure here.
+    FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
 
-      fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
-          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.of(resourceGroup), false)),
-          true, msg);
-    }
+    var repo = new TraceRepo<>(
+        new BeginTserverShutdown(tserver, ResourceGroupId.of(resourceGroup), false));
+    // only seed a new transaction if nothing is running for this tserver
+    fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, FateKey.forShutdown(tserver), repo,
+        true);
   }
 
   @Override
@@ -580,6 +590,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
+      checkIteratorPriorityConflicts("namespace:" + ns + " namespaceId:" + namespaceId,
+          properties.getProperties(),
+          context.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
       PropUtil.replaceProperties(context, NamespacePropKey.of(namespaceId), properties.getVersion(),
           properties.getProperties());
     } catch (ConcurrentModificationException cme) {
@@ -619,6 +632,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       if (value == null) {
         PropUtil.removeProperties(context, NamespacePropKey.of(namespaceId), List.of(property));
       } else {
+        checkIteratorPriorityConflicts("namespace:" + namespace + " namespaceId:" + namespaceId,
+            Map.of(property, value), context.getNamespaceConfiguration(namespaceId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
         PropUtil.setProperties(context, NamespacePropKey.of(namespaceId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
@@ -649,11 +665,16 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         if (value == null || value.isEmpty()) {
           value = "";
         }
+        checkIteratorPriorityConflicts("table:" + tableName + "tableId:" + tableId,
+            Map.of(property, value), context.getTableConfiguration(tableId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
         PropUtil.setProperties(context, TablePropKey.of(tableId), Map.of(property, value));
+      } else {
+        throw new UnsupportedOperationException("table operation:" + op.name());
       }
     } catch (IllegalStateException ex) {
-      log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
-          + property + "=" + value);
+      log.warn("Invalid table property, tried to {}: tableId: {} to: {}={}", op.name(),
+          tableId.canonical(), property, value, ex);
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
       ClientServiceHandler.checkTableId(context, tableName, op);
@@ -714,6 +735,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
+  public static void mustBeOnline(ServerContext context, final TableId tableId)
+      throws ThriftTableOperationException {
+    context.clearTableListCache();
+    if (context.getTableState(tableId) != TableState.ONLINE) {
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
+          TableOperationExceptionType.OFFLINE, "table is not online");
+    }
+  }
+
   @Override
   public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableIdStr,
       List<TKeyExtent> extents) throws ThriftSecurityException, ThriftTableOperationException {
@@ -725,7 +755,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    manager.mustBeOnline(tableId);
+    mustBeOnline(manager.getContext(), tableId);
 
     manager.hostOndemand(Lists.transform(extents, KeyExtent::fromThrift));
   }
@@ -776,6 +806,18 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throws ThriftSecurityException {
     security.authenticateUser(credentials, credentials);
     return manager.getSteadyTime().getNanos();
+  }
+
+  @Override
+  public void processEvents(TInfo tinfo, TCredentials credentials, List<TEvent> tEvents)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    manager.getEventCoordinator().events(tEvents.stream().map(EventCoordinator.Event::fromThrift)
+        .peek(event -> log.trace("remote event : {}", event)).iterator());
   }
 
   protected TableId getTableId(ClientContext context, String tableName)

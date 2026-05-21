@@ -41,7 +41,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
@@ -117,7 +117,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
       ts.getProcess().waitFor();
       String result = ts.readStdOut();
       log.info(result);

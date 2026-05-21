@@ -26,16 +26,17 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class FinishCreateTable extends ManagerRepo {
+class FinishCreateTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(FinishCreateTable.class);
@@ -47,12 +48,12 @@ class FinishCreateTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
 
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
@@ -63,25 +64,25 @@ class FinishCreateTable extends ManagerRepo {
           TableState.ONLINE, expectedCurrStates);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);
-    Utils.unreserveTable(env, tableInfo.getTableId(), fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.getNamespaceId(), fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
 
-    env.getEventCoordinator().event(tableInfo.getTableId(), "Created table %s ",
+    env.getEventPublisher().event(tableInfo.getTableId(), "Created table %s ",
         tableInfo.getTableName());
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      cleanupSplitFiles(env);
+      cleanupSplitFiles(env.getContext());
     }
     return null;
   }
 
-  private void cleanupSplitFiles(Manager env) throws IOException {
+  private void cleanupSplitFiles(ServerContext ctx) throws IOException {
     // it is sufficient to delete from the parent, because both files are in the same directory, and
     // we want to delete the directory also
     Path p = null;
     try {
       p = tableInfo.getSplitPath().getParent();
-      FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+      FileSystem fs = p.getFileSystem(ctx.getHadoopConf());
       fs.delete(p, true);
     } catch (IOException e) {
       log.error("Table was created, but failed to clean up temporary splits files at {}", p, e);
@@ -94,6 +95,6 @@ class FinishCreateTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {}
+  public void undo(FateId fateId, FateEnv env) {}
 
 }

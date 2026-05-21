@@ -31,6 +31,8 @@ import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
+import com.google.common.net.HostAndPort;
+
 /**
  * This interface exist to support passing a {@link TabletServer} or {@link ScanServerInfo} to a
  * method that can take either.
@@ -58,4 +60,6 @@ public interface TabletHostingServer {
   ServiceLock getLock();
 
   BlockCacheManager.Configuration getBlockCacheConfiguration(AccumuloConfiguration acuConf);
+
+  HostAndPort getAdvertiseAddress();
 }

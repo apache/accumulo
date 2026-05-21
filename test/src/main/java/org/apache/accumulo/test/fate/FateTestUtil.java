@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -33,7 +34,7 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
@@ -59,19 +61,21 @@ public class FateTestUtil {
    * Create the fate table with the exact configuration as the real Fate user instance table
    * including table properties and TabletAvailability. For use in testing UserFateStore
    */
-  public static void createFateTable(ClientContext client, String table) throws Exception {
+  public static void createFateTable(ClientContext client, ServerContext serverContext,
+      String table) throws Exception {
+    // Read the real FATE table as the server, but create the test table as the test client.
     final var fateTableProps =
-        client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
+        serverContext.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
     TabletAvailability availability;
-    try (var tabletStream =
-        client.tableOperations().getTabletInformation(SystemTables.FATE.tableName(), new Range())) {
+    try (var tabletStream = serverContext.tableOperations()
+        .getTabletInformation(SystemTables.FATE.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(fateTableProps);
+        .withoutDefaults().setProperties(fateTableProps);
     client.tableOperations().create(table, newTableConf);
     var testFateTableProps = client.tableOperations().getTableProperties(table);
 

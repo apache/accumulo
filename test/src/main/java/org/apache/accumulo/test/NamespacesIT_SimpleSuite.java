@@ -68,6 +68,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -408,9 +409,8 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
           EnumSet.allOf(IteratorScope.class));
       c.namespaceOperations().attachIterator(namespace, setting);
       Thread.sleep(SECONDS.toMillis(2));
-      var e = assertThrows(AccumuloException.class, () -> c.namespaceOperations()
-          .checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class)));
-      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+      c.namespaceOperations().checkIteratorConflicts(namespace, setting,
+          EnumSet.allOf(IteratorScope.class));
       IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace,
           setting.getName(), IteratorScope.scan);
       assertEquals(setting, setting2);
@@ -551,7 +551,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
   public void verifyConstraintInheritance() throws Exception {
     String t1 = namespace + ".1";
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaultIterators());
+    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaults());
     String constraintClassName = NumericValueConstraint.class.getName();
 
     assertFalse(
@@ -1044,7 +1044,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     assertNoTableNoNamespace(() -> ops.getIteratorSetting(tableName, "a", IteratorScope.scan));
     assertNoTableNoNamespace(() -> ops.getLocalityGroups(tableName));
     assertNoTableNoNamespace(
-        () -> ops.getMaxRow(tableName, Authorizations.EMPTY, a, true, z, true));
+        () -> ops.getMaxRow(tableName, Authorizations.EMPTY, RowRange.closed(a, z)));
     assertNoTableNoNamespace(() -> ops.getConfiguration(tableName));
     assertNoTableNoNamespace(() -> ops.importDirectory("").to(tableName).load());
     assertNoTableNoNamespace(() -> ops.testClassLoad(tableName, VersioningIterator.class.getName(),

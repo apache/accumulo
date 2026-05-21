@@ -117,7 +117,4 @@ class RollingStats {
     return stddev;
   }
 
-  boolean isWindowFull() {
-    return windowFull;
-  }
 }

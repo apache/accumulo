@@ -36,12 +36,16 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.WritableUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This is the Key used to store and access individual values in Accumulo. A Key is a tuple composed
  * of a row, column family, column qualifier, column visibility, timestamp, and delete marker.
  * <p>
  * Keys are comparable and therefore have a sorted order defined by {@link #compareTo(Key)}.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Key implements WritableComparable<Key>, Cloneable {
 
   protected byte[] row;

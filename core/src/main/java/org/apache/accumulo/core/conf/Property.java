@@ -291,7 +291,11 @@ public enum Property {
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
-      "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
+      "Enables OpenTelemetry traces for new spans in the server process that are not already part "
+          + "of an existing trace. Spans that are part of an existing trace, such as one "
+          + "originating in client code and propagated to the server over an RPC request, are "
+          + "always traced, regardless of this value. (Note: no tracing will occur if "
+          + "OpenTelemetry is not first configured for the JVM).",
       "2.1.0"),
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "3", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
@@ -349,10 +353,14 @@ public enum Property {
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
+      PropertyType.BOOLEAN,
+      "Enables Caffeine Cache metrics functionality using Micrometer. Requires "
+          + " property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "4.0.0"),
-  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
+      "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
+          + " is dependent on metrics being enabled to function correctly.",
+      "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN,
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
@@ -365,7 +373,7 @@ public enum Property {
       'log4j2' or 'logback'.
       """, "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
+      "org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
       """
           A comma separated list of one or more class names that implements \
@@ -392,10 +400,14 @@ public enum Property {
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
           + " disables this check. The default value changed from 0 to 2m in 4.0.0.",
       "2.1.4"),
+  GENERAL_SERVER_WAL_SORT_BUFFER_SIZE("general.server.wal.sort.buffer.size", "10%",
+      PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery.",
+      "4.0.0"),
+
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
-  MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
+  MANAGER_CLIENTPORT("manager.port.client", "9999-10009", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
@@ -437,6 +449,14 @@ public enum Property {
       "Time to wait between scanning tables to identify ranges of tablets that can be "
           + " auto-merged. Valid ranges will be have merge fate ops submitted.",
       "4.0.0"),
+  MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
+      PropertyType.BOOLEAN,
+      "When deleting a table the Manager will remove related table directories from "
+          + " the storage volumes if there are no other references to the files in the "
+          + " metadata table. When deleting a lot of tables this optimization can be costly. "
+          + " Setting this value to false will skip this optimization and the table directory "
+          + " cleanup will occur in the Garbage Collector instead.",
+      "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
@@ -504,7 +524,7 @@ public enum Property {
           operations and whose value is a pool size for those operations.
           """, "4.0.0"),
   @Deprecated(since = "4.0.0")
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "",
       PropertyType.FATE_THREADPOOL_SIZE, """
           Previously, the number of threads used to run fault-tolerant executions (FATE). \
           This is no longer used in 4.0+. %s and %s are the replacement and must be \
@@ -527,6 +547,19 @@ public enum Property {
       "Allow tablets for the " + SystemTables.METADATA.tableName()
           + " table to be suspended via table.suspend.duration.",
       "1.8.0"),
+  MANAGER_STARTUP_MANAGER_AVAIL_MIN_COUNT("manager.startup.manager.avail.min.count", "0",
+      PropertyType.COUNT,
+      "Minimum number of managers that need to be registered before the primary manager will start. A value "
+          + "greater than 0 is useful when multiple managers are supposed to be running on startup. "
+          + "When set to 0 or less, no blocking occurs. Default is 0 (disabled).",
+      "4.0.0"),
+  MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT("manager.startup.manager.avail.max.wait", "0",
+      PropertyType.TIMEDURATION,
+      "Maximum time manager will wait for manager available threshold "
+          + "to be reached before continuing. When set to 0 or less, will block "
+          + "indefinitely. Default is 0 to block indefinitely. Only valid when manager available "
+          + "threshold is set greater than 1.",
+      "4.0.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
       PropertyType.COUNT, """
           Minimum number of tservers that need to be registered before manager will \
@@ -585,10 +618,7 @@ public enum Property {
           expiration time, will trigger a background refresh for future hits. \
           Value must be less than 100%. Set to 0 will disable refresh.
           """, "2.1.3"),
-  SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the sserver.port.client ports are in use, search higher ports until one is available.",
-      "2.1.0"),
-  SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
+  SSERV_CLIENTPORT("sserver.port.client", "9700-9799", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
   SSERV_MINTHREADS("sserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
@@ -620,6 +650,22 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
+  SSERV_SCAN_ALLOWED_TABLES("sserver.scan.allowed.tables", "^(?!accumulo\\.).*$",
+      PropertyType.STRING,
+      "A regular expression that determines which tables are allowed to be scanned for"
+          + " servers in the specified group. The property name should end with the scan server"
+          + " group and the property value should take into account the table namespace and name."
+          + " The default value disallows scans on tables in the accumulo namespace.",
+      "4.0.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = SSERV_SCAN_ALLOWED_TABLES)
+  SSERV_SCAN_ALLOWED_TABLES_DEPRECATED("sserver.scan.allowed.tables.group.", null,
+      PropertyType.PREFIX,
+      "A regular expression that determines which tables are allowed to be scanned for"
+          + " servers in the specified group. The property name should end with the scan server"
+          + " group and the property value should take into account the table namespace and name."
+          + " The default value disallows scans on tables in the accumulo namespace.",
+      "2.1.5"),
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
   SSERV_WAL_SORT_MAX_CONCURRENT("sserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
@@ -637,10 +683,7 @@ public enum Property {
       "Specifies the size of the cache for RFile index blocks.", "1.3.5"),
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for summary data on each tablet server.", "2.0.0"),
-  TSERV_PORTSEARCH("tserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the tserver.port.client ports are in use, search higher ports until one is available.",
-      "1.3.5"),
-  TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT,
+  TSERV_CLIENTPORT("tserver.port.client", "9800-9899", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "1.3.5"),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them.",
@@ -771,6 +814,8 @@ public enum Property {
       "1.5.0"),
   TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery.", "2.1.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = GENERAL_SERVER_WAL_SORT_BUFFER_SIZE)
   TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
@@ -925,6 +970,11 @@ public enum Property {
           would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.
           """,
       "2.1.4"),
+  MONITOR_LONG_RUNNING_COMPACTION_LIMIT("monitor.compactions.long.running.limit", "50",
+      PropertyType.COUNT,
+      "The number of long running compactions to display per resource group. The Monitor server will"
+          + " keep twice this number in memory as it builds the next list while serving up the current list.",
+      "4.0.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX, """
       Properties in this category affect tablet server treatment of tablets, \
@@ -1044,6 +1094,9 @@ public enum Property {
           + "is exceeded for any tablet the entire bulk import operation will fail before making any "
           + "changes. Value of 0 is unlimited.",
       "4.0.0"),
+  TABLE_SHUFFLE_SOURCES("table.shuffle.sources", "false", PropertyType.BOOLEAN,
+      "Shuffle the opening order for Rfiles to reduce thread contention on file open operations.",
+      "2.1.5"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes.", "1.3.5"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
@@ -1141,10 +1194,19 @@ public enum Property {
           """,
       "2.1.4"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY, """
-      The durability used to write to the write-ahead log. Legal values are: \
-      none, which skips the write-ahead log; log, which sends the data to the \
-      write-ahead log, but does nothing to make it durable; flush, which pushes \
-      data to the file system; and sync, which ensures the data is written to disk. \
+      The durability of writes to tables includes ensuring that mutations written \
+      by clients are persisted in the write-ahead log and that files written \
+      during a compaction are persisted to disk successfully. This property only \
+      configures the durability used to write to the write-ahead log. Legal \
+      values are: none, which skips the write-ahead log; log, which sends the \
+      data to the write-ahead log, but does nothing to make it durable; flush, \
+      which pushes data out of the JVM (likely to page cache); and sync, which \
+      ensures that each mutation is written to the physical disk. To configure \
+      the durability of files written during minor and major compactions, set the \
+      Hadoop property \"dfs.datanode.synconclose\" to \"true\". This will ensure \
+      that the blocks of the files in HDFS are written to the physical disk as \
+      the compaction output files are written (Note that this may only apply \
+      to replicated files in HDFS). \
       """, "1.7.0"),
 
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN, """
@@ -1174,9 +1236,10 @@ public enum Property {
       prefix, followed by a number, and their values correspond to a fully \
       qualified Java class that implements the Constraint interface.
       For example:
-        table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint
+        table.constraint.2 = org.apache.accumulo.core.constraints.MyCustomConstraint
       and:
-        table.constraint.2 = my.package.constraints.MySecondConstraint.
+        table.constraint.3 = my.package.constraints.MySecondConstraint.
+      Note that table.constraint.1 is a reserved, default table constraint.
       """, "1.3.5"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN,
       "Determines whether index block cache is enabled for a table.", "1.3.5"),
@@ -1285,10 +1348,7 @@ public enum Property {
           + " should be cancelled. This checks for situations like was the tablet deleted (split "
           + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
       "2.1.4"),
-  COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
-      "If the compactor.port.client ports are in use, search higher ports until one is available.",
-      "2.1.0"),
-  COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
+  COMPACTOR_CLIENTPORT("compactor.port.client", "9600-9699", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers.", "2.1.0"),
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
@@ -1651,10 +1711,9 @@ public enum Property {
 
       // SSERV options
       SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_CLIENTPORT,
-      SSERV_PORTSEARCH, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
-      SSERV_DEFAULT_BLOCKSIZE, SSERV_SCAN_REFERENCE_EXPIRATION_TIME,
-      SSERV_CACHED_TABLET_METADATA_EXPIRATION, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
-      SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
+      SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE, SSERV_DEFAULT_BLOCKSIZE,
+      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+      SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT, SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
 
       // TSERV options
       TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
@@ -1662,10 +1721,10 @@ public enum Property {
       TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
       TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
       TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
-      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_PORTSEARCH,
-      TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE,
-      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM,
-      TSERV_SCAN_MAX_OPENFILES, TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
+      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE,
+      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS,
+      TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
+      TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
       // GC options
       GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START, GC_PORT,
@@ -1676,8 +1735,7 @@ public enum Property {
 
       // COMPACTOR options
       COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_CLIENTPORT, COMPACTOR_THREADCHECK,
-      COMPACTOR_PORTSEARCH, COMPACTOR_MINTHREADS, COMPACTOR_MINTHREADS_TIMEOUT,
-      COMPACTOR_GROUP_NAME,
+      COMPACTOR_MINTHREADS, COMPACTOR_MINTHREADS_TIMEOUT, COMPACTOR_GROUP_NAME,
 
       // COMPACTION_COORDINATOR options
       COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL,
@@ -1715,7 +1773,8 @@ public enum Property {
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.equals(Property.COMPACTION_WARN_TIME.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
-        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey());
+        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey())
+        || key.equals(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey());
   }
 
   public static boolean isValidResourceGroupPropertyKey(String property) {

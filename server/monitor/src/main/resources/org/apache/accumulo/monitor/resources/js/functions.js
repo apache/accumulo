@@ -16,41 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar
-*/
 "use strict";
 
 // Suffixes for quantity
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const REST_V2_PREFIX = contextPath + 'rest-v2';
+
+const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
+const COORDINATOR_QUEUE_PROCESS_VIEW = 'coordinatorQueueView';
+const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
+const GC_FILE_SERVER_PROCESS_VIEW = 'gcFileView';
+const GC_WAL_SERVER_PROCESS_VIEW = 'gcWalView';
+const MANAGER_SERVER_PROCESS_VIEW = 'managerssView';
+const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
+const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
+const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
+const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
+var STATUS_REQUEST = null;
+const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
+const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
+const AUTO_REFRESH_KEY = 'auto-refresh';
+const MESSAGE_CATEGORIES = 'messageCategories';
+const MESSAGES = 'messages';
+const FATE = 'fate';
+const MESSAGE_COUNTS = 'messageCounts'
+const RECOVERY = 'recovery';
+
+// Override Length Menu options for dataTables
+if ($.fn && $.fn.dataTable) {
+  $.extend(true, $.fn.dataTable.defaults, {
+    "lengthMenu": [
+      [10, 25, 50, 100, -1],
+      [10, 25, 50, 100, "All"]
+    ]
+  });
+}
 
 /**
  * Initializes Auto Refresh to false if it is not set,
  * and creates listeners for auto refresh
  */
 function setupAutoRefresh() {
-  // Sets auto refresh to true or false
-  if (!sessionStorage.autoRefresh) {
-    sessionStorage.autoRefresh = 'false';
-  }
-  // Need this to set the initial value for the autorefresh on page load
-  if (sessionStorage.autoRefresh === 'false') {
-    $('.auto-refresh').parent().removeClass('active');
+
+  var autoRefreshSwitch = $('#autoRefreshSwitch');
+  var savedValue = localStorage.getItem(AUTO_REFRESH_KEY);
+  if (savedValue === null || savedValue === 'false') {
+    autoRefreshSwitch.prop('checked', false);
   } else {
-    $('.auto-refresh').parent().addClass('active');
+    autoRefreshSwitch.prop('checked', true);
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').on("click", function () {
-    if ($(this).parent().attr('class') === 'active') {
-      $(this).parent().removeClass('active');
-      sessionStorage.autoRefresh = 'false';
-    } else {
-      $(this).parent().addClass('active');
-      sessionStorage.autoRefresh = 'true';
-    }
+  $('#autoRefreshSwitch').on("change", function () {
+    localStorage.setItem(AUTO_REFRESH_KEY, $(this).is(':checked'));
   });
 }
 
@@ -65,12 +84,9 @@ function refresh() {
  * Global timer that checks for auto refresh status every 5 seconds
  */
 TIMER = setInterval(function () {
-  if (sessionStorage.autoRefresh === 'true') {
-    $('.auto-refresh').parent().addClass('active');
+  if (localStorage.getItem(AUTO_REFRESH_KEY) === 'true') {
     refresh();
     refreshNavBar();
-  } else {
-    $('.auto-refresh').parent().removeClass('active');
   }
 }, 5000);
 
@@ -151,6 +167,50 @@ function levelFormat(level) {
     return '<span class="label label-danger">' + level + '</span>';
   }
   return level;
+}
+
+/**
+ * Maps the given activity state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for idle and 0 for active
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderActivityState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Idle</span>';
+  }
+  return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Active</span>';
+}
+
+/**
+ * Maps the given memory state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for low memory and 0 for normal memory
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderMemoryState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Low memory detected</span>';
+  }
+  return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Memory normal</span>';
 }
 
 /**
@@ -307,11 +367,25 @@ function getJSONForTable(call, sessionDataVar) {
   });
 }
 
+function getStoredJson(storageKey, defaultValue) {
+  var storedValue = sessionStorage.getItem(storageKey);
+  if (!storedValue) {
+    return defaultValue;
+  }
+
+  return JSON.parse(storedValue);
+}
+
+function getStoredArray(storageKey) {
+  var storedValue = getStoredJson(storageKey, []);
+  return Array.isArray(storedValue) ? storedValue : [];
+}
+
 /**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
- * @param {boolean} shouldSanitize Whether to sanitize the call 
+ * @param {boolean} shouldSanitize Whether to sanitize the call
  */
 function doLoggedPostCall(call, callback, shouldSanitize) {
 
@@ -333,14 +407,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
 }
 
 ///// REST Calls /////////////
-
-/**
- * REST GET call for the manager information,
- * stores it on a sessionStorage variable
- */
-function getManager() {
-  return getJSONForTable(contextPath + 'rest/manager', 'manager');
-}
 
 /**
  * REST GET call for the namespaces, stores it on a global variable
@@ -427,13 +493,6 @@ function getServerStats() {
 }
 
 /**
- * REST GET call for the recovery list, stores it on a sessionStorage variable
- */
-function getRecoveryList() {
-  return getJSONForTable(contextPath + 'rest/tservers/recovery', 'recoveryList');
-}
-
-/**
  * REST GET call for the participating tablet servers,
  * stores it on a sessionStorage variable
  *
@@ -441,13 +500,6 @@ function getRecoveryList() {
  */
 function getTableServers(tableID) {
   return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
-}
-
-/**
- * REST GET call for the server status, stores it on a sessionStorage variable
- */
-function getStatus() {
-  return getJSONForTable(contextPath + 'rest/status', 'status');
 }
 
 /*
@@ -461,8 +513,6 @@ function clearAllTableCells(tableId) {
 }
 
 // NEW REST CALLS
-
-const REST_V2_PREFIX = contextPath + 'rest-v2';
 
 /**
  * REST GET call for /problems,
@@ -492,11 +542,38 @@ function getTserversSummary(group) {
 }
 
 /**
- * REST GET call for /suggestions,
- * stores it on a sessionStorage variable
+ * REST GET call for /message/categories
+ * store it on a sessionStorage variable
  */
-function getSuggestions() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestions', 'suggestions');
+function getMessageCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/message/categories', MESSAGE_CATEGORIES);
+}
+
+/**
+ * REST GET call for /message/counts
+ * store it on a sessionStorage variable
+ */
+function getMessageCounts() {
+  return getJSONForTable(REST_V2_PREFIX + '/message/counts', MESSAGE_COUNTS);
+}
+
+/**
+ * REST GET call for /messages,
+ * results are not stored in session as this
+ * function takes parameters driven by toggles
+ * in the UI.
+ */
+function getMessages(high, info, cats) {
+
+  const params = new URLSearchParams();
+  params.append('high', high);
+  params.append('info', info);
+  $.each(cats, function (index, cat) {
+    params.append('category', cat);
+  });
+
+  var call = REST_V2_PREFIX + '/messages?' + params.toString();
+  return getJSONForTable(call, MESSAGES);
 }
 
 /**
@@ -530,14 +607,6 @@ function getCompactorsSummary(group) {
 }
 
 /**
- * REST GET call for /sservers/summary,
- * stores it on a sessionStorage variable
- */
-function getSserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/summary', 'sserversSummary');
-}
-
-/**
  * REST GET call for /tables/{name}/tablets,
  * stores it on a sessionStorage variable
  * @param {string} name Table name
@@ -554,6 +623,54 @@ function getTableTablets(name) {
  */
 function getMetrics() {
   return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /recovery,
+ * stores it on a sessionStorage variable
+ */
+function getRecoveryInformation() {
+  return getJSONForTable(REST_V2_PREFIX + '/recovery', RECOVERY);
+}
+
+/**
+ * REST GET call for /status,
+ * stores it on a sessionStorage variable
+ */
+function getStatus() {
+  if (STATUS_REQUEST) {
+    return STATUS_REQUEST;
+  }
+  STATUS_REQUEST = getJSONForTable(REST_V2_PREFIX + '/status', 'status');
+  STATUS_REQUEST.always(function () {
+    STATUS_REQUEST = null;
+  });
+  return STATUS_REQUEST;
+}
+
+function getStoredStatusData() {
+  return sessionStorage.status ? JSON.parse(sessionStorage.status) : null;
+}
+
+function getComponentStatus(statusData, componentType) {
+  if (!statusData || !statusData.componentStatuses) {
+    return 'ERROR';
+  }
+
+  var status = statusData.componentStatuses[componentType];
+  if (!status || !status.hasServers) {
+    return 'ERROR';
+  }
+
+  if (status.level === 'ERROR') {
+    return 'ERROR';
+  }
+
+  if (status.level === 'WARN') {
+    return 'WARN';
+  }
+
+  return 'OK';
 }
 
 /**
@@ -600,15 +717,58 @@ function getDeployment() {
 }
 
 /**
- * REST GET call for /sservers/summary/{group},
+ * REST GET call for /fate,
  * stores it on a sessionStorage variable
- * @param {string} group Group name
  */
-function getSserversSummaryGroup(group) {
-  const url = `${REST_V2_PREFIX}/sservers/summary/${group}`;
-  const sessionDataVar = `sserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
+function getFate() {
+  return getJSONForTable(REST_V2_PREFIX + '/fate', FATE);
 }
+
+function getServerProcessView(table, storageKey) {
+  var url = REST_V2_PREFIX + '/servers/view;table=' + table;
+  return getJSONForTable(url, storageKey);
+}
+
+function getCompactorsView() {
+  return getServerProcessView('COMPACTORS', COMPACTOR_SERVER_PROCESS_VIEW);
+}
+
+function getCoordinatorQueueView() {
+  return getServerProcessView('COORDINATOR_QUEUES', COORDINATOR_QUEUE_PROCESS_VIEW);
+}
+
+function getGcView() {
+  return getServerProcessView('GC_SUMMARY', GC_SERVER_PROCESS_VIEW);
+}
+
+function getGcFileView() {
+  return getServerProcessView('GC_FILES', GC_FILE_SERVER_PROCESS_VIEW);
+}
+
+function getGcWalView() {
+  return getServerProcessView('GC_WALS', GC_WAL_SERVER_PROCESS_VIEW);
+}
+
+function getManagersView() {
+  return getServerProcessView('MANAGERS', MANAGER_SERVER_PROCESS_VIEW);
+}
+
+function getManagersFateView() {
+  return getServerProcessView('MANAGER_FATE', MANAGER_FATE_SERVER_PROCESS_VIEW);
+}
+
+function getManagersCompactionView() {
+  return getServerProcessView('MANAGER_COMPACTIONS', MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
+}
+
+function getSserversView() {
+  return getServerProcessView('SCAN_SERVERS', SCAN_SERVER_PROCESS_VIEW);
+}
+
+function getTserversView() {
+  return getServerProcessView('TABLET_SERVERS', TABLET_SERVER_PROCESS_VIEW);
+}
+
 
 /**
  * REST GET call for /tservers/summary,
@@ -657,28 +817,41 @@ function getTable(name) {
 }
 
 /**
- * REST GET call for /compactions/detail/{num},
- * stores it on a sessionStorage variable
- * @param {number} num Detail number
- */
-function getCompactionsDetail(num) {
-  const url = `${REST_V2_PREFIX}/compactions/detail/${num}`;
-  const sessionDataVar = `compactionsDetail_${num}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/detail,
- * stores it on a sessionStorage variable
- */
-function getCompactionsDetail() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/detail', 'compactionsDetail');
-}
-
-/**
  * REST GET call for /compactions/summary,
  * stores it on a sessionStorage variable
  */
 function getCompactionsSummary() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
+}
+
+/**
+ * REST GET call for /compactions/running/table,
+ * stores it on a sessionStorage variable
+ */
+function getRunningCompactionsByTable() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/table', RUNNING_COMPACTIONS_BY_TABLE);
+}
+
+/**
+ * REST GET call for /compactions/running/group,
+ * stores it on a sessionStorage variable
+ */
+function getRunningCompactionsByGroup() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
+}
+
+
+/**
+ * Returns true if the input is a valid regular expression, false otherwise.
+ *
+ * @param {string} input Potential regex string
+ * @returns {boolean} Whether the input is a valid regex
+ */
+function isValidRegex(input) {
+  try {
+    new RegExp(input);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

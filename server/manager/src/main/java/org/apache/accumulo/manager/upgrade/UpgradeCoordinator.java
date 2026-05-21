@@ -52,7 +52,6 @@ import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 
@@ -328,7 +327,7 @@ public class UpgradeCoordinator {
       throw new IllegalStateException("Error checking properties", e);
     }
     try {
-      CheckCompactionConfig.validate(context.getConfiguration(), Level.INFO);
+      CheckCompactionConfig.validate(context.getConfiguration(), Logger::info);
     } catch (RuntimeException | ReflectiveOperationException e) {
       throw new IllegalStateException("Error validating compaction configuration", e);
     }

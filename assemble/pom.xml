@@ -25,6 +25,7 @@
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
     <version>4.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
@@ -158,6 +159,11 @@
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-common</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-context</artifactId>
       <optional>true</optional>
     </dependency>
@@ -203,7 +209,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-access</artifactId>
+      <artifactId>accumulo-access-core</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -355,12 +361,17 @@
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
+      <artifactId>jetty-session</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-servlet</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>

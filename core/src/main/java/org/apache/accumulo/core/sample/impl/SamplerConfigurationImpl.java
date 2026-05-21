@@ -36,7 +36,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Writable;
 
-public class SamplerConfigurationImpl implements Writable {
+public final class SamplerConfigurationImpl implements Writable {
   private String className;
   private Map<String,String> options;
 

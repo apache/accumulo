@@ -150,16 +150,16 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(10);
-      final String t1 = tables[0];
-      final String t2 = tables[1];
-      final String t3 = tables[2];
-      final String t4 = tables[3];
-      final String metaCopy1 = tables[4];
-      final String metaCopy2 = tables[5];
-      final String metaCopy3 = tables[6];
-      final String metaCopy4 = tables[7];
-      final String metaCopy5 = tables[8];
-      final String metaCopy6 = tables[9];
+      final String t1 = tables[0] + "_" + compressionType;
+      final String t2 = tables[1] + "_" + compressionType;
+      final String t3 = tables[2] + "_" + compressionType;
+      final String t4 = tables[3] + "_" + compressionType;
+      final String metaCopy1 = tables[4] + "_" + compressionType;
+      final String metaCopy2 = tables[5] + "_" + compressionType;
+      final String metaCopy3 = tables[6] + "_" + compressionType;
+      final String metaCopy4 = tables[7] + "_" + compressionType;
+      final String metaCopy5 = tables[8] + "_" + compressionType;
+      final String metaCopy6 = tables[9] + "_" + compressionType;
 
       // create some metadata
       createTable(client, t1, true);
@@ -339,8 +339,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "No tablets should need attention");
       // Lower the split threshold for the table, should cause the files added to need attention.
-      client.tableOperations().setProperty(tables[3], Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "1K");
+      client.tableOperations().setProperty(t4, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K");
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
       assertEquals(expected,
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
@@ -348,7 +347,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
       // Take the table offline which should prevent the tablet from being returned for needing to
       // split
-      client.tableOperations().offline(tables[3], false);
+      client.tableOperations().offline(t4, false);
       tabletMgmtParams = createParameters(client);
       expected = Map.of();
       assertEquals(expected,
@@ -357,7 +356,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
       // Bring the table back online to re-confirm that it needs splitting. Introduce some errors
       // into the metadata table.
-      client.tableOperations().online(tables[3]);
+      client.tableOperations().online(t4);
       tabletMgmtParams = createParameters(client);
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
       assertEquals(expected,

@@ -58,9 +58,11 @@ public class ClusterConfigParserTest extends WithTestNames {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
-    assertEquals(14, contents.size());
-    assertTrue(contents.containsKey("manager"));
-    assertEquals("localhost1 localhost2", contents.get("manager"));
+    assertEquals(15, contents.size());
+    assertTrue(contents.containsKey("manager.hosts"));
+    assertEquals("localhost1 localhost2", contents.get("manager.hosts"));
+    assertTrue(contents.containsKey("manager.servers_per_host"));
+    assertEquals("2", contents.get("manager.servers_per_host"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
     assertTrue(contents.containsKey("gc"));
@@ -156,6 +158,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     final Path f = outputConfigFunction.apply(configFile);
 
     Map<String,String> expected = new TreeMap<>();
+    expected.put("MANAGERS_PER_HOST_default", "2");
     expected.put("MANAGER_HOSTS", "localhost1 localhost2");
     expected.put("MONITOR_HOSTS", "localhost1 localhost2");
     expected.put("GC_HOSTS", "localhost");
@@ -300,6 +303,39 @@ public class ClusterConfigParserTest extends WithTestNames {
       var exception = assertThrows(IllegalArgumentException.class,
           () -> ClusterConfigParser.outputShellVariables(contents, ps));
       assertTrue(exception.getMessage().contains("Check the format"));
+    }
+  }
+
+  @Test
+  public void testFileMissingManagerSection() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/missing-manager-section.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalStateException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(exception.getMessage().contains("Manager is required in the configuration"));
+    }
+  }
+
+  @Test
+  public void testFileBadManagerSection() throws Exception {
+    URL configFile = ClusterConfigParserTest.class
+        .getResource("/org/apache/accumulo/core/conf/cluster/bad-manager-section.yaml");
+    assertNotNull(configFile);
+
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
+
+    try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
+      var exception = assertThrows(IllegalArgumentException.class,
+          () -> ClusterConfigParser.outputShellVariables(contents, ps));
+      assertTrue(
+          exception.getMessage().contains("Unknown manager entry for: manager.extra_broken"));
     }
   }
 

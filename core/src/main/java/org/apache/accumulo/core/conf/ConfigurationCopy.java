@@ -39,7 +39,7 @@ public class ConfigurationCopy extends AccumuloConfiguration {
    * @param config configuration property key/value pairs to copy
    */
   public ConfigurationCopy(Map<String,String> config) {
-    this(config.entrySet());
+    copy.putAll(config);
   }
 
   /**
@@ -74,11 +74,11 @@ public class ConfigurationCopy extends AccumuloConfiguration {
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    for (Entry<String,String> entry : copy.entrySet()) {
-      if (filter.test(entry.getKey())) {
-        props.put(entry.getKey(), entry.getValue());
+    copy.forEach((key, value) -> {
+      if (filter.test(key)) {
+        props.put(key, value);
       }
-    }
+    });
   }
 
   /**

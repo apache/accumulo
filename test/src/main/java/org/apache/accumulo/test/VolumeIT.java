@@ -49,7 +49,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.init.Initialize;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -122,7 +122,7 @@ public class VolumeIT extends VolumeITBase {
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
     cluster.stop();
 
     return uuid;
@@ -173,7 +173,7 @@ public class VolumeIT extends VolumeITBase {
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
       cluster.stop();
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString()));

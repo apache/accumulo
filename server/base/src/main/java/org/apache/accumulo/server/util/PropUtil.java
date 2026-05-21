@@ -59,7 +59,7 @@ public final class PropUtil {
     context.getPropStore().replaceAll(propStoreKey, version, properties);
   }
 
-  protected static void validateProperties(final ServerContext context,
+  public static void validateProperties(final ServerContext context,
       final PropStoreKey propStoreKey, final Map<String,String> properties)
       throws IllegalArgumentException {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
@@ -84,7 +84,8 @@ public final class PropUtil {
         ResourceGroupPropUtil.validateResourceGroupProperty(prop.getKey(), prop.getValue());
       }
 
-      if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())) {
+      if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())
+          && !prop.getValue().isEmpty()) {
         var volumes = context.getVolumeManager().getVolumes();
         for (var volume : volumes) {
           if (volume.getFileSystem() instanceof DistributedFileSystem) {

@@ -50,6 +50,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.manager.FateLocations;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
@@ -176,6 +177,14 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZCOMPACTIONS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZMANAGER_ASSISTANT_LOCK, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZSHUTTING_DOWN_TSERVERS, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZMANAGER_ASSIGNMENTS, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    FateLocations.storeLocations(zrwChroot, Map.of(), ZooUtil.NodeExistsPolicy.FAIL);
+
   }
 
   /**

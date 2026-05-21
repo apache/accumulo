@@ -70,7 +70,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Cl
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
@@ -194,7 +194,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       try {
         LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration());
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' resulted in bad locality group config. This may be a transient situation since "
             + "the config spreads over multiple properties. Setting properties in a different "
@@ -233,7 +233,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     if (managers == null || managers.isEmpty()) {
       return List.of();
     } else {
-      return List.of(managers.iterator().next().toHostPortString());
+      return managers.stream().map(ServerId::toHostPortString).toList();
     }
   }
 
@@ -561,18 +561,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
-        ServiceLockPath m = context.getServerPaths().getManager(true);
-        if (m != null) {
-          Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
-          String location = null;
-          if (sld.isPresent()) {
-            location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-            if (location != null && addressSelector.getPredicate().test(location)) {
-              HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
-            }
-          }
-        }
+        context.getServerPaths().getAssistantManagers(addressSelector, true)
+            .forEach(s -> results.add(createServerId(type, s)));
         break;
       case MONITOR:
         ServiceLockPath mon = context.getServerPaths().getMonitor(true);

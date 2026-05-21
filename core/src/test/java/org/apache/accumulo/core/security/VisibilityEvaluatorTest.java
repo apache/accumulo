@@ -23,6 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.jupiter.api.Test;
 
@@ -109,5 +112,40 @@ public class VisibilityEvaluatorTest {
     assertFalse(
         ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
     assertFalse(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"三\")")));
+  }
+
+  @Test
+  public void testBinary() throws VisibilityParseException {
+    for (int i = 0; i < 256; i++) {
+      if (i == '\\' || i == '"') {
+        // these have to be escaped
+        continue;
+      }
+
+      byte b = (byte) i;
+
+      byte[] exp1 = new byte[] {'"', b, 2, '"', '&', '"', (byte) 250, 6, '"'};
+      byte[] exp2 = new byte[] {'"', b, 2, '"', '|', '"', (byte) 250, 6, '"'};
+
+      var auths1 = new Authorizations(List.of(new byte[] {b, 2}, new byte[] {(byte) 250, 6}));
+      VisibilityEvaluator ve1 = new VisibilityEvaluator(auths1);
+      assertTrue(ve1.evaluate(new ColumnVisibility(exp1)));
+      assertTrue(ve1.evaluate(new ColumnVisibility(exp2)));
+
+      var auths2 = new Authorizations(List.of(new byte[] {b, 2}));
+      VisibilityEvaluator ve2 = new VisibilityEvaluator(auths2);
+      assertFalse(ve2.evaluate(new ColumnVisibility(exp1)));
+      assertTrue(ve2.evaluate(new ColumnVisibility(exp2)));
+
+      var auths3 = new Authorizations(List.of(new byte[] {b, 2, 0}));
+      VisibilityEvaluator ve3 = new VisibilityEvaluator(auths3);
+      assertFalse(ve3.evaluate(new ColumnVisibility(exp1)));
+      assertFalse(ve3.evaluate(new ColumnVisibility(exp2)));
+
+      var bs = new ArrayByteSequence(new byte[] {b, 2});
+      VisibilityEvaluator ve4 = new VisibilityEvaluator(auth -> auth.equals(bs));
+      assertFalse(ve4.evaluate(new ColumnVisibility(exp1)));
+      assertTrue(ve4.evaluate(new ColumnVisibility(exp2)));
+    }
   }
 }

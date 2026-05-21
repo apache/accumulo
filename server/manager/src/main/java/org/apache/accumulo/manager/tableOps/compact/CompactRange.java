@@ -34,8 +34,8 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.hadoop.io.Text;
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class CompactRange extends ManagerRepo {
+public class CompactRange extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
@@ -80,15 +80,15 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.COMPACT,
-            LockRange.of(startRow, endRow));
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
+            TableOperation.COMPACT, LockRange.of(startRow, endRow));
   }
 
   @Override
-  public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(final FateId fateId, FateEnv env) throws Exception {
     CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
     var extent = new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
         startRow == null ? null : new Text(startRow));
@@ -96,7 +96,7 @@ public class CompactRange extends ManagerRepo {
     log.debug("{} Widened compact range from {} to {}", fateId, LockRange.of(extent), widenedRange);
 
     // expecting the lock code should widen the range of the lock, make sure this happened
-    var myLock = Utils.getReadLock(env, tableId, fateId, LockRange.infinite());
+    var myLock = Utils.getReadLock(env.getContext(), tableId, fateId, LockRange.infinite());
     Preconditions.checkState(myLock.getRange().contains(widenedRange), "%s does not contain %s",
         myLock.getRange(), widenedRange);
 
@@ -106,12 +106,12 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     try {
       CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
-      Utils.unreserveTable(env, tableId, fateId, LockType.READ);
+      Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.READ);
     }
   }
 

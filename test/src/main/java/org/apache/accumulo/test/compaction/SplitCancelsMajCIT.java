@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionsNoLongerRunning;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -119,8 +119,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       partitionKeys.add(new Text("10"));
       c.tableOperations().addSplits(tableName, partitionKeys);
 
-      ExternalCompactionTestUtils.confirmCompactionCompleted(getCluster().getServerContext(),
-          compactionIds, TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), compactionIds);
 
       thread.join();
       // wait for the restarted compaction

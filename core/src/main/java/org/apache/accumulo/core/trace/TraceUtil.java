@@ -187,10 +187,6 @@ public class TraceUtil {
     return c instanceof TraceWrappedCallable ? c : new TraceWrappedCallable<>(c);
   }
 
-  public static <T> Callable<T> unwrap(Callable<T> c) {
-    return TraceWrappedCallable.unwrapFully(c);
-  }
-
   public static <T> T wrapService(final T instance) {
     InvocationHandler handler = (obj, method, args) -> {
       if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {

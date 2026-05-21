@@ -72,10 +72,6 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private final Supplier<ConditionalWriter> sharedMetadataWriter;
   private final Supplier<ConditionalWriter> sharedUserWriter;
 
-  public ConditionalTabletsMutatorImpl(ServerContext context) {
-    this(context, DataLevel::metaTable);
-  }
-
   public ConditionalTabletsMutatorImpl(ServerContext context,
       Function<DataLevel,String> tableMapper) {
     this(context, tableMapper, context.getSharedMetadataWriter(), context.getSharedUserWriter());

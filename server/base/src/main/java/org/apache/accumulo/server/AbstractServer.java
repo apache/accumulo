@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,7 +30,7 @@ import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -39,6 +40,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
@@ -65,7 +68,6 @@ import com.google.common.net.HostAndPort;
 import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
@@ -95,26 +97,28 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final Set<String> monitorMetricExclusions;
 
-  protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
+  @SuppressWarnings("deprecation")
+  protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
     log = LoggerFactory.getLogger(getClass());
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(siteConfig
+        .resolve(Property.RPC_PROCESS_BIND_ADDRESS, Property.GENERAL_PROCESS_BIND_ADDRESS));
     // If new bind parameter passed on command line or in file, then use it.
-    if (newBindParameter != null
-        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (newBindParameter != null && !newBindParameter.isBlank()) {
       this.bindAddress = newBindParameter;
     } else {
-      this.bindAddress = ConfigOpts.BIND_ALL_ADDRESSES;
+      this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
       HostAndPort advertHP = HostAndPort.fromString(advertAddr);
-      if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
+      if (advertHP.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
       advertiseAddress = new AtomicReference<>(advertHP);
@@ -177,6 +181,7 @@ public abstract class AbstractServer
       default:
         throw new IllegalArgumentException("Unhandled server type: " + serverType);
     }
+    monitorMetricExclusions = Metric.getMonitorExclusions(serverType);
   }
 
   /**
@@ -288,6 +293,10 @@ public abstract class AbstractServer
     log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
+      System.err.println("Uncaught execption in AbstractServer.runServer");
+      thrown.printStackTrace();
+      System.err.flush();
+      log.error("Uncaught exception ", thrown);
       if (thrown instanceof Error) {
         throw (Error) thrown;
       }
@@ -347,17 +356,13 @@ public abstract class AbstractServer
    * advertise address based on the address to which the ThriftServer is bound
    *
    * @param supplier ThriftServer
-   * @param start true to start the server, else false
    * @throws UnknownHostException thrown from ThriftServer when binding to bad address
    */
-  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
-      throws UnknownHostException {
+  protected void updateThriftServer(ThriftServerSupplier supplier) throws UnknownHostException {
     thriftServer = supplier.get();
-    if (start) {
-      thriftServer.startThriftServer("Thrift Client Server");
-      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
-          thriftServer.address);
-    }
+    thriftServer.startThriftServer("Thrift Client Server");
+    log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+        thriftServer.address);
     updateAdvertiseAddress(thriftServer.address);
   }
 
@@ -400,13 +405,18 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
-    if (context.getMetricsInfo().isMetricsEnabled()) {
-      Metrics.globalRegistry.getMeters().forEach(m -> {
-        if (m.getId().getName().startsWith("accumulo.")) {
-          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
-              response::writeDistributionSummary, response::writeLongTaskTimer,
-              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
-              response::writeMeter);
+    final MetricsInfo mi = getContext().getMetricsInfo();
+    if (mi.isMonitorRegistryEnabled()) {
+      mi.getMonitorRegistry().getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")
+            || m.getId().getName().equals(Metric.EXECUTOR_COMPLETED.getName())
+            || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())) {
+          if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
+            m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+                response::writeDistributionSummary, response::writeLongTaskTimer,
+                response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+                response::writeMeter);
+          }
         }
       });
     }
@@ -449,8 +459,9 @@ public abstract class AbstractServer
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
                 if (serverThread.isAlive()) {
-                  // throw an Error, which will cause this process to be terminated
-                  throw new Error("Sleep interrupted in ServiceLock verification thread");
+                  // this is marked as a critical thread, and will halt the process when it dies
+                  throw new IllegalStateException(
+                      "Sleep interrupted in ServiceLock verification thread", e);
                 }
               }
             }

@@ -23,29 +23,29 @@ import static org.apache.accumulo.test.ample.metadata.TestAmple.testAmpleServerC
 import java.time.Duration;
 
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.easymock.EasyMock;
 
 public class TestAmpleUtil {
 
-  public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample) {
-    Manager manager = EasyMock.mock(Manager.class);
-    EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
+  public static FateEnv mockWithAmple(ServerContext context, TestServerAmpleImpl ample) {
+    FateEnv fateEnv = EasyMock.mock(FateEnv.class);
+    EasyMock.expect(fateEnv.getContext()).andReturn(testAmpleServerContext(context, ample))
         .atLeastOnce();
-    EasyMock.replay(manager);
-    return manager;
+    EasyMock.replay(fateEnv);
+    return fateEnv;
   }
 
-  public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample,
+  public static FateEnv mockWithAmple(ServerContext context, TestServerAmpleImpl ample,
       Duration currentTime) {
-    Manager manager = EasyMock.mock(Manager.class);
-    EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
+    FateEnv fateEnv = EasyMock.mock(FateEnv.class);
+    EasyMock.expect(fateEnv.getContext()).andReturn(testAmpleServerContext(context, ample))
         .atLeastOnce();
-    EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(currentTime)).anyTimes();
-    EasyMock.replay(manager);
-    return manager;
+    EasyMock.expect(fateEnv.getSteadyTime()).andReturn(SteadyTime.from(currentTime)).anyTimes();
+    EasyMock.replay(fateEnv);
+    return fateEnv;
   }
 
 }

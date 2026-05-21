@@ -24,7 +24,9 @@ import static org.easymock.EasyMock.partialMockBuilder;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -32,10 +34,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -45,6 +50,7 @@ import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
@@ -54,6 +60,8 @@ import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
+import org.apache.hadoop.io.Text;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.junit.jupiter.api.Test;
 
@@ -64,9 +72,9 @@ public class ScanServerTest {
     private KeyExtent extent;
     private TabletResolver resolver;
     private ScanReservation reservation;
-    private boolean systemUser;
+    private ConcurrentHashMap<TableId,TableId> allowedTables;
 
-    protected TestScanServer(ConfigOpts opts, String[] args) {
+    protected TestScanServer(ServerOpts opts, String[] args) {
       super(opts, args);
     }
 
@@ -113,26 +121,35 @@ public class ScanServerTest {
     }
 
     @Override
-    protected boolean isSystemUser(TCredentials creds) {
-      return systemUser;
+    public boolean isShutdownRequested() {
+      return false;
     }
 
     @Override
-    public boolean isShutdownRequested() {
-      return false;
+    protected boolean isAllowed(TCredentials credentials, TableId tid) {
+      return allowedTables.containsKey(tid);
+    }
+
+    public void addAllowedTable(TableId tid) {
+      allowedTables.put(tid, tid);
     }
 
   }
 
   private ThriftScanClientHandler handler;
 
+  private static KeyExtent newExtent(TableId tableId) {
+    return new KeyExtent(tableId, new Text("m"), new Text("a"));
+  }
+
   @Test
   public void testScan() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
+    TableId tid = TableId.of("1");
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
-    KeyExtent sextent = createMock(KeyExtent.class);
+    KeyExtent sextent = newExtent(tid);
     ScanReservation reservation = createMock(ScanReservation.class);
     SnapshotTablet tablet = createMock(SnapshotTablet.class);
     TRange trange = createMock(TRange.class);
@@ -158,11 +175,12 @@ public class ScanServerTest {
 
     replay(reservation, handler);
 
+    ss.allowedTables = new ConcurrentHashMap<>();
+    ss.addAllowedTable(tid);
     ss.delegate = handler;
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.systemUser = false;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
@@ -177,10 +195,11 @@ public class ScanServerTest {
   public void testScanTabletLoadFailure() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
+    TableId tid = TableId.of("1");
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
-    KeyExtent extent = createMock(KeyExtent.class);
-    TKeyExtent textent = createMock(TKeyExtent.class);
+    KeyExtent extent = newExtent(tid);
+    TKeyExtent textent = extent.toThrift();
     TRange trange = createMock(TRange.class);
     List<TRange> ranges = new ArrayList<>();
     List<TColumn> tcols = new ArrayList<>();
@@ -192,35 +211,35 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
     ScanReservation reservation = createMock(ScanReservation.class);
 
-    expect(extent.isSystemTable()).andReturn(false).anyTimes();
-    expect(extent.toThrift()).andReturn(textent).anyTimes();
+    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges));
     reservation.close();
 
-    replay(extent, reservation);
+    replay(reservation);
 
-    TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
+    ss.allowedTables = new ConcurrentHashMap<>();
+    ss.addAllowedTable(tid);
     ss.extent = extent;
     ss.delegate = handler;
     ss.reservation = reservation;
-    ss.systemUser = false;
 
     assertThrows(NotServingTabletException.class, () -> {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
           tsc, 30L, classLoaderContext, execHints, 0L);
     });
 
-    verify(extent, reservation);
+    verify(reservation);
   }
 
   @Test
   public void testBatchScan() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
+    TableId tid = TableId.of("1");
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
-    KeyExtent extent = createMock(KeyExtent.class);
+    KeyExtent extent = newExtent(tid);
     ScanReservation reservation = createMock(ScanReservation.class);
     SnapshotTablet tablet = createMock(SnapshotTablet.class);
     Map<KeyExtent,List<TRange>> batch = new HashMap<>();
@@ -244,7 +263,6 @@ public class ScanServerTest {
     };
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(extent.isSystemTable()).andReturn(false).anyTimes();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet);
     expect(reservation.getTabletMetadataExtents()).andReturn(Set.of(extent));
     expect(reservation.getFailures()).andReturn(Map.of());
@@ -255,13 +273,14 @@ public class ScanServerTest {
     expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
-    replay(extent, reservation, handler);
+    replay(reservation, handler);
 
+    ss.allowedTables = new ConcurrentHashMap<>();
+    ss.addAllowedTable(tid);
     ss.delegate = handler;
     ss.extent = extent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.systemUser = false;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(createMock(TKeyExtent.class), ranges);
@@ -271,18 +290,19 @@ public class ScanServerTest {
     ss.continueMultiScan(tinfo, is.getScanID(), 0L);
     assertEquals(15, is.getScanID());
     ss.closeMultiScan(tinfo, is.getScanID());
-    verify(extent, reservation, handler);
+    verify(reservation, handler);
   }
 
   @Test
   public void testBatchScanTabletLoadFailure() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
+    TableId tid = TableId.of("1");
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
-    KeyExtent extent = createMock(KeyExtent.class);
-    TKeyExtent textent = createMock(TKeyExtent.class);
+    KeyExtent extent = newExtent(tid);
+    TKeyExtent textent = extent.toThrift();
     ScanReservation reservation = createMock(ScanReservation.class);
     SnapshotTablet tablet = createMock(SnapshotTablet.class);
     Map<KeyExtent,List<TRange>> batch = new HashMap<>();
@@ -306,7 +326,6 @@ public class ScanServerTest {
     };
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(extent.isSystemTable()).andReturn(false).anyTimes();
     expect(reservation.newTablet(ss, extent)).andReturn(tablet).anyTimes();
     expect(reservation.getTabletMetadataExtents()).andReturn(Set.of());
     expect(reservation.getFailures()).andReturn(Map.of(textent, ranges)).anyTimes();
@@ -316,13 +335,14 @@ public class ScanServerTest {
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
         classLoaderContext, execHints, resolver, 0L)).andReturn(ims);
 
-    replay(extent, reservation, handler);
+    replay(reservation, handler);
 
+    ss.allowedTables = new ConcurrentHashMap<>();
+    ss.addAllowedTable(tid);
     ss.delegate = handler;
     ss.extent = extent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.systemUser = false;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(textent, ranges);
@@ -331,7 +351,7 @@ public class ScanServerTest {
     assertEquals(15, is.getScanID());
     assertEquals(0, is.getResult().getFailuresSize());
 
-    verify(extent, reservation, handler);
+    verify(reservation, handler);
 
   }
 
@@ -365,7 +385,6 @@ public class ScanServerTest {
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     ss.delegate = handler;
     ss.resolver = resolver;
-    ss.systemUser = false;
 
     assertThrows(TException.class, () -> {
       ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
@@ -375,12 +394,12 @@ public class ScanServerTest {
   }
 
   @Test
-  public void testScanMetaTablesSystemUser() throws Exception {
+  public void testScanDefaultAllowedTables() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
-    KeyExtent sextent = createMock(KeyExtent.class);
+    KeyExtent sextent = newExtent(SystemTables.METADATA.tableId());
     ScanReservation reservation = createMock(ScanReservation.class);
     SnapshotTablet tablet = createMock(SnapshotTablet.class);
     TRange trange = createMock(TRange.class);
@@ -394,7 +413,6 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(sextent.isSystemTable()).andReturn(true).anyTimes();
     expect(reservation.newTablet(ss, sextent)).andReturn(tablet);
     expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
     reservation.close();
@@ -405,13 +423,14 @@ public class ScanServerTest {
     expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
-    replay(sextent, reservation, handler);
+    replay(reservation, handler);
 
+    ss.allowedTables = new ConcurrentHashMap<>();
+    ss.addAllowedTable(SystemTables.METADATA.tableId());
     ss.delegate = handler;
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.systemUser = true;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
@@ -419,17 +438,17 @@ public class ScanServerTest {
     assertEquals(15, is.getScanID());
     ss.continueScan(tinfo, is.getScanID(), 0L);
     ss.closeScan(tinfo, is.getScanID());
-    verify(sextent, reservation, handler);
+    verify(reservation, handler);
 
   }
 
   @Test
-  public void testScanMetaTablesNonSystemUser() throws Exception {
+  public void testScanDisallowedTable() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
-    KeyExtent sextent = createMock(KeyExtent.class);
+    KeyExtent sextent = newExtent(SystemTables.METADATA.tableId());
     ScanReservation reservation = createMock(ScanReservation.class);
     TRange trange = createMock(TRange.class);
     List<TColumn> tcols = new ArrayList<>();
@@ -442,24 +461,38 @@ public class ScanServerTest {
     TabletResolver resolver = createMock(TabletResolver.class);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
-    expect(sextent.isSystemTable()).andReturn(true).anyTimes();
     expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
 
-    replay(sextent, reservation, handler);
+    replay(reservation, handler);
 
+    ss.allowedTables = new ConcurrentHashMap<>();
+    ss.addAllowedTable(TableId.of("42"));
     ss.delegate = handler;
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.systemUser = false;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
-    assertThrows(TException.class, () -> {
+    TException te = assertThrows(TException.class, () -> {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
           tsc, 30L, classLoaderContext, execHints, 0L);
     });
-    verify(sextent, reservation, handler);
+    assertTrue(te instanceof TApplicationException);
+    TApplicationException tae = (TApplicationException) te;
+    assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
+    assertTrue(tae.getMessage().contains("disallowed by property"));
+    verify(reservation, handler);
 
+  }
+
+  @Test
+  public void testTableNameRegex() {
+    String r = "^(?!accumulo\\.).*$";
+    Pattern p = Pattern.compile(r);
+
+    assertFalse(p.matcher("accumulo.root").matches());
+    assertFalse(p.matcher("accumulo.metadata").matches());
+    assertTrue(p.matcher("test.table").matches());
   }
 
 }

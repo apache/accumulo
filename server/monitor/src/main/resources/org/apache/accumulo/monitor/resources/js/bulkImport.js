@@ -49,25 +49,33 @@ $(function () {
       "dataSrc": "bulkImport"
     },
     "stateSave": true,
+    "autoWidth": false,
     "columns": [{
+        "data": "tableId",
+        "width": "5%"
+      },
+      {
+        "data": "fateId",
+        "width": "25%"
+      },
+      {
         "data": "filename",
-        "width": "40%"
+        "width": "35%"
       },
       {
         "data": "age",
-        "width": "45%",
+        "width": "25%",
         "render": function (data, type) {
-          if (type === 'display' && Number(data) > 0) {
-            data = new Date(Number(data));
-          } else {
-            data = "-";
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : '&mdash;';
           }
-          return data;
+          return age > 0 ? age : 0;
         }
       },
       {
         "data": "state",
-        "width": "15%"
+        "width": "10%"
       }
     ]
   });

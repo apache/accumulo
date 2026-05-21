@@ -44,6 +44,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -80,6 +81,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -92,6 +94,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class SortedLogRecoveryTest extends WithTestNames {
 
+  private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
   static final int bufferSize = 5;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static final Text cf = new Text("cf");
@@ -133,6 +136,11 @@ public class SortedLogRecoveryTest extends WithTestNames {
     public int compareTo(KeyValue o) {
       return key.compareTo(o.key);
     }
+  }
+
+  @AfterAll
+  public static void shutdown() {
+    EXECUTOR.shutdownNow();
   }
 
   private static KeyValue createKeyValue(LogEvents type, long seq, int tid,
@@ -193,6 +201,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+      expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
       replay(server, context);
       logSorter = new LogSorter(server);
 
@@ -1133,6 +1142,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
       expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();
       expect(context.getConfiguration()).andReturn(testConfig).anyTimes();
+      expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
       replay(server, context);
       LogSorter sorter = new LogSorter(server);
 

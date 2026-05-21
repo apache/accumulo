@@ -18,10 +18,16 @@
  */
 "use strict";
 
+const deploymentTable = '#deployment-table';
+
+var deploymentBreakdown = [];
+
 /**
  * Creates overview initial table
  */
 $(function () {
+  // display datatables errors in the console instead of in alerts
+  $.fn.dataTable.ext.errMode = 'throw';
   refreshOverview();
 });
 
@@ -29,9 +35,7 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  getManager().then(function () {
-    refreshManagerTable();
-  });
+  refreshDeploymentTables();
 }
 
 /**
@@ -42,27 +46,174 @@ function refresh() {
 }
 
 /**
- * Refreshes the manager table
+ * Refreshes the deployment overview tables
  */
-function refreshManagerTable() {
-  var data = sessionStorage.manager === undefined ? [] : JSON.parse(sessionStorage.manager);
+function refreshDeploymentTables() {
+  getDeployment().then(function () {
+    var data = JSON.parse(sessionStorage.deployment);
+    var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+    deploymentBreakdown = breakdown;
 
-  $('#manager tr td:first').hide();
-  $('#manager tr td').hide();
+    if (breakdown.length === 0) {
+      $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
+        'No deployment data is currently available.</div>');
+    } else {
+      $('#deploymentWarning').empty();
+    }
 
-  // If the manager is down, show the first row, otherwise refresh old values
-  if (data.length === 0 || data.manager === 'No Managers running') {
-    $('#manager tr td:first').show();
-  } else {
-    $('#manager tr td:not(:first)').show();
-    var table = $('#manager td.right');
+    renderDeploymentMatrix(breakdown);
+  });
+}
 
-    table.eq(0).html(bigNumberForQuantity(data.tables));
-    table.eq(1).html(bigNumberForQuantity(data.totalTabletServers));
-    table.eq(2).html(bigNumberForQuantity(data.deadTabletServersCount));
-    table.eq(3).html(bigNumberForQuantity(data.tablets));
-    table.eq(4).html(bigNumberForQuantity(data.numentries));
-    table.eq(5).html(bigNumberForQuantity(data.lookups));
-    table.eq(6).html(timeDuration(data.uptime));
+function renderDeploymentMatrix(breakdown) {
+  var matrixData = buildDeploymentMatrix(breakdown);
+  var $container = $(deploymentTable);
+
+  if (breakdown.length === 0) {
+    $container.empty();
+    return;
   }
+
+  if (matrixData.filteredResourceGroups.length === 0) {
+    $container.html(buildDeploymentEmptyState(resourceGroupFilter));
+    return;
+  }
+
+  $container.find('thead').remove();
+  $container.find('tbody').remove();
+  $container.html(buildDeploymentMatrixTable(matrixData));
+}
+
+function buildDeploymentMatrix(breakdown) {
+  var serverTypes = [];
+  var serverTypeSet = new Set();
+  var resourceGroups = new Map();
+
+  breakdown.forEach(function (row) {
+    if (serverTypeSet.has(row.serverType) === false) {
+      serverTypeSet.add(row.serverType);
+      serverTypes.push(row.serverType);
+    }
+
+    if (resourceGroups.has(row.resourceGroup) === false) {
+      resourceGroups.set(row.resourceGroup, new Map());
+    }
+
+    resourceGroups.get(row.resourceGroup).set(row.serverType, {
+      responding: Number(row.responding),
+      total: Number(row.total)
+    });
+  });
+
+  var sortedResourceGroups = Array.from(resourceGroups.keys()).sort();
+
+  return {
+    serverTypes: serverTypes,
+    resourceGroups: resourceGroups,
+    filteredResourceGroups: sortedResourceGroups
+  };
+}
+
+function buildDeploymentMatrixTable(matrixData) {
+  var headerCells = ['<th class="deployment-matrix-group deployment-matrix-header">Resource Group</th>'];
+  var totalByServerType = new Map();
+  var grandTotals = {
+    responding: 0,
+    total: 0
+  };
+
+  matrixData.serverTypes.forEach(function (serverType) {
+    headerCells.push('<th class="deployment-matrix-cell deployment-matrix-header">' +
+      sanitize(serverType) + '</th>');
+    totalByServerType.set(serverType, {
+      responding: 0,
+      total: 0
+    });
+  });
+  headerCells.push('<th class="deployment-matrix-cell deployment-matrix-header">Total</th>');
+
+  var rowsHtml = matrixData.filteredResourceGroups.map(function (resourceGroup) {
+    var cells = ['<th scope="row" class="deployment-matrix-group">' + sanitize(resourceGroup) + '</th>'];
+    var rowTotals = {
+      responding: 0,
+      total: 0
+    };
+    var rowData = matrixData.resourceGroups.get(resourceGroup);
+
+    matrixData.serverTypes.forEach(function (serverType) {
+      var counts = rowData.get(serverType) || {
+        responding: 0,
+        total: 0
+      };
+      var totals = totalByServerType.get(serverType);
+
+      totals.responding += counts.responding;
+      totals.total += counts.total;
+      rowTotals.responding += counts.responding;
+      rowTotals.total += counts.total;
+
+      cells.push('<td class="deployment-matrix-cell">' + buildDeploymentCell(counts) + '</td>');
+    });
+
+    grandTotals.responding += rowTotals.responding;
+    grandTotals.total += rowTotals.total;
+    cells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
+      buildDeploymentTotalCell(rowTotals) + '</td>');
+
+    return '<tr>' + cells.join('') + '</tr>';
+  }).join('');
+
+  var footerCells = ['<th scope="row" class="deployment-matrix-group deployment-matrix-total">Total</th>'];
+
+  matrixData.serverTypes.forEach(function (serverType) {
+    footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
+      buildDeploymentTotalCell(totalByServerType.get(serverType)) + '</td>');
+  });
+  footerCells.push('<td class="deployment-matrix-cell deployment-matrix-total">' +
+    buildDeploymentTotalCell(grandTotals) + '</td>');
+
+  return '<thead><tr>' + headerCells.join('') +
+    '</tr></thead><tbody>' + rowsHtml + '</tbody><tfoot><tr>' + footerCells.join('') +
+    '</tr></tfoot>';
+}
+
+/**
+ * Builds the HTML for a badge containing the counts of responding vs total servers
+ */
+function buildDeploymentCell(counts, neutral) {
+  var badgeClass = getDeploymentBadgeClass(counts.responding, counts.total);
+  var label = counts.responding + '/' + counts.total;
+
+  return '<span class="badge rounded-pill deployment-count-badge ' + badgeClass + '">' +
+    sanitize(label) + '</span>';
+}
+/**
+ * Builds the HTML for a badge containing the total counts of responding vs total servers
+ */
+function buildDeploymentTotalCell(counts) {
+  var label = counts.responding + '/' + counts.total;
+
+  return '<span class="badge rounded-pill deployment-count-badge deployment-count-total">' +
+    sanitize(label) + '</span>';
+}
+
+function getDeploymentBadgeClass(responding, total) {
+  if (total === 0) {
+    return 'deployment-count-empty';
+  }
+
+  if (responding === 0) {
+    return 'deployment-count-error';
+  }
+
+  if (responding === total) {
+    return 'deployment-count-ok';
+  }
+
+  return 'deployment-count-warn';
+}
+
+function buildDeploymentEmptyState() {
+  return '<div class="alert alert-secondary mb-0" role="alert">' +
+    'No deployment breakdown data is currently available.</div>';
 }

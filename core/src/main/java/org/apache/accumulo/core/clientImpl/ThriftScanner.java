@@ -93,7 +93,7 @@ import com.google.common.net.HostAndPort;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class ThriftScanner {
+public final class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
   // This set is initially empty when the client starts. The first time this
@@ -448,7 +448,7 @@ public class ThriftScanner {
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
           log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
-              addr);
+              addr.serverAddress);
         } else {
           log.trace(
               "For tablet {} scan server selector chose tablet_server, but the tablet is not currently hosted",
@@ -627,11 +627,10 @@ public class ThriftScanner {
     return addr;
   }
 
-  public static List<KeyValue> scan(ClientContext context, ScanState scanState, Duration timeOut)
-      throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
+  public static List<KeyValue> scan(ClientContext context, ScanState scanState, Duration timeOut,
+      Timer scanTimer) throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
 
-    Timer scanTimer = Timer.startNew();
     String lastError = null;
     String error = null;
     int tooManyFilesCount = 0;
@@ -873,10 +872,11 @@ public class ThriftScanner {
             + addr.getExtent().tableId());
 
         if (log.isTraceEnabled()) {
-          String msg = "Starting scan server=" + addr.serverAddress + " tablet=" + addr.getExtent()
-              + " range=" + scanState.range + " ssil=" + scanState.serverSideIteratorList + " ssio="
-              + scanState.serverSideIteratorOptions + " context=" + scanState.classLoaderContext;
-          log.trace("tid={} {}", Thread.currentThread().getId(), msg);
+          String msg = "Starting scan server=" + addr.serverAddress + " type=" + addr.serverType
+              + " tablet=" + addr.getExtent() + " range=" + scanState.range + " ssil="
+              + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions
+              + " context=" + scanState.classLoaderContext;
+          log.trace("{}", msg);
           timer = Timer.startNew();
         }
 
@@ -909,7 +909,7 @@ public class ThriftScanner {
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {
-          log.trace("tid={} {}", Thread.currentThread().getId(), msg);
+          log.trace("{}", msg);
           timer = Timer.startNew();
         }
 
@@ -922,8 +922,7 @@ public class ThriftScanner {
 
       if (sr.more) {
         if (timer != null) {
-          log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(),
+          log.trace("Finished scan in {} #results={} scanid={}",
               String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0), sr.results.size(),
               scanState.scanID);
         }
@@ -932,8 +931,7 @@ public class ThriftScanner {
           scanState.finished = true;
 
           if (timer != null) {
-            log.trace("tid={} Completely finished scan in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Completely finished scan in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
@@ -944,16 +942,14 @@ public class ThriftScanner {
           scanState.skipStartRow = true;
 
           if (timer != null) {
-            log.trace("tid={} Finished scanning tablet in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Finished scanning tablet in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
-            log.trace("tid={} Completely finished in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Completely finished in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }

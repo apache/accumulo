@@ -19,8 +19,8 @@
 package org.apache.accumulo.server.conf;
 
 import static com.google.common.base.Suppliers.memoize;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
@@ -37,6 +37,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -229,7 +230,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
      */
     private void verifySnapshotVersions() {
 
-      long refreshStart = System.nanoTime();
+      Timer refreshTimer = Timer.startNew();
       int keyCount = 0;
       int keyChangedCount = 0;
 
@@ -270,7 +271,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       }
 
       log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
-          NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
+          refreshTimer.elapsed(MILLISECONDS), keyCount, keyChangedCount);
     }
 
     /**

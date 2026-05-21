@@ -30,10 +30,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
-import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -102,7 +101,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   protected Collection<ByteSequence> seekColumnFamilies;
   protected boolean seekColumnFamiliesInclusive;
 
-  private AccessEvaluator ve = null;
+  private BytesAccess.BytesEvaluator ve = null;
   private LRUMap<ByteSequence,Boolean> visibleCache = null;
   private LRUMap<ByteSequence,Boolean> parsedVisibilitiesCache = null;
   private long maxBufferSize;
@@ -118,7 +117,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     if (scanning) {
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
-        ve = AccessEvaluator.of(new Authorizations(auths.getBytes(UTF_8)).toAccessAuthorizations());
+        ve = BytesAccess.newEvaluator(new Authorizations(auths.getBytes(UTF_8)));
         visibleCache = new LRUMap<>(100);
       }
     }
@@ -412,7 +411,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     Boolean parsed = parsedVisibilitiesCache.get(visibility);
     if (parsed == null) {
       try {
-        AccessExpression.validate(visibility.toArray());
+        BytesAccess.validate(visibility.toArray());
         parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
       } catch (InvalidAccessExpressionException e) {
         log.error("Parse error after transformation : {}", visibility);

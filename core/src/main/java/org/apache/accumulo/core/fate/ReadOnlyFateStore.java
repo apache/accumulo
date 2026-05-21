@@ -23,7 +23,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -155,7 +156,7 @@ public interface ReadOnlyFateStore<T> {
    * @return a map of the current active reservations with the keys being the transaction that is
    *         reserved and the value being the value stored to indicate the transaction is reserved.
    */
-  Map<FateId,FateStore.FateReservation> getActiveReservations();
+  Map<FateId,FateStore.FateReservation> getActiveReservations(Set<FatePartition> partitions);
 
   /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids
@@ -163,7 +164,8 @@ public interface ReadOnlyFateStore<T> {
    * is found or until the keepWaiting parameter is false. It will return once all runnable ids
    * found were passed to the consumer.
    */
-  void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer);
+  void runnable(Set<FatePartition> partitions, BooleanSupplier keepWaiting,
+      Consumer<FateIdStatus> idConsumer);
 
   /**
    * Returns true if the deferred map was cleared and if deferred executions are currently disabled

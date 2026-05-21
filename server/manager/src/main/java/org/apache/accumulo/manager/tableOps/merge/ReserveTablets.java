@@ -34,14 +34,14 @@ import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class ReserveTablets extends ManagerRepo {
+public class ReserveTablets extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(ReserveTablets.class);
 
@@ -54,7 +54,7 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     var range = data.getReserveExtent();
     log.debug("{} reserving tablets in range {}", fateId, range);
     var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
@@ -115,7 +115,7 @@ public class ReserveTablets extends ManagerRepo {
     if (locations > 0 && opsAccepted.get() > 0) {
       // operation ids were set and tablets have locations, so lets send a signal to get them
       // unassigned
-      env.getEventCoordinator().event(range, "Tablets %d were reserved for merge %s",
+      env.getEventPublisher().event(range, "Tablets %d were reserved for merge %s",
           opsAccepted.get(), fateId);
     }
 
@@ -131,7 +131,7 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     return switch (data.op) {
       case SYSTEM_MERGE -> new VerifyMergeability(data);
       case MERGE, DELETE -> new CountFiles(data);

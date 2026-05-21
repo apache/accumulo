@@ -20,17 +20,19 @@ package org.apache.accumulo.manager;
 
 import java.util.Collection;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class EventCoordinator {
+public class EventCoordinator implements EventPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(EventCoordinator.class);
 
@@ -64,28 +66,59 @@ public class EventCoordinator {
     private final Ample.DataLevel level;
     private final KeyExtent extent;
 
-    Event(EventScope scope, KeyExtent extent) {
-      this.scope = scope;
+    public Event(KeyExtent extent) {
+      this.scope = EventScope.TABLE_RANGE;
       this.level = Ample.DataLevel.of(extent.tableId());
       this.extent = extent;
     }
 
-    Event(EventScope scope, TableId tableId) {
-      this.scope = scope;
+    public Event(TableId tableId) {
+      this.scope = EventScope.TABLE;
       this.level = Ample.DataLevel.of(tableId);
       this.extent = new KeyExtent(tableId, null, null);
     }
 
-    Event(EventScope scope, Ample.DataLevel level) {
-      this.scope = scope;
+    public Event(Ample.DataLevel level) {
+      this.scope = EventScope.DATA_LEVEL;
       this.level = level;
       this.extent = null;
     }
 
-    Event() {
+    public Event() {
       this.scope = EventScope.ALL;
       this.level = null;
       this.extent = null;
+    }
+
+    public TEvent toThrift() {
+      switch (scope) {
+        case ALL:
+          return new TEvent(null, null);
+        case DATA_LEVEL:
+          return new TEvent(getLevel().toString(), null);
+        case TABLE:
+        case TABLE_RANGE:
+          return new TEvent(null, getExtent().toThrift());
+        default:
+          throw new IllegalStateException("scope : " + scope);
+      }
+    }
+
+    public static Event fromThrift(TEvent tEvent) {
+      if (tEvent.getLevel() == null && tEvent.getExtent() == null) {
+        return new Event();
+      } else if (tEvent.getLevel() != null && tEvent.getExtent() == null) {
+        return new Event(Ample.DataLevel.valueOf(tEvent.getLevel()));
+      } else if (tEvent.getLevel() == null && tEvent.getExtent() != null) {
+        var extent = KeyExtent.fromThrift(tEvent.getExtent());
+        if (extent.endRow() == null && extent.prevEndRow() == null) {
+          return new Event(extent.tableId());
+        } else {
+          return new Event(extent);
+        }
+      } else {
+        throw new IllegalArgumentException("Illegal TEvent " + tEvent);
+      }
     }
 
     public EventScope getScope() {
@@ -106,32 +139,46 @@ public class EventCoordinator {
       Preconditions.checkState(scope == EventScope.TABLE || scope == EventScope.TABLE_RANGE);
       return extent;
     }
+
+    @Override
+    public String toString() {
+      return "{ scope:" + scope + ", level:" + level + ", extent:" + extent + " }";
+    }
   }
 
+  @Override
   public void event(String msg, Object... args) {
     log.info(String.format(msg, args));
     publish(new Event());
   }
 
+  @Override
   public void event(Ample.DataLevel level, String msg, Object... args) {
     log.info(String.format(msg, args));
-    publish(new Event(EventScope.DATA_LEVEL, level));
+    publish(new Event(level));
   }
 
+  @Override
   public void event(TableId tableId, String msg, Object... args) {
     log.info(String.format(msg, args));
-    publish(new Event(EventScope.TABLE, tableId));
+    publish(new Event(tableId));
   }
 
+  @Override
   public void event(KeyExtent extent, String msg, Object... args) {
     log.debug(String.format(msg, args));
-    publish(new Event(EventScope.TABLE_RANGE, extent));
+    publish(new Event(extent));
   }
 
+  public void events(Iterator<Event> events) {
+    events.forEachRemaining(this::publish);
+  }
+
+  @Override
   public void event(Collection<KeyExtent> extents, String msg, Object... args) {
     if (!extents.isEmpty()) {
       log.debug(String.format(msg, args));
-      extents.forEach(extent -> publish(new Event(EventScope.TABLE_RANGE, extent)));
+      extents.forEach(extent -> publish(new Event(extent)));
     }
   }
 

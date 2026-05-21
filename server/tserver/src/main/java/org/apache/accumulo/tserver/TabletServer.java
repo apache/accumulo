@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,12 +49,12 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -63,7 +62,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -116,7 +115,6 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
@@ -137,6 +135,7 @@ import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.managermessage.ManagerMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerRecoveryMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.scan.ScanRunState;
@@ -169,6 +168,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerMinCMetrics mincMetrics;
   PausedCompactionMetrics pausedMetrics;
   BlockCacheMetrics blockCacheMetrics;
+  TabletServerRecoveryMetrics recoveryMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -182,6 +182,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   @Override
   public PausedCompactionMetrics getPausedCompactionMetrics() {
     return pausedMetrics;
+  }
+
+  public TabletServerRecoveryMetrics getTabletRecoveryMetrics() {
+    return recoveryMetrics;
   }
 
   private final LogSorter logSorter;
@@ -205,7 +209,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
 
-  public static final AtomicLong seekCount = new AtomicLong(0);
+  public static final LongAdder seekCount = new LongAdder();
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
   private final AtomicInteger onDemandUnloadedLowMemory = new AtomicInteger(0);
@@ -215,10 +219,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new TabletServer(new ConfigOpts(), ServerContext::new, args), log);
+    AbstractServer.startServer(new TabletServer(new ServerOpts(), ServerContext::new, args), log);
   }
 
-  protected TabletServer(ConfigOpts opts,
+  protected TabletServer(ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
@@ -412,9 +416,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void startServer(String address, TProcessor processor) throws UnknownHostException {
     updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT,
-          processor, this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH,
-          Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-    }, true);
+          processor, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
+          Property.TSERV_THREADCHECK);
+    });
   }
 
   private HostAndPort getManagerAddress() {
@@ -558,9 +562,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     pausedMetrics = new PausedCompactionMetrics();
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
+    recoveryMetrics = new TabletServerRecoveryMetrics();
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics);
+        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 
@@ -847,7 +852,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
     result.name = String.valueOf(getAdvertiseAddress());
     result.holdTime = resourceManager.holdTime();
-    result.lookups = seekCount.get();
+    result.lookups = seekCount.sum();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
     result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
     result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();
@@ -959,10 +964,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return resourceManager.holdTime();
   }
 
-  // avoid unnecessary redundant markings to meta
-  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs =
-      new ConcurrentHashMap<>();
-
   // This is a set of WALs that are closed but may still be referenced by tablets. A LinkedHashSet
   // is used because its very import to know the order in which WALs were closed when deciding if a
   // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
@@ -1039,7 +1040,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
-    metadataTableLogs.remove(currentLog);
 
     if (currentLog.getWrites() > 0) {
       int clSize;

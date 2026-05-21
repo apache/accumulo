@@ -54,6 +54,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -194,10 +195,10 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
   }
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {
-    Fate<FeoTestEnv> fate = new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
+    var fate = new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
         new ScheduledThreadPoolExecutor(2));
-
+    fate.setPartitions(Set.of(FatePartition.all(store.type())));
     fate.start();
     return fate;
   }

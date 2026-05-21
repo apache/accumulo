@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.conf.cluster;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,7 +49,7 @@ public class ClusterConfigParser {
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
   private static final String GC_KEY = "gc";
-  private static final String MANAGER_KEY = "manager";
+  private static final String MANAGER_PREFIX = "manager";
   private static final String MONITOR_KEY = "monitor";
   private static final String SSERVER_PREFIX = "sserver.";
   private static final String TSERVER_PREFIX = "tserver.";
@@ -55,13 +57,12 @@ public class ClusterConfigParser {
   private static final String HOSTS_SUFFIX = ".hosts";
   private static final String SERVERS_PER_HOST_SUFFIX = ".servers_per_host";
 
-  private static final String[] UNGROUPED_SECTIONS =
-      new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
+  private static final String[] UNGROUPED_SECTIONS = new String[] {MONITOR_KEY, GC_KEY};
 
-  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY);
+  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MONITOR_KEY, GC_KEY);
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
-      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
+      Set.of(MANAGER_PREFIX, COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
@@ -143,11 +144,26 @@ public class ClusterConfigParser {
     for (String section : UNGROUPED_SECTIONS) {
       if (config.containsKey(section)) {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
+      }
+    }
+
+    // Manager doesn't use resource groups so it's handled separately
+    var managerSection = config.keySet().stream().filter(k -> k.startsWith(MANAGER_PREFIX))
+        .collect(Collectors.toSet());
+    if (managerSection.isEmpty()) {
+      throw new IllegalStateException("Manager is required in the configuration");
+    }
+
+    for (String k : managerSection) {
+      if (k.equals(MANAGER_PREFIX + HOSTS_SUFFIX)) {
+        out.printf(PROPERTY_FORMAT, "MANAGER_HOSTS", config.get(k));
+      } else if (k.equals(MANAGER_PREFIX + SERVERS_PER_HOST_SUFFIX)) {
+        out.printf(PROPERTY_FORMAT, "MANAGERS_PER_HOST_" + DEFAULT_RESOURCE_GROUP_NAME,
+            config.getOrDefault(k, "1"));
       } else {
-        if (section.equals(MANAGER_KEY)) {
-          throw new IllegalStateException("Manager is required in the configuration");
-        }
-        System.err.println("WARN: " + section + " is missing");
+        throw new IllegalArgumentException("Unknown manager entry for: " + k + ". Only "
+            + MANAGER_PREFIX + HOSTS_SUFFIX + " or " + MANAGER_PREFIX + SERVERS_PER_HOST_SUFFIX
+            + " are allowed. Check the format of your cluster.yaml file.");
       }
     }
 

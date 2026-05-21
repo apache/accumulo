@@ -181,10 +181,6 @@ public class Bulk {
       }
     }
 
-    public FileInfo get(String fileName) {
-      return files.get(fileName);
-    }
-
     public Files mapNames(Map<String,String> renames) {
       Files renamed = new Files();
 

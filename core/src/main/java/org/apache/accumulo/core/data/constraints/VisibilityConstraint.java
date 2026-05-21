@@ -24,9 +24,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
-import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 
@@ -64,7 +63,7 @@ public class VisibilityConstraint implements Constraint {
       ok = new HashSet<>();
     }
 
-    AccessEvaluator ve = null;
+    BytesAccess.BytesEvaluator ve = null;
 
     for (ColumnUpdate update : updates) {
 
@@ -79,7 +78,7 @@ public class VisibilityConstraint implements Constraint {
 
           if (ve == null) {
             var authContainer = env.getAuthorizationsContainer();
-            ve = AccessEvaluator.of(auth -> authContainer.contains(new ArrayByteSequence(auth)));
+            ve = BytesAccess.newEvaluator(authContainer);
           }
 
           if (!ve.canAccess(cv)) {

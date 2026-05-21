@@ -87,11 +87,4 @@ public class DeprecatedPropertyUtil {
     return replacement;
   }
 
-  /**
-   * @return The list of property renamers
-   */
-  public static List<PropertyRenamer> getPropertyRenamers() {
-    return renamers;
-  }
-
 }

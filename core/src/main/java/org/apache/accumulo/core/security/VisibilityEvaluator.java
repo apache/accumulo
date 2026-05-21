@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.core.security;
 
-import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
-import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 
 /**
  * A class which evaluates visibility expressions against a set of authorizations.
@@ -29,7 +28,7 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
  */
 @Deprecated(since = "4.0.0")
 public class VisibilityEvaluator {
-  private final AccessEvaluator accessEvaluator;
+  private final BytesAccess.BytesEvaluator accessEvaluator;
 
   /**
    * Properly escapes an authorization string. The string can be quoted if desired.
@@ -74,8 +73,7 @@ public class VisibilityEvaluator {
    */
   public VisibilityEvaluator(AuthorizationContainer authsContainer) {
     // TODO need to look into efficiency and correctness of this
-    this.accessEvaluator =
-        AccessEvaluator.of(auth -> authsContainer.contains(new ArrayByteSequence(auth)));
+    this.accessEvaluator = BytesAccess.newEvaluator(authsContainer);
   }
 
   /**
@@ -85,7 +83,7 @@ public class VisibilityEvaluator {
    * @param authorizations authorizations object
    */
   public VisibilityEvaluator(Authorizations authorizations) {
-    this.accessEvaluator = AccessEvaluator.of(authorizations.toAccessAuthorizations());
+    this.accessEvaluator = BytesAccess.newEvaluator(authorizations);
   }
 
   /**

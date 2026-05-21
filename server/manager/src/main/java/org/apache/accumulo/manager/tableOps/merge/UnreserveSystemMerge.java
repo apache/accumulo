@@ -23,13 +23,13 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnreserveSystemMerge extends ManagerRepo {
+public class UnreserveSystemMerge extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(UnreserveSystemMerge.class);
@@ -47,7 +47,7 @@ public class UnreserveSystemMerge extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     FinishTableRangeOp.removeOperationIds(log, mergeInfo, fateId, environment);
     throw new AcceptableThriftTableOperationException(mergeInfo.tableId.toString(), null,
         mergeInfo.op.isMergeOp() ? TableOperation.MERGE : TableOperation.DELETE_RANGE,

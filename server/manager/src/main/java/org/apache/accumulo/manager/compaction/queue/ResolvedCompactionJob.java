@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -59,6 +60,13 @@ public class ResolvedCompactionJob implements CompactionJob {
   private final ResourceGroupId group;
   private final String tabletDir;
   private final boolean overlapsSelectedFiles;
+
+  private static long weigh(RowRange rowRange) {
+    if (rowRange != null) {
+      return weigh(rowRange.asRange());
+    }
+    return 0;
+  }
 
   private static long weigh(Range range) {
     long estDataSize = 0;

@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -75,7 +74,6 @@ public class ImportTableTest {
 
   @Test
   public void testCreateImportDir() throws Exception {
-    Manager manager = EasyMock.createMock(Manager.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager volumeManager = EasyMock.createMock(VolumeManager.class);
     UniqueNameAllocator uniqueNameAllocator = EasyMock.createMock(UniqueNameAllocator.class);
@@ -90,8 +88,7 @@ public class ImportTableTest {
 
     String dirName = "abcd";
 
-    EasyMock.expect(manager.getContext()).andReturn(context);
-    EasyMock.expect(manager.getVolumeManager()).andReturn(volumeManager).times(3);
+    EasyMock.expect(context.getVolumeManager()).andReturn(volumeManager).times(3);
     EasyMock.expect(context.getUniqueNameAllocator()).andReturn(uniqueNameAllocator);
     EasyMock.expect(volumeManager.matchingFileSystem(EasyMock.eq(new Path(expDirs[0])),
         EasyMock.eq(tableDirSet))).andReturn(new Path(tableDirs[0]));
@@ -107,10 +104,10 @@ public class ImportTableTest {
     ti.directories = ImportTable.parseExportDir(Set.of(expDirs));
     assertEquals(3, ti.directories.size());
 
-    EasyMock.replay(manager, context, volumeManager, uniqueNameAllocator);
+    EasyMock.replay(context, volumeManager, uniqueNameAllocator);
 
     CreateImportDir ci = new CreateImportDir(ti);
-    ci.create(tableDirSet, manager);
+    ci.create(tableDirSet, context);
     assertEquals(3, ti.directories.size());
     for (ImportedTableInfo.DirectoryMapping dm : ti.directories) {
       assertNotNull(dm.exportDir);
@@ -120,7 +117,7 @@ public class ImportTableTest {
       assertTrue(
           dm.importDir.contains(ti.tableId.canonical() + "/" + Constants.BULK_PREFIX + dirName));
     }
-    EasyMock.verify(manager, context, volumeManager, uniqueNameAllocator);
+    EasyMock.verify(context, volumeManager, uniqueNameAllocator);
   }
 
   private static void assertMatchingFilesystem(String expected, String target) {

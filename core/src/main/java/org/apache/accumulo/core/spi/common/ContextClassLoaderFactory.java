@@ -47,6 +47,9 @@ package org.apache.accumulo.core.spi.common;
  */
 public interface ContextClassLoaderFactory {
 
+  /**
+   * @since 2.1.4
+   */
   class ContextClassLoaderException extends Exception {
 
     private static final long serialVersionUID = 1L;

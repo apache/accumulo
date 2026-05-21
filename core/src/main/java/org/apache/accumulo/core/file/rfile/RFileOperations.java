@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,12 +30,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.RFileSKVIterator;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
@@ -42,6 +45,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.slf4j.Logger;
@@ -54,6 +58,7 @@ public class RFileOperations extends FileOperations {
   private static final Logger LOG = LoggerFactory.getLogger(RFileOperations.class);
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
+  private static final AtomicBoolean SYNC_CAPABILITY_LOGGED = new AtomicBoolean(false);
 
   private static RFileSKVIterator getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
@@ -192,6 +197,17 @@ public class RFileOperations extends FileOperations {
         } catch (IOException e) {
           LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.file,
               e.getMessage());
+        }
+      }
+
+      TableId tid = options.getTableId();
+      if (tid != null && !SYNC_CAPABILITY_LOGGED.get() && (SystemTables.ROOT.tableId().equals(tid)
+          || SystemTables.METADATA.tableId().equals(tid))) {
+        if (!outputStream.hasCapability(StreamCapabilities.HSYNC)) {
+          SYNC_CAPABILITY_LOGGED.set(true);
+          LOG.warn("File created for table {} does not support hsync. If dfs.datanode.synconclose"
+              + " is configured, then it may not work. dfs.datanode.synconclose is recommended for the"
+              + " root and metadata tables.", tid);
         }
       }
     }

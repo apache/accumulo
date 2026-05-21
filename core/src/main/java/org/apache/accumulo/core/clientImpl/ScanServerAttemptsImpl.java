@@ -26,8 +26,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,10 +50,27 @@ public class ScanServerAttemptsImpl {
 
   ScanServerAttemptReporter createReporter(String server, TabletId tablet) {
     return result -> {
-      LOG.trace("Received result: {}", result);
+      LOG.trace("Received result: {} {} {}", result, tablet, server);
       synchronized (attempts) {
         attempts.computeIfAbsent(tablet, k -> new ArrayList<>())
             .add(new ScanServerAttemptImpl(result, server));
+      }
+    };
+  }
+
+  public interface BatchAttemptReporter {
+    void report(Set<KeyExtent> extents, ScanServerAttempt.Result result);
+  }
+
+  BatchAttemptReporter createReporter(String server) {
+    return (tablets, result) -> {
+      LOG.trace("Received result: {} {} {}", result, tablets, server);
+      synchronized (attempts) {
+        var attempt = new ScanServerAttemptImpl(result, server);
+        tablets.forEach(extent -> {
+          var tablet = new TabletIdImpl(extent);
+          attempts.computeIfAbsent(tablet, k -> new ArrayList<>()).add(attempt);
+        });
       }
     };
   }

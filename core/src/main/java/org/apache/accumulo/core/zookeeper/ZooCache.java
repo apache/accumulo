@@ -52,9 +52,13 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ZooCache {
 
   public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}

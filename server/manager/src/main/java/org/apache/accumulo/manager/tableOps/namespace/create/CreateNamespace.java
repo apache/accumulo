@@ -18,16 +18,19 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class CreateNamespace extends ManagerRepo {
+public class CreateNamespace extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
 
   private final NamespaceInfo namespaceInfo;
@@ -36,16 +39,16 @@ public class CreateNamespace extends ManagerRepo {
     namespaceInfo = new NamespaceInfo();
     namespaceInfo.namespaceName = namespaceName;
     namespaceInfo.user = user;
-    namespaceInfo.props = props;
+    namespaceInfo.props = new HashMap<>(requireNonNull(props));
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv manager) throws Exception {
     namespaceInfo.namespaceId =
         Utils.getNextId(namespaceInfo.namespaceName, manager.getContext(), NamespaceId::of);
     return new SetupNamespacePermissions(namespaceInfo);
@@ -53,7 +56,7 @@ public class CreateNamespace extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
+  public void undo(FateId fateId, FateEnv env) {
     // nothing to do, the namespace id was allocated!
   }
 

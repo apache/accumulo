@@ -19,26 +19,9 @@
 package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.clientImpl.thrift.TTabletAvailability;
 import org.apache.accumulo.core.data.Value;
 
 public class TabletAvailabilityUtil {
-
-  public static TabletAvailability fromThrift(TTabletAvailability tAvailability) {
-    return switch (tAvailability) {
-      case HOSTED -> TabletAvailability.HOSTED;
-      case UNHOSTED -> TabletAvailability.UNHOSTED;
-      case ONDEMAND -> TabletAvailability.ONDEMAND;
-    };
-  }
-
-  public static TTabletAvailability toThrift(TabletAvailability tabletAvailability) {
-    return switch (tabletAvailability) {
-      case HOSTED -> TTabletAvailability.HOSTED;
-      case UNHOSTED -> TTabletAvailability.UNHOSTED;
-      case ONDEMAND -> TTabletAvailability.ONDEMAND;
-    };
-  }
 
   public static TabletAvailability fromValue(Value value) {
     return switch (value.toString()) {

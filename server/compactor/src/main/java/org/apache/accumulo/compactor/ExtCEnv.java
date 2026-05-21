@@ -75,7 +75,7 @@ public class ExtCEnv implements CompactionEnv {
 
   ExtCEnv(CompactionJobHolder jobHolder, ResourceGroupId groupName) {
     this.jobHolder = jobHolder;
-    this.job = jobHolder.getJob();
+    this.job = jobHolder.getCurrentCompaction().getJob();
     this.groupName = groupName;
   }
 
@@ -100,7 +100,7 @@ public class ExtCEnv implements CompactionEnv {
       builder.isUserCompaction();
     }
 
-    if (!jobHolder.getJob().isPropagateDeletes()) {
+    if (!jobHolder.getCurrentCompaction().getJob().isPropagateDeletes()) {
       builder.isFullMajorCompaction();
     }
 

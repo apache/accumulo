@@ -51,7 +51,7 @@ import org.apache.hadoop.io.WritableUtils;
  * scanner.addScanIterator(cfg);
  * </pre>
  */
-public class IteratorSetting implements Writable {
+public final class IteratorSetting implements Writable {
   private int priority;
   private String name;
   private String iteratorClass;
