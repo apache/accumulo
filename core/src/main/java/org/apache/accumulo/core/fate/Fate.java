@@ -71,7 +71,8 @@ public class Fate<T> extends FateClient<T> {
   private ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
   private ExecutorService deadResCleanerExecutor;
-  private final FateConfiguration<T> fateConfig;
+  private final FateThreadsConfiguration<T> fateThreadsConfig;
+  private final AtomicBoolean started = new AtomicBoolean(false);
 
   public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
   private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
@@ -249,7 +250,7 @@ public class Fate<T> extends FateClient<T> {
     }
   }
 
-  private record FateConfiguration<T>(T environment, boolean runDeadResCleaner,
+  private record FateThreadsConfiguration<T>(T environment, boolean runDeadResCleaner,
       AccumuloConfiguration conf, ScheduledThreadPoolExecutor genSchedExecutor) {
   }
 
@@ -265,18 +266,19 @@ public class Fate<T> extends FateClient<T> {
       ScheduledThreadPoolExecutor genSchedExecutor) {
     super(store, toLogStrFunc);
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
-    this.fateConfig =
-        new FateConfiguration<>(environment, runDeadResCleaner, conf, genSchedExecutor);
+    this.fateThreadsConfig =
+        new FateThreadsConfiguration<>(environment, runDeadResCleaner, conf, genSchedExecutor);
 
   }
 
   public void start() {
+    Preconditions.checkState(started.compareAndSet(false, true),
+        "Fate has already been started or was shut down");
     log.info("Start {} FATE", store.type());
-    keepRunning.set(true);
-    final var environment = fateConfig.environment;
-    final var runDeadResCleaner = fateConfig.runDeadResCleaner;
-    final var conf = fateConfig.conf;
-    final var genSchedExecutor = fateConfig.genSchedExecutor;
+    final var environment = fateThreadsConfig.environment;
+    final var runDeadResCleaner = fateThreadsConfig.runDeadResCleaner;
+    final var conf = fateThreadsConfig.conf;
+    final var genSchedExecutor = fateThreadsConfig.genSchedExecutor;
 
     fatePoolsWatcherFuture =
         genSchedExecutor.scheduleWithFixedDelay(new FatePoolsWatcher(environment, conf),
@@ -417,6 +419,11 @@ public class Fate<T> extends FateClient<T> {
         TimeUnit.SECONDS.convert(timeout, timeUnit));
     // important this is set before shutdownNow is called as the background
     // threads will check this to see if shutdown related errors should be ignored.
+    if (!started.get()) {
+      log.info("{} FATE not started, nothing to shutdown", store.type());
+      return;
+    }
+
     if (keepRunning.compareAndSet(true, false)) {
       synchronized (fateExecutors) {
         for (var fateExecutor : fateExecutors) {
@@ -426,7 +433,9 @@ public class Fate<T> extends FateClient<T> {
       if (deadResCleanerExecutor != null) {
         deadResCleanerExecutor.shutdown();
       }
-      fatePoolsWatcherFuture.cancel(false);
+      if (fatePoolsWatcherFuture != null) {
+        fatePoolsWatcherFuture.cancel(false);
+      }
     }
 
     if (timeout > 0) {

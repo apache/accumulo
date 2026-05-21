@@ -942,6 +942,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     var fate =
         new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     return fate;
   }
 

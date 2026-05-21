@@ -1289,8 +1289,8 @@ public class Manager extends AbstractServer
       ServerContext context) {
     var fate = new Fate<>(env, store, true, TraceRepo::toLogString, getConfiguration(),
         context.getScheduledExecutor());
-        fate.start();
-        return fate;
+    fate.start();
+    return fate;
   }
 
   private void setupFate(ServerContext context) {

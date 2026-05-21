@@ -40,7 +40,6 @@ public class FastFate<T> extends Fate<T> {
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
     super(environment, store, runDeadResCleaner, toLogStrFunc, conf,
         new ScheduledThreadPoolExecutor(2));
-    start();
   }
 
   @Override
