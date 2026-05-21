@@ -253,6 +253,13 @@ function createDataTable(table, storageKey) {
         data: getStoredRows(storageKey)
       });
     },
+    "buttons": [{
+      "extend": 'colvis',
+      "text": 'Columns'
+    }],
+    "dom": '<"row"<"col-sm-12 col-md-4"l><"col-sm-12 col-md-4"B><"col-sm-12 col-md-4"f>>' +
+      '<"row dt-row"<"col-sm-12"rt>>' +
+      '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
     "stateSave": true,
     "colReorder": true,
     "columnDefs": [{
