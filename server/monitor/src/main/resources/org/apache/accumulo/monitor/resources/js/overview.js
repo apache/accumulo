@@ -35,7 +35,10 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  refreshDeploymentTables();
+  $.when(getDeployment(), getInstanceOverview()).then(function () {
+    refreshInstanceOverviewTables();
+    refreshDeploymentTables();
+  });
 }
 
 /**
@@ -45,24 +48,83 @@ function refresh() {
   refreshOverview();
 }
 
+function refreshInstanceOverviewTables() {
+  var data = getStoredJson(INSTANCE_OVERVIEW, {});
+
+  var table = $('#instance-overview-table');
+  $(table).find('thead').remove();
+  var body = $(table).find('tbody');
+  body.empty();
+  body.append(createRow("Namespaces", bigNumberForQuantity(data.numNamespaces || 0)));
+  body.append(createRow("Tables", bigNumberForQuantity(data.numTables || 0)));
+  body.append(createRow("Tablets", bigNumberForQuantity(data.numTablets || 0)));
+  body.append(createRow("Entries", bigNumberForQuantity(data.numKVs || 0)));
+  body.append(createRow("Files", bigNumberForQuantity(data.numFiles || 0)));
+  body.append(createRow("File Size", bigNumberForSize(data.totalFileSize || 0)));
+  body.append(createRow("Tablets Assigned To Dead TServers", bigNumberForQuantity(data.tabletsAssignedToDeadTServers || 0)));
+  body.append(createRow("Tablets Suspended", bigNumberForQuantity(data.totalSuspendedTablets || 0)));
+  body.append(createRow("Tablets Requiring Recovery", bigNumberForQuantity(data.tabletsNeedingRecovery || 0)));
+  body.append(createRow("Fate Tx Queued", bigNumberForQuantity(data.totalFateSubmitted || 0)));
+  body.append(createRow("Fate Tx Running", bigNumberForQuantity(data.totalFateRunning || 0)));
+  body.append(createRow("Servers Low On Memory", bigNumberForQuantity(data.totalServersLowMem || 0)));
+
+  var table = $('#ingest-overview-table');
+  $(table).find('thead').remove();
+  var body = $(table).find('tbody');
+  body.empty();
+  body.append(createRow("Entries", bigNumberForQuantity(data.ingestTotalEntries || 0)));
+  body.append(createRow("Bytes", bigNumberForSize(data.ingestTotalEntriesBytes || 0)));
+  body.append(createRow("Entries In Memory", bigNumberForQuantity(data.ingestTotalEntriesInMem || 0)));
+  body.append(createRow("TServers Holding For MinC", bigNumberForQuantity(data.ingestNumTServersHolding || 0)));
+  body.append(createRow("MinC Queued", bigNumberForQuantity(data.totalMinCQueued || 0)));
+  body.append(createRow("MinC Running", bigNumberForQuantity(data.totalMinCRunning || 0)));
+  body.append(createRow("MinC Completed", bigNumberForQuantity(data.totalMinCCompleted || 0)));
+  body.append(createRow("Bulk Imports Queued", bigNumberForQuantity(data.ingestBulkImportQueued || 0)));
+  body.append(createRow("Bulk Imports Running", bigNumberForQuantity(data.ingestBulkImportRunning || 0)));
+
+  var table = $('#scan-overview-table');
+  $(table).find('thead').remove();
+  var body = $(table).find('tbody');
+  body.empty();
+  body.append(createRow("Scans In Progress", bigNumberForQuantity(data.scansTotalInProgress || 0)));
+  body.append(createRow("Entries Scanned", bigNumberForQuantity(data.scansTotalKvScanned || 0)));
+  body.append(createRow("Entries Returned", bigNumberForQuantity(data.scansTotalKvReturned || 0)));
+  body.append(createRow("Bytes Returned", bigNumberForSize(data.scansTotalKvReturnedBytes || 0)));
+  body.append(createRow("Open Files", bigNumberForQuantity(data.scanTotalOpenFiles || 0)));
+
+  var table = $('#compaction-overview-table');
+  $(table).find('thead').remove();
+  var body = $(table).find('tbody');
+  body.empty();
+  body.append(createRow("MajC Queued", bigNumberForQuantity(data.compactionsQueued || 0)));
+  body.append(createRow("MajC Dequeued", bigNumberForQuantity(data.compactionsDequeued || 0)));
+  body.append(createRow("MajC Running", bigNumberForQuantity(data.compactionsRunning || 0)));
+  body.append(createRow("MajC Failed", bigNumberForQuantity(data.compactionsFailed || 0)));
+}
+
+function createRow(name, value) {
+  var row = $(document.createElement("tr"));
+  row.append(createFirstCell(name, name))
+  row.append(createRightCell(value, value));
+  return row;
+}
+
 /**
  * Refreshes the deployment overview tables
  */
 function refreshDeploymentTables() {
-  getDeployment().then(function () {
-    var data = JSON.parse(sessionStorage.deployment);
-    var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
-    deploymentBreakdown = breakdown;
+  var data = JSON.parse(sessionStorage.deployment);
+  var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+  deploymentBreakdown = breakdown;
 
-    if (breakdown.length === 0) {
-      $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
-        'No deployment data is currently available.</div>');
-    } else {
-      $('#deploymentWarning').empty();
-    }
+  if (breakdown.length === 0) {
+    $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
+      'No deployment data is currently available.</div>');
+  } else {
+    $('#deploymentWarning').empty();
+  }
 
-    renderDeploymentMatrix(breakdown);
-  });
+  renderDeploymentMatrix(breakdown);
 }
 
 function renderDeploymentMatrix(breakdown) {
