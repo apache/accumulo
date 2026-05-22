@@ -27,7 +27,7 @@
           <tr>
             <th class="col-xs-2">Priority</th>
             <th class="col-xs-2">Category</th>
-            <th class="col-xs-8">Alert</th>
+            <th class="col-xs-8">Message</th>
           </tr>
         </thead>
         <tbody></tbody>
