@@ -43,6 +43,7 @@ const ALERT_CATEGORIES = 'alertCategories';
 const ALERTS = 'alerts';
 const ALERT_COUNTS = 'alertCounts';
 const RECOVERY = 'recovery';
+const SCANS = 'scans';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -475,7 +476,7 @@ function getTServer(server) {
  * REST GET call for the scans, stores it on a sessionStorage variable
  */
 function getScans() {
-  return getJSONForTable(contextPath + 'rest/scans', 'scans');
+  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
 }
 
 /**
