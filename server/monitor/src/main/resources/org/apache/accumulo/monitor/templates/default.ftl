@@ -79,8 +79,7 @@
     <a id="critical-alert-banner" class="critical-alert-banner alert alert-danger d-none" href="alerts" aria-live="polite">
       <span>
         <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-        <strong>Critical alerts are present:</strong>
-        <span id="critical-alert-count">0</span>
+        <strong id="critical-alert-message">0 critical alerts present</strong>
       </span>
       <span class="btn btn-danger btn-sm fw-semibold">View alerts</span>
     </a>

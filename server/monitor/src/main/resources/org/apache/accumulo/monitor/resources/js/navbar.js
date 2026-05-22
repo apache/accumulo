@@ -245,7 +245,7 @@ function refreshAlerts() {
 
     const alertAnchor = $('#alert-anchor');
     const criticalAlertBanner = $('#critical-alert-banner');
-    const criticalAlertCountElement = $('#critical-alert-count');
+    const criticalAlertMessageElement = $('#critical-alert-message');
 
     const alertCounts = getStoredJson(ALERT_COUNTS, {
       "Critical": 0,
@@ -267,7 +267,8 @@ function refreshAlerts() {
     }
 
     if (criticalAlertCount > 0 && !window.location.pathname.endsWith('/alerts')) {
-      criticalAlertCountElement.text(criticalAlertCount);
+      const alertLabel = criticalAlertCount <= 1 ? 'alert' : 'alerts';
+      criticalAlertMessageElement.text(criticalAlertCount + ' critical ' + alertLabel + ' present');
       criticalAlertBanner.removeClass('d-none');
     } else {
       criticalAlertBanner.addClass('d-none');
