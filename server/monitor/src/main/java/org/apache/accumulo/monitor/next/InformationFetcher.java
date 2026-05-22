@@ -562,6 +562,31 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
 
     @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      result = prime * result + Objects.hash(getResource());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ActiveScansFetcher other = (ActiveScansFetcher) obj;
+      return Objects.equals(getType(), other.getType())
+          && Objects.equals(getResource(), other.getResource());
+    }
+
+    @Override
     public void run() {
       final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
       TabletScanClientService.Client client = null;
