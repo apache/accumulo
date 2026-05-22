@@ -152,7 +152,7 @@ $(function () {
   updateDarkThemeSwitch();
   updateAlertPriorities();
   refreshSidebar();
-  refreshAlertBadge();
+  refreshAlerts();
 
   categories = getStoredArray(ALERT_CATEGORIES);
   if (categories.length === 0) {
@@ -179,7 +179,7 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  refreshAlertBadge();
+  refreshAlerts();
 }
 
 /**
@@ -238,20 +238,22 @@ function updateDarkThemeSwitch() {
 }
 
 /**
- * Updates the badge on the Alerts label on the Nav Bar
+ * Updates the badge on the Alerts label on the Nav Bar and the global critical alert banner
  */
-function refreshAlertBadge() {
+function refreshAlerts() {
   getAlertCounts().then(function () {
 
-    var alertAnchor = $('#alert-anchor');
+    const alertAnchor = $('#alert-anchor');
+    const criticalAlertBanner = $('#critical-alert-banner');
+    const criticalAlertCountElement = $('#critical-alert-count');
 
-    var alertCounts = getStoredJson(ALERT_COUNTS, {
+    const alertCounts = getStoredJson(ALERT_COUNTS, {
       "Critical": 0,
       "High": 0,
       "Info": 0
     });
-    var criticalAlertCount = alertCounts.Critical;
-    var highAlertCount = alertCounts.High;
+    const criticalAlertCount = alertCounts.Critical;
+    const highAlertCount = alertCounts.High;
 
     alertAnchor.find('span').remove();
 
@@ -262,6 +264,13 @@ function refreshAlertBadge() {
       alertAnchor.append(
         '<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-warning">' +
         highAlertCount + '</span>');
+    }
+
+    if (criticalAlertCount > 0 && !window.location.pathname.endsWith('/alerts')) {
+      criticalAlertCountElement.text(criticalAlertCount);
+      criticalAlertBanner.removeClass('d-none');
+    } else {
+      criticalAlertBanner.addClass('d-none');
     }
   });
 }
