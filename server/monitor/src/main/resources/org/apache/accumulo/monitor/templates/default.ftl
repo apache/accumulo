@@ -64,6 +64,7 @@
        */
       $(function() {
         setupAutoRefresh();
+        refreshLastUpdate();
       });
     </script>
     <#if js??>
@@ -86,8 +87,12 @@
 
     <div id="main" class="container-fluid">
       <#include "${template}">
+      <br />
+      <div id="lastUpdateDiv" class="center">
+      </div>
     </div>
 
     <#include "modals.ftl">
+
   </body>
 </html>

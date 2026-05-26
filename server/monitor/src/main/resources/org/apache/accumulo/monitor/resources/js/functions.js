@@ -43,6 +43,7 @@ const ALERT_CATEGORIES = 'alertCategories';
 const ALERTS = 'alerts';
 const ALERT_COUNTS = 'alertCounts';
 const RECOVERY = 'recovery';
+const LAST_UPDATE = 'lastUpdate';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -87,9 +88,21 @@ TIMER = setInterval(function () {
   if (localStorage.getItem(AUTO_REFRESH_KEY) === 'true') {
     refresh();
     refreshNavBar();
+    refreshLastUpdate();
   }
 }, 5000);
 
+
+function refreshLastUpdate() {
+  getLastUpdate().then(function () {
+    var timing = getStoredJson(LAST_UPDATE, {});
+    $('#lastUpdateDiv').empty();
+    var msg = $(document.createElement("span"));
+    msg.text('Data as of ' + dateFormat(timing.finishTime).replace(/&nbsp;/g, ' ') +
+      '. Took ' + timeDuration(timing.durationMs).replace(/&nbsp;/g, ' ') + ' to collect.');
+    $('#lastUpdateDiv').append(msg);
+  });
+}
 /**
  * Adds the suffix to the number, converts the number to one close to the base
  *
@@ -838,6 +851,14 @@ function getRunningCompactionsByTable() {
  */
 function getRunningCompactionsByGroup() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
+}
+
+/**
+ * REST GET call for /lastUpdate,
+ * stores it on a sessionStorage variable
+ */
+function getLastUpdateTime() {
+  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
 }
 
 

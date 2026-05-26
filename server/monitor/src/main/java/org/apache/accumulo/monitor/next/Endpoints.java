@@ -61,6 +61,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.AlertPriority;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
+import org.apache.accumulo.monitor.next.SystemInformation.FetchCycleTimes;
 import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
@@ -182,7 +183,7 @@ public class Endpoints {
   public MonitorStatus getStatus() {
     SystemInformation summary = monitor.getInformationFetcher().getSummaryForEndpoint();
     return new MonitorStatus(summary.getManagerGoalState(), summary.getComponentStatuses(),
-        summary.getTimestamp());
+        summary.getCollectionTiming().finishTime());
   }
 
   @GET
@@ -385,7 +386,8 @@ public class Endpoints {
   @Description("Returns External Compactor process details")
   public CompactorsSummary getExternalCompactors() {
     var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return new CompactorsSummary(summary.getCompactorServers(), summary.getTimestamp());
+    return new CompactorsSummary(summary.getCompactorServers(),
+        summary.getCollectionTiming().finishTime());
   }
 
   @GET
@@ -518,8 +520,8 @@ public class Endpoints {
   @Path("lastUpdate")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the timestamp of when the monitor information was last refreshed")
-  public long getTimestamp() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getTimestamp();
+  public FetchCycleTimes getTimestamp() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getCollectionTiming();
   }
 
   @GET
