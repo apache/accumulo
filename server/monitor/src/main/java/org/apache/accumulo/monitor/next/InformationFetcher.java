@@ -20,10 +20,10 @@ package org.apache.accumulo.monitor.next;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Monitor;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Info;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Monitor;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Info;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -708,11 +708,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
 
       } else {
-        summary.addMessage(Critical, Table,
-            metadataNoLocation + " metadata tablets are not hosted");
+        summary.addAlert(Critical, Table, metadataNoLocation + " metadata tablets are not hosted");
       }
     } else {
-      summary.addMessage(Critical, Table, "The root tablet is not currently hosted");
+      summary.addAlert(Critical, Table, "The root tablet is not currently hosted");
     }
   }
 
@@ -850,7 +849,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           }
         }
         if (!firstIteration) {
-          // Update current messages on the Monitor that we are
+          // Update current alerts on the Monitor that we are
           // waiting on tasks to complete to complete a refresh
           final String waitingMsg = "Waiting on " + futures.size()
               + " tasks to complete. Time remaining before cancellation: "
@@ -859,9 +858,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
               + " seconds";
           SystemInformation currentSummary = summaryRef.get();
           if (currentSummary != null) {
-            currentSummary.removeMessage(Info, Monitor,
+            currentSummary.removeAlert(Info, Monitor,
                 " tasks to complete. Time remaining before cancellation: ");
-            currentSummary.addMessage(Info, Monitor, waitingMsg);
+            currentSummary.addAlert(Info, Monitor, waitingMsg);
           }
         }
 

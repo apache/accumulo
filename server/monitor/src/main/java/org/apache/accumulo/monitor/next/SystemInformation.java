@@ -20,13 +20,13 @@ package org.apache.accumulo.monitor.next;
 
 import static com.google.common.base.Suppliers.memoize;
 import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Monitor;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Resource;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.High;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Info;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Monitor;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Resource;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.High;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Info;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -387,11 +387,11 @@ public class SystemInformation {
   public record CompactionGroupSummary(String groupId, long running) {
   }
 
-  public enum MessagePriority {
+  public enum AlertPriority {
     Critical, High, Info;
   }
 
-  public enum MessageCategory {
+  public enum AlertCategory {
     Configuration, Monitor, Resource, Table;
   }
 
@@ -531,10 +531,9 @@ public class SystemInformation {
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
 
-  private final Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
-      new EnumMap<>(MessagePriority.class);
-  private final EnumMap<MessagePriority,AtomicLong> messageCounts =
-      new EnumMap<>(MessagePriority.class);
+  private final Map<AlertPriority,Map<AlertCategory,Set<String>>> alerts =
+      new EnumMap<>(AlertPriority.class);
+  private final EnumMap<AlertPriority,AtomicLong> alertCounts = new EnumMap<>(AlertPriority.class);
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
@@ -554,9 +553,7 @@ public class SystemInformation {
     this.ctx = ctx;
     this.rgLongRunningCompactionSize =
         this.ctx.getConfiguration().getCount(Property.MONITOR_LONG_RUNNING_COMPACTION_LIMIT);
-    for (MessagePriority p : MessagePriority.values()) {
-      messageCounts.put(p, new AtomicLong(0));
-    }
+    resetAlertCounts();
   }
 
   public void clear() {
@@ -580,7 +577,7 @@ public class SystemInformation {
     tables.clear();
     tablets.clear();
     deployment.clear();
-    messages.clear();
+    alerts.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
     tableCompactions.clear();
@@ -590,32 +587,38 @@ public class SystemInformation {
     managerGoalState = null;
     serverMetricsView.clear();
     fateTransactions.clear();
-    messageCounts.clear();
+    resetAlertCounts();
   }
 
-  public void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
-    messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
+  public void addAlert(AlertPriority pri, AlertCategory cat, String msg) {
+    alerts.computeIfAbsent(pri, k -> new EnumMap<>(AlertCategory.class))
         .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
   }
 
-  public void removeMessage(MessagePriority pri, MessageCategory cat, String part) {
-    messages.getOrDefault(pri, new EnumMap<>(MessageCategory.class))
+  public void removeAlert(AlertPriority pri, AlertCategory cat, String part) {
+    alerts.getOrDefault(pri, new EnumMap<>(AlertCategory.class))
         .getOrDefault(cat, new HashSet<String>()).removeIf(s -> s.contains(part));
   }
 
-  private void computeMessageCounts() {
-    for (MessagePriority pri : MessagePriority.values()) {
+  private void resetAlertCounts() {
+    for (AlertPriority pri : AlertPriority.values()) {
+      alertCounts.computeIfAbsent(pri, k -> new AtomicLong(0)).set(0);
+    }
+  }
+
+  private void computeAlertCounts() {
+    for (AlertPriority pri : AlertPriority.values()) {
       long count = 0;
-      Map<MessageCategory,Set<String>> cats = messages.get(pri);
+      Map<AlertCategory,Set<String>> cats = alerts.get(pri);
       if (cats != null) {
-        for (MessageCategory cat : MessageCategory.values()) {
-          Set<String> msgs = cats.get(cat);
-          if (msgs != null) {
-            count += msgs.size();
+        for (AlertCategory cat : AlertCategory.values()) {
+          Set<String> messages = cats.get(cat);
+          if (messages != null) {
+            count += messages.size();
           }
         }
       }
-      messageCounts.get(pri).set(count);
+      alertCounts.get(pri).set(count);
     }
   }
 
@@ -825,21 +828,20 @@ public class SystemInformation {
             boolean recovering = getMetricValue(flatbuffer).longValue() > 0;
             this.recoveries.getOverview().setRootTabletRecovering(recovering);
             if (recovering) {
-              addMessage(Critical, Table, "The root table requires recovery");
+              addAlert(Critical, Table, "The root table requires recovery");
             }
           } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
             long tablets = getMetricValue(flatbuffer).longValue();
             this.recoveries.getOverview().setMetadataTabletsRecovering(tablets);
             if (tablets > 0) {
-              addMessage(Critical, Table,
+              addAlert(Critical, Table,
                   "At least " + tablets + " metadata table tablets require recovery");
             }
           } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
             long tablets = getMetricValue(flatbuffer).longValue();
             this.recoveries.getOverview().setUserTabletsRecovering(tablets);
             if (tablets > 0) {
-              addMessage(High, Table,
-                  "At least " + tablets + " user table tablets require recovery");
+              addAlert(High, Table, "At least " + tablets + " user table tablets require recovery");
             }
           }
         }
@@ -954,11 +956,11 @@ public class SystemInformation {
     configuredCompactionResourceGroups.addAll(groups);
   }
 
-  private void computeMessages(final List<UpdateTaskFuture> failures,
+  private void computeAlerts(final List<UpdateTaskFuture> failures,
       final List<UpdateTaskFuture> cancelled) {
 
     if (failures.size() > 0) {
-      addMessage(High, Monitor,
+      addAlert(High, Monitor,
           "There were " + failures.size() + " failures in the last monitor update cycle."
               + " Information displayed may be out of date or missing.");
     }
@@ -969,7 +971,7 @@ public class SystemInformation {
       String message =
           "Fetching information for Monitor has taken longer than %1$d ms. (%2$d) tasks were cancelled."
               + " Information displayed may be out of date or missing. Resolve the issue causing this or increase property `%3$s`.";
-      addMessage(High, Monitor, String.format(message, monitorFetchTimeout, cancelled.size(),
+      addAlert(High, Monitor, String.format(message, monitorFetchTimeout, cancelled.size(),
           Property.MONITOR_FETCH_TIMEOUT.getKey()));
     }
 
@@ -978,11 +980,11 @@ public class SystemInformation {
     for (UpdateTaskFuture f : failures) {
       switch (f.task().getType()) {
         case COMPACTION:
-          addMessage(Info, Monitor,
+          addAlert(Info, Monitor,
               "The task to get information about currently running compactions failed");
           break;
         case COMPACTION_RGS:
-          addMessage(Info, Monitor,
+          addAlert(Info, Monitor,
               "The task to get information about configured compaction resource groups failed");
           break;
         case METRIC:
@@ -1001,11 +1003,11 @@ public class SystemInformation {
     for (UpdateTaskFuture f : cancelled) {
       switch (f.task().getType()) {
         case COMPACTION:
-          addMessage(Info, Monitor,
+          addAlert(Info, Monitor,
               "The task to get information about currently running compactions was cancelled");
           break;
         case COMPACTION_RGS:
-          addMessage(Info, Monitor,
+          addAlert(Info, Monitor,
               "The task to get information about configured compaction resource groups was cancelled");
           break;
         case METRIC:
@@ -1022,36 +1024,36 @@ public class SystemInformation {
     }
 
     if (failedOrCancelledServers.size() > 0) {
-      addMessage(High, Monitor, failedOrCancelledServers.size()
+      addAlert(High, Monitor, failedOrCancelledServers.size()
           + " tasks to get information from servers were failed or cancelled.");
-      addMessage(Info, Monitor,
+      addAlert(Info, Monitor,
           "The Monitor is not displaying updated information for the following servers: "
               + failedOrCancelledServers);
     }
 
     if (failedOrCancelledTables.size() > 0) {
-      addMessage(High, Monitor, failedOrCancelledTables.size()
+      addAlert(High, Monitor, failedOrCancelledTables.size()
           + " tasks to get information for tables were failed or cancelled.");
-      addMessage(Info, Monitor,
+      addAlert(Info, Monitor,
           "The Monitor is not displaying updated information for the following tables: "
               + failedOrCancelledTables);
     }
 
     if (managers.isEmpty()) {
-      addMessage(Critical, Resource, "No Managers are running");
+      addAlert(Critical, Resource, "No Managers are running");
     }
 
     if (gc.get() == null) {
-      addMessage(Critical, Resource, "Garbage Collector is not running");
+      addAlert(Critical, Resource, "Garbage Collector is not running");
     }
 
     if (problemHosts.size() > 0) {
-      addMessage(Info, Resource, "Monitor has not received a response from " + problemHosts.size()
+      addAlert(Info, Resource, "Monitor has not received a response from " + problemHosts.size()
           + " servers recently: " + problemHosts);
     }
 
     if (metricProblemHosts.size() > 0) {
-      addMessage(Info, Resource,
+      addAlert(Info, Resource,
           "Unable to gather information from " + metricProblemHosts.size() + " servers");
     }
 
@@ -1061,7 +1063,7 @@ public class SystemInformation {
       }
       if (!compactors.containsKey(rg.canonical()) && !sservers.containsKey(rg.canonical())
           && !tservers.containsKey(rg.canonical())) {
-        addMessage(Info, Configuration, "Resource Group " + rg
+        addAlert(Info, Configuration, "Resource Group " + rg
             + " exists, but no resources assigned. Consider removing the resource group with command `accumulo inst init --remove-resource-groups`");
       }
     }
@@ -1074,7 +1076,7 @@ public class SystemInformation {
         }
       }
       if (empty > 0) {
-        addMessage(Info, Table,
+        addAlert(Info, Table,
             "Table " + tid + " may have " + empty + " tablets that could be merged.");
       }
     });
@@ -1084,7 +1086,7 @@ public class SystemInformation {
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
       balancerRG = balancerRG == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : balancerRG;
       if (!tservers.containsKey(balancerRG)) {
-        addMessage(Critical, Table,
+        addAlert(Critical, Table,
             "Table " + table.tableName() + " configured to balance tablets in resource group "
                 + balancerRG + ", but there are no TabletServers.");
       }
@@ -1111,7 +1113,7 @@ public class SystemInformation {
       }
     }
     if (serversWithZombieScans > 0) {
-      addMessage(High, Resource,
+      addAlert(High, Resource,
           "There are " + serversWithZombieScans + " servers with zombie scan threads");
     }
 
@@ -1128,7 +1130,7 @@ public class SystemInformation {
         Number numQueued = getMetricValue(queued.orElseThrow());
         if (numQueued.longValue() > 0) {
           if (rgCompactors == null || rgCompactors.size() == 0) {
-            addMessage(Critical, Configuration, "Compactor group " + rg + " has "
+            addAlert(Critical, Configuration, "Compactor group " + rg + " has "
                 + numQueued.longValue() + " queued compactions but no running compactors");
           } else {
             // Check for idle compactors.
@@ -1143,7 +1145,7 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                addMessage(High, Resource,
+                addAlert(High, Resource,
                     "Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
@@ -1155,7 +1157,7 @@ public class SystemInformation {
 
     for (var compactorGroup : compactors.keySet()) {
       if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
-        addMessage(High, Configuration, "Compactor group " + compactorGroup
+        addAlert(High, Configuration, "Compactor group " + compactorGroup
             + " has running compactors, but no configuration uses them.");
       }
     }
@@ -1171,7 +1173,7 @@ public class SystemInformation {
           .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
     });
 
-    computeMessages(failures, cancelled);
+    computeAlerts(failures, cancelled);
 
     componentStatuses.clear();
     for (final ServerId.Type type : ServerId.Type.values()) {
@@ -1226,7 +1228,7 @@ public class SystemInformation {
       }
     }
     deploymentOverview = DeploymentOverview.fromSummary(deployment);
-    computeMessageCounts();
+    computeAlertCounts();
     timestamp.set(System.currentTimeMillis());
   }
 
@@ -1395,16 +1397,16 @@ public class SystemInformation {
     return this.deploymentOverview;
   }
 
-  public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
-    return this.messages;
+  public Map<AlertPriority,Map<AlertCategory,Set<String>>> getAlerts() {
+    return this.alerts;
   }
 
   public List<FateTransaction> getFateTransactions() {
     return this.fateTransactions;
   }
 
-  public Map<MessagePriority,AtomicLong> getMessageCounts() {
-    return this.messageCounts;
+  public Map<AlertPriority,AtomicLong> getAlertCounts() {
+    return this.alertCounts;
   }
 
   public long getTimestamp() {

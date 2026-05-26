@@ -77,6 +77,14 @@
   <body>
     <#include "navbar.ftl">
 
+    <a id="critical-alert-banner" class="critical-alert-banner alert alert-danger d-none" href="alerts" aria-live="polite">
+      <span>
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <strong id="critical-alert-message">0 critical alerts present</strong>
+      </span>
+      <span class="btn btn-danger btn-sm fw-semibold">View alerts</span>
+    </a>
+
     <div id="main" class="container-fluid">
       <#include "${template}">
       <br />

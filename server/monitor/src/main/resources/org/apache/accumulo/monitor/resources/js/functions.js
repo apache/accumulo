@@ -38,10 +38,10 @@ var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
-const MESSAGE_CATEGORIES = 'messageCategories';
-const MESSAGES = 'messages';
 const FATE = 'fate';
-const MESSAGE_COUNTS = 'messageCounts'
+const ALERT_CATEGORIES = 'alertCategories';
+const ALERTS = 'alerts';
+const ALERT_COUNTS = 'alertCounts';
 const RECOVERY = 'recovery';
 const LAST_UPDATE = 'lastUpdate';
 
@@ -554,28 +554,28 @@ function getTserversSummary(group) {
 }
 
 /**
- * REST GET call for /message/categories
+ * REST GET call for /alerts/categories
  * store it on a sessionStorage variable
  */
-function getMessageCategories() {
-  return getJSONForTable(REST_V2_PREFIX + '/message/categories', MESSAGE_CATEGORIES);
+function getAlertCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/alerts/categories', ALERT_CATEGORIES);
 }
 
 /**
- * REST GET call for /message/counts
+ * REST GET call for /alerts/counts
  * store it on a sessionStorage variable
  */
-function getMessageCounts() {
-  return getJSONForTable(REST_V2_PREFIX + '/message/counts', MESSAGE_COUNTS);
+function getAlertCounts() {
+  return getJSONForTable(REST_V2_PREFIX + '/alerts/counts', ALERT_COUNTS);
 }
 
 /**
- * REST GET call for /messages,
+ * REST GET call for /alerts,
  * results are not stored in session as this
  * function takes parameters driven by toggles
  * in the UI.
  */
-function getMessages(high, info, cats) {
+function getAlerts(high, info, cats) {
 
   const params = new URLSearchParams();
   params.append('high', high);
@@ -584,8 +584,8 @@ function getMessages(high, info, cats) {
     params.append('category', cat);
   });
 
-  var call = REST_V2_PREFIX + '/messages?' + params.toString();
-  return getJSONForTable(call, MESSAGES);
+  var call = REST_V2_PREFIX + '/alerts?' + params.toString();
+  return getJSONForTable(call, ALERTS);
 }
 
 /**
