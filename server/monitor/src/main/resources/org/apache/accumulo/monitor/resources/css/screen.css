@@ -71,6 +71,22 @@ body {
   width: 90%;
 }
 
+.critical-alert-banner {
+  align-items: center;
+  border-radius: 0;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 0;
+  text-align: center;
+  text-decoration: none;
+}
+
+.critical-alert-banner:hover,
+.critical-alert-banner:focus {
+  text-decoration: none;
+}
+
 h1 {
   font-size: 2.2em;
   text-align: center;

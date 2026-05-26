@@ -18,52 +18,52 @@
  */
 "use strict";
 
-const messageHtmlTable = '#messagesTable';
+const alertHtmlTable = '#alertsTable';
 
 var dataTableRef;
 var categories;
 
 function fetchTableData() {
 
-  var highSwitchId = "msg-pri-switch-High";
+  var highSwitchId = "alert-pri-switch-High";
   var savedValue = localStorage.getItem(highSwitchId + "-state");
   var high = false;
   if (savedValue === null || savedValue === 'true') {
     high = true;
   }
 
-  var InfoSwitchId = "msg-pri-switch-Info";
-  savedValue = localStorage.getItem(InfoSwitchId + "-state");
+  var infoSwitchId = "alert-pri-switch-Info";
+  savedValue = localStorage.getItem(infoSwitchId + "-state");
   var info = false;
   if (savedValue === null || savedValue === 'true') {
     info = true;
   }
 
-  var categories = getStoredArray(MESSAGE_CATEGORIES);
+  var categories = getStoredArray(ALERT_CATEGORIES);
   if (categories.length === 0) {
-    sessionStorage.setItem(MESSAGES, JSON.stringify([]));
+    sessionStorage.setItem(ALERTS, JSON.stringify([]));
     return $.Deferred().resolve().promise();
   }
 
   var cats = [];
   $.each(categories, function (index, cat) {
-    var savedValue = localStorage.getItem("msg-cat-switch-" + cat + "-state");
+    var savedValue = localStorage.getItem("alert-cat-switch-" + cat + "-state");
     if (savedValue === null || savedValue === 'true') {
       cats.push(cat);
     }
   });
-  return getMessages(high, info, cats);
+  return getAlerts(high, info, cats);
 }
 
 function getTableData() {
-  return getStoredArray(MESSAGES);
+  return getStoredArray(ALERTS);
 }
 
-function loadMessagesPageData() {
+function loadAlertsPageData() {
 
-  categories = getStoredArray(MESSAGE_CATEGORIES);
+  categories = getStoredArray(ALERT_CATEGORIES);
   if (categories.length === 0) {
-    return getMessageCategories().then(function () {
+    return getAlertCategories().then(function () {
       return fetchTableData();
     });
   } else {
@@ -72,7 +72,7 @@ function loadMessagesPageData() {
 }
 
 function refresh() {
-  return loadMessagesPageData().then(function () {
+  return loadAlertsPageData().then(function () {
     if (dataTableRef) {
       ajaxReloadTable(dataTableRef);
     }
@@ -80,7 +80,7 @@ function refresh() {
 }
 
 function createDataTable() {
-  dataTableRef = $(messageHtmlTable).DataTable({
+  dataTableRef = $(alertHtmlTable).DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
@@ -107,7 +107,7 @@ function createDataTable() {
 }
 
 $(function () {
-  loadMessagesPageData().then(function () {
+  loadAlertsPageData().then(function () {
     createDataTable();
   });
 });

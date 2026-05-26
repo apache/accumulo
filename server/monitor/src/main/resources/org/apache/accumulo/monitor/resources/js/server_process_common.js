@@ -47,8 +47,7 @@
  *       "description": "Description of Column B",
  *       "uiClass": ""
  *     }
- *   ],
- *   timestamp: long
+ *   ]
  * }
  *
  * The value for the 'columns' key is an array of column definitions. The value for the
