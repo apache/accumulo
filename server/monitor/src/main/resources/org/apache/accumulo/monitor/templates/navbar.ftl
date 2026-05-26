@@ -63,7 +63,7 @@
               </ul>
             </li>
             <li>
-              <a id="message-anchor" class="nav-link" aria-current="page" href="messages">Messages</a>
+              <a id="alert-anchor" class="nav-link" aria-current="page" href="alerts">Alerts</a>
             </li>            
             <li class="dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
@@ -98,25 +98,25 @@
                   </div>
                 </li>
                 <li><hr class="dropdown-divider"></li>
-                <li><h6 class="dropdown-header fw-semibold pb-1">Message Priorities</h6></li>
+                <li><h6 class="dropdown-header fw-semibold pb-1">Alert Priorities</h6></li>
                 <li>
                   <div class="dropdown-item d-flex justify-content-between align-items-center small">
-                    <label class="form-check-label" for="msg-pri-switch-High">High</label>
+                    <label class="form-check-label" for="alert-pri-switch-High">High</label>
                     <div class="form-check form-switch d-flex align-items-center mb-0 p-0 fs-6">
-                      <input id="msg-pri-switch-High" class="form-check-input float-none m-0" type="checkbox" role="switch">
+                      <input id="alert-pri-switch-High" class="form-check-input float-none m-0" type="checkbox" role="switch">
                     </div>
                   </div>
                 </li>
                 <li>
                   <div class="dropdown-item d-flex justify-content-between align-items-center small">
-                    <label class="form-check-label" for="msg-pri-switch-Info">Info</label>
+                    <label class="form-check-label" for="alert-pri-switch-Info">Info</label>
                     <div class="form-check form-switch d-flex align-items-center mb-0 p-0 fs-6">
-                      <input id="msg-pri-switch-Info" class="form-check-input float-none m-0" type="checkbox" role="switch">
+                      <input id="alert-pri-switch-Info" class="form-check-input float-none m-0" type="checkbox" role="switch">
                     </div>
                   </div>
                 </li>
                 <li><hr class="dropdown-divider"></li>
-                <li><h6 class="dropdown-header fw-semibold pb-1">Message Categories</h6></li>
+                <li><h6 class="dropdown-header fw-semibold pb-1">Alert Categories</h6></li>
                 <div id="categories-list">
                 </div>
                 <li><hr class="dropdown-divider"></li>
