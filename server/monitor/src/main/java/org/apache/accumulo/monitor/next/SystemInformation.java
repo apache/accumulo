@@ -469,6 +469,9 @@ public class SystemInformation {
       long created, List<String> heldLocks, List<String> waitingLocks, LockRangeType lockRange) {
   }
 
+  public record FetchCycleTimes(long durationMs, long finishTime) {
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -539,7 +542,6 @@ public class SystemInformation {
 
   private final List<FateTransaction> fateTransactions = new ArrayList<>();
 
-  private final AtomicLong timestamp = new AtomicLong(0);
   private final EnumMap<ServerId.Type,Status> componentStatuses =
       new EnumMap<>(ServerId.Type.class);
   private final EnumMap<TableDataFactory.TableName,Supplier<TableData>> serverMetricsView =
@@ -547,6 +549,7 @@ public class SystemInformation {
   private DeploymentOverview deploymentOverview = new DeploymentOverview(List.of());
   private String managerGoalState;
   private final int rgLongRunningCompactionSize;
+  private FetchCycleTimes timing = null;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
     this.allMetrics = allMetrics;
@@ -1164,8 +1167,8 @@ public class SystemInformation {
 
   }
 
-  public void finish(final List<UpdateTaskFuture> failures,
-      final List<UpdateTaskFuture> cancelled) {
+  public void finish(final List<UpdateTaskFuture> failures, final List<UpdateTaskFuture> cancelled,
+      long fetchCycleStart) {
     // Update the deployment not-responded numbers based
     // on metric fetch failures for this refresh.
     metricProblemHosts.forEach(serverId -> {
@@ -1229,7 +1232,8 @@ public class SystemInformation {
     }
     deploymentOverview = DeploymentOverview.fromSummary(deployment);
     computeAlertCounts();
-    timestamp.set(System.currentTimeMillis());
+    long fetchCycleFinish = System.currentTimeMillis();
+    timing = new FetchCycleTimes((fetchCycleFinish - fetchCycleStart), fetchCycleFinish);
   }
 
   public Set<String> getResourceGroups() {
@@ -1409,8 +1413,8 @@ public class SystemInformation {
     return this.alertCounts;
   }
 
-  public long getTimestamp() {
-    return this.timestamp.get();
+  public FetchCycleTimes getCollectionTiming() {
+    return this.timing;
   }
 
   /**

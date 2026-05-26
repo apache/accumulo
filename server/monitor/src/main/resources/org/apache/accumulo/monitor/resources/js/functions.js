@@ -95,10 +95,11 @@ TIMER = setInterval(function () {
 
 function refreshLastUpdate() {
   getLastUpdate().then(function () {
-    var timestamp = getStoredJson(LAST_UPDATE, 0);
+    var timing = getStoredJson(LAST_UPDATE, {});
     $('#lastUpdateDiv').empty();
     var msg = $(document.createElement("span"));
-    msg.text('Displayed information was calculated at ' + dateFormat(timestamp).replace(/&nbsp;/g, ' '));
+    msg.text('Data as of ' + dateFormat(timing.finishTime).replace(/&nbsp;/g, ' ') +
+      '. Took ' + timeDuration(timing.durationMs).replace(/&nbsp;/g, ' ') + ' to collect.');
     $('#lastUpdateDiv').append(msg);
   });
 }

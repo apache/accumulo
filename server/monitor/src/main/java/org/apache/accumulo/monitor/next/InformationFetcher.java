@@ -739,6 +739,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       newConnectionEvent.compareAndExchange(true, false);
 
       LOG.info("Fetching information from servers");
+      long fetchCycleStart = System.currentTimeMillis();
 
       final UpdateTasks futures = new UpdateTasks();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
@@ -873,7 +874,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       lastRunTime = NanoTime.now();
 
       retainedProblemServers.asMap().keySet().forEach(summary::retainProblemServer);
-      summary.finish(failures, cancelled);
+      summary.finish(failures, cancelled, fetchCycleStart);
 
       LOG.info("Finished fetching metrics from servers");
       LOG.info(
