@@ -474,6 +474,9 @@ public class SystemInformation {
       long idleTime) {
   }
 
+  public record FetchCycleTimes(long durationMs, long finishTime) {
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -547,14 +550,14 @@ public class SystemInformation {
 
   private final List<FateTransaction> fateTransactions = new ArrayList<>();
 
-  private final AtomicLong timestamp = new AtomicLong(0);
   private final EnumMap<ServerId.Type,Status> componentStatuses =
       new EnumMap<>(ServerId.Type.class);
   private final EnumMap<TableDataFactory.TableName,Supplier<TableData>> serverMetricsView =
       new EnumMap<>(TableDataFactory.TableName.class);
-  private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
+  private DeploymentOverview deploymentOverview = new DeploymentOverview(List.of());
   private String managerGoalState;
   private final int rgLongRunningCompactionSize;
+  private FetchCycleTimes timing = null;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
     this.allMetrics = allMetrics;
@@ -800,9 +803,9 @@ public class SystemInformation {
 
     if (!qm.isEmpty()) {
       // Create a ServersView object from the MetricResponse for each queue
-      return TableDataFactory.forColumns(qm.keySet(), qm, timestamp.get(), cols);
+      return TableDataFactory.forColumns(qm.keySet(), qm, cols);
     }
-    return TableDataFactory.forColumns(Set.of(), Map.of(), timestamp.get(), cols);
+    return TableDataFactory.forColumns(Set.of(), Map.of(), cols);
   }
 
   public void processResponse(final ServerId server, final MetricResponse response) {
@@ -814,12 +817,25 @@ public class SystemInformation {
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
         .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
     captureRecoveriesInProgress(server, response);
+    FMetric flatbuffer = new FMetric();
     switch (response.serverType) {
       case COMPACTOR:
         compactors
             .computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
         updateAggregates(response, totalCompactorMetrics, rgCompactorMetrics);
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getName())) {
+            boolean failures = getMetricValue(flatbuffer).longValue() > 0;
+            if (failures) {
+              addAlert(Info, Resource,
+                  "Compactor has had " + failures + " consecutive failures: " + server.toString());
+            }
+            break;
+          }
+        }
         break;
       case GARBAGE_COLLECTOR:
         if (gc.get() == null || !gc.get().equals(server)) {
@@ -828,7 +844,6 @@ public class SystemInformation {
         break;
       case MANAGER:
         managers.add(server);
-        FMetric flatbuffer = new FMetric();
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
@@ -850,6 +865,14 @@ public class SystemInformation {
             this.recoveries.getOverview().setUserTabletsRecovering(tablets);
             if (tablets > 0) {
               addAlert(High, Table, "At least " + tablets + " user table tablets require recovery");
+            }
+          } else if (metricName.equals(Metric.COMPACTION_ROOT_SVC_ERRORS.getName())
+              || metricName.equals(Metric.COMPACTION_META_SVC_ERRORS.getName())
+              || metricName.equals(Metric.COMPACTION_USER_SVC_ERRORS.getName())) {
+            long compactionServiceErrors = getMetricValue(flatbuffer).longValue();
+            if (compactionServiceErrors > 0) {
+              addAlert(Critical, Configuration,
+                  "A compaction service configuration is invalid. Check the Manager log.");
             }
           }
         }
@@ -1180,8 +1203,8 @@ public class SystemInformation {
 
   }
 
-  public void finish(final List<UpdateTaskFuture> failures,
-      final List<UpdateTaskFuture> cancelled) {
+  public void finish(final List<UpdateTaskFuture> failures, final List<UpdateTaskFuture> cancelled,
+      long fetchCycleStart) {
     // Update the deployment not-responded numbers based
     // on metric fetch failures for this refresh.
     metricProblemHosts.forEach(serverId -> {
@@ -1191,7 +1214,6 @@ public class SystemInformation {
 
     computeAlerts(failures, cancelled);
 
-    timestamp.set(System.currentTimeMillis());
     componentStatuses.clear();
     for (final ServerId.Type type : ServerId.Type.values()) {
       if (type == ServerId.Type.MONITOR) {
@@ -1244,8 +1266,10 @@ public class SystemInformation {
           break;
       }
     }
-    deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
+    deploymentOverview = DeploymentOverview.fromSummary(deployment);
     computeAlertCounts();
+    long fetchCycleFinish = System.currentTimeMillis();
+    timing = new FetchCycleTimes((fetchCycleFinish - fetchCycleStart), fetchCycleFinish);
   }
 
   public Set<Scan> getActiveScans() {
@@ -1429,16 +1453,16 @@ public class SystemInformation {
     return this.alertCounts;
   }
 
-  public long getTimestamp() {
-    return this.timestamp.get();
+  public FetchCycleTimes getCollectionTiming() {
+    return this.timing;
   }
 
   /**
    * Cache a ServersView for the given table and set of servers.
    */
   private void cacheServerProcessView(TableDataFactory.TableName table, Set<ServerId> servers) {
-    serverMetricsView.put(table, memoize(
-        () -> TableDataFactory.forTable(table, servers, allMetrics.asMap(), timestamp.get())));
+    serverMetricsView.put(table,
+        memoize(() -> TableDataFactory.forTable(table, servers, allMetrics.asMap())));
   }
 
   public TableData getServerProcessView(TableDataFactory.TableName table) {
