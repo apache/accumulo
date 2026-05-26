@@ -52,7 +52,7 @@
     </#if>
 
     <!-- accumulo resources -->
-    <link rel="shortcut icon" type="image/jng" href="resources/images/favicon.png" />
+    <link id="favicon" rel="icon" type="image/png" href="resources/images/favicon.png" />
     <script src="resources/js/global.js"></script>
     <script src="resources/js/functions.js"></script>
     <script src="resources/js/server_process_common.js"></script>
