@@ -806,12 +806,25 @@ public class SystemInformation {
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
         .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
     captureRecoveriesInProgress(server, response);
+    FMetric flatbuffer = new FMetric();
     switch (response.serverType) {
       case COMPACTOR:
         compactors
             .computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
         updateAggregates(response, totalCompactorMetrics, rgCompactorMetrics);
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getName())) {
+            boolean failures = getMetricValue(flatbuffer).longValue() > 0;
+            if (failures) {
+              addAlert(Info, Resource,
+                  "Compactor has had " + failures + " consecutive failures: " + server.toString());
+            }
+            break;
+          }
+        }
         break;
       case GARBAGE_COLLECTOR:
         if (gc.get() == null || !gc.get().equals(server)) {
@@ -820,7 +833,6 @@ public class SystemInformation {
         break;
       case MANAGER:
         managers.add(server);
-        FMetric flatbuffer = new FMetric();
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
@@ -842,6 +854,14 @@ public class SystemInformation {
             this.recoveries.getOverview().setUserTabletsRecovering(tablets);
             if (tablets > 0) {
               addAlert(High, Table, "At least " + tablets + " user table tablets require recovery");
+            }
+          } else if (metricName.equals(Metric.COMPACTION_ROOT_SVC_ERRORS.getName())
+              || metricName.equals(Metric.COMPACTION_META_SVC_ERRORS.getName())
+              || metricName.equals(Metric.COMPACTION_USER_SVC_ERRORS.getName())) {
+            long compactionServiceErrors = getMetricValue(flatbuffer).longValue();
+            if (compactionServiceErrors > 0) {
+              addAlert(Critical, Configuration,
+                  "A compaction service configuration is invalid. Check the Manager log.");
             }
           }
         }
