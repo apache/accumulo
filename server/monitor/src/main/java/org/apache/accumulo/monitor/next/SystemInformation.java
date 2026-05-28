@@ -82,11 +82,11 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.InformationFetcher.MetricFetcher;
 import org.apache.accumulo.monitor.next.InformationFetcher.TableInformationFetcher;
 import org.apache.accumulo.monitor.next.InformationFetcher.UpdateTaskFuture;
-import org.apache.accumulo.monitor.next.InformationFetcher.UpdateTasks;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ColumnFactory;
 import org.apache.accumulo.monitor.next.views.Status;
@@ -469,6 +469,11 @@ public class SystemInformation {
       long created, List<String> heldLocks, List<String> waitingLocks, LockRangeType lockRange) {
   }
 
+  public record Scan(String server, String type, String resourceGroup, String tableId,
+      long sessionId, String client, String user, String state, String scanType, long age,
+      long idleTime) {
+  }
+
   public record FetchCycleTimes(long durationMs, long finishTime) {
   }
 
@@ -530,6 +535,9 @@ public class SystemInformation {
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
   private final RecoveryInformation recoveries = new RecoveryInformation();
 
+  // Scan Information
+  private final Set<Scan> activeScans = ConcurrentHashMap.newKeySet();
+
   // Deployment Overview
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
@@ -590,6 +598,7 @@ public class SystemInformation {
     managerGoalState = null;
     serverMetricsView.clear();
     fateTransactions.clear();
+    activeScans.clear();
     resetAlertCounts();
   }
 
@@ -799,8 +808,7 @@ public class SystemInformation {
     return TableDataFactory.forColumns(Set.of(), Map.of(), cols);
   }
 
-  public void processResponse(final ServerId server, final MetricResponse response,
-      final UpdateTasks callback) {
+  public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
     metricProblemHosts.remove(server);
     retainedProblemHosts.remove(server);
@@ -966,6 +974,14 @@ public class SystemInformation {
     problemHosts.add(server);
     metricProblemHosts.add(server);
     allMetrics.invalidate(server);
+  }
+
+  public void processActiveScans(ServerId server, List<ActiveScan> scans) {
+    scans.forEach(s -> {
+      activeScans.add(new Scan(server.toHostPortString(), server.getType().name(),
+          server.getResourceGroup().canonical(), s.getTableId(), s.getScanId(), s.getClient(),
+          s.getUser(), s.getState().name(), s.getType().name(), s.getAge(), s.getIdleTime()));
+    });
   }
 
   public void retainProblemServer(ServerId server) {
@@ -1254,6 +1270,10 @@ public class SystemInformation {
     computeAlertCounts();
     long fetchCycleFinish = System.currentTimeMillis();
     timing = new FetchCycleTimes((fetchCycleFinish - fetchCycleStart), fetchCycleFinish);
+  }
+
+  public Set<Scan> getActiveScans() {
+    return this.activeScans;
   }
 
   public Set<String> getResourceGroups() {

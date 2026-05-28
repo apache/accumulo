@@ -63,6 +63,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary
 import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
 import org.apache.accumulo.monitor.next.SystemInformation.FetchCycleTimes;
 import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
+import org.apache.accumulo.monitor.next.SystemInformation.Scan;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -235,6 +236,14 @@ public class Endpoints {
   @Description("Returns an aggregate view of the metric responses for all Compactors")
   public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getCompactorAllMetricSummary();
+  }
+
+  @GET
+  @Path("scans")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of active scans")
+  public Set<Scan> getScans() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getActiveScans();
   }
 
   @GET
