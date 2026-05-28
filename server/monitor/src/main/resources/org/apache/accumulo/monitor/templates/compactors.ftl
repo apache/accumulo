@@ -23,10 +23,12 @@
       </div>
       <div class="row">
         <div class="col-xs-12">
+          <span class="table-caption">Compactors</span>
+          <br />
+          <span class="table-subcaption">The following Compactors reported status.</span>
+          <br />
+          <br />
           <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Compactors</span><br />
-              <span class="table-subcaption">The following Compactors reported status.</span><br />
-            </caption>
             <#include "table_loading.ftl" >
           </table>
         </div>
