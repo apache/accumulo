@@ -44,6 +44,7 @@ const ALERTS = 'alerts';
 const ALERT_COUNTS = 'alertCounts';
 const RECOVERY = 'recovery';
 const INSTANCE_OVERVIEW = 'instanceOverview';
+const SCANS = 'scans';
 const LAST_UPDATE = 'lastUpdate';
 
 // Override Length Menu options for dataTables
@@ -489,7 +490,7 @@ function getTServer(server) {
  * REST GET call for the scans, stores it on a sessionStorage variable
  */
 function getScans() {
-  return getJSONForTable(contextPath + 'rest/scans', 'scans');
+  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
 }
 
 /**
