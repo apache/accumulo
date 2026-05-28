@@ -75,12 +75,6 @@ function refreshTServersTable() {
 function refreshDeadTServersTable() {
   ajaxReloadTable(deadTServersTable);
 
-  // Only show the table if there are non-empty rows
-  if ($('#deadtservers tbody .dataTables_empty').length) {
-    $('#deadtservers_wrapper').hide();
-  } else {
-    $('#deadtservers_wrapper').show();
-  }
 }
 
 /**
@@ -312,7 +306,17 @@ $(document).ready(function () {
           return data;
         }
       }
-    ]
+    ],
+
+  // Only show the table if there are non-empty rows
+    "drawCallback": function () {
+        if (this.api().rows().data().length === 0) {
+          $('#deadtservers_wrapper').hide();
+        }
+        else {
+          $('#deadtservers_wrapper').show();
+          }
+    }
   });
 
   // Create a table for badServers list
