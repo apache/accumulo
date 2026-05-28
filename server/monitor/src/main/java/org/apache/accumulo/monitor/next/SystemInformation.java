@@ -1083,10 +1083,7 @@ public class SystemInformation {
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
-          if (metricName.equals(Metric.SCAN_CONTINUE.getName())) {
-            long inProgress = getMetricValue(flatbuffer).longValue();
-            this.instanceOverview.getScansTotalInProgress().addAndGet(inProgress);
-          } else if (metricName.equals(Metric.SCAN_OPEN_FILES.getName())) {
+          if (metricName.equals(Metric.SCAN_OPEN_FILES.getName())) {
             long files = getMetricValue(flatbuffer).longValue();
             this.instanceOverview.getScanTotalOpenFiles().addAndGet(files);
           } else if (metricName.equals(Metric.SCAN_SCANNED_ENTRIES.getName())) {
@@ -1113,10 +1110,7 @@ public class SystemInformation {
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
-          if (metricName.equals(Metric.SCAN_CONTINUE.getName())) {
-            long inProgress = getMetricValue(flatbuffer).longValue();
-            this.instanceOverview.getScansTotalInProgress().addAndGet(inProgress);
-          } else if (metricName.equals(Metric.SCAN_OPEN_FILES.getName())) {
+          if (metricName.equals(Metric.SCAN_OPEN_FILES.getName())) {
             long files = getMetricValue(flatbuffer).longValue();
             this.instanceOverview.getScanTotalOpenFiles().addAndGet(files);
           } else if (metricName.equals(Metric.SCAN_SCANNED_ENTRIES.getName())) {
@@ -1267,6 +1261,7 @@ public class SystemInformation {
       activeScans.add(new Scan(server.toHostPortString(), server.getType().name(),
           server.getResourceGroup().canonical(), s.getTableId(), s.getScanId(), s.getClient(),
           s.getUser(), s.getState().name(), s.getType().name(), s.getAge(), s.getIdleTime()));
+      instanceOverview.getScansTotalInProgress().incrementAndGet();
     });
   }
 
