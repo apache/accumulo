@@ -320,8 +320,10 @@ pre.logevent {
 }
 
 .deployment-count-badge {
-  min-width: 2.35rem;
-  padding: 0.3em 0.55em;
+  --bs-badge-font-size: 1em;
+  --bs-badge-padding-x: 0.65em;
+  --bs-badge-padding-y: 0.2em;
+  min-width: 2rem;
   color: #333333;
   font-variant-numeric: tabular-nums;
 }
