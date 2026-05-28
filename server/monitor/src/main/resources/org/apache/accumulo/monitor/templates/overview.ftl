@@ -43,7 +43,7 @@
             </div>
           </div>
 
-          <div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-4 g-3 mb-4">
+          <div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-3 g-3 mb-4">
             <div class="col">
               <div class="card h-100">
                 <div class="card-header fw-semibold">Instance</div>
@@ -70,8 +70,8 @@
                 </ul>
               </div>
             </div>
-            <div class="col">
-              <div class="card h-100">
+            <div class="col d-flex flex-column gap-3">
+              <div class="card">
                 <div class="card-header fw-semibold">Scan</div>
                 <ul id="scan-overview-list" class="list-group list-group-flush">
                   <li class="list-group-item text-center">
@@ -82,9 +82,7 @@
                   </li>
                 </ul>
               </div>
-            </div>
-            <div class="col">
-              <div class="card h-100">
+              <div class="card">
                 <div class="card-header fw-semibold">Compaction</div>
                 <ul id="compaction-overview-list" class="list-group list-group-flush">
                   <li class="list-group-item text-center">
