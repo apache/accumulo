@@ -25,43 +25,75 @@
       </div>
       <div class="row d-flex justify-content-center">
         <div class="col-xs-12">
-          <div class="row gx-4">
-            <div class="col-2"></div>
-            <div class="col-2"></div>
-            <div class="col-2">
-              <table id="instance-overview-table" class="table caption-top table-bordered table-striped table-condensed deployment-overview-content">
-                <caption><span>Instance Overview</span></caption>
-                <#include "table_loading.ftl" >
-              </table>
-              <br />
-              <table id="compaction-overview-table" class="table caption-top table-bordered table-striped table-condensed deployment-overview-content">
-                <caption><span>Compaction Overview</span></caption>
-                <#include "table_loading.ftl" >
-              </table>
-            </div>
-            <div class="col-2">
-              <table id="ingest-overview-table" class="table caption-top table-bordered table-striped table-condensed deployment-overview-content">
-                <caption><span>Ingest Overview</span></caption>
-                <#include "table_loading.ftl" >
-              </table>
-               <br />
-              <table id="scan-overview-table" class="table caption-top table-bordered table-striped table-condensed deployment-overview-content">
-                <caption><span>Scan Overview</span></caption>
-                <#include "table_loading.ftl" >
-              </table>
-            </div>
-            <div class="col-2"></div>
-            <div class="col-2"></div>
-          </div>
-          <br />
-          <div class="row">
+          <div class="row mb-4">
             <div id="deploymentWarning"></div>
-            <div class="deployment-overview-content">
-              <div class="table-responsive">
-                <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
-                  <caption><span class="table-caption">Server Deployment Overview</span><br />
-                  <#include "table_loading.ftl" >
-                </table>
+            <div class="col">
+              <div class="card">
+                <div class="card-header fw-semibold">Server Deployment</div>
+                <div class="card-body">
+                  <div class="deployment-overview-content">
+                    <div class="table-responsive">
+                      <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
+                        <#include "table_loading.ftl" >
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-4 g-3 mb-4">
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Instance</div>
+                <ul id="instance-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Ingest</div>
+                <ul id="ingest-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Scan</div>
+                <ul id="scan-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Compaction</div>
+                <ul id="compaction-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
