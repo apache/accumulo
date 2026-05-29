@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
@@ -62,4 +64,8 @@ class FinishCreateNamespace extends AbstractFateOperation {
   @Override
   public void undo(FateId fateId, FateEnv env) {}
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(namespaceInfo);
+  }
 }

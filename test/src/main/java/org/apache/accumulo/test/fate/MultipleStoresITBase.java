@@ -428,6 +428,11 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
     public String getReturn() {
       return null;
     }
+
+    @Override
+    public String getDetails() {
+      return null;
+    }
   }
 
   public static class SleepingTestEnv extends MultipleStoresTestEnv {
@@ -469,6 +474,11 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
     @Override
     public String getReturn() {
+      return null;
+    }
+
+    @Override
+    public String getDetails() {
       return null;
     }
   }

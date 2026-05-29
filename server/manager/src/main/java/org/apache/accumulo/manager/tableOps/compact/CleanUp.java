@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.compact;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,8 +40,11 @@ import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public class CleanUp extends AbstractFateOperation {
 
@@ -122,5 +126,15 @@ public class CleanUp extends AbstractFateOperation {
     Utils.getReadLock(env.getContext(), tableId, fateId, LockRange.infinite()).unlock();
     Utils.getReadLock(env.getContext(), namespaceId, fateId, LockRange.infinite()).unlock();
     return null;
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("startRow", startRow == null ? null : new Text(startRow).toString());
+    details.addProperty("endRow", endRow == null ? null : new Text(endRow).toString());
+    return GSON.get().toJson(details);
   }
 }

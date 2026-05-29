@@ -22,7 +22,7 @@
         <div class="col-xs-12">
           <table id="fateTable" class="table caption-top table-bordered table-striped table-condensed">
             <caption><span class="table-caption">Fate Transaction Details</span><br />
-              <span class="table-subcaption">The table contains the last known Fate transaction status.</span><br />
+              <span class="table-subcaption">Use the <strong>accumulo inst fate</strong> server-side utility with the <strong>-l</strong> and <strong>-i</strong> options to see detailed information about a transaction.</span><br />
             </caption>
             <#include "table_loading.ftl" >
           </table>

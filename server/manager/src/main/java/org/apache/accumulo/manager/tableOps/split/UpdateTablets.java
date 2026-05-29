@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -52,6 +54,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 public class UpdateTablets extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(UpdateTablets.class);
@@ -360,4 +365,15 @@ public class UpdateTablets extends AbstractFateOperation {
           result.getExtent());
     }
   }
+
+  @Override
+  public String getDetails() {
+    Gson gson = GSON.get();
+    JsonObject details = gson.toJsonTree(splitInfo).getAsJsonObject();
+    JsonArray dirs = new JsonArray(dirNames.size());
+    dirNames.forEach(dirs::add);
+    details.add("dirs", dirs);
+    return gson.toJson(details);
+  }
+
 }

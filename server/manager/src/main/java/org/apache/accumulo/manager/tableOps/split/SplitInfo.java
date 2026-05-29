@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.split;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.Serializable;
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.NavigableMap;
 import java.util.SortedMap;
@@ -31,11 +32,39 @@ import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.manager.tableOps.split.SplitInfo.SplitInfoSerializer;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.annotations.JsonAdapter;
 
+@JsonAdapter(SplitInfoSerializer.class)
 public class SplitInfo implements Serializable {
+
+  public static class SplitInfoSerializer implements JsonSerializer<SplitInfo> {
+
+    @Override
+    public JsonElement serialize(SplitInfo src, Type typeOfSrc, JsonSerializationContext context) {
+      JsonObject obj = new JsonObject();
+      obj.addProperty("tableId", src.tableId.canonical());
+      obj.addProperty("prevEndRow", new Text(src.prevEndRow).toString());
+      obj.addProperty("endRow", new Text(src.endRow).toString());
+      if (src.splits.length > 0) {
+        JsonArray arr = new JsonArray();
+        for (byte[] split : src.splits) {
+          arr.add(new Text(split).toString());
+        }
+        obj.add("splits", arr);
+      }
+      return obj;
+    }
+  }
+
   private static final long serialVersionUID = 1L;
 
   private final TableId tableId;

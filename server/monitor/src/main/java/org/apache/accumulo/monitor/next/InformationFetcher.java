@@ -434,7 +434,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         AdminUtil<Fate> admin = new AdminUtil<>();
         var zTableLocksPath = ctx.getServerPaths().createTableLocksPath();
         var zk = ctx.getZooSession();
-        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null);
+        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null, false);
         summary.processFateTransactions(status.getTransactions());
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
