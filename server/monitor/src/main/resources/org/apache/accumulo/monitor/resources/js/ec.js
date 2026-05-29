@@ -307,6 +307,7 @@ function refreshRunningCompactions() {
   refreshManagerStatus().then(function (managerStatus) {
     // tables will not be shown, avoid reloading
     if (managerStatus === 'ERROR') {
+      runningTable.clear().draw();
       return;
     }
 
@@ -316,20 +317,15 @@ function refreshRunningCompactions() {
 }
 
 /**
- * Updates session storage then checks if the manager is running. If it is,
- * show the tables and hide the 'manager not running' banner. Else, vice-versa.
+ * Updates session storage then checks if the manager is running and updates the banner.
  */
 async function refreshManagerStatus() {
   return getStatus().then(function () {
     var managerStatus = getComponentStatus(getStoredStatusData(), 'MANAGER');
     if (managerStatus === 'ERROR') {
-      // show banner and hide tables
       $('#managerBanner').show();
-      $('#runningDiv').hide();
     } else {
-      // otherwise, hide banner and show tables
       $('#managerBanner').hide();
-      $('#runningDiv').show();
     }
     return managerStatus;
   });

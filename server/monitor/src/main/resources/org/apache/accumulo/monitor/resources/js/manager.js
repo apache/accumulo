@@ -43,10 +43,8 @@ function updateManagerGoalStateBanner() {
 function refreshManagerBanners() {
   var managerRows = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
   if (!Array.isArray(managerRows) || managerRows.length === 0) {
-    // show the manager error banner and hide manager table
     $(runningBanner).show();
   } else {
-    // otherwise, hide the error banner and show manager table
     $(runningBanner).hide();
   }
   updateManagerGoalStateBanner();
