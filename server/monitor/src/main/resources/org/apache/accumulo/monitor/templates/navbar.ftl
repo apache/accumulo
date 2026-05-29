@@ -54,7 +54,6 @@
                 Activity
               </a>
               <ul class="dropdown-menu col-xs-12" aria-labelledby="navbarDropdown">
-                <li><a class="link-body-emphasis dropdown-item" href="bulkImports">Bulk&nbsp;Imports</a></li>
                 <li><a class="link-body-emphasis dropdown-item" href="coordinator">Compaction Overview</a></li>
                 <li><a class="link-body-emphasis dropdown-item" href="ec">Compaction Details</a></li>
                 <li><a class="link-body-emphasis dropdown-item" href="fate">Fate Tx Details</a></li>
