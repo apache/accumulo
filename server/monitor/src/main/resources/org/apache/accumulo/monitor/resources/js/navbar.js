@@ -59,6 +59,9 @@ const NAVBAR_COMPONENTS = [{
 }];
 
 var categories;
+var originalFaviconHref;
+var faviconBadgedHref;
+var faviconBadgeRequested = false;
 
 /**
  * Remove other bootstrap color classes and add the given class to the given element
@@ -254,10 +257,11 @@ function refreshAlerts() {
     });
     const criticalAlertCount = alertCounts.Critical;
     const highAlertCount = alertCounts.High;
+    const hasCriticalAlerts = criticalAlertCount > 0;
 
     alertAnchor.find('span').remove();
 
-    if (criticalAlertCount > 0) {
+    if (hasCriticalAlerts) {
       alertAnchor.append('<span class="badge position-relative top-0 start-0 translate-middle-y rounded-pill bg-danger">' +
         criticalAlertCount + '</span>');
     } else if (highAlertCount > 0) {
@@ -266,7 +270,9 @@ function refreshAlerts() {
         highAlertCount + '</span>');
     }
 
-    if (criticalAlertCount > 0 && !window.location.pathname.endsWith('/alerts')) {
+    updateFaviconBadge(hasCriticalAlerts);
+
+    if (hasCriticalAlerts && !window.location.pathname.endsWith('/alerts')) {
       const alertLabel = criticalAlertCount <= 1 ? 'alert' : 'alerts';
       criticalAlertMessageElement.text(criticalAlertCount + ' critical ' + alertLabel + ' present');
       criticalAlertBanner.removeClass('d-none');
@@ -274,6 +280,72 @@ function refreshAlerts() {
       criticalAlertBanner.addClass('d-none');
     }
   });
+}
+
+/**
+ * Updates the browser tab favicon with a badge when critical alerts are present
+ */
+function updateFaviconBadge(showBadge) {
+  faviconBadgeRequested = showBadge;
+
+  // Grab the favicon
+  const favicon = document.getElementById('favicon') ||
+    document.querySelector('link[rel="icon"], link[rel="shortcut icon"]');
+
+  if (!favicon) {
+    return;
+  }
+
+  if (!originalFaviconHref) {
+    originalFaviconHref = favicon.href;
+  }
+
+  if (!showBadge) {
+    favicon.href = originalFaviconHref;
+    return;
+  }
+
+  if (faviconBadgedHref) {
+    favicon.href = faviconBadgedHref;
+    return;
+  }
+
+  const image = new Image();
+  image.onload = function () {
+    // Prepare the canvas
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const size = 32;
+    const badgeRadius = 7;
+    const badgeX = size - badgeRadius - 2;
+    const badgeY = badgeRadius + 2;
+
+    canvas.width = size;
+    canvas.height = size;
+    if (!context) {
+      return;
+    }
+    context.drawImage(image, 0, 0, size, size);
+
+    // Construct the outline
+    context.beginPath();
+    context.arc(badgeX, badgeY, badgeRadius + 2, 0, 2 * Math.PI);
+    context.fillStyle = '#ffffff';
+    context.fill();
+
+    // Overlay the circle
+    context.beginPath();
+    context.arc(badgeX, badgeY, badgeRadius, 0, 2 * Math.PI);
+    context.fillStyle = '#dc3545';
+    context.fill();
+
+    // Replace the favicon
+    faviconBadgedHref = canvas.toDataURL('image/png');
+    if (faviconBadgeRequested) {
+      favicon.href = faviconBadgedHref;
+    }
+  };
+  image.src = originalFaviconHref;
 }
 
 /**
