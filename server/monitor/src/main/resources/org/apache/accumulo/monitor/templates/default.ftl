@@ -42,12 +42,16 @@
       <script src="resources/external/jquery/jquery-3.7.1.js"></script>
       <script src="resources/external/bootstrap/js/bootstrap.bundle.js"></script>
       <script src="resources/external/datatables/js/jquery.dataTables.js"></script>
+      <script src="resources/external/datatables/js/dataTables.buttons.js"></script>
       <script src="resources/external/datatables/js/dataTables.colReorder.js"></script>
       <script src="resources/external/datatables/js/dataTables.bootstrap5.js"></script>
+      <script src="resources/external/datatables/js/buttons.bootstrap5.js"></script>
       <script src="resources/external/datatables/js/colReorder.bootstrap5.js"></script>
+      <script src="resources/external/datatables/js/buttons.colVis.js"></script>
       <link rel="stylesheet" href="resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="resources/external/bootstrap/css/bootstrap-icons.css" />
       <link rel="stylesheet" href="resources/external/datatables/css/dataTables.bootstrap5.css" />
+      <link rel="stylesheet" href="resources/external/datatables/css/buttons.bootstrap5.css" />
       <link rel="stylesheet" href="resources/external/datatables/css/colReorder.bootstrap5.css" />
     </#if>
 
@@ -64,6 +68,7 @@
        */
       $(function() {
         setupAutoRefresh();
+        refreshLastUpdate();
       });
     </script>
     <#if js??>
@@ -76,10 +81,22 @@
   <body>
     <#include "navbar.ftl">
 
+    <a id="critical-alert-banner" class="critical-alert-banner alert alert-danger d-none" href="alerts" aria-live="polite">
+      <span>
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <strong id="critical-alert-message">0 critical alerts present</strong>
+      </span>
+      <span class="btn btn-danger btn-sm fw-semibold">View alerts</span>
+    </a>
+
     <div id="main" class="container-fluid">
       <#include "${template}">
+      <br />
+      <div id="lastUpdateDiv" class="center">
+      </div>
     </div>
 
     <#include "modals.ftl">
+
   </body>
 </html>

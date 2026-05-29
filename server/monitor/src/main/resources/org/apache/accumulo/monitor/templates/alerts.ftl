@@ -19,9 +19,9 @@
 
 -->
     <br />
-    <div class="col-xs-12" id="messages">
-      <h5>Messages</h5>
-      <table id="messagesTable"
+    <div class="col-xs-12" id="alerts">
+      <h5>Alerts</h5>
+      <table id="alertsTable"
         class="table table-bordered table-striped table-condensed" style="width: 100%;">
         <thead>
           <tr>

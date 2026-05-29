@@ -56,12 +56,15 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.AlertCategory;
+import org.apache.accumulo.monitor.next.SystemInformation.AlertPriority;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
-import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
-import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
+import org.apache.accumulo.monitor.next.SystemInformation.FetchCycleTimes;
+import org.apache.accumulo.monitor.next.SystemInformation.InstanceOverview;
 import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
+import org.apache.accumulo.monitor.next.SystemInformation.Scan;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -182,11 +185,11 @@ public class Endpoints {
   public MonitorStatus getStatus() {
     SystemInformation summary = monitor.getInformationFetcher().getSummaryForEndpoint();
     return new MonitorStatus(summary.getManagerGoalState(), summary.getComponentStatuses(),
-        summary.getTimestamp());
+        summary.getCollectionTiming().finishTime());
   }
 
   @GET
-  @Path("instance")
+  @Path("instance/info")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the instance name, instance id, version, zookeepers, and volumes")
   public InstanceSummary getInstanceSummary() {
@@ -196,6 +199,14 @@ public class Endpoints {
         monitor.getContext().getVolumeManager().getVolumes().stream().map(Object::toString)
             .collect(Collectors.toSet()),
         Constants.VERSION);
+  }
+
+  @GET
+  @Path("instance/overview")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns an overview of instance level activity")
+  public InstanceOverview getInstanceOverview() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getInstanceOverview();
   }
 
   @GET
@@ -234,6 +245,14 @@ public class Endpoints {
   @Description("Returns an aggregate view of the metric responses for all Compactors")
   public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getCompactorAllMetricSummary();
+  }
+
+  @GET
+  @Path("scans")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of active scans")
+  public Set<Scan> getScans() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getActiveScans();
   }
 
   @GET
@@ -385,7 +404,8 @@ public class Endpoints {
   @Description("Returns External Compactor process details")
   public CompactorsSummary getExternalCompactors() {
     var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return new CompactorsSummary(summary.getCompactorServers(), summary.getTimestamp());
+    return new CompactorsSummary(summary.getCompactorServers(),
+        summary.getCollectionTiming().finishTime());
   }
 
   @GET
@@ -448,52 +468,52 @@ public class Endpoints {
   }
 
   @GET
-  @Path("message/categories")
+  @Path("alerts/categories")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of message categories")
-  public Set<MessageCategory> getMessageCategories() {
-    return EnumSet.allOf(SystemInformation.MessageCategory.class);
+  @Description("Returns a list of alert categories")
+  public Set<AlertCategory> getAlertCategories() {
+    return EnumSet.allOf(SystemInformation.AlertCategory.class);
   }
 
-  public record Message(String priority, String category, String message) {
-  }
-
-  @GET
-  @Path("message/counts")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns count of messages by priority")
-  public Map<MessagePriority,AtomicLong> getMessageCounts() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getMessageCounts();
+  public record Alert(String priority, String category, String message) {
   }
 
   @GET
-  @Path("messages")
+  @Path("alerts/counts")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of messages")
-  public List<Message> getMessages(@QueryParam("high") boolean includeHigh,
+  @Description("Returns count of alerts by priority")
+  public Map<AlertPriority,AtomicLong> getAlertCounts() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getAlertCounts();
+  }
+
+  @GET
+  @Path("alerts")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of alerts")
+  public List<Alert> getAlerts(@QueryParam("high") boolean includeHigh,
       @QueryParam("info") boolean includeInfo, @QueryParam("category") List<String> categories) {
-    List<Message> results = new ArrayList<>();
+    List<Alert> results = new ArrayList<>();
 
-    Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
-        monitor.getInformationFetcher().getSummaryForEndpoint().getMessages();
+    Map<AlertPriority,Map<AlertCategory,Set<String>>> alerts =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getAlerts();
 
-    for (Entry<MessagePriority,Map<MessageCategory,Set<String>>> e : messages.entrySet()) {
-      MessagePriority prio = e.getKey();
-      Map<MessageCategory,Set<String>> value = e.getValue();
+    for (Entry<AlertPriority,Map<AlertCategory,Set<String>>> e : alerts.entrySet()) {
+      AlertPriority prio = e.getKey();
+      Map<AlertCategory,Set<String>> value = e.getValue();
       switch (prio) {
         case Critical:
-          // Always include critical messages
-          value.forEach((cat, msgs) -> {
-            msgs.forEach(m -> results.add(new Message(prio.name(), cat.name(), m)));
+          // Always include critical alerts
+          value.forEach((cat, messages) -> {
+            messages.forEach(m -> results.add(new Alert(prio.name(), cat.name(), m)));
           });
           break;
         case High:
           if (!includeHigh) {
             break;
           }
-          value.forEach((cat, msgs) -> {
+          value.forEach((cat, messages) -> {
             if (categories.contains(cat.name())) {
-              msgs.forEach(m -> results.add(new Message(prio.name(), cat.name(), m)));
+              messages.forEach(m -> results.add(new Alert(prio.name(), cat.name(), m)));
             }
           });
           break;
@@ -501,9 +521,9 @@ public class Endpoints {
           if (!includeInfo) {
             break;
           }
-          value.forEach((cat, msgs) -> {
+          value.forEach((cat, messages) -> {
             if (categories.contains(cat.name())) {
-              msgs.forEach(m -> results.add(new Message(prio.name(), cat.name(), m)));
+              messages.forEach(m -> results.add(new Alert(prio.name(), cat.name(), m)));
             }
           });
           break;
@@ -518,8 +538,8 @@ public class Endpoints {
   @Path("lastUpdate")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the timestamp of when the monitor information was last refreshed")
-  public long getTimestamp() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getTimestamp();
+  public FetchCycleTimes getTimestamp() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getCollectionTiming();
   }
 
   @GET

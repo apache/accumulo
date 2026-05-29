@@ -23,10 +23,12 @@
     </div>
     <div class="row">
       <div class="col-xs-12">
+        <span class="table-caption">Scan Servers</span>
+        <br />
+        <span class="table-subcaption">The following Scan Servers reported status.</span>
+        <br />
+        <br />
         <table id="sservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Scan Servers</span><br />
-            <span class="table-subcaption">The following Scan Servers reported status.</span><br />
-          </caption>
           <#include "table_loading.ftl" >
         </table>
       </div>

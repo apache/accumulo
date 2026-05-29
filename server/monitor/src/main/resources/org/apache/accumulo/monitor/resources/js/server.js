@@ -112,7 +112,7 @@ function initServerTables(serv) {
         "render": function (data, type) {
           if (type === 'display') {
             if (data === null) {
-              data = '-';
+              data = '&mdash;';
             } else {
               data = timeDuration(data * 1000.0);
             }
