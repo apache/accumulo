@@ -163,20 +163,20 @@ public class WebViews {
   }
 
   /**
-   * Returns the messages template
+   * Returns the alerts template
    *
-   * @return Messages model
+   * @return Alerts model
    */
   @GET
-  @Path("messages")
+  @Path("alerts")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getMessages() {
+  public Map<String,Object> getAlerts() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Messages"); // Need this for the browser tab title
-    model.put("tablesTitle", "Messages");
-    model.put("template", "messages.ftl");
-    model.put("js", "messages.js");
+    model.put("title", "Alerts"); // Need this for the browser tab title
+    model.put("tablesTitle", "Alerts");
+    model.put("template", "alerts.ftl");
+    model.put("js", "alerts.js");
     return model;
   }
 

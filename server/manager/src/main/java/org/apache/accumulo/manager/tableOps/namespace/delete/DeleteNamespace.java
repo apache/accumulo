@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.delete;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
@@ -26,6 +28,8 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
+
+import com.google.gson.JsonObject;
 
 public class DeleteNamespace extends AbstractFateOperation {
 
@@ -54,4 +58,10 @@ public class DeleteNamespace extends AbstractFateOperation {
     Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.WRITE);
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    return GSON.get().toJson(details);
+  }
 }

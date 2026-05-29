@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Map;
 import java.util.Objects;
@@ -153,4 +154,9 @@ public class PreSplit extends AbstractFateOperation {
 
   @Override
   public void undo(FateId fateId, FateEnv env) throws Exception {}
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(splitInfo);
+  }
 }

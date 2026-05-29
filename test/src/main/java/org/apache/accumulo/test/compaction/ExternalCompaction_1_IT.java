@@ -377,6 +377,12 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
       return null;
     }
+
+    @Override
+    public String getDetails() {
+      return null;
+    }
+
   }
 
   private FateId createCompactionCommitAndDeadMetadata(AccumuloClient c,

@@ -119,4 +119,10 @@ public class TraceRepo<T> implements Repo<T> {
 
     return repo.getClass() + " " + repo.getName();
   }
+
+  @Override
+  public String getDetails() {
+    return repo.getDetails();
+  }
+
 }

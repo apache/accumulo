@@ -18,10 +18,15 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public class PutGcCandidates extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
@@ -47,4 +52,13 @@ public class PutGcCandidates extends AbstractFateOperation {
     // refresh as part of this compaction commit as it may run sooner.
     return new RefreshTablet(commitData.textent, refreshLocation);
   }
+
+  @Override
+  public String getDetails() {
+    Gson gson = GSON.get();
+    JsonObject details = gson.toJsonTree(commitData).getAsJsonObject();
+    details.addProperty("refreshLocation", refreshLocation);
+    return gson.toJson(details);
+  }
+
 }

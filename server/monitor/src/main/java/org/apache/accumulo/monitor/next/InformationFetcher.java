@@ -20,10 +20,10 @@ package org.apache.accumulo.monitor.next;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Monitor;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
-import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Info;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Monitor;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Info;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -75,6 +75,8 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -182,7 +184,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   enum UpdateType {
-    COMPACTION, COMPACTION_RGS, FATE, METRIC, TABLE;
+    COMPACTION, COMPACTION_RGS, FATE, METRIC, SCANS, TABLE;
   }
 
   interface UpdateTask<T extends Object> extends Runnable, Comparable<UpdateTask<T>> {
@@ -200,14 +202,11 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     private final ServerContext ctx;
     private final ServerId server;
     private final SystemInformation summary;
-    private final UpdateTasks tasks;
 
-    private MetricFetcher(ServerContext ctx, ServerId server, SystemInformation summary,
-        UpdateTasks tasks) {
+    private MetricFetcher(ServerContext ctx, ServerId server, SystemInformation summary) {
       this.ctx = ctx;
       this.server = server;
       this.summary = summary;
-      this.tasks = tasks;
     }
 
     @Override
@@ -267,7 +266,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(), ctx.rpcCreds());
           retainedProblemServers.invalidate(server);
-          summary.processResponse(server, response, tasks);
+          summary.processResponse(server, response);
         } finally {
           ThriftUtil.returnClient(metricsClient, ctx);
         }
@@ -435,7 +434,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         AdminUtil<Fate> admin = new AdminUtil<>();
         var zTableLocksPath = ctx.getServerPaths().createTableLocksPath();
         var zk = ctx.getZooSession();
-        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null);
+        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null, false);
         summary.processFateTransactions(status.getTransactions());
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
@@ -546,6 +545,80 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public String getFailureMessage() {
       return "Error fetching configured compaction resource groups";
+    }
+
+  }
+
+  class ActiveScansFetcher implements UpdateTask<ServerId> {
+
+    private final ServerContext ctx;
+    private final ServerId server;
+    private final SystemInformation summary;
+
+    private ActiveScansFetcher(ServerContext ctx, ServerId server, SystemInformation summary) {
+      this.ctx = ctx;
+      this.server = server;
+      this.summary = summary;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      result = prime * result + Objects.hash(getResource());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ActiveScansFetcher other = (ActiveScansFetcher) obj;
+      return Objects.equals(getType(), other.getType())
+          && Objects.equals(getResource(), other.getResource());
+    }
+
+    @Override
+    public void run() {
+      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
+      TabletScanClientService.Client client = null;
+      try {
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, ctx);
+        List<ActiveScan> activeScans = client.getActiveScans(null, ctx.rpcCreds());
+        summary.processActiveScans(server, activeScans);
+      } catch (Exception ex) {
+        LOG.error("Failed to get active scans from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(client, ctx);
+      }
+    }
+
+    @Override
+    public int compareTo(UpdateTask<ServerId> o) {
+      return 0;
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.SCANS;
+    }
+
+    @Override
+    public ServerId getResource() {
+      return server;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get active scans from server: " + server;
     }
 
   }
@@ -708,11 +781,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
 
       } else {
-        summary.addMessage(Critical, Table,
-            metadataNoLocation + " metadata tablets are not hosted");
+        summary.addAlert(Critical, Table, metadataNoLocation + " metadata tablets are not hosted");
       }
     } else {
-      summary.addMessage(Critical, Table, "The root tablet is not currently hosted");
+      summary.addAlert(Critical, Table, "The root tablet is not currently hosted");
     }
   }
 
@@ -740,13 +812,10 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       newConnectionEvent.compareAndExchange(true, false);
 
       LOG.info("Fetching information from servers");
+      long fetchCycleStart = System.currentTimeMillis();
 
       final UpdateTasks futures = new UpdateTasks();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
-
-      // Fetch set of registered compactors
-      Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
-      summary.processExternalCompactionInventory(compactors);
 
       // Fetch Fate transaction information
       FateTransactionFetcher fateFetcher = new FateTransactionFetcher(summary);
@@ -759,10 +828,20 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         if (type == Type.MONITOR) {
           continue;
         }
-        for (ServerId server : this.ctx.instanceOperations().getServers(type)) {
-          MetricFetcher mf = new MetricFetcher(this.ctx, server, summary, futures);
+        Set<ServerId> servers = this.ctx.instanceOperations().getServers(type);
+        if (type == Type.COMPACTOR) {
+          summary.processExternalCompactionInventory(servers);
+        }
+        for (ServerId server : servers) {
+          MetricFetcher mf = new MetricFetcher(this.ctx, server, summary);
           Future<?> mff = this.pool.submit(mf);
           futures.add(new UpdateTaskFuture(mff, mf));
+
+          if (server.getType() == Type.SCAN_SERVER || server.getType() == Type.TABLET_SERVER) {
+            ActiveScansFetcher asf = new ActiveScansFetcher(this.ctx, server, summary);
+            Future<?> asff = this.pool.submit(asf);
+            futures.add(new UpdateTaskFuture(asff, asf));
+          }
         }
       }
 
@@ -850,7 +929,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           }
         }
         if (!firstIteration) {
-          // Update current messages on the Monitor that we are
+          // Update current alerts on the Monitor that we are
           // waiting on tasks to complete to complete a refresh
           final String waitingMsg = "Waiting on " + futures.size()
               + " tasks to complete. Time remaining before cancellation: "
@@ -859,9 +938,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
               + " seconds";
           SystemInformation currentSummary = summaryRef.get();
           if (currentSummary != null) {
-            currentSummary.removeMessage(Info, Monitor,
+            currentSummary.removeAlert(Info, Monitor,
                 " tasks to complete. Time remaining before cancellation: ");
-            currentSummary.addMessage(Info, Monitor, waitingMsg);
+            currentSummary.addAlert(Info, Monitor, waitingMsg);
           }
         }
 
@@ -874,7 +953,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       lastRunTime = NanoTime.now();
 
       retainedProblemServers.asMap().keySet().forEach(summary::retainProblemServer);
-      summary.finish(failures, cancelled);
+      summary.finish(failures, cancelled, fetchCycleStart);
 
       LOG.info("Finished fetching metrics from servers");
       LOG.info(
