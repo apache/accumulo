@@ -35,7 +35,10 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  refreshDeploymentTables();
+  $.when(getDeployment(), getInstanceOverview()).then(function () {
+    refreshInstanceOverviewTables();
+    refreshDeploymentTables();
+  });
 }
 
 /**
@@ -45,24 +48,95 @@ function refresh() {
   refreshOverview();
 }
 
+function refreshInstanceOverviewTables() {
+  var data = getStoredJson(INSTANCE_OVERVIEW, {});
+
+  renderOverviewList('#instance-overview-list', [
+    ["Namespaces", bigNumberForQuantity(data.numNamespaces || 0)],
+    ["Tables", bigNumberForQuantity(data.numTables || 0)],
+    ["Tablets", bigNumberForQuantity(data.numTablets || 0)],
+    ["Entries", bigNumberForQuantity(data.numKVs || 0)],
+    ["Files", bigNumberForQuantity(data.numFiles || 0)],
+    ["File Size", bigNumberForSize(data.totalFileSize || 0)],
+    ["Dead TServer Tablets", bigNumberForQuantity(data.tabletsAssignedToDeadTServers || 0)],
+    ["Suspended Tablets", bigNumberForQuantity(data.totalSuspendedTablets || 0)],
+    ["Recovery Tablets", bigNumberForQuantity(data.tabletsNeedingRecovery || 0)],
+    ["Fate Tx Queued", bigNumberForQuantity(data.totalFateSubmitted || 0)],
+    ["Fate Tx Running", bigNumberForQuantity(data.totalFateRunning || 0)],
+    ["Servers Low On Memory", bigNumberForQuantity(data.totalServersLowMem || 0)]
+  ]);
+
+  renderOverviewList('#ingest-overview-list', [
+    ["Entries", bigNumberForQuantity(data.ingestTotalEntries || 0)],
+    ["Bytes", bigNumberForSize(data.ingestTotalEntriesBytes || 0)],
+    ["Entries In Memory", bigNumberForQuantity(data.ingestTotalEntriesInMem || 0)],
+    ["TServers Holding For MinC", bigNumberForQuantity(data.ingestNumTServersHolding || 0)],
+    ["MinC Queued", bigNumberForQuantity(data.totalMinCQueued || 0)],
+    ["MinC Running", bigNumberForQuantity(data.totalMinCRunning || 0)],
+    ["MinC Completed", bigNumberForQuantity(data.totalMinCCompleted || 0)],
+    ["Bulk Imports Queued", bigNumberForQuantity(data.ingestBulkImportQueued || 0)],
+    ["Bulk Imports Running", bigNumberForQuantity(data.ingestBulkImportRunning || 0)]
+  ]);
+
+  renderOverviewList('#scan-overview-list', [
+    ["Scans In Progress", bigNumberForQuantity(data.scansTotalInProgress || 0)],
+    ["Entries Scanned", bigNumberForQuantity(data.scansTotalKvScanned || 0)],
+    ["Entries Returned", bigNumberForQuantity(data.scansTotalKvReturned || 0)],
+    ["Bytes Returned", bigNumberForSize(data.scansTotalKvReturnedBytes || 0)],
+    ["Open Files", bigNumberForQuantity(data.scanTotalOpenFiles || 0)]
+  ]);
+
+  renderOverviewList('#compaction-overview-list', [
+    ["MajC Queued", bigNumberForQuantity(data.compactionsQueued || 0)],
+    ["MajC Dequeued", bigNumberForQuantity(data.compactionsDequeued || 0)],
+    ["MajC Running", bigNumberForQuantity(data.compactionsRunning || 0)],
+    ["MajC Failed", bigNumberForQuantity(data.compactionsFailed || 0)]
+  ]);
+}
+
+function renderOverviewList(selector, rows) {
+  var list = $(selector);
+  list.empty();
+
+  list.append(rows.map(function (row) {
+    const name = row[0];
+    const value = row[1];
+    return createOverviewListItem(name, value);
+  }));
+}
+
+function createOverviewListItem(name, rowValue) {
+  var item = $(document.createElement("li"));
+  item.addClass("list-group-item d-flex justify-content-between align-items-center");
+
+  var label = $(document.createElement("span"));
+  label.text(name);
+  item.append(label);
+
+  var value = $(document.createElement("strong"));
+  value.addClass("text-end text-nowrap");
+  value.text(rowValue);
+  item.append(value);
+
+  return item;
+}
+
 /**
  * Refreshes the deployment overview tables
  */
 function refreshDeploymentTables() {
-  getDeployment().then(function () {
-    var data = JSON.parse(sessionStorage.deployment);
-    var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
-    deploymentBreakdown = breakdown;
+  var data = JSON.parse(sessionStorage.deployment);
+  var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+  deploymentBreakdown = breakdown;
 
-    if (breakdown.length === 0) {
-      $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
-        'No deployment data is currently available.</div>');
-    } else {
-      $('#deploymentWarning').empty();
-    }
+  if (breakdown.length === 0) {
+    $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
+      'No deployment data is currently available.</div>');
+  } else {
+    $('#deploymentWarning').empty();
+  }
 
-    renderDeploymentMatrix(breakdown);
-  });
+  renderDeploymentMatrix(breakdown);
 }
 
 function renderDeploymentMatrix(breakdown) {

@@ -24,13 +24,75 @@
         </div>
       </div>
       <div class="row d-flex justify-content-center">
-        <div class="col-xs-12" id="deploymentOverview">
-          <div id="deploymentWarning"></div>
-          <div class="deployment-overview-content">
-            <div class="table-responsive">
-              <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
-                <#include "table_loading.ftl" >
-              </table>
+        <div class="col-xs-12">
+          <div class="row mb-4">
+            <div id="deploymentWarning"></div>
+            <div class="col">
+              <div class="card">
+                <div class="card-header fw-semibold">Server Deployment</div>
+                <div class="card-body">
+                  <div class="deployment-overview-content">
+                    <div class="table-responsive">
+                      <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
+                        <#include "table_loading.ftl" >
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-3 g-3 mb-4">
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Instance</div>
+                <ul id="instance-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Ingest</div>
+                <ul id="ingest-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col d-flex flex-column gap-3">
+              <div class="card">
+                <div class="card-header fw-semibold">Scan</div>
+                <ul id="scan-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <div class="card-header fw-semibold">Compaction</div>
+                <ul id="compaction-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

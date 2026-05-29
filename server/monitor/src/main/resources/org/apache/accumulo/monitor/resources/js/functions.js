@@ -43,6 +43,7 @@ const ALERT_CATEGORIES = 'alertCategories';
 const ALERTS = 'alerts';
 const ALERT_COUNTS = 'alertCounts';
 const RECOVERY = 'recovery';
+const INSTANCE_OVERVIEW = 'instanceOverview';
 const SCANS = 'scans';
 const LAST_UPDATE = 'lastUpdate';
 
@@ -793,11 +794,19 @@ function getTserversSummary() {
 }
 
 /**
- * REST GET call for /instance,
+ * REST GET call for /instance/info,
  * stores it on a sessionStorage variable
  */
 function getInstanceInfo() {
-  return getJSONForTable(REST_V2_PREFIX + '/instance', 'instance');
+  return getJSONForTable(REST_V2_PREFIX + '/instance/info', 'instance');
+}
+
+/**
+ * REST GET call for /instance/overview,
+ * stores it on a sessionStorage variable
+ */
+function getInstanceOverview() {
+  return getJSONForTable(REST_V2_PREFIX + '/instance/overview', INSTANCE_OVERVIEW);
 }
 
 /**
