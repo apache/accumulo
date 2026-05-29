@@ -23,7 +23,7 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div id="runningDiv" style="display: none;">
+      <div id="runningDiv">
         <div class="row">
           <div class="col-xs-12">
             <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">

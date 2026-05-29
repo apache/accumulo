@@ -49,10 +49,6 @@ function refresh() {
     refreshTable(queuesHtmlTable, COORDINATOR_QUEUE_PROCESS_VIEW);
     ajaxReloadTable(tableRunning);
     ajaxReloadTable(queueRunning);
-    $(coordinatorHtmlTable).hide();
-    $(queuesHtmlTable).hide();
-    $(runningTableHtmlTable).hide();
-    $(runningQueueHtmlTable).hide();
   });
 }
 
