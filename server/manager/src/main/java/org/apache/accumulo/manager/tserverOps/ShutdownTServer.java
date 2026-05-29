@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.tserverOps;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.tserverOps.BeginTserverShutdown.createPath;
 
@@ -26,7 +25,6 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -113,10 +111,6 @@ public class ShutdownTServer extends AbstractFateOperation {
       var path =
           env.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
       ServiceLock.deleteLock(zoo, path);
-      path =
-          env.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup, hostAndPort);
-      zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
-          NodeExistsPolicy.OVERWRITE);
     } else {
       String path = createPath(hostAndPort, serverSession);
       env.getContext().getZooSession().asReaderWriter().delete(path);
