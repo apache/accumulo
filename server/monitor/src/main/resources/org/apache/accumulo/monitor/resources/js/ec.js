@@ -305,12 +305,6 @@ function refresh() {
  */
 function refreshRunningCompactions() {
   refreshManagerStatus().then(function (managerStatus) {
-    // tables will not be shown, avoid reloading
-    if (managerStatus === 'ERROR') {
-      runningTable.clear().draw();
-      return;
-    }
-
     // user paging is not reset on reload
     ajaxReloadTable(runningTable);
   });
