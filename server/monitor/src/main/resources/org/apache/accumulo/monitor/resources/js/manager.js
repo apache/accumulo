@@ -45,13 +45,9 @@ function refreshManagerBanners() {
   if (!Array.isArray(managerRows) || managerRows.length === 0) {
     // show the manager error banner and hide manager table
     $(runningBanner).show();
-    $(htmlTable).hide();
-    $(fateHtmlTable).hide();
   } else {
     // otherwise, hide the error banner and show manager table
     $(runningBanner).hide();
-    $(fateHtmlTable).show();
-    $(htmlTable).show();
   }
   updateManagerGoalStateBanner();
 }
@@ -74,8 +70,6 @@ function refresh() {
     refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
     refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
     $(runningBanner).show();
-    $(htmlTable).hide();
-    $(fateHtmlTable).hide();
     $(managerStateBanner).hide();
     showBannerError(htmlBanner, htmlBannerMessage);
   });

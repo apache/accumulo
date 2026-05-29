@@ -52,14 +52,6 @@ function getReplaying() {
   return getStoredView(RECOVERY).serversRecoveringTablets;
 }
 
-function showOrHide(divElement, dataArray) {
-  if (dataArray.length == 0) {
-    $(divElement).hide();
-  } else {
-    $(divElement).show();
-  }
-}
-
 function refresh() {
   $.when(getRecoveryInformation()).then(function () {
     ajaxReloadTable(overviewDataTable);
@@ -82,10 +74,6 @@ function refresh() {
     ajaxReloadTable(sortingDataTable);
     ajaxReloadTable(replayingDataTable);
   });
-  showOrHide(overviewTableDivElement, getOverview());
-  showOrHide(tabletRecoveryDivElement, getTablets());
-  showOrHide(sortingServersDivElement, getSorting());
-  showOrHide(replayingServersDivElement, getReplaying());
 }
 
 $(function () {
