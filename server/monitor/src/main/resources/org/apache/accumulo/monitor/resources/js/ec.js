@@ -290,6 +290,7 @@ $(function () {
     }
   });
 
+  refreshManagerStatus();
   refreshRunningCompactions();
 });
 
@@ -297,6 +298,7 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
+  refreshManagerStatus();
   refreshRunningCompactions();
 }
 
@@ -304,10 +306,8 @@ function refresh() {
  * Refreshes the running compactions
  */
 function refreshRunningCompactions() {
-  refreshManagerStatus().then(function (managerStatus) {
-    // user paging is not reset on reload
-    ajaxReloadTable(runningTable);
-  });
+  // user paging is not reset on reload
+  ajaxReloadTable(runningTable);
 }
 
 /**
