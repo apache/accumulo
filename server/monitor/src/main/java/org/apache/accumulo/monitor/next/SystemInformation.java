@@ -29,7 +29,6 @@ import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.H
 import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Info;
 
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -97,19 +96,11 @@ import org.apache.accumulo.monitor.next.views.TableData.Column;
 import org.apache.accumulo.monitor.next.views.TableDataFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.net.HostAndPort;
-
-import io.micrometer.core.instrument.Clock;
-import io.micrometer.core.instrument.Meter.Id;
-import io.micrometer.core.instrument.Meter.Type;
-import io.micrometer.core.instrument.Tags;
-import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
-import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class SystemInformation {
 
@@ -640,11 +631,6 @@ public class SystemInformation {
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
-  private final DistributionStatisticConfig DSC =
-      DistributionStatisticConfig.builder().percentilePrecision(1).minimumExpectedValue(0.1)
-          .maximumExpectedValue(Double.POSITIVE_INFINITY).expiry(Duration.ofMinutes(10))
-          .bufferLength(3).build();
-
   private final ServerContext ctx;
   private final Cache<ServerId,MetricResponse> allMetrics;
 
@@ -660,27 +646,8 @@ public class SystemInformation {
   private final Map<String,Set<ServerId>> sservers = new ConcurrentHashMap<>();
   private final Map<String,Set<ServerId>> tservers = new ConcurrentHashMap<>();
 
-  // Summaries of metrics by server type
-  // map of metric name to metric values
-  private final Map<Id,CumulativeDistributionSummary> totalCompactorMetrics =
-      new ConcurrentHashMap<>();
-  private final Map<Id,CumulativeDistributionSummary> totalSServerMetrics =
-      new ConcurrentHashMap<>();
-  private final Map<Id,CumulativeDistributionSummary> totalTServerMetrics =
-      new ConcurrentHashMap<>();
-
-  // Summaries of metrics by server type and resource group
-  // map of resource group to metric name to metric values
-  private final Map<String,Map<Id,CumulativeDistributionSummary>> rgCompactorMetrics =
-      new ConcurrentHashMap<>();
-  private final Map<String,Map<Id,CumulativeDistributionSummary>> rgSServerMetrics =
-      new ConcurrentHashMap<>();
-  private final Map<String,Map<Id,CumulativeDistributionSummary>> rgTServerMetrics =
-      new ConcurrentHashMap<>();
-
   // Compaction Information
-  private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
-  private volatile Set<ServerId> registeredCompactors = Set.of();
+  private final Map<String,Long> queuedRgCompactions = new ConcurrentHashMap<>();
 
   protected final Map<String,TimeOrderedRunningCompactionSet> longRunningCompactionsByRg =
       new ConcurrentHashMap<>();
@@ -739,14 +706,7 @@ public class SystemInformation {
     compactors.clear();
     sservers.clear();
     tservers.clear();
-    totalCompactorMetrics.clear();
-    totalSServerMetrics.clear();
-    totalTServerMetrics.clear();
-    rgCompactorMetrics.clear();
-    rgSServerMetrics.clear();
-    rgTServerMetrics.clear();
-    queueMetrics.clear();
-    registeredCompactors = Set.of();
+    queuedRgCompactions.clear();
     longRunningCompactionsByRg.clear();
     tables.clear();
     tablets.clear();
@@ -795,43 +755,6 @@ public class SystemInformation {
       }
       alertCounts.get(pri).set(count);
     }
-  }
-
-  private void updateAggregates(final MetricResponse response,
-      final Map<Id,CumulativeDistributionSummary> total,
-      final Map<String,Map<Id,CumulativeDistributionSummary>> rg) {
-    if (response.getMetrics() == null) {
-      return;
-    }
-
-    final Map<Id,CumulativeDistributionSummary> rgMetrics =
-        rg.computeIfAbsent(response.getResourceGroup(), (k) -> new ConcurrentHashMap<>());
-
-    response.getMetrics().forEach((bb) -> {
-      final FMetric fm = FMetric.getRootAsFMetric(bb);
-      final String name = fm.name();
-      FTag statisticTag = null;
-      for (int i = 0; i < fm.tagsLength(); i++) {
-        FTag t = fm.tags(i);
-        if (t.key().equals(MetricResponseWrapper.STATISTIC_TAG)) {
-          statisticTag = t;
-          break;
-        }
-      }
-      Number value = getMetricValue(fm);
-      final Id id = new Id(name,
-          (statisticTag == null) ? Tags.empty() : Tags.of(statisticTag.key(), statisticTag.value()),
-          null, null, Type.valueOf(fm.type()));
-      total
-          .computeIfAbsent(id,
-              (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM, DSC, 1.0, false))
-          .record(value.doubleValue());
-      rgMetrics
-          .computeIfAbsent(id,
-              (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM, DSC, 1.0, false))
-          .record(value.doubleValue());
-    });
-
   }
 
   private void captureRecoveriesInProgress(final ServerId server, final MetricResponse response) {
@@ -981,12 +904,12 @@ public class SystemInformation {
         .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
     captureRecoveriesInProgress(server, response);
     FMetric flatbuffer = new FMetric();
+    FTag tag = new FTag();
     switch (response.serverType) {
       case COMPACTOR:
         compactors
             .computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
-        updateAggregates(response, totalCompactorMetrics, rgCompactorMetrics);
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
@@ -1063,6 +986,15 @@ public class SystemInformation {
             }
           } else if (metricName.equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())) {
             long queued = getMetricValue(flatbuffer).longValue();
+            String queueName = "unknown";
+            for (int i = 0; i < flatbuffer.tagsLength(); i++) {
+              tag = flatbuffer.tags(tag, i);
+              if (tag.key().equals(QUEUE_TAG_KEY)) {
+                queueName = tag.value();
+                break;
+              }
+            }
+            queuedRgCompactions.put(queueName, queued);
             this.instanceOverview.getCompactionsQueued().addAndGet(queued);
           } else if (metricName
               .equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName())) {
@@ -1079,7 +1011,6 @@ public class SystemInformation {
       case SCAN_SERVER:
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
-        updateAggregates(response, totalSServerMetrics, rgSServerMetrics);
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
@@ -1106,7 +1037,6 @@ public class SystemInformation {
       case TABLET_SERVER:
         tservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
             .add(server);
-        updateAggregates(response, totalTServerMetrics, rgTServerMetrics);
         for (ByteBuffer binary : response.getMetrics()) {
           flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
           final String metricName = flatbuffer.name();
@@ -1169,14 +1099,6 @@ public class SystemInformation {
         .computeIfAbsent(tec.getGroupName(),
             k -> new TimeOrderedRunningCompactionSet(rgLongRunningCompactionSize))
         .add(new RunningCompactionInfo(tec));
-  }
-
-  public void processExternalCompactionInventory(Set<ServerId> compactors) {
-    if (compactors == null) {
-      registeredCompactors = Set.of();
-    } else {
-      registeredCompactors = Set.copyOf(compactors);
-    }
   }
 
   public void processTabletInformation(TableId tableId, String tableName, TabletInformation info) {
@@ -1438,38 +1360,33 @@ public class SystemInformation {
     }
 
     for (String rg : getResourceGroups()) {
-      Set<ServerId> rgCompactors = getCompactorResourceGroupServers(rg);
-      List<FMetric> metrics = queueMetrics.get(rg);
-      if (metrics == null || metrics.isEmpty()) {
-        continue;
-      }
-      Optional<FMetric> queued = metrics.stream()
-          .filter(fm -> fm.name().equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName()))
-          .findFirst();
-      if (queued.isPresent()) {
-        Number numQueued = getMetricValue(queued.orElseThrow());
-        if (numQueued.longValue() > 0) {
-          if (rgCompactors == null || rgCompactors.size() == 0) {
-            addAlert(Critical, Configuration, "Compactor group " + rg + " has "
-                + numQueued.longValue() + " queued compactions but no running compactors");
-          } else {
-            // Check for idle compactors.
-            Map<Id,CumulativeDistributionSummary> rgMetrics =
-                getCompactorResourceGroupMetricSummary(rg);
-            if (rgMetrics == null || rgMetrics.isEmpty()) {
-              continue;
-            }
-            Optional<Entry<Id,CumulativeDistributionSummary>> idleMetric = rgMetrics.entrySet()
-                .stream().filter(e -> e.getKey().getName().equals(Metric.SERVER_IDLE.getName()))
-                .findFirst();
-            if (idleMetric.isPresent()) {
-              var metric = idleMetric.orElseThrow().getValue();
-              if (metric.max() == 1.0D) {
-                addAlert(High, Resource,
-                    "Compactor group " + rg + " has queued jobs and idle compactors.");
+      Set<ServerId> rgCompactors = this.compactors.get(rg);
+      Long numQueued = queuedRgCompactions.get(rg);
+      if (numQueued != null && numQueued > 0) {
+        if (rgCompactors == null || rgCompactors.size() == 0) {
+          addAlert(Critical, Configuration, "Compactor group " + rg + " has " + numQueued
+              + " queued compactions but no running compactors");
+        } else {
+          long idleCompactors = 0;
+          FMetric fm = new FMetric();
+          for (ServerId compactor : rgCompactors) {
+            MetricResponse mr = allMetrics.getIfPresent(compactor);
+            if (mr != null) {
+              for (final ByteBuffer binary : mr.getMetrics()) {
+                fm = FMetric.getRootAsFMetric(binary, fm);
+                final String metricName = flatbuffer.name();
+                if (metricName.equals(Metric.COMPACTOR_MAJC_IN_PROGRESS.getName())) {
+                  if (getMetricValue(flatbuffer).longValue() == 1) {
+                    idleCompactors++;
+                  }
+                  break;
+                }
               }
             }
-
+          }
+          if (idleCompactors > 0) {
+            addAlert(High, Resource, "Compactor group " + rg + " has queued jobs and "
+                + idleCompactors + " compactors.");
           }
         }
       }
@@ -1630,7 +1547,7 @@ public class SystemInformation {
     return servers;
   }
 
-  private Set<ServerId> getActiveServers(ServerId.Type type) {
+  public Set<ServerId> getActiveServers(ServerId.Type type) {
     return switch (type) {
       case COMPACTOR -> getAll(compactors);
       case GARBAGE_COLLECTOR -> {
@@ -1659,53 +1576,6 @@ public class SystemInformation {
 
   public List<CompactionTableSummary> getRunningCompactionsPerTable() {
     return this.tableCompactions;
-  }
-
-  public Set<ServerId> getCompactorResourceGroupServers(String resourceGroup) {
-    return this.compactors.get(resourceGroup);
-  }
-
-  public Map<Id,CumulativeDistributionSummary>
-      getCompactorResourceGroupMetricSummary(String resourceGroup) {
-    return this.rgCompactorMetrics.get(resourceGroup);
-  }
-
-  public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
-    return this.totalCompactorMetrics;
-  }
-
-  public Set<ServerId> getSServerResourceGroupServers(String resourceGroup) {
-    return this.sservers.get(resourceGroup);
-  }
-
-  public Map<Id,CumulativeDistributionSummary>
-      getSServerResourceGroupMetricSummary(String resourceGroup) {
-    return this.rgSServerMetrics.get(resourceGroup);
-  }
-
-  public Map<Id,CumulativeDistributionSummary> getSServerAllMetricSummary() {
-    return this.totalSServerMetrics;
-  }
-
-  public Set<ServerId> getTServerResourceGroupServers(String resourceGroup) {
-    return this.tservers.get(resourceGroup);
-  }
-
-  public Map<Id,CumulativeDistributionSummary>
-      getTServerResourceGroupMetricSummary(String resourceGroup) {
-    return this.rgTServerMetrics.get(resourceGroup);
-  }
-
-  public Map<Id,CumulativeDistributionSummary> getTServerAllMetricSummary() {
-    return this.totalTServerMetrics;
-  }
-
-  public Map<String,List<FMetric>> getCompactionMetricSummary() {
-    return this.queueMetrics;
-  }
-
-  public Set<ServerId> getCompactorServers() {
-    return registeredCompactors;
   }
 
   public Map<String,TimeOrderedRunningCompactionSet> getTopRunningCompactions() {

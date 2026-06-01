@@ -523,31 +523,13 @@ function clearAllTableCells(tableId) {
 // NEW REST CALLS
 
 /**
- * REST GET call for /problems,
- * stores it on a sessionStorage variable
- */
-function getProblems() {
-  return getJSONForTable(REST_V2_PREFIX + '/problems', 'problems');
-}
-
-/**
  * REST GET call for /lastUpdate,
  * stores it on a sessionStorage variable
  */
 function getLastUpdate() {
-  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', 'lastUpdate');
+  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
 }
 
-/**
- * REST GET call for /tservers/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getTserversSummary(group) {
-  const url = `${REST_V2_PREFIX}/tservers/summary/${group}`;
-  const sessionDataVar = `tserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
 
 /**
  * REST GET call for /alerts/categories
@@ -584,16 +566,6 @@ function getAlerts(high, info, cats) {
   return getJSONForTable(call, ALERTS);
 }
 
-/**
- * REST GET call for /compactors/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getCompactorsDetail(group) {
-  const url = `${REST_V2_PREFIX}/compactors/detail/${group}`;
-  const sessionDataVar = `compactorsDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
 
 /**
  * REST GET call for /stats,
@@ -601,17 +573,6 @@ function getCompactorsDetail(group) {
  */
 function getStats() {
   return getJSONForTable(REST_V2_PREFIX + '/stats', 'stats');
-}
-
-/**
- * REST GET call for /compactors/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getCompactorsSummary(group) {
-  const url = `${REST_V2_PREFIX}/compactors/summary/${group}`;
-  const sessionDataVar = `compactorsSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
 }
 
 /**
@@ -623,14 +584,6 @@ function getTableTablets(name) {
   const url = `${REST_V2_PREFIX}/tables/${name}/tablets`;
   const sessionDataVar = `tableTablets_${name}`;
   return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /metrics,
- * stores it on a sessionStorage variable
- */
-function getMetrics() {
-  return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
 }
 
 /**
@@ -679,25 +632,6 @@ function getComponentStatus(statusData, componentType) {
   }
 
   return 'OK';
-}
-
-/**
- * REST GET call for /gc,
- * stores it on a sessionStorage variable
- */
-function getGc() {
-  return getJSONForTable(REST_V2_PREFIX + '/gc', 'gc');
-}
-
-/**
- * REST GET call for /tservers/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getTserversDetail(group) {
-  const url = `${REST_V2_PREFIX}/tservers/detail/${group}`;
-  const sessionDataVar = `tserversDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
 }
 
 /**
@@ -779,14 +713,6 @@ function getTserversView() {
 
 
 /**
- * REST GET call for /tservers/summary,
- * stores it on a sessionStorage variable
- */
-function getTserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/tservers/summary', 'tserversSummary');
-}
-
-/**
  * REST GET call for /instance/info,
  * stores it on a sessionStorage variable
  */
@@ -803,25 +729,6 @@ function getInstanceOverview() {
 }
 
 /**
- * REST GET call for /sservers/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getSserversDetail(group) {
-  const url = `${REST_V2_PREFIX}/sservers/detail/${group}`;
-  const sessionDataVar = `sserversDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactors/summary,
- * stores it on a sessionStorage variable
- */
-function getCompactorsSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactors/summary', 'compactorsSummary');
-}
-
-/**
  * REST GET call for /tables/{name},
  * stores it on a sessionStorage variable
  * @param {string} name Table name
@@ -830,14 +737,6 @@ function getTable(name) {
   const url = `${REST_V2_PREFIX}/tables/${name}`;
   const sessionDataVar = `table_${name}`;
   return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/summary,
- * stores it on a sessionStorage variable
- */
-function getCompactionsSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
 }
 
 /**
@@ -855,15 +754,6 @@ function getRunningCompactionsByTable() {
 function getRunningCompactionsByGroup() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
 }
-
-/**
- * REST GET call for /lastUpdate,
- * stores it on a sessionStorage variable
- */
-function getLastUpdateTime() {
-  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
-}
-
 
 /**
  * Returns true if the input is a valid regular expression, false otherwise.
