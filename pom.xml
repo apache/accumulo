@@ -168,7 +168,7 @@ under the License.
     <surefire.reuseForks>true</surefire.reuseForks>
     <!-- dependency and plugin versions managed with properties -->
     <version.auto-service>1.1.1</version.auto-service>
-    <version.bouncycastle>1.80</version.bouncycastle>
+    <version.bouncycastle>1.84</version.bouncycastle>
     <version.curator>5.8.0</version.curator>
     <version.errorprone>2.41.0</version.errorprone>
     <version.hadoop>3.3.6</version.hadoop>
