@@ -41,7 +41,7 @@
           </caption>
           <thead>
             <tr>
-              <th>Table Id</th>
+              <th>Table Name</th>
               <th>TabletId</th>
               <th>Tablet Directory</th>
               <th>Location</th>

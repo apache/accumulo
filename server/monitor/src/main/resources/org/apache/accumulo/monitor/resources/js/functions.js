@@ -34,7 +34,6 @@ const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
 const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
 const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
 const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
-var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
@@ -46,6 +45,24 @@ const RECOVERY = 'recovery';
 const INSTANCE_OVERVIEW = 'instanceOverview';
 const SCANS = 'scans';
 const LAST_UPDATE = 'lastUpdate';
+
+var STATUS_REQUEST = null;
+var TABLE_MAP = {};
+
+function computeTableMap() {
+  TABLE_MAP = {};
+  var tables = getStoredJson('tables', {});
+  return Object.keys(tables).map(function (key) {
+    var tableInfo = tables[key];
+    var name = tableInfo.tableName;
+    TABLE_MAP[key] = name;
+  });
+}
+
+function renderTableLink(data, type, row) {
+  var tableName = TABLE_MAP[data];
+  return '<a class="link-body-emphasis" href="tables/' + data + '">' + tableName + '</a>';
+}
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {

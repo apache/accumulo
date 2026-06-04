@@ -28,6 +28,10 @@ $(function () {
     sessionStorage.ecDetailsJSON = JSON.stringify([]);
   }
 
+  getTables().then(function () {
+    computeTableMap();
+  });
+
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
 
@@ -47,6 +51,10 @@ $(function () {
     "stateSave": true,
     "dom": 't<"align-left"l>p',
     "columnDefs": [{
+        targets: '_all',
+        defaultContent: '&mdash;'
+      },
+      {
         "targets": "duration",
         "render": function (data, type, row) {
           if (type === 'display') data = timeDuration(data);
@@ -77,7 +85,8 @@ $(function () {
       },
       {
         "data": "tableId",
-        "name": tableIdColumnName
+        "name": tableIdColumnName,
+        "render": renderTableLink
       },
       {
         "data": "ecid",
@@ -298,6 +307,9 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
+  getTables().then(function () {
+    computeTableMap();
+  });
   refreshManagerStatus();
   refreshRunningCompactions();
 }
