@@ -56,7 +56,7 @@ public class ZooKeeperMain implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Starts Apache Zookeeper instance";
+    return "Starts Apache Zookeeper session set to root of the configured accumulo instance";
   }
 
   @Override
