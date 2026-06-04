@@ -47,8 +47,7 @@
  *       "description": "Description of Column B",
  *       "uiClass": ""
  *     }
- *   ],
- *   timestamp: long
+ *   ]
  * }
  *
  * The value for the 'columns' key is an array of column definitions. The value for the
@@ -67,10 +66,7 @@ var dataTableRefs = new Map();
  * This function returns the entire response from session storage
  */
 function getStoredView(storageKey) {
-  if (!sessionStorage[storageKey]) {
-    return {};
-  }
-  return JSON.parse(sessionStorage[storageKey]);
+  return getStoredJson(storageKey, {});
 }
 
 /**
@@ -256,11 +252,19 @@ function createDataTable(table, storageKey) {
         data: getStoredRows(storageKey)
       });
     },
+    "buttons": [{
+      "extend": 'colvis',
+      "text": '<i class="bi bi-gear"></i>',
+      "titleAttr": 'Columns'
+    }],
+    "dom": '<"row"<"col-sm-12 col-md-4"l><"col-sm-12 col-md-6"f><"col-sm-12 col-md-2"B>>' +
+      '<"row dt-row"<"col-sm-12"rt>>' +
+      '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
     "stateSave": true,
     "colReorder": true,
     "columnDefs": [{
         targets: '_all',
-        defaultContent: '-'
+        defaultContent: '&mdash;'
       },
       {
         "targets": "big-num",

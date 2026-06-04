@@ -129,8 +129,7 @@ public class TableDataFactory {
   }
 
   public static TableData forColumns(final Set<ServerId> servers,
-      final Map<ServerId,MetricResponse> allMetrics, final long timestamp,
-      List<ColumnFactory> requestedColumns) {
+      final Map<ServerId,MetricResponse> allMetrics, List<ColumnFactory> requestedColumns) {
 
     List<Column> columns = requestedColumns.stream().map(ColumnFactory::getColumn).toList();
 
@@ -154,15 +153,15 @@ public class TableDataFactory {
       data.add(row);
     });
 
-    return new TableData(columns, data, timestamp);
+    return new TableData(columns, data);
 
   }
 
   public static TableData forTable(final TableName table, final Set<ServerId> servers,
-      final Map<ServerId,MetricResponse> allMetrics, final long timestamp) {
+      final Map<ServerId,MetricResponse> allMetrics) {
 
     List<ColumnFactory> requestedColumns = columnsFor(table);
-    return forColumns(servers, allMetrics, timestamp, requestedColumns);
+    return forColumns(servers, allMetrics, requestedColumns);
   }
 
   /**

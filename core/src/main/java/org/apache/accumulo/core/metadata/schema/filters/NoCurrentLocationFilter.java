@@ -16,28 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.bulkImports;
+package org.apache.accumulo.core.metadata.schema.filters;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
-/**
- * BulkImport stores the bulk import and tserver bulk imports
- *
- * @since 2.0.0
- */
-public class BulkImport {
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 
-  // Variable names become JSON key
-  public List<BulkImportInformation> bulkImport = new ArrayList<>();
+public class NoCurrentLocationFilter extends HasCurrentFilter {
 
-  /**
-   * Adds a new bulk import to the array
-   *
-   * @param bulkImport new bulk import to add
-   */
-  public void addBulkImport(BulkImportInformation bulkImport) {
-    this.bulkImport.add(bulkImport);
+  @Override
+  public Set<ColumnType> getColumns() {
+    return super.getColumns();
+  }
+
+  @Override
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return super.acceptTablet().negate();
   }
 
 }

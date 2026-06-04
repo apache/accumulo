@@ -353,10 +353,14 @@ public enum Property {
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
+      PropertyType.BOOLEAN,
+      "Enables Caffeine Cache metrics functionality using Micrometer. Requires "
+          + " property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "4.0.0"),
-  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
+      "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
+          + " is dependent on metrics being enabled to function correctly.",
+      "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN,
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
@@ -369,7 +373,7 @@ public enum Property {
       'log4j2' or 'logback'.
       """, "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
+      "org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
       """
           A comma separated list of one or more class names that implements \
@@ -396,6 +400,10 @@ public enum Property {
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
           + " disables this check. The default value changed from 0 to 2m in 4.0.0.",
       "2.1.4"),
+  GENERAL_SERVER_WAL_SORT_BUFFER_SIZE("general.server.wal.sort.buffer.size", "10%",
+      PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery.",
+      "4.0.0"),
+
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
@@ -516,7 +524,7 @@ public enum Property {
           operations and whose value is a pool size for those operations.
           """, "4.0.0"),
   @Deprecated(since = "4.0.0")
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "",
       PropertyType.FATE_THREADPOOL_SIZE, """
           Previously, the number of threads used to run fault-tolerant executions (FATE). \
           This is no longer used in 4.0+. %s and %s are the replacement and must be \
@@ -806,6 +814,8 @@ public enum Property {
       "1.5.0"),
   TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery.", "2.1.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = GENERAL_SERVER_WAL_SORT_BUFFER_SIZE)
   TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,

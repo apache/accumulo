@@ -20,23 +20,11 @@
 -->
       <div class="row">
         <div class="col-xs-12">
-          <h3>${title}</h3>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="bulkListTable" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Bulk Imports</span><br /></caption>
-            <thead>
-              <tr>
-                <th>Table ID&nbsp;</th>
-                <th>Fate ID&nbsp;</th>
-                <th>Directory&nbsp;</th>
-                <th title="The age of the import.">Age&nbsp;</th>
-                <th title="The current state of the bulk import">State&nbsp;</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
+          <table id="fateTable" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Fate Transaction Details</span><br />
+              <span class="table-subcaption">Use the <strong>accumulo inst fate</strong> server-side utility with the <strong>-l</strong> and <strong>-i</strong> options to see detailed information about a transaction.</span><br />
+            </caption>
+            <#include "table_loading.ftl" >
           </table>
         </div>
       </div>

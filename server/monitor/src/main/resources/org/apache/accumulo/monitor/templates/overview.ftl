@@ -24,46 +24,76 @@
         </div>
       </div>
       <div class="row d-flex justify-content-center">
-        <div class="col-xs-12" id="deploymentOverview">
-          <div id="deploymentWarning"></div>
-          <div class="mb-4" style="max-width: 560px; margin: 0 auto;">
-            <table id="deploymentSummaryTable"
-              class="table table-bordered table-striped table-condensed" style="width: 100%;">
-              <thead>
-                <tr>
-                  <th colspan="2" class="center">Server Type Summary</th>
-                </tr>
-                <tr>
-                  <th>Server Type</th>
-                  <th>Responding / Total</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+        <div class="col-xs-12">
+          <div class="row mb-4">
+            <div id="deploymentWarning"></div>
+            <div class="col">
+              <div class="card">
+                <div class="card-header fw-semibold">Server Deployment</div>
+                <div class="card-body">
+                  <div class="deployment-overview-content">
+                    <div class="table-responsive">
+                      <table id="deployment-table" class="table table-bordered table-sm align-middle deployment-matrix-table mb-0">
+                        <#include "table_loading.ftl" >
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div style="max-width: 760px; margin: 0 auto;">
-            <div class="mb-3">
-              <label for="deployment-rg-filter" class="form-label">Resource Group Filter</label>
-              <input type="text" id="deployment-rg-filter" class="form-control"
-                placeholder="Enter resource group regex">
-              <small id="deployment-rg-feedback" class="form-text text-danger"
-                style="display:none;">Invalid regex pattern</small>
+          <div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-3 g-3 mb-4">
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Instance</div>
+                <ul id="instance-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
             </div>
-            <table id="deploymentBreakdownTable"
-              class="table table-bordered table-striped table-condensed" style="width: 100%;">
-              <thead>
-                <tr>
-                  <th colspan="3" class="center">Deployment Breakdown</th>
-                </tr>
-                <tr>
-                  <th>Resource Group</th>
-                  <th>Server Type</th>
-                  <th>Responding / Total</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-header fw-semibold">Ingest</div>
+                <ul id="ingest-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="col d-flex flex-column gap-3">
+              <div class="card">
+                <div class="card-header fw-semibold">Scan</div>
+                <ul id="scan-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+              <div class="card">
+                <div class="card-header fw-semibold">Compaction</div>
+                <ul id="compaction-overview-list" class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                      <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span>Loading...</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -809,6 +809,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     public String getReturn() {
       return null;
     }
+
+    @Override
+    public String getDetails() {
+      return null;
+    }
   }
 
   public static class PoolResizeTestEnv extends FateTestRunner.TestEnv {

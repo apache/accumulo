@@ -51,7 +51,7 @@ $(function () {
         "type": "html",
         "render": function (data, type, row, meta) {
           if (type === 'display') {
-            data = '<a href="tservers?s=' + row.server + '">' + row.server + '</a>';
+            data = '<a class="link-body-emphasis" href="tservers?s=' + row.server + '">' + row.server + '</a>';
           }
           return data;
         }

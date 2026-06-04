@@ -37,6 +37,15 @@ const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
+const AUTO_REFRESH_KEY = 'auto-refresh';
+const FATE = 'fate';
+const ALERT_CATEGORIES = 'alertCategories';
+const ALERTS = 'alerts';
+const ALERT_COUNTS = 'alertCounts';
+const RECOVERY = 'recovery';
+const INSTANCE_OVERVIEW = 'instanceOverview';
+const SCANS = 'scans';
+const LAST_UPDATE = 'lastUpdate';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -53,25 +62,17 @@ if ($.fn && $.fn.dataTable) {
  * and creates listeners for auto refresh
  */
 function setupAutoRefresh() {
-  // Sets auto refresh to true or false
-  if (!sessionStorage.autoRefresh) {
-    sessionStorage.autoRefresh = 'false';
-  }
-  // Need this to set the initial value for the autorefresh on page load
-  if (sessionStorage.autoRefresh === 'false') {
-    $('.auto-refresh').parent().removeClass('active');
+
+  var autoRefreshSwitch = $('#autoRefreshSwitch');
+  var savedValue = localStorage.getItem(AUTO_REFRESH_KEY);
+  if (savedValue === null || savedValue === 'false') {
+    autoRefreshSwitch.prop('checked', false);
   } else {
-    $('.auto-refresh').parent().addClass('active');
+    autoRefreshSwitch.prop('checked', true);
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').on("click", function () {
-    if ($(this).parent().attr('class') === 'active') {
-      $(this).parent().removeClass('active');
-      sessionStorage.autoRefresh = 'false';
-    } else {
-      $(this).parent().addClass('active');
-      sessionStorage.autoRefresh = 'true';
-    }
+  $('#autoRefreshSwitch').on("change", function () {
+    localStorage.setItem(AUTO_REFRESH_KEY, $(this).is(':checked'));
   });
 }
 
@@ -86,15 +87,24 @@ function refresh() {
  * Global timer that checks for auto refresh status every 5 seconds
  */
 TIMER = setInterval(function () {
-  if (sessionStorage.autoRefresh === 'true') {
-    $('.auto-refresh').parent().addClass('active');
+  if (localStorage.getItem(AUTO_REFRESH_KEY) === 'true') {
     refresh();
     refreshNavBar();
-  } else {
-    $('.auto-refresh').parent().removeClass('active');
+    refreshLastUpdate();
   }
 }, 5000);
 
+
+function refreshLastUpdate() {
+  getLastUpdate().then(function () {
+    var timing = getStoredJson(LAST_UPDATE, {});
+    $('#lastUpdateDiv').empty();
+    var msg = $(document.createElement("span"));
+    msg.text('Data as of ' + dateFormat(timing.finishTime).replace(/&nbsp;/g, ' ') +
+      '. Took ' + timeDuration(timing.durationMs).replace(/&nbsp;/g, ' ') + ' to collect.');
+    $('#lastUpdateDiv').append(msg);
+  });
+}
 /**
  * Adds the suffix to the number, converts the number to one close to the base
  *
@@ -372,6 +382,20 @@ function getJSONForTable(call, sessionDataVar) {
   });
 }
 
+function getStoredJson(storageKey, defaultValue) {
+  var storedValue = sessionStorage.getItem(storageKey);
+  if (!storedValue) {
+    return defaultValue;
+  }
+
+  return JSON.parse(storedValue);
+}
+
+function getStoredArray(storageKey) {
+  var storedValue = getStoredJson(storageKey, []);
+  return Array.isArray(storedValue) ? storedValue : [];
+}
+
 /**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
@@ -466,14 +490,7 @@ function getTServer(server) {
  * REST GET call for the scans, stores it on a sessionStorage variable
  */
 function getScans() {
-  return getJSONForTable(contextPath + 'rest/scans', 'scans');
-}
-
-/**
- * REST GET call for the bulk imports, stores it on a sessionStorage variable
- */
-function getBulkImports() {
-  return getJSONForTable(contextPath + 'rest/bulkImports', 'bulkImports');
+  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
 }
 
 /**
@@ -481,13 +498,6 @@ function getBulkImports() {
  */
 function getServerStats() {
   return getJSONForTable(contextPath + 'rest/tservers/serverStats', 'serverStats');
-}
-
-/**
- * REST GET call for the recovery list, stores it on a sessionStorage variable
- */
-function getRecoveryList() {
-  return getJSONForTable(contextPath + 'rest/tservers/recovery', 'recoveryList');
 }
 
 /**
@@ -540,11 +550,38 @@ function getTserversSummary(group) {
 }
 
 /**
- * REST GET call for /suggestions,
- * stores it on a sessionStorage variable
+ * REST GET call for /alerts/categories
+ * store it on a sessionStorage variable
  */
-function getSuggestions() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestions', 'suggestions');
+function getAlertCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/alerts/categories', ALERT_CATEGORIES);
+}
+
+/**
+ * REST GET call for /alerts/counts
+ * store it on a sessionStorage variable
+ */
+function getAlertCounts() {
+  return getJSONForTable(REST_V2_PREFIX + '/alerts/counts', ALERT_COUNTS);
+}
+
+/**
+ * REST GET call for /alerts,
+ * results are not stored in session as this
+ * function takes parameters driven by toggles
+ * in the UI.
+ */
+function getAlerts(high, info, cats) {
+
+  const params = new URLSearchParams();
+  params.append('high', high);
+  params.append('info', info);
+  $.each(cats, function (index, cat) {
+    params.append('category', cat);
+  });
+
+  var call = REST_V2_PREFIX + '/alerts?' + params.toString();
+  return getJSONForTable(call, ALERTS);
 }
 
 /**
@@ -594,6 +631,14 @@ function getTableTablets(name) {
  */
 function getMetrics() {
   return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /recovery,
+ * stores it on a sessionStorage variable
+ */
+function getRecoveryInformation() {
+  return getJSONForTable(REST_V2_PREFIX + '/recovery', RECOVERY);
 }
 
 /**
@@ -679,6 +724,14 @@ function getDeployment() {
   return getJSONForTable(REST_V2_PREFIX + '/deployment', 'deployment');
 }
 
+/**
+ * REST GET call for /fate,
+ * stores it on a sessionStorage variable
+ */
+function getFate() {
+  return getJSONForTable(REST_V2_PREFIX + '/fate', FATE);
+}
+
 function getServerProcessView(table, storageKey) {
   var url = REST_V2_PREFIX + '/servers/view;table=' + table;
   return getJSONForTable(url, storageKey);
@@ -734,11 +787,19 @@ function getTserversSummary() {
 }
 
 /**
- * REST GET call for /instance,
+ * REST GET call for /instance/info,
  * stores it on a sessionStorage variable
  */
 function getInstanceInfo() {
-  return getJSONForTable(REST_V2_PREFIX + '/instance', 'instance');
+  return getJSONForTable(REST_V2_PREFIX + '/instance/info', 'instance');
+}
+
+/**
+ * REST GET call for /instance/overview,
+ * stores it on a sessionStorage variable
+ */
+function getInstanceOverview() {
+  return getJSONForTable(REST_V2_PREFIX + '/instance/overview', INSTANCE_OVERVIEW);
 }
 
 /**
@@ -793,6 +854,14 @@ function getRunningCompactionsByTable() {
  */
 function getRunningCompactionsByGroup() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
+}
+
+/**
+ * REST GET call for /lastUpdate,
+ * stores it on a sessionStorage variable
+ */
+function getLastUpdateTime() {
+  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
 }
 
 

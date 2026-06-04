@@ -27,7 +27,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_STATE;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -281,7 +280,6 @@ public class Manager extends AbstractServer
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
   private final TabletStateStore userTabletStore;
-  private final ExecutorService renamePool;
 
   public synchronized ManagerState getManagerState() {
     return state;
@@ -488,9 +486,6 @@ public class Manager extends AbstractServer
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
-    int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    renamePool = ThreadPools.getServerThreadPools().getPoolBuilder(FILE_RENAME_POOL.poolName)
-        .numCoreThreads(poolSize).build();
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balanceManager = new BalanceManager();
@@ -909,17 +904,19 @@ public class Manager extends AbstractServer
   // This is called after getting the primary manager lock
   private void setupPrimaryMetrics() {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
-    // ensure all tablet group watchers are setup
-    Preconditions.checkState(watchers.size() == DataLevel.values().length);
-    watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
-    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
-    // ensure fate is completely setup
-    metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
-        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
-        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    metricsInfo.addMetricsProducers(this);
+    if (metricsInfo.isMetricsEnabled()) {
+      metricsInfo.addMetricsProducers(balanceManager.getMetrics());
+      // ensure all tablet group watchers are setup
+      Preconditions.checkState(watchers.size() == DataLevel.values().length);
+      watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
+      metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
+      // ensure fate is completely setup
+      metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+      metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+      metricsInfo.addMetricsProducers(this);
+    }
   }
 
   @Override

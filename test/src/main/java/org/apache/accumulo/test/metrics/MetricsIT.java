@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -524,6 +525,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
 
     List<String> statsDMetrics;
+    AtomicBoolean sawSomeMetrics = new AtomicBoolean(false);
 
     // loop until we run out of lines or until we see all expected metrics
     while (!(statsDMetrics = sink.getLines()).isEmpty()) {
@@ -549,8 +551,10 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             // check the length of the tag value is sane
             final int MAX_EXPECTED_TAG_LEN = 128;
             a.getTags().forEach((k, v) -> assertTrue(v.length() < MAX_EXPECTED_TAG_LEN));
+            sawSomeMetrics.compareAndSet(false, true);
           });
     }
+    assertTrue(sawSomeMetrics.get(), "Never saw metrics");
   }
 
   @Test
@@ -561,6 +565,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
 
     List<String> statsDMetrics;
+    AtomicBoolean sawSomeFateMetrics = new AtomicBoolean(false);
 
     while (!(statsDMetrics = sink.getLines()).isEmpty()) {
       statsDMetrics.stream().filter(line -> line.startsWith("accumulo.fate.tx"))
@@ -578,7 +583,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             FateInstanceType type =
                 FateInstanceType.valueOf(a.getTags().get("instanceType").toUpperCase());
             assertNotNull(type);
+            sawSomeFateMetrics.compareAndSet(false, true);
           });
     }
+    assertTrue(sawSomeFateMetrics.get(), "Never saw fate metrics");
   }
 }

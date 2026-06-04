@@ -127,13 +127,15 @@ public class ScanTraceClient {
       }
       var traceId1 = span.getSpanContext().getTraceId();
 
-      // These scans are done to ensure cacne is populated. Caffeine can evict things that were only
+      // These scans are done to ensure cache is populated. Caffeine can evict things that were only
       // used once.
       for (int i = 0; i < opts.getUntracedIntermediateScans(); i++) {
         try (var scanner = client.createScanner(table)) {
           opts.conigureScanner(scanner);
           scanner.setBatchSize(10_000);
-          var ignored = scanner.stream().count();
+          scanner.forEach((k, v) -> {
+            // do nothing with the result, just ensure the cache is populated
+          });
         }
       }
 

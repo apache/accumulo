@@ -24,15 +24,23 @@ var scansList;
  * Creates scans initial table
  */
 $(function () {
+
+  sessionStorage[SCANS] = JSON.stringify([]);
+
   // Create a table for scans list
   scansList = $('#scansList').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/scans',
-      "dataSrc": "scans"
+    "ajax": function (data, callback) {
+      callback({
+        data: getStoredArray(SCANS)
+      });
     },
     "stateSave": true,
-    "dom": 't<"align-left"l>p',
+    "colReorder": true,
     "columnDefs": [{
+        targets: '_all',
+        defaultContent: '&mdash;'
+      },
+      {
         "targets": "duration",
         "render": function (data, type, row) {
           if (type === 'display') data = timeDuration(data);
@@ -49,23 +57,37 @@ $(function () {
     ],
     "columns": [{
         "data": "server",
-        "type": "html",
-        "render": function (data, type, row, meta) {
-          if (type === 'display') {
-            data = '<a href="tservers?s=' + row.server + '">' + row.server + '</a>';
-          }
-          return data;
-        }
       },
       {
-        "data": "scanCount"
+        "data": "type"
       },
       {
-        "data": "oldestScan"
+        "data": "resourceGroup"
       },
       {
-        "data": "fetched"
+        "data": "tableId"
       },
+      {
+        "data": "sessionId"
+      },
+      {
+        "data": "client"
+      },
+      {
+        "data": "user"
+      },
+      {
+        "data": "state"
+      },
+      {
+        "data": "scanType"
+      },
+      {
+        "data": "age"
+      },
+      {
+        "data": "idleTime"
+      }
     ]
   });
 });
@@ -75,7 +97,9 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
-  refreshScansTable();
+  getScans().then(function () {
+    refreshScansTable();
+  });
 }
 
 /**

@@ -23,11 +23,15 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
@@ -39,6 +43,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
@@ -51,8 +56,15 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.AlertCategory;
+import org.apache.accumulo.monitor.next.SystemInformation.AlertPriority;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
+import org.apache.accumulo.monitor.next.SystemInformation.FetchCycleTimes;
+import org.apache.accumulo.monitor.next.SystemInformation.InstanceOverview;
+import org.apache.accumulo.monitor.next.SystemInformation.RecoveryInformation;
+import org.apache.accumulo.monitor.next.SystemInformation.Scan;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -173,11 +185,11 @@ public class Endpoints {
   public MonitorStatus getStatus() {
     SystemInformation summary = monitor.getInformationFetcher().getSummaryForEndpoint();
     return new MonitorStatus(summary.getManagerGoalState(), summary.getComponentStatuses(),
-        summary.getTimestamp());
+        summary.getCollectionTiming().finishTime());
   }
 
   @GET
-  @Path("instance")
+  @Path("instance/info")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the instance name, instance id, version, zookeepers, and volumes")
   public InstanceSummary getInstanceSummary() {
@@ -187,6 +199,14 @@ public class Endpoints {
         monitor.getContext().getVolumeManager().getVolumes().stream().map(Object::toString)
             .collect(Collectors.toSet()),
         Constants.VERSION);
+  }
+
+  @GET
+  @Path("instance/overview")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns an overview of instance level activity")
+  public InstanceOverview getInstanceOverview() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getInstanceOverview();
   }
 
   @GET
@@ -225,6 +245,14 @@ public class Endpoints {
   @Description("Returns an aggregate view of the metric responses for all Compactors")
   public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getCompactorAllMetricSummary();
+  }
+
+  @GET
+  @Path("scans")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of active scans")
+  public Set<Scan> getScans() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getActiveScans();
   }
 
   @GET
@@ -376,7 +404,16 @@ public class Endpoints {
   @Description("Returns External Compactor process details")
   public CompactorsSummary getExternalCompactors() {
     var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return new CompactorsSummary(summary.getCompactorServers(), summary.getTimestamp());
+    return new CompactorsSummary(summary.getCompactorServers(),
+        summary.getCollectionTiming().finishTime());
+  }
+
+  @GET
+  @Path("fate")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of fate transaction details")
+  public List<FateTransaction> getFateTransactions() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getFateTransactions();
   }
 
   @GET
@@ -414,6 +451,14 @@ public class Endpoints {
   }
 
   @GET
+  @Path("recovery")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns information about tservers performing recovery and tablets needing recovery")
+  public RecoveryInformation getTabletRecoveries() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getRecoveryInformation();
+  }
+
+  @GET
   @Path("deployment")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a UI-ready deployment overview grouped by resource group. Each process row"
@@ -423,19 +468,78 @@ public class Endpoints {
   }
 
   @GET
-  @Path("suggestions")
+  @Path("alerts/categories")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of suggestions")
-  public Set<String> getSuggestions() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getSuggestions();
+  @Description("Returns a list of alert categories")
+  public Set<AlertCategory> getAlertCategories() {
+    return EnumSet.allOf(SystemInformation.AlertCategory.class);
+  }
+
+  public record Alert(String priority, String category, String message) {
+  }
+
+  @GET
+  @Path("alerts/counts")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns count of alerts by priority")
+  public Map<AlertPriority,AtomicLong> getAlertCounts() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getAlertCounts();
+  }
+
+  @GET
+  @Path("alerts")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of alerts")
+  public List<Alert> getAlerts(@QueryParam("high") boolean includeHigh,
+      @QueryParam("info") boolean includeInfo, @QueryParam("category") List<String> categories) {
+    List<Alert> results = new ArrayList<>();
+
+    Map<AlertPriority,Map<AlertCategory,Set<String>>> alerts =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getAlerts();
+
+    for (Entry<AlertPriority,Map<AlertCategory,Set<String>>> e : alerts.entrySet()) {
+      AlertPriority prio = e.getKey();
+      Map<AlertCategory,Set<String>> value = e.getValue();
+      switch (prio) {
+        case Critical:
+          // Always include critical alerts
+          value.forEach((cat, messages) -> {
+            messages.forEach(m -> results.add(new Alert(prio.name(), cat.name(), m)));
+          });
+          break;
+        case High:
+          if (!includeHigh) {
+            break;
+          }
+          value.forEach((cat, messages) -> {
+            if (categories.contains(cat.name())) {
+              messages.forEach(m -> results.add(new Alert(prio.name(), cat.name(), m)));
+            }
+          });
+          break;
+        case Info:
+          if (!includeInfo) {
+            break;
+          }
+          value.forEach((cat, messages) -> {
+            if (categories.contains(cat.name())) {
+              messages.forEach(m -> results.add(new Alert(prio.name(), cat.name(), m)));
+            }
+          });
+          break;
+        default:
+          break;
+      }
+    }
+    return results;
   }
 
   @GET
   @Path("lastUpdate")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the timestamp of when the monitor information was last refreshed")
-  public long getTimestamp() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getTimestamp();
+  public FetchCycleTimes getTimestamp() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getCollectionTiming();
   }
 
   @GET

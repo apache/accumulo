@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -76,13 +75,6 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofSeconds(90);
-  }
-
-  @Override
-  protected void setSystemTablePerms(AccumuloClient client, SecurityOperations sops)
-      throws AccumuloException, AccumuloSecurityException {
-    // overridden to do nothing. The parent class gives read permissions to the
-    // system tables for the ITs. We want to test the default behavior
   }
 
   @BeforeEach

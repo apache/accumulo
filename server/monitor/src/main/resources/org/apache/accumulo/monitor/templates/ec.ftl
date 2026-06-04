@@ -23,7 +23,7 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div id="runningDiv" style="display: none;">
+      <div id="runningDiv">
         <div class="row">
           <div class="col-xs-12">
             <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
@@ -31,7 +31,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <div>
                     <span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
-                    <a href="javascript:refreshRunningCompactions();">
+                    <a class="link-body-emphasis" href="javascript:refreshRunningCompactions();">
                       <span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span>
                     </a>
                   </div>
