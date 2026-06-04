@@ -307,15 +307,14 @@ $(document).ready(function () {
         }
       }
     ],
-
-  // Only show the table if there are non-empty rows
+  // Hide the dead tablet servers table when none are reported
     "drawCallback": function () {
         if (this.api().rows().data().length === 0) {
           $('#deadtservers_wrapper').hide();
         }
         else {
           $('#deadtservers_wrapper').show();
-          }
+        }
     }
   });
 
