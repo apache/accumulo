@@ -23,6 +23,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
@@ -109,6 +112,7 @@ class CompactionDriver extends ManagerRepo {
 
     int tabletsToWaitFor = 0;
     int tabletCount = 0;
+    List<String> waitingDetail = log.isTraceEnabled() ? new ArrayList<>() : null;
 
     TabletsMetadata tablets = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
         .overlapping(startRow, endRow).fetch(LOCATION, PREV_ROW, COMPACT_ID).build();
@@ -118,6 +122,11 @@ class CompactionDriver extends ManagerRepo {
         tabletsToWaitFor++;
         if (tablet.hasCurrent()) {
           serversToFlush.increment(tablet.getLocation().getServerInstance(), 1);
+        }
+        if (waitingDetail != null && waitingDetail.size() < 5) {
+          String loc = tablet.hasCurrent() ? tablet.getLocation().getServerInstance().getHostPort()
+              : "no location";
+          waitingDetail.add(tablet.getExtent() + "@" + loc);
         }
       }
 
@@ -179,6 +188,15 @@ class CompactionDriver extends ManagerRepo {
           "{} tablets compacted:{}/{} servers contacted:{} expected id:{} compaction extent:{} sleepTime:{}",
           FateTxId.formatTid(tid), tabletCount - tabletsToWaitFor, tabletCount,
           serversToFlush.size(), compactId, extent, sleepTime);
+
+      StringBuilder sb = new StringBuilder();
+      waitingDetail.forEach(d -> sb.append("\n    waiting on ").append(d));
+      if (tabletsToWaitFor > waitingDetail.size()) {
+        sb.append(String.format("\n    ... and %d more", tabletsToWaitFor - waitingDetail.size()));
+      }
+      if (sb.length() > 0) {
+        log.trace("{}", sb);
+      }
     }
 
     return sleepTime;

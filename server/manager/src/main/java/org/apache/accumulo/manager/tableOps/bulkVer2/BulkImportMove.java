@@ -40,7 +40,10 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
@@ -61,6 +64,7 @@ class BulkImportMove extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
+  private static final Logger log = LoggerFactory.getLogger(BulkImportMove.class);
   private final BulkInfo bulkInfo;
 
   public BulkImportMove(BulkInfo bulkInfo) {
@@ -73,6 +77,12 @@ class BulkImportMove extends ManagerRepo {
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
     VolumeManager fs = manager.getVolumeManager();
+
+    if (log.isTraceEnabled()) {
+      FileStatus[] files = fs.listStatus(sourceDir);
+      log.trace("{} bulk import move starting. source:{} dest:{} files to move:{}",
+          FateTxId.formatTid(tid), sourceDir, bulkDir, files == null ? 0 : files.length);
+    }
 
     if (bulkInfo.tableState == TableState.ONLINE) {
       ZooArbitrator.start(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
