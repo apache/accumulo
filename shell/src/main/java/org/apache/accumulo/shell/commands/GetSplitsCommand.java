@@ -139,8 +139,8 @@ public class GetSplitsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
 
-    maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return that are "
-        + "\"evenly\" selected from the existing splits based upon the algorithm implemented in TableOperations.listSplits");
+    maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return that are"
+        + " selected from the existing splits; see TableOperations.listSplits");
     maxSplitsOpt.setArgName("num");
 
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
