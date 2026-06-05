@@ -88,7 +88,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.Compacting;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -436,7 +436,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   // Connect to the manager for posting asynchronous results
-  private ManagerClientService.Client managerConnection(HostAndPort address) {
+  private PrimaryManagerClientService.Client managerConnection(HostAndPort address) {
     try {
       if (address == null) {
         return null;
@@ -462,7 +462,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return new ThriftScanClientHandler(this, writeTracker);
   }
 
-  private void returnManagerConnection(ManagerClientService.Client client) {
+  private void returnManagerConnection(PrimaryManagerClientService.Client client) {
     ThriftUtil.returnClient(client, context);
   }
 
@@ -616,7 +616,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
-        ManagerClientService.Client iface = null;
+        PrimaryManagerClientService.Client iface = null;
 
         try {
           // wait until a message is ready to send, or a server stop
@@ -674,7 +674,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     }
 
-    ManagerClientService.Client iface = managerConnection(getManagerAddress());
+    PrimaryManagerClientService.Client iface = managerConnection(getManagerAddress());
     try {
       // Ask the manager to unload our tablets and stop loading new tablets
       if (iface == null) {
@@ -715,7 +715,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client iface,
+  private boolean sendManagerMessages(boolean managerDown, PrimaryManagerClientService.Client iface,
       String advertiseAddressString) {
     ManagerMessage mm = managerMessages.poll();
     while (mm != null && !managerDown) {
