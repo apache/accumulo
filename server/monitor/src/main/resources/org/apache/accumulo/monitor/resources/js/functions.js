@@ -19,11 +19,11 @@
 "use strict";
 
 // Suffixes for quantity
-var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
+const QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
-var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
-const REST_V2_PREFIX = contextPath + 'rest-v2';
+const SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 
+const REST_V2_PREFIX = contextPath + 'rest-v2';
 const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
 const COORDINATOR_QUEUE_PROCESS_VIEW = 'coordinatorQueueView';
 const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
@@ -438,95 +438,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
   });
 }
 
-///// REST Calls /////////////
-
-/**
- * REST GET call for the namespaces, stores it on a global variable
- */
-function getNamespaces() {
-  return getJSONForTable(contextPath + 'rest/tables/namespaces', 'NAMESPACES');
-}
-
-/**
- * REST GET call for the tables, stores it on a sessionStorage variable
- */
-function getTables() {
-  return getJSONForTable(contextPath + 'rest/tables', 'tables');
-}
-
-/**
- * REST GET call for the tables on each namespace,
- * stores it on a sessionStorage variable
- *
- * @param {array} namespaces Array holding the selected namespaces
- */
-function getNamespaceTables(namespaces) {
-
-  // Creates a JSON object to store the tables
-  var namespaceList = "";
-
-  /*
-   * If the namespace array include *, get all tables, otherwise,
-   * get tables from specific namespaces
-   */
-  if (namespaces.indexOf('*') !== -1) {
-    return getTables();
-  }
-  // Convert the list to a string for the REST call
-  namespaceList = namespaces.toString();
-
-  return getJSONForTable(contextPath + 'rest/tables/namespaces/' + namespaceList, 'tables');
-}
-
-/**
- * REST POST call to clear a specific dead server
- *
- * @param {string} server Dead Server ID
- */
-function clearDeadServers(server) {
-  doLoggedPostCall(contextPath + 'rest/tservers?server=' + server, null, false);
-}
-
-/**
- * REST GET call for the tservers, stores it on a sessionStorage variable
- */
-function getTServers() {
-  return getJSONForTable(contextPath + 'rest/tservers', 'tservers');
-}
-
-/**
- * REST GET call for the tservers, stores it on a sessionStorage variable
- *
- * @param {string} server Server ID
- */
-function getTServer(server) {
-  return getJSONForTable(contextPath + 'rest/tservers/' + server, 'server');
-}
-
-/**
- * REST GET call for the scans, stores it on a sessionStorage variable
- */
-function getScans() {
-  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
-}
-
-/**
- * REST GET call for the server stats, stores it on a sessionStorage variable
- */
-function getServerStats() {
-  return getJSONForTable(contextPath + 'rest/tservers/serverStats', 'serverStats');
-}
-
-/**
- * REST GET call for the participating tablet servers,
- * stores it on a sessionStorage variable
- *
- * @param {string} table Table ID
- */
-function getTableServers(tableID) {
-  return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
-}
-
 /*
  * Jquery call to clear all data from cells of a table
  */
@@ -537,14 +448,13 @@ function clearAllTableCells(tableId) {
   });
 }
 
-// NEW REST CALLS
+///// REST Calls /////////////
 
 /**
- * REST GET call for /problems,
- * stores it on a sessionStorage variable
+ * REST GET call for the scans, stores it on a sessionStorage variable
  */
-function getProblems() {
-  return getJSONForTable(REST_V2_PREFIX + '/problems', 'problems');
+function getScans() {
+  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
 }
 
 /**
@@ -552,19 +462,9 @@ function getProblems() {
  * stores it on a sessionStorage variable
  */
 function getLastUpdate() {
-  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', 'lastUpdate');
+  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
 }
 
-/**
- * REST GET call for /tservers/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getTserversSummary(group) {
-  const url = `${REST_V2_PREFIX}/tservers/summary/${group}`;
-  const sessionDataVar = `tserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
 
 /**
  * REST GET call for /alerts/categories
@@ -601,16 +501,6 @@ function getAlerts(high, info, cats) {
   return getJSONForTable(call, ALERTS);
 }
 
-/**
- * REST GET call for /compactors/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getCompactorsDetail(group) {
-  const url = `${REST_V2_PREFIX}/compactors/detail/${group}`;
-  const sessionDataVar = `compactorsDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
 
 /**
  * REST GET call for /stats,
@@ -618,17 +508,6 @@ function getCompactorsDetail(group) {
  */
 function getStats() {
   return getJSONForTable(REST_V2_PREFIX + '/stats', 'stats');
-}
-
-/**
- * REST GET call for /compactors/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getCompactorsSummary(group) {
-  const url = `${REST_V2_PREFIX}/compactors/summary/${group}`;
-  const sessionDataVar = `compactorsSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
 }
 
 /**
@@ -640,14 +519,6 @@ function getTableTablets(name) {
   const url = `${REST_V2_PREFIX}/tables/${name}/tablets`;
   const sessionDataVar = `tableTablets_${name}`;
   return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /metrics,
- * stores it on a sessionStorage variable
- */
-function getMetrics() {
-  return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
 }
 
 /**
@@ -696,25 +567,6 @@ function getComponentStatus(statusData, componentType) {
   }
 
   return 'OK';
-}
-
-/**
- * REST GET call for /gc,
- * stores it on a sessionStorage variable
- */
-function getGc() {
-  return getJSONForTable(REST_V2_PREFIX + '/gc', 'gc');
-}
-
-/**
- * REST GET call for /tservers/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getTserversDetail(group) {
-  const url = `${REST_V2_PREFIX}/tservers/detail/${group}`;
-  const sessionDataVar = `tserversDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
 }
 
 /**
@@ -796,14 +648,6 @@ function getTserversView() {
 
 
 /**
- * REST GET call for /tservers/summary,
- * stores it on a sessionStorage variable
- */
-function getTserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/tservers/summary', 'tserversSummary');
-}
-
-/**
  * REST GET call for /instance/info,
  * stores it on a sessionStorage variable
  */
@@ -820,25 +664,6 @@ function getInstanceOverview() {
 }
 
 /**
- * REST GET call for /sservers/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getSserversDetail(group) {
-  const url = `${REST_V2_PREFIX}/sservers/detail/${group}`;
-  const sessionDataVar = `sserversDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactors/summary,
- * stores it on a sessionStorage variable
- */
-function getCompactorsSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactors/summary', 'compactorsSummary');
-}
-
-/**
  * REST GET call for /tables/{name},
  * stores it on a sessionStorage variable
  * @param {string} name Table name
@@ -847,14 +672,6 @@ function getTable(name) {
   const url = `${REST_V2_PREFIX}/tables/${name}`;
   const sessionDataVar = `table_${name}`;
   return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/summary,
- * stores it on a sessionStorage variable
- */
-function getCompactionsSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
 }
 
 /**
@@ -872,15 +689,6 @@ function getRunningCompactionsByTable() {
 function getRunningCompactionsByGroup() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
 }
-
-/**
- * REST GET call for /lastUpdate,
- * stores it on a sessionStorage variable
- */
-function getLastUpdateTime() {
-  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
-}
-
 
 /**
  * Returns true if the input is a valid regular expression, false otherwise.

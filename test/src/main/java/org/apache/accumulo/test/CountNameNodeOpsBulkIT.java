@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -44,7 +45,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.minicluster.ServerType;
@@ -113,8 +113,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);
 
-      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
-      assertEquals(1, stats.tServerInfo.size());
+      assertEquals(1, c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size());
 
       log.info("Creating lots of bulk import files");
       final FileSystem fs = getCluster().getFileSystem();

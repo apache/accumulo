@@ -129,17 +129,17 @@ public class RestoreZookeeper extends ServerKeywordExecutable<RestoreZooCommandO
 
   @Override
   public String keyword() {
-    return "restore-zookeeper";
+    return "restore";
   }
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CONFIG;
+    return CommandGroups.ZOOKEEPER;
   }
 
   @Override
   public String description() {
-    return "Restore Zookeeper data from a file.";
+    return "Restore ZooKeeper data from a file.";
   }
 
   @Override
