@@ -828,11 +828,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         if (type == Type.MONITOR) {
           continue;
         }
-        Set<ServerId> servers = this.ctx.instanceOperations().getServers(type);
-        if (type == Type.COMPACTOR) {
-          summary.processExternalCompactionInventory(servers);
-        }
-        for (ServerId server : servers) {
+        for (ServerId server : this.ctx.instanceOperations().getServers(type)) {
           MetricFetcher mf = new MetricFetcher(this.ctx, server, summary);
           Future<?> mff = this.pool.submit(mf);
           futures.add(new UpdateTaskFuture(mff, mf));
@@ -959,15 +955,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       LOG.info(
           "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
           allMetrics.estimatedSize(), summary.getManagers().size(),
-          summary.getGarbageCollector() != null,
-          summary.getCompactorAllMetricSummary().isEmpty() ? 0
-              : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getSServerAllMetricSummary().isEmpty() ? 0
-              : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary.getTServerAllMetricSummary()
-              .entrySet().iterator().next().getValue().count());
+          summary.getGarbageCollector() != null, summary.getActiveServers(Type.COMPACTOR).size(),
+          summary.getActiveServers(Type.SCAN_SERVER).size(),
+          summary.getActiveServers(Type.TABLET_SERVER).size());
 
       SystemInformation oldSummary = summaryRef.getAndSet(summary);
       if (oldSummary != null) {
