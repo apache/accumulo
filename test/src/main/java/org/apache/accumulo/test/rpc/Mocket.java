@@ -162,6 +162,7 @@ public class Mocket {
 
     private final Buffer input;
     private final Buffer output;
+    private final TConfiguration conf = new TConfiguration();
 
     private MocketTransport(Buffer input, Buffer output) {
       this.input = input;
@@ -175,7 +176,7 @@ public class Mocket {
 
     @Override
     public TConfiguration getConfiguration() {
-      return null;
+      return conf;
     }
 
     @Override
