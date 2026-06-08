@@ -19,11 +19,11 @@
 "use strict";
 
 // Suffixes for quantity
-var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
+const QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
-var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
-const REST_V2_PREFIX = contextPath + 'rest-v2';
+const SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 
+const REST_V2_PREFIX = contextPath + 'rest-v2';
 const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
 const COORDINATOR_QUEUE_PROCESS_VIEW = 'coordinatorQueueView';
 const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
@@ -34,7 +34,6 @@ const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
 const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
 const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
 const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
-var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
@@ -46,6 +45,8 @@ const RECOVERY = 'recovery';
 const INSTANCE_OVERVIEW = 'instanceOverview';
 const SCANS = 'scans';
 const LAST_UPDATE = 'lastUpdate';
+
+var STATUS_REQUEST = null;
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -421,95 +422,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
   });
 }
 
-///// REST Calls /////////////
-
-/**
- * REST GET call for the namespaces, stores it on a global variable
- */
-function getNamespaces() {
-  return getJSONForTable(contextPath + 'rest/tables/namespaces', 'NAMESPACES');
-}
-
-/**
- * REST GET call for the tables, stores it on a sessionStorage variable
- */
-function getTables() {
-  return getJSONForTable(contextPath + 'rest/tables', 'tables');
-}
-
-/**
- * REST GET call for the tables on each namespace,
- * stores it on a sessionStorage variable
- *
- * @param {array} namespaces Array holding the selected namespaces
- */
-function getNamespaceTables(namespaces) {
-
-  // Creates a JSON object to store the tables
-  var namespaceList = "";
-
-  /*
-   * If the namespace array include *, get all tables, otherwise,
-   * get tables from specific namespaces
-   */
-  if (namespaces.indexOf('*') !== -1) {
-    return getTables();
-  }
-  // Convert the list to a string for the REST call
-  namespaceList = namespaces.toString();
-
-  return getJSONForTable(contextPath + 'rest/tables/namespaces/' + namespaceList, 'tables');
-}
-
-/**
- * REST POST call to clear a specific dead server
- *
- * @param {string} server Dead Server ID
- */
-function clearDeadServers(server) {
-  doLoggedPostCall(contextPath + 'rest/tservers?server=' + server, null, false);
-}
-
-/**
- * REST GET call for the tservers, stores it on a sessionStorage variable
- */
-function getTServers() {
-  return getJSONForTable(contextPath + 'rest/tservers', 'tservers');
-}
-
-/**
- * REST GET call for the tservers, stores it on a sessionStorage variable
- *
- * @param {string} server Server ID
- */
-function getTServer(server) {
-  return getJSONForTable(contextPath + 'rest/tservers/' + server, 'server');
-}
-
-/**
- * REST GET call for the scans, stores it on a sessionStorage variable
- */
-function getScans() {
-  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
-}
-
-/**
- * REST GET call for the server stats, stores it on a sessionStorage variable
- */
-function getServerStats() {
-  return getJSONForTable(contextPath + 'rest/tservers/serverStats', 'serverStats');
-}
-
-/**
- * REST GET call for the participating tablet servers,
- * stores it on a sessionStorage variable
- *
- * @param {string} table Table ID
- */
-function getTableServers(tableID) {
-  return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
-}
-
 /*
  * Jquery call to clear all data from cells of a table
  */
@@ -520,7 +432,14 @@ function clearAllTableCells(tableId) {
   });
 }
 
-// NEW REST CALLS
+///// REST Calls /////////////
+
+/**
+ * REST GET call for the scans, stores it on a sessionStorage variable
+ */
+function getScans() {
+  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
+}
 
 /**
  * REST GET call for /problems,
