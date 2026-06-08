@@ -18,21 +18,16 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
@@ -55,33 +50,15 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
           c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
-      ManagerMonitorInfo stats = getStats(c);
-      assertEquals(2, stats.tServerInfo.size());
-      assertEquals(0, stats.badTServers.size());
-      assertEquals(0, stats.deadTabletServers.size());
+      Wait.waitFor(
+          () -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 2);
+
       log.info("Killing a tablet server");
       getCluster().killProcess(TABLET_SERVER,
           getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
 
-      Wait.waitFor(() -> getStats(c).tServerInfo.size() != 2, SECONDS.toMillis(60), 500);
-
-      stats = getStats(c);
-      assertEquals(1, stats.tServerInfo.size());
-      assertEquals(1, stats.badTServers.size() + stats.deadTabletServers.size());
-
-      Wait.waitFor(() -> !getStats(c).deadTabletServers.isEmpty(), SECONDS.toMillis(60), 500);
-
-      stats = getStats(c);
-      assertEquals(1, stats.tServerInfo.size());
-      assertEquals(0, stats.badTServers.size());
-      assertEquals(1, stats.deadTabletServers.size());
+      Wait.waitFor(
+          () -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
     }
   }
-
-  private ManagerMonitorInfo getStats(AccumuloClient c) throws Exception {
-    final ClientContext context = (ClientContext) c;
-    return ThriftClientTypes.MANAGER.execute(context,
-        client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
-  }
-
 }

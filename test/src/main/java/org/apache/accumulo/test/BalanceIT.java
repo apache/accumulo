@@ -141,7 +141,7 @@ public class BalanceIT extends ConfigurableMacBase {
     }
   }
 
-  static Map<String,Integer> countLocations(AccumuloClient client, String tableName)
+  public static Map<String,Integer> countLocations(AccumuloClient client, String tableName)
       throws Exception {
     var ctx = ((ClientContext) client);
     var ample = ctx.getAmple();
@@ -150,7 +150,7 @@ public class BalanceIT extends ConfigurableMacBase {
       Map<String,Integer> locCounts = new HashMap<>();
       for (var tabletMeta : tabletsMeta) {
         var loc = tabletMeta.getLocation();
-        locCounts.merge(loc == null ? " none" : loc.toString(), 1, Integer::sum);
+        locCounts.merge(loc == null ? "none" : loc.toString(), 1, Integer::sum);
       }
       return locCounts;
     }

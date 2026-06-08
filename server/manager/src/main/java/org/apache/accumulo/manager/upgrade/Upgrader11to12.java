@@ -198,6 +198,7 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader11to12.class);
+  private static final String ZDEADTSERVERS = Constants.ZDEAD + "/tservers";
   private static final String ZPROBLEMS = "/problems";
   private static final String ZTRACERS = "/tracers";
   private static final String ZTABLE_COMPACT_ID = "/compact-id";
@@ -474,6 +475,7 @@ public class Upgrader11to12 implements Upgrader {
 
       zrw.recursiveDelete(ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
       zrw.recursiveDelete("/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(ZDEADTSERVERS, ZooUtil.NodeMissingPolicy.SKIP);
 
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
@@ -578,7 +580,7 @@ public class Upgrader11to12 implements Upgrader {
     // should be started first before any other process.
     final ZooReader zr = context.getZooSession().asReader();
     for (String serverPath : new String[] {Constants.ZCOMPACTORS, Constants.ZSSERVERS,
-        Constants.ZTSERVERS, Constants.ZDEADTSERVERS}) {
+        Constants.ZTSERVERS, ZDEADTSERVERS}) {
       try {
         List<String> children = zr.getChildren(serverPath);
         for (String child : children) {

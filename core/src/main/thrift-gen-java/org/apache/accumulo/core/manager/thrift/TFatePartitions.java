@@ -441,14 +441,14 @@ public class TFatePartitions implements org.apache.thrift.TBase<TFatePartitions,
           case 2: // PARTITIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list70 = iprot.readListBegin();
-                struct.partitions = new java.util.ArrayList<TFatePartition>(_list70.size);
-                @org.apache.thrift.annotation.Nullable TFatePartition _elem71;
-                for (int _i72 = 0; _i72 < _list70.size; ++_i72)
+                org.apache.thrift.protocol.TList _list26 = iprot.readListBegin();
+                struct.partitions = new java.util.ArrayList<TFatePartition>(_list26.size);
+                @org.apache.thrift.annotation.Nullable TFatePartition _elem27;
+                for (int _i28 = 0; _i28 < _list26.size; ++_i28)
                 {
-                  _elem71 = new TFatePartition();
-                  _elem71.read(iprot);
-                  struct.partitions.add(_elem71);
+                  _elem27 = new TFatePartition();
+                  _elem27.read(iprot);
+                  struct.partitions.add(_elem27);
                 }
                 iprot.readListEnd();
               }
@@ -480,9 +480,9 @@ public class TFatePartitions implements org.apache.thrift.TBase<TFatePartitions,
         oprot.writeFieldBegin(PARTITIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.partitions.size()));
-          for (TFatePartition _iter73 : struct.partitions)
+          for (TFatePartition _iter29 : struct.partitions)
           {
-            _iter73.write(oprot);
+            _iter29.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -520,9 +520,9 @@ public class TFatePartitions implements org.apache.thrift.TBase<TFatePartitions,
       if (struct.isSetPartitions()) {
         {
           oprot.writeI32(struct.partitions.size());
-          for (TFatePartition _iter74 : struct.partitions)
+          for (TFatePartition _iter30 : struct.partitions)
           {
-            _iter74.write(oprot);
+            _iter30.write(oprot);
           }
         }
       }
@@ -538,14 +538,14 @@ public class TFatePartitions implements org.apache.thrift.TBase<TFatePartitions,
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list75 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.partitions = new java.util.ArrayList<TFatePartition>(_list75.size);
-          @org.apache.thrift.annotation.Nullable TFatePartition _elem76;
-          for (int _i77 = 0; _i77 < _list75.size; ++_i77)
+          org.apache.thrift.protocol.TList _list31 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.partitions = new java.util.ArrayList<TFatePartition>(_list31.size);
+          @org.apache.thrift.annotation.Nullable TFatePartition _elem32;
+          for (int _i33 = 0; _i33 < _list31.size; ++_i33)
           {
-            _elem76 = new TFatePartition();
-            _elem76.read(iprot);
-            struct.partitions.add(_elem76);
+            _elem32 = new TFatePartition();
+            _elem32.read(iprot);
+            struct.partitions.add(_elem32);
           }
         }
         struct.setPartitionsIsSet(true);

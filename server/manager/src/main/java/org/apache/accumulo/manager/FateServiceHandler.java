@@ -485,7 +485,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
-        String endRowStr = StringUtils.defaultIfBlank(startRow.toString(), "+inf");
+        String endRowStr = StringUtils.defaultIfBlank(endRow.toString(), "+inf");
 
         Manager.log.debug("Creating merge op: {} from startRow: {} to endRow: {}", tableId,
             startRowStr, endRowStr);
