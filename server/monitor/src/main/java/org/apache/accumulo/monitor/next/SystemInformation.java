@@ -1318,8 +1318,13 @@ public class SystemInformation {
         }
       }
       if (empty > 0) {
-        addAlert(Info, Table,
-            "Table " + tid + " may have " + empty + " tablets that could be merged.");
+        try {
+          addAlert(Info, Table, "Table " + ctx.getQualifiedTableName(tid) + " may have " + empty
+              + " tablets that could be merged.");
+        } catch (TableNotFoundException e) {
+          addAlert(Info, Table,
+              "Table " + tid + " may have " + empty + " tablets that could be merged.");
+        }
       }
     });
 

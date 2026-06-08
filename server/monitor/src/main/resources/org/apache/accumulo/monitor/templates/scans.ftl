@@ -28,7 +28,7 @@
                 <th class="firstcell">Server</th>
                 <th>Server Type</th>
                 <th>Resource Group</th>
-                <th>Table ID</th>
+                <th>Table Name</th>
                 <th>Session ID</th>
                 <th>Client</th>
                 <th>User</th>

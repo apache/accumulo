@@ -47,6 +47,22 @@ const SCANS = 'scans';
 const LAST_UPDATE = 'lastUpdate';
 
 var STATUS_REQUEST = null;
+var TABLE_MAP = {};
+
+function computeTableMap() {
+  TABLE_MAP = {};
+  var tables = getStoredJson('tables', {});
+  return Object.keys(tables).map(function (key) {
+    var tableInfo = tables[key];
+    var name = tableInfo.tableName;
+    TABLE_MAP[key] = name;
+  });
+}
+
+function renderTableLink(data, type, row) {
+  var tableName = TABLE_MAP[data];
+  return '<a class="link-body-emphasis" href="tables/' + data + '">' + tableName + '</a>';
+}
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {

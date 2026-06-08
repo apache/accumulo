@@ -53,7 +53,8 @@ function getReplaying() {
 }
 
 function refresh() {
-  $.when(getRecoveryInformation()).then(function () {
+  $.when(getRecoveryInformation(), getTables()).then(function () {
+    computeTableMap();
     ajaxReloadTable(overviewDataTable);
     ajaxReloadTable(tabletDataTable);
     ajaxReloadTable(sortingDataTable);
@@ -129,7 +130,8 @@ $(function () {
       defaultContent: '&mdash;'
     }],
     "columns": [{
-        "data": "tableId"
+        "data": "tableId",
+        "render": renderTableLink
       },
       {
         "data": "tabletId"

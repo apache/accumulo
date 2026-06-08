@@ -65,7 +65,8 @@ $(function () {
         "data": "resourceGroup"
       },
       {
-        "data": "tableId"
+        "data": "tableId",
+        "render": renderTableLink
       },
       {
         "data": "sessionId"
@@ -97,7 +98,8 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
-  getScans().then(function () {
+  $.when(getScans(), getTables()).then(function () {
+    computeTableMap();
     refreshScansTable();
   });
 }
