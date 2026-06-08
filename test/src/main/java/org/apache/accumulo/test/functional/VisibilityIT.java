@@ -44,7 +44,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.user.MultiAuthVisibilityFilter;
+import org.apache.accumulo.core.iterators.user.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
@@ -251,8 +251,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
     // should only see entries with no column visibility, B and/or FOO
     Set<String> expectedAuths = Set.of("v1", "v3", "v11");
 
-    IteratorSetting is = new IteratorSetting(100, "userAuths", MultiAuthVisibilityFilter.class);
-    MultiAuthVisibilityFilter.setAuthorizations(is, Set.of(entity1, entity2));
+    IteratorSetting is = new IteratorSetting(100, "userAuths", VisibilityFilter.class);
+    VisibilityFilter.setAuthorizations(is, Set.of(entity1, entity2));
 
     try (Scanner scanner = c.createScanner(tableName, userAuths);
         BatchScanner bs = c.createBatchScanner(tableName, userAuths, 3)) {
