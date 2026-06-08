@@ -53,7 +53,7 @@ $(function () {
           if (type === 'display') data = dateFormat(data);
           return data;
         }
-      },
+      }
     ],
     "columns": [{
         "data": "server",
