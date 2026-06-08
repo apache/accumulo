@@ -137,10 +137,6 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
         description = "[<FateId>...] Print a summary of FaTE transactions. Print only the FateId's specified or print all transactions if empty. Use -s to only print those with certain states. Use -t to only print those with certain FateInstanceTypes. Use -j to print the transactions in json.")
     boolean summarize;
 
-    @Parameter(names = {"-j", "--json"},
-        description = "Print transactions in json. Only useful for --summary command.")
-    boolean printJson;
-
     @Parameter(names = {"-s", "--state"},
         description = "<state>... Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
     List<String> states = new ArrayList<>();
@@ -383,8 +379,8 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
 
     // gather statistics
     transactions.getTransactions().forEach(report::gatherTxnStatus);
-    if (cmd.printJson) {
-      printLines(Collections.singletonList(report.toJson()));
+    if (cmd.json) {
+      printLines(Collections.singletonList(report.toEnvelopedJson("accumulo admin fate --summary")));
     } else {
       printLines(report.formatLines());
     }

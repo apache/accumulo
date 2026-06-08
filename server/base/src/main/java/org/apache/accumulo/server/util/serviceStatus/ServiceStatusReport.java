@@ -25,9 +25,12 @@ import java.lang.reflect.Field;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.cli.CommandReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +42,19 @@ import com.google.gson.GsonBuilder;
 /**
  * Wrapper for JSON formatted report.
  */
-public class ServiceStatusReport {
+public class ServiceStatusReport implements CommandReport {
+
+  @Override
+  public List<String> formatLines() {
+    StringBuilder sb = new StringBuilder(8192);
+    report(sb);
+    return Arrays.asList(sb.toString().split("\n"));
+  }
+
+  @Override
+  public Object getData() {
+    return this;
+  }
 
   private static class HostExclusionStrategy implements ExclusionStrategy {
 

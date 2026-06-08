@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -47,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.cli.CommandOutputEnvelope;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -87,6 +89,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     implements FateTestRunner<LatchTestEnv> {
@@ -134,7 +139,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       String result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      FateSummaryReport report = FateSummaryReport.fromJson(result);
+      FateSummaryReport report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertTrue(report.getStatusCounts().isEmpty());
@@ -157,7 +162,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -179,7 +184,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -198,7 +203,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -218,7 +223,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -241,7 +246,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -259,7 +264,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -281,7 +286,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -303,7 +308,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       result = p.readStdOut();
       result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
           .collect(Collectors.joining("\n"));
-      report = FateSummaryReport.fromJson(result);
+      report = parseFateSummaryFromEnvelope(result);
       assertNotNull(report);
       assertNotEquals(0, report.getReportTime());
       assertFalse(report.getStatusCounts().isEmpty());
@@ -516,7 +521,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         String result = p.readStdOut();
         result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
             .collect(Collectors.joining("\n"));
-        FateSummaryReport report = FateSummaryReport.fromJson(result);
+        FateSummaryReport report = parseFateSummaryFromEnvelope(result);
 
         // Validate transaction name and transaction step from summary command
 
@@ -904,7 +909,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     String result = p.readStdOut();
     result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
         .collect(Collectors.joining("\n"));
-    FateSummaryReport report = FateSummaryReport.fromJson(result);
+    FateSummaryReport report = parseFateSummaryFromEnvelope(result);
     assertNotNull(report);
     Map<String,String> fateIdToStatus = new HashMap<>();
     report.getFateDetails().forEach((d) -> {
@@ -989,5 +994,20 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     ProcessInfo p = getCluster().exec(org.apache.accumulo.server.util.adminCommand.Fate.class,
         args.toArray(new String[0]));
     assertEquals(0, p.getProcess().waitFor());
+  }
+
+  private FateSummaryReport parseFateSummaryFromEnvelope(String json) {
+    CommandOutputEnvelope envelope = CommandOutputEnvelope.fromJson(json);
+    assertNotNull(envelope);
+    assertEquals(CommandOutputEnvelope.VERSION, envelope.getVersion());
+    assertEquals("OK", envelope.getStatus());
+    assertNull(envelope.getMessage());
+    assertNotNull(envelope.getReportTime());
+    assertNotNull(envelope.getCommand());
+    assertTrue(envelope.getCommand().contains("fate"));
+    // data is a JsonObject — re-serialize and deserialize as FateSummaryReport
+    Gson gson = new GsonBuilder().disableJdkUnsafe().create();
+    String dataJson = gson.toJson(envelope.getData());
+    return FateSummaryReport.fromJson(dataJson);
   }
 }

@@ -59,9 +59,6 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
 
   static class ServiceStatusCmdOpts extends ServerOpts {
 
-    @Parameter(names = "--json", description = "provide output in json format")
-    boolean json = false;
-
     @Parameter(names = "--showHosts",
         description = "provide a summary of service counts with host details")
     boolean showHosts = false;
@@ -106,17 +103,15 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
     ServiceStatusReport report = new ServiceStatusReport(services, options.showHosts);
 
     if (options.json) {
-      System.out.println(report.toJson());
+      System.out.println(report.toEnvelopedJson("accumulo admin service-status"));
     } else {
-      StringBuilder sb = new StringBuilder(8192);
-      report.report(sb);
-      System.out.println(sb);
+      report.formatLines().forEach(System.out::println);
     }
   }
 
   /**
-   * The manager paths in ZooKeeper are: {@code /accumulo/[IID]/managers/lock/zlock#[NUM]} with the
-   * lock data providing a service descriptor with host and port.
+   * op The manager paths in ZooKeeper are: {@code /accumulo/[IID]/managers/lock/zlock#[NUM]} with
+   * the lock data providing a service descriptor with host and port.
    */
   @VisibleForTesting
   StatusSummary getManagerStatus(ServerContext context) {
