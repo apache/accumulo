@@ -59,7 +59,7 @@ public class ZooKeeperMain extends ServerKeywordExecutable<ZKOpts> {
 
   @Override
   public String description() {
-    return "Starts an Apache ZooKeeper client rooted at the current instance.";
+    return "Starts an Apache ZooKeeper client rooted at the current instance";
   }
 
   @Override
