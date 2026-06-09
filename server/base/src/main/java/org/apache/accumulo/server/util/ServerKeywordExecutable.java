@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.cli.BaseKeywordExecutable;
+import org.apache.accumulo.core.cli.CommandOutputEnvelope;
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -58,6 +59,13 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
         SecurityUtil.serverLogin(conf);
       }
       execute(cl, options);
+    } catch (Exception e) {
+      if (options.json) {
+        String commandName = "accumulo"
+            + (commandGroup().key().isBlank() ? "" : " " + commandGroup().key()) + " " + keyword();
+        System.out.println(CommandOutputEnvelope.error(commandName, e.getMessage()).toJson());
+        System.exit(1);
+      }
     }
   }
 }

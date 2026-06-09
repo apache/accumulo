@@ -1005,7 +1005,6 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     assertNotNull(envelope.getReportTime());
     assertNotNull(envelope.getCommand());
     assertTrue(envelope.getCommand().contains("fate"));
-    // data is a JsonObject — re-serialize and deserialize as FateSummaryReport
     Gson gson = new GsonBuilder().disableJdkUnsafe().create();
     String dataJson = gson.toJson(envelope.getData());
     return FateSummaryReport.fromJson(dataJson);
