@@ -33,7 +33,7 @@ import java.util.List;
  * <pre>
  * CommandReport report = buildReport(context, options);
  * if (options.json()) {
- *   System.out.println(report.toEnvelopedJson("accumulo admin <my-command>"));
+ *   System.out.println(report.toEnvelopedJson("accumulo admin 'my-command'"));
  * } else {
  *   report.formatLines().forEach(System.out::println);
  * }

@@ -64,7 +64,6 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
         String commandName = "accumulo"
             + (commandGroup().key().isBlank() ? "" : " " + commandGroup().key()) + " " + keyword();
         System.out.println(CommandOutputEnvelope.error(commandName, e.getMessage()).toJson());
-        System.exit(1);
       }
     }
   }
