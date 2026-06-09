@@ -28,9 +28,9 @@ import com.google.gson.Gson;
  * A stable, versioned outer wrapper for all admin command JSON output.
  *
  * <p>
- * Every command that supports --json output wraps its command-specific data in this
- * envelope. This provides a consistent structure that scripts can rely on regardless of which
- * command produced the output:
+ * Every command that supports --json output wraps its command-specific data in this envelope. This
+ * provides a consistent structure that scripts can rely on regardless of which command produced the
+ * output:
  *
  * <pre>
  * {

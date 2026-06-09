@@ -54,7 +54,7 @@ public class ServerOpts extends Help {
   private List<String> overrides = new ArrayList<>();
 
   @Parameter(names = {"-j", "--json"},
-      description = "Print output in JSON format. Output is warpped in standard envelope with command, version, reportTime, status and data fields.")
+      description = "Print output in JSON format. Output is wrapped in standard envelope with command, version, reportTime, status and data fields.")
   public boolean json = false;
 
   private SiteConfiguration siteConfig = null;
