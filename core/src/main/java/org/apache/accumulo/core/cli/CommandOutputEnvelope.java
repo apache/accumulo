@@ -56,16 +56,20 @@ public class CommandOutputEnvelope {
    * envelope fields (not to the {@link data} field, data changes command specific).
    */
   public static final String VERSION = "1.0";
-  private final DateTimeFormatter ISO_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+  private static final DateTimeFormatter ISO_FMT =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
   private static final Gson PRETTY_GSON =
       new Gson().newBuilder().setPrettyPrinting().disableJdkUnsafe().create();
 
-  private final String command;
-  private final String version;
-  private final String reportTime;
-  private final String status;
-  private final String message;
-  private final Object data;
+  private String command;
+  private String version;
+  private String reportTime;
+  private String status;
+  private String message;
+  private Object data;
+
+  @SuppressWarnings("unused")
+  private CommandOutputEnvelope() {}
 
   private CommandOutputEnvelope(String command, String status, String message, Object data) {
     this.command = command;
