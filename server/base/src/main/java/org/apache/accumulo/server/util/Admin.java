@@ -454,12 +454,18 @@ public class Admin implements KeywordExecutable {
         System.exit(rc);
       }
     } catch (AccumuloException e) {
+      System.err.println(e.getMessage());
+      e.printStackTrace();
       log.error("{}", e.getMessage(), e);
       System.exit(1);
     } catch (AccumuloSecurityException e) {
+      System.err.println(e.getMessage());
+      e.printStackTrace();
       log.error("{}", e.getMessage(), e);
       System.exit(2);
     } catch (Exception e) {
+      System.err.println(e.getMessage());
+      e.printStackTrace();
       log.error("{}", e.getMessage(), e);
       System.exit(3);
     } finally {
