@@ -65,6 +65,7 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
             + (commandGroup().key().isBlank() ? "" : " " + commandGroup().key()) + " " + keyword();
         System.out.println(CommandOutputEnvelope.error(commandName, e.getMessage()).toJson());
       }
+      throw e;
     }
   }
 }
