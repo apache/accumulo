@@ -138,7 +138,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
@@ -1107,7 +1107,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> allProps = getConfiguration(tableName);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged + "' for table '"
             + tableName
             + "' resulted in bad locality group config.  This may be a transient situation since "
