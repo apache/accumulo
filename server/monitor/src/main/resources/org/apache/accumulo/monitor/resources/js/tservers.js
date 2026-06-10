@@ -306,16 +306,7 @@ $(document).ready(function () {
           return data;
         }
       }
-    ],
-  // Hide the dead tablet servers table when none are reported
-    "drawCallback": function () {
-        if (this.api().rows().data().length === 0) {
-          $('#deadtservers_wrapper').hide();
-        }
-        else {
-          $('#deadtservers_wrapper').show();
-        }
-    }
+    ]
   });
 
   // Create a table for badServers list
