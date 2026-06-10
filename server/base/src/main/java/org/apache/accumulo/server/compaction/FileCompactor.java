@@ -70,7 +70,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -302,7 +302,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       throws IOException {
     try {
       return LocalityGroupUtil.getLocalityGroups(acuTableConf);
-    } catch (LocalityGroupConfigurationError e) {
+    } catch (LocalityGroupConfigurationException e) {
       throw new IOException(e);
     }
   }
