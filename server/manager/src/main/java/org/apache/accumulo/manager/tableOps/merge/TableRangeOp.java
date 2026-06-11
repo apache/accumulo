@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.ManagerClientServiceHandler.mustBeOnline;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -77,5 +78,10 @@ public class TableRangeOp extends AbstractFateOperation {
   public void undo(FateId fateId, FateEnv env) throws Exception {
     Utils.unreserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE);
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
   }
 }

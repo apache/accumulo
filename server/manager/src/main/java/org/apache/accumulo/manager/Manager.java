@@ -27,7 +27,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_STATE;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -100,9 +99,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -139,8 +136,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.manager.state.DeadServerList;
-import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.PrimaryManagerThriftServiceWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -149,7 +144,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyMana
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
-import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
@@ -281,7 +275,6 @@ public class Manager extends AbstractServer
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
   private final TabletStateStore userTabletStore;
-  private final ExecutorService renamePool;
 
   public synchronized ManagerState getManagerState() {
     return state;
@@ -488,9 +481,6 @@ public class Manager extends AbstractServer
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
-    int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    renamePool = ThreadPools.getServerThreadPools().getPoolBuilder(FILE_RENAME_POOL.poolName)
-        .numCoreThreads(poolSize).build();
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balanceManager = new BalanceManager();
@@ -909,17 +899,19 @@ public class Manager extends AbstractServer
   // This is called after getting the primary manager lock
   private void setupPrimaryMetrics() {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
-    // ensure all tablet group watchers are setup
-    Preconditions.checkState(watchers.size() == DataLevel.values().length);
-    watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
-    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
-    // ensure fate is completely setup
-    metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
-        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
-        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-    metricsInfo.addMetricsProducers(this);
+    if (metricsInfo.isMetricsEnabled()) {
+      metricsInfo.addMetricsProducers(balanceManager.getMetrics());
+      // ensure all tablet group watchers are setup
+      Preconditions.checkState(watchers.size() == DataLevel.values().length);
+      watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
+      metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
+      // ensure fate is completely setup
+      metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+      metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+      metricsInfo.addMetricsProducers(this);
+    }
   }
 
   @Override
@@ -952,7 +944,7 @@ public class Manager extends AbstractServer
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
-            Property.MANAGER_CLIENTPORT, processor, "Manager", Property.MANAGER_MINTHREADS,
+            Property.MANAGER_CLIENTPORT, processor, Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
       });
     } catch (UnknownHostException e) {
@@ -1541,12 +1533,8 @@ public class Manager extends AbstractServer
 
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
-      DeadServerList obit = new DeadServerList(getContext());
       if (!added.isEmpty()) {
         log.info("New servers: {}", added);
-        for (TServerInstance up : added) {
-          obit.delete(up.getHostPort());
-        }
       }
 
       if (!deleted.isEmpty()) {
@@ -1556,9 +1544,6 @@ public class Manager extends AbstractServer
           String cause = "unexpected failure";
           if (serversToShutdown.contains(dead)) {
             cause = "clean shutdown"; // maybe an incorrect assumption
-          }
-          if (!getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
-            obit.post(dead.getHostPort(), cause);
           }
         }
 
@@ -1638,36 +1623,6 @@ public class Manager extends AbstractServer
     if (extent.isRootTablet() && getManagerState() == ManagerState.STOP) {
       setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
     }
-  }
-
-  public ManagerMonitorInfo getManagerMonitorInfo() {
-    final ManagerMonitorInfo result = new ManagerMonitorInfo();
-
-    result.tServerInfo = new ArrayList<>();
-    result.tableMap = new HashMap<>();
-    for (Entry<TServerInstance,TabletServerStatus> serverEntry : getTserverStatus().status
-        .entrySet()) {
-      final TabletServerStatus status = serverEntry.getValue();
-      result.tServerInfo.add(status);
-      for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
-        TableInfoUtil.add(result.tableMap.computeIfAbsent(entry.getKey(), k -> new TableInfo()),
-            entry.getValue());
-      }
-    }
-    result.badTServers = new HashMap<>();
-    synchronized (badServers) {
-      for (TServerInstance bad : badServers.keySet()) {
-        result.badTServers.put(bad.getHostPort(), TabletServerState.UNRESPONSIVE.getId());
-      }
-    }
-    result.state = getManagerState();
-    result.goalState = getManagerGoalState();
-    result.unassignedTablets = displayUnassigned();
-    result.serversShuttingDown =
-        shutdownServers().stream().map(TServerInstance::getHostPort).collect(Collectors.toSet());
-    DeadServerList obit = new DeadServerList(getContext());
-    result.deadTabletServers = obit.getList();
-    return result;
   }
 
   /**

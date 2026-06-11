@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.compact.cancel;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
@@ -26,6 +28,8 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
+
+import com.google.gson.JsonObject;
 
 class FinishCancelCompaction extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
@@ -47,5 +51,13 @@ class FinishCancelCompaction extends AbstractFateOperation {
   @Override
   public void undo(FateId fateId, FateEnv environment) {
 
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    return GSON.get().toJson(details);
   }
 }

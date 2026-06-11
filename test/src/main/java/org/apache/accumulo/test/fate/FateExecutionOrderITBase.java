@@ -141,6 +141,11 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
     public String getReturn() {
       return "";
     }
+
+    @Override
+    public String getDetails() {
+      return null;
+    }
   }
 
   public static class SecondOp extends FirstOp {

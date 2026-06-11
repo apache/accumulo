@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -85,4 +87,8 @@ class FinishCloneTable extends AbstractFateOperation {
   @Override
   public void undo(FateId fateId, FateEnv environment) {}
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(cloneInfo);
+  }
 }

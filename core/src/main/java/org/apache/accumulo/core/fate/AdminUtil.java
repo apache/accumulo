@@ -74,10 +74,11 @@ public class AdminUtil<T> {
     private final String top;
     private final long timeCreated;
     private final LockRange lockRange;
+    private final String details;
 
     private TransactionStatus(FateId fateId, FateInstanceType instanceType, TStatus status,
         Fate.FateOperation fateOp, List<String> hlocks, List<String> wlocks, String top,
-        Long timeCreated, LockRange lockRange) {
+        Long timeCreated, LockRange lockRange, String details) {
 
       this.fateId = fateId;
       this.instanceType = instanceType;
@@ -88,7 +89,7 @@ public class AdminUtil<T> {
       this.top = top;
       this.timeCreated = timeCreated;
       this.lockRange = lockRange;
-
+      this.details = details;
     }
 
     /**
@@ -153,6 +154,13 @@ public class AdminUtil<T> {
     public LockRange getLockRange() {
       return lockRange;
     }
+
+    /**
+     * @return details of transaction, may contain protected information
+     */
+    public String getDetails() {
+      return details;
+    }
   }
 
   public static class FateStatus {
@@ -214,7 +222,7 @@ public class AdminUtil<T> {
 
     FateStatus status = getTransactionStatus(readOnlyFateStores, fateIdFilter, statusFilter,
         typesFilter, Collections.<FateId,List<String>>emptyMap(),
-        Collections.<FateId,List<String>>emptyMap(), Map.of());
+        Collections.<FateId,List<String>>emptyMap(), Map.of(), false);
 
     return status.getTransactions();
   }
@@ -243,7 +251,7 @@ public class AdminUtil<T> {
     findLocks(zk, lockPath, heldLocks, waitingLocks, lockRanges);
 
     return getTransactionStatus(Map.of(FateInstanceType.META, readOnlyMFS), fateIdFilter,
-        statusFilter, typesFilter, heldLocks, waitingLocks, lockRanges);
+        statusFilter, typesFilter, heldLocks, waitingLocks, lockRanges, false);
   }
 
   public FateStatus getStatus(ReadOnlyFateStore<T> readOnlyUFS, Set<FateId> fateIdFilter,
@@ -251,12 +259,12 @@ public class AdminUtil<T> {
       throws KeeperException, InterruptedException {
 
     return getTransactionStatus(Map.of(FateInstanceType.USER, readOnlyUFS), fateIdFilter,
-        statusFilter, typesFilter, new HashMap<>(), new HashMap<>(), Map.of());
+        statusFilter, typesFilter, new HashMap<>(), new HashMap<>(), Map.of(), false);
   }
 
   public FateStatus getStatus(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores,
       ZooSession zk, ServiceLockPath lockPath, Set<FateId> fateIdFilter,
-      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter, boolean includeDetails)
       throws KeeperException, InterruptedException {
     Map<FateId,List<String>> heldLocks = new HashMap<>();
     Map<FateId,List<String>> waitingLocks = new HashMap<>();
@@ -265,7 +273,7 @@ public class AdminUtil<T> {
     findLocks(zk, lockPath, heldLocks, waitingLocks, lockRanges);
 
     return getTransactionStatus(readOnlyFateStores, fateIdFilter, statusFilter, typesFilter,
-        heldLocks, waitingLocks, lockRanges);
+        heldLocks, waitingLocks, lockRanges, includeDetails);
   }
 
   /**
@@ -363,7 +371,7 @@ public class AdminUtil<T> {
       Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, Set<FateId> fateIdFilter,
       EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter,
       Map<FateId,List<String>> heldLocks, Map<FateId,List<String>> waitingLocks,
-      Map<FateId,LockRange> lockRanges) {
+      Map<FateId,LockRange> lockRanges, boolean includeDetails) {
     final List<TransactionStatus> statuses = new ArrayList<>();
 
     readOnlyFateStores.forEach((type, store) -> {
@@ -388,9 +396,13 @@ public class AdminUtil<T> {
           }
 
           String top = null;
+          String details = null;
           ReadOnlyRepo<T> repo = txStore.top();
           if (repo != null) {
             top = repo.getName();
+            if (includeDetails) {
+              details = repo.getDetails();
+            }
           }
 
           TStatus status = txStore.getStatus();
@@ -400,7 +412,7 @@ public class AdminUtil<T> {
           if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
               && includeByInstanceType(fateId.getType(), typesFilter)) {
             statuses.add(new TransactionStatus(fateId, type, status, fateOp, hlocks, wlocks, top,
-                timeCreated, lockRanges.getOrDefault(fateId, LockRange.infinite())));
+                timeCreated, lockRanges.getOrDefault(fateId, LockRange.infinite()), details));
           }
         });
       }
@@ -423,10 +435,10 @@ public class AdminUtil<T> {
 
   public void print(Map<FateInstanceType,ReadOnlyFateStore<T>> readOnlyFateStores, ZooSession zk,
       ServiceLockPath tableLocksPath, Formatter fmt, Set<FateId> fateIdFilter,
-      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter)
+      EnumSet<TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter, boolean includeDetails)
       throws KeeperException, InterruptedException {
-    FateStatus fateStatus =
-        getStatus(readOnlyFateStores, zk, tableLocksPath, fateIdFilter, statusFilter, typesFilter);
+    FateStatus fateStatus = getStatus(readOnlyFateStores, zk, tableLocksPath, fateIdFilter,
+        statusFilter, typesFilter, includeDetails);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
@@ -434,6 +446,10 @@ public class AdminUtil<T> {
           txStatus.getFateOp(), txStatus.getFateId(), txStatus.getStatus(), txStatus.getHeldLocks(),
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted(),
           txStatus.getLockRange());
+      if (includeDetails) {
+        fmt.format("\t Transaction details: %s%n",
+            txStatus.getDetails() == null ? "" : txStatus.getDetails());
+      }
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
   }

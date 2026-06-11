@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.time.Instant;
 
 import org.apache.accumulo.core.data.TableId;
@@ -56,4 +58,10 @@ public abstract class AbstractBulkFateOperation extends AbstractFateOperation
   public Instant getCreationTime() {
     return creation;
   }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(bulkInfo);
+  }
+
 }

@@ -49,6 +49,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -232,7 +233,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
 
   private static boolean match(Metric input, String queue, String value) {
     if (input.getTags() != null) {
-      String id = input.getTags().get("queue.id");
+      String id = input.getTags().get(MetricsInfo.QUEUE_TAG_KEY);
       if (id != null && id.equals(queue) && input.getValue().equals(value)) {
         return true;
       }
@@ -243,7 +244,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
   private static boolean assertMetric(Metric input, String queue, String name,
       DoublePredicate valuePredicate) {
     if (input.getTags() != null) {
-      String id = input.getTags().get("queue.id");
+      String id = input.getTags().get(MetricsInfo.QUEUE_TAG_KEY);
       if (id != null && id.equals(queue) && input.getName().equals(name)
           && valuePredicate.test(Double.parseDouble(input.getValue()))) {
         return true;

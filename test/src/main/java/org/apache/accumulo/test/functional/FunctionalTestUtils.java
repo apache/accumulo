@@ -226,7 +226,7 @@ public class FunctionalTestUtils {
       Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
           Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
       var lockPath = context.getServerPaths().createTableLocksPath();
-      return admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null);
+      return admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null, false);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

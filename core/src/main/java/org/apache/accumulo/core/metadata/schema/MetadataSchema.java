@@ -547,4 +547,36 @@ public class MetadataSchema {
 
   }
 
+  /**
+   * Holds information about compactions that were deleted from tablets metadata by split or merge
+   * operations. These may still be running and may have tmp files that need to be cleaned up.
+   */
+  public static class OrphanedCompactionSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "ocomp", true, RESERVED_PREFIX + "ocomq", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+
+    public static Ample.OrphanedCompaction decodeRow(String row) {
+      String[] fields = row.split("#");
+      Preconditions.checkArgument(fields.length == 4);
+      Preconditions.checkArgument(getRowPrefix().equals(fields[0]));
+      return new Ample.OrphanedCompaction(ExternalCompactionId.from(fields[1]),
+          TableId.of(fields[2]), fields[3]);
+    }
+
+    public static String encodeRow(Ample.OrphanedCompaction rc) {
+      // put the compaction id first in the row because its uuid will spread out nicely and avoid
+      // hot spotting
+      return getRowPrefix() + "#" + rc.id().canonical() + "#" + rc.table().canonical() + "#"
+          + rc.dir();
+
+    }
+  }
 }

@@ -327,7 +327,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createFateTableRow(userTable);
     createScanRefTableRow();
     for (var sysTable : SystemTables.tableNames()) {
-      var maxRow = ops.getMaxRow(sysTable, Authorizations.EMPTY, RowRange.all());
+      var maxRow = getCluster().getServerContext().tableOperations().getMaxRow(sysTable,
+          Authorizations.EMPTY, RowRange.all());
       log.info("Max row of {} : {}", sysTable, maxRow);
       assertNotNull(maxRow);
     }
@@ -724,7 +725,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createScanRefTableRow();
     for (var sysTable : SystemTables.tableNames()) {
       ops.flush(sysTable, null, null, true);
-      var diskUsageList = ops.getDiskUsage(Set.of(sysTable));
+      var diskUsageList =
+          getCluster().getServerContext().tableOperations().getDiskUsage(Set.of(sysTable));
       assertEquals(1, diskUsageList.size());
       var diskUsage = diskUsageList.get(0);
       log.info("table : {}, disk usage : {}", sysTable, diskUsage.getUsage());
@@ -837,7 +839,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ReadWriteIT.ingest(client, 5, 5, 5, 0, table);
 
     Set<Text> rowsSeenBeforeNewOp = new HashSet<>();
-    try (var scanner = client.createScanner(SystemTables.FATE.tableName())) {
+    try (var scanner = getCluster().getServerContext().createScanner(SystemTables.FATE.tableName(),
+        Authorizations.EMPTY)) {
       for (var entry : scanner) {
         rowsSeenBeforeNewOp.add(entry.getKey().getRow());
       }
@@ -848,7 +851,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.compact(table, null, null, true, false);
 
     Set<Text> rowsSeenAfterNewOp = new HashSet<>();
-    try (var scanner = client.createScanner(SystemTables.FATE.tableName())) {
+    try (var scanner = getCluster().getServerContext().createScanner(SystemTables.FATE.tableName(),
+        Authorizations.EMPTY)) {
       for (var entry : scanner) {
         rowsSeenAfterNewOp.add(entry.getKey().getRow());
       }
@@ -897,7 +901,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.cancelCompaction(userTable);
     // Wait for FATE table to be clear
     Wait.waitFor(() -> {
-      try (var scanner = client.createScanner(SystemTables.FATE.tableName())) {
+      try (var scanner = getCluster().getServerContext()
+          .createScanner(SystemTables.FATE.tableName(), Authorizations.EMPTY)) {
         return !scanner.iterator().hasNext();
       }
     });
@@ -910,8 +915,10 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   private void cleanupScanRefTable() throws Exception {
     var scanServerRefs = getCluster().getServerContext().getAmple().scanServerRefs();
     scanServerRefs.delete(scanServerRefs.list().collect(Collectors.toSet()));
-    assertTrue(
-        client.createScanner(SystemTables.SCAN_REF.tableName()).stream().findAny().isEmpty());
+    try (var scanner = getCluster().getServerContext()
+        .createScanner(SystemTables.SCAN_REF.tableName(), Authorizations.EMPTY)) {
+      assertTrue(scanner.stream().findAny().isEmpty());
+    }
   }
 
   private boolean propFound(String tableName, String key, String val) throws Exception {

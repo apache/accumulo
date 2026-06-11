@@ -19,9 +19,9 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_AVG_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_IN_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_LONGEST_RUNTIME;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_AVG_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_LONGEST_RUNTIME;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
@@ -180,7 +180,9 @@ public class LogSorter implements MetricsProducer {
         return;
       }
 
-      final long bufferSize = sortedLogConf.getAsBytes(Property.TSERV_WAL_SORT_BUFFER_SIZE);
+      @SuppressWarnings("deprecation")
+      final long bufferSize = sortedLogConf.getAsBytes(sortedLogConf.resolve(
+          Property.GENERAL_SERVER_WAL_SORT_BUFFER_SIZE, Property.TSERV_WAL_SORT_BUFFER_SIZE));
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -380,11 +382,11 @@ public class LogSorter implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(RECOVERIES_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
-        .description(RECOVERIES_IN_PROGRESS.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
-        .description(RECOVERIES_LONGEST_RUNTIME.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
-        .description(RECOVERIES_AVG_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_SORTS_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
+        .description(RECOVERIES_SORTS_IN_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_SORTS_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
+        .description(RECOVERIES_SORTS_LONGEST_RUNTIME.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_SORTS_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
+        .description(RECOVERIES_SORTS_AVG_PROGRESS.getDescription()).register(registry);
   }
 }

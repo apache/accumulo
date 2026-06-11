@@ -44,11 +44,15 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.apache.accumulo.manager.tableOps.split.UpdateTabletsTest.newSTF;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -56,6 +60,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -202,8 +207,11 @@ public class MergeTabletsTest {
     EasyMock.expect(lastTabletMeta.getUnSplittable()).andReturn(unsplittableMeta).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getTabletMergeability()).andReturn(mergeability).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getMigration()).andReturn(migration).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getDirName()).andReturn("td3").atLeastOnce();
 
     EasyMock.replay(lastTabletMeta, compactions);
+
+    Set<Ample.OrphanedCompaction> orphanedCompactions = new HashSet<>();
 
     testMerge(List.of(tablet1, tablet2, lastTabletMeta), tableId, null, null, tabletMutator -> {
       EasyMock.expect(tabletMutator.putTime(MetadataTime.parse("L30"))).andReturn(tabletMutator)
@@ -243,9 +251,13 @@ public class MergeTabletsTest {
           .andReturn(tabletMutator).once();
       EasyMock.expect(tabletMutator.deleteMigration()).andReturn(tabletMutator);
 
-    });
+    }, orphanedCompactions::add);
 
     EasyMock.verify(lastTabletMeta, compactions);
+
+    assertEquals(Set.of(new Ample.OrphanedCompaction(cid1, tableId, "td3"),
+        new Ample.OrphanedCompaction(cid2, tableId, "td3"),
+        new Ample.OrphanedCompaction(cid3, tableId, "td3")), orphanedCompactions);
   }
 
   @Test
@@ -420,6 +432,12 @@ public class MergeTabletsTest {
 
   private static void testMerge(List<TabletMetadata> inputTablets, TableId tableId, String start,
       String end, Consumer<ConditionalTabletMutatorImpl> expectationsSetter) throws Exception {
+    testMerge(inputTablets, tableId, start, end, expectationsSetter, removedCompaction -> fail());
+  }
+
+  private static void testMerge(List<TabletMetadata> inputTablets, TableId tableId, String start,
+      String end, Consumer<ConditionalTabletMutatorImpl> expectationsSetter,
+      Consumer<Ample.OrphanedCompaction> orphanedCompactionConsumer) throws Exception {
     MergeInfo mergeInfo =
         new MergeInfo(tableId, NamespaceId.of("1"), start == null ? null : start.getBytes(UTF_8),
             end == null ? null : end.getBytes(UTF_8), MergeInfo.Operation.MERGE);
@@ -433,6 +451,24 @@ public class MergeTabletsTest {
     ConditionalTabletsMutatorImpl tabletsMutator =
         EasyMock.mock(ConditionalTabletsMutatorImpl.class);
     ConditionalTabletMutatorImpl tabletMutator = EasyMock.mock(ConditionalTabletMutatorImpl.class);
+
+    Ample.OrphanedCompactionStore orphanedCompactionStore = new Ample.OrphanedCompactionStore() {
+      @Override
+      public Stream<Ample.OrphanedCompaction> list() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public void add(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        removedCompactions.forEach(orphanedCompactionConsumer);
+      }
+
+      @Override
+      public void delete(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        throw new UnsupportedOperationException();
+      }
+    };
+    EasyMock.expect(ample.orphanedCompactions()).andReturn(orphanedCompactionStore);
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();

@@ -104,11 +104,9 @@ public class ServiceLockPaths {
      */
     private ServiceLockPath(String type, ResourceGroupId resourceGroup, HostAndPort server) {
       this.type = requireNonNull(type);
-      Preconditions.checkArgument(
-          this.type.equals(Constants.ZCOMPACTORS) || this.type.equals(Constants.ZSSERVERS)
-              || this.type.equals(Constants.ZTSERVERS) || this.type.equals(Constants.ZDEADTSERVERS)
-              || this.type.equals(Constants.ZMANAGER_ASSISTANT_LOCK),
-          "Unsupported type: " + type);
+      Preconditions.checkArgument(this.type.equals(Constants.ZCOMPACTORS)
+          || this.type.equals(Constants.ZSSERVERS) || this.type.equals(Constants.ZTSERVERS)
+          || this.type.equals(Constants.ZMANAGER_ASSISTANT_LOCK), "Unsupported type: " + type);
       this.resourceGroup = requireNonNull(resourceGroup);
       this.server = requireNonNull(server).toString();
       this.path = this.type + "/" + this.resourceGroup + "/" + this.server;
@@ -186,8 +184,6 @@ public class ServiceLockPaths {
       return Constants.ZCOMPACTORS;
     } else if (pathStartsWith(path, Constants.ZSSERVERS)) {
       return Constants.ZSSERVERS;
-    } else if (pathStartsWith(path, Constants.ZDEADTSERVERS)) {
-      return Constants.ZDEADTSERVERS;
     } else if (pathStartsWith(path, Constants.ZTSERVERS)) {
       return Constants.ZTSERVERS;
     } else {
@@ -223,7 +219,7 @@ public class ServiceLockPaths {
         return switch (type) {
           case Constants.ZMINI_LOCK -> new ServiceLockPath(type, server);
           case Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS,
-              Constants.ZDEADTSERVERS, Constants.ZMANAGER_ASSISTANT_LOCK ->
+              Constants.ZMANAGER_ASSISTANT_LOCK ->
             new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
                 HostAndPort.fromString(server));
           default ->
@@ -276,11 +272,6 @@ public class ServiceLockPaths {
   public ServiceLockPath createTabletServerPath(ResourceGroupId resourceGroup,
       HostAndPort serverAddress) {
     return new ServiceLockPath(Constants.ZTSERVERS, resourceGroup, serverAddress);
-  }
-
-  public ServiceLockPath createDeadTabletServerPath(ResourceGroupId resourceGroup,
-      HostAndPort serverAddress) {
-    return new ServiceLockPath(Constants.ZDEADTSERVERS, resourceGroup, serverAddress);
   }
 
   public ServiceLockPath createAdminLockPath() {
@@ -354,11 +345,6 @@ public class ServiceLockPaths {
   public Set<ServiceLockPath> getTabletServer(ResourceGroupPredicate resourceGroupPredicate,
       AddressSelector address, boolean withLock) {
     return get(Constants.ZTSERVERS, resourceGroupPredicate, address, withLock);
-  }
-
-  public Set<ServiceLockPath> getDeadTabletServer(ResourceGroupPredicate resourceGroupPredicate,
-      AddressSelector address, boolean withLock) {
-    return get(Constants.ZDEADTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
   public interface ResourceGroupPredicate extends Predicate<ResourceGroupId> {
@@ -445,7 +431,7 @@ public class ServiceLockPaths {
         }
       }
     } else if (serverType.equals(Constants.ZCOMPACTORS) || serverType.equals(Constants.ZSSERVERS)
-        || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)
+        || serverType.equals(Constants.ZTSERVERS)
         || serverType.equals(Constants.ZMANAGER_ASSISTANT_LOCK)) {
       final List<String> resourceGroups = zooCache.getChildren(typePath);
       for (final String group : resourceGroups) {
@@ -484,7 +470,7 @@ public class ServiceLockPaths {
             if (addressPredicate.test(server)) {
               final ServiceLockPath slp =
                   parse(Optional.of(serverType), typePath + "/" + group + "/" + server);
-              if (!withLock || slp.getType().equals(Constants.ZDEADTSERVERS)) {
+              if (!withLock) {
                 // Dead TServers don't have lock data
                 results.add(slp);
               } else {

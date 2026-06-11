@@ -70,7 +70,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
@@ -245,11 +244,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
     return namespaceId;
-  }
-
-  @Override
-  public ManagerMonitorInfo getManagerStats(TInfo info, TCredentials credentials) {
-    return manager.getManagerMonitorInfo();
   }
 
   @Override

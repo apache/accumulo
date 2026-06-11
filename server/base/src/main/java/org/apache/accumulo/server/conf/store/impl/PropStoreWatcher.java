@@ -139,7 +139,7 @@ public class PropStoreWatcher implements Watcher {
           // terminal - never coming back.
           case Expired:
           case Closed:
-            log.info("ZooKeeper connection closed event received");
+            log.debug("ZooKeeper connection closed event received");
             zkReadyMonitor.clearReady();
             zkReadyMonitor.setClosed(); // terminal condition
             executorService.execute(

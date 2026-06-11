@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -131,5 +133,10 @@ class PopulateMetadata extends AbstractFateOperation {
       data.put(s.next(), d.next());
     }
     return data;
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

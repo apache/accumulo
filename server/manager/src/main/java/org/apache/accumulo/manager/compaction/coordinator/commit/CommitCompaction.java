@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -56,6 +57,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public class CommitCompaction extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
@@ -304,4 +307,13 @@ public class CommitCompaction extends AbstractFateOperation {
 
     return true;
   }
+
+  @Override
+  public String getDetails() {
+    Gson gson = GSON.get();
+    JsonObject details = gson.toJsonTree(commitData).getAsJsonObject();
+    details.addProperty("NewDataFile", newDatafile);
+    return gson.toJson(details);
+  }
+
 }
