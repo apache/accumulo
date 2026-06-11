@@ -56,9 +56,9 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Sets;
 
 public class CompactionManager {
@@ -226,8 +226,7 @@ public class CompactionManager {
 
     Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
 
-    unknownCompactionServiceErrorCache =
-        CacheBuilder.newBuilder().expireAfterWrite(5, MINUTES).build();
+    unknownCompactionServiceErrorCache = Caffeine.newBuilder().expireAfterWrite(5, MINUTES).build();
 
     currentCfg.getPlanners().forEach((serviceName, plannerClassName) -> {
       try {
