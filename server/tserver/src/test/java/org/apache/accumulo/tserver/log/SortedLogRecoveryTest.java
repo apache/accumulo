@@ -80,8 +80,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -180,7 +180,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
         new TinyLfuBlockCache(
             BlockCacheConfiguration.forTabletServer(DefaultConfiguration.getInstance()),
             CacheType.DATA));
-    Cache<String,Long> fileLenCache = CacheBuilder.newBuilder().build();
+    Cache<String,Long> fileLenCache = Caffeine.newBuilder().build();
 
     final String workdir = new File(tempDir, testName()).getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
