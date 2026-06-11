@@ -109,7 +109,6 @@ class LoadFiles extends AbstractBulkFateOperation {
     }
     VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
 
     // Compute which files appear in more than one tablet range
     Set<String> sharedFiles;

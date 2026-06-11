@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -25,13 +27,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
-
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.hadoop.fs.Path;
