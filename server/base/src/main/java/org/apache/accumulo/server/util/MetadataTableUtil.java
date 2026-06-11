@@ -215,7 +215,7 @@ public class MetadataTableUtil {
       var result = conditionalMutator.process().get(srcTablet.getExtent());
       if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
         log.debug(
-            "Conditional mutation to mark files as shared was rejected for tablet {} — "
+            "Conditional mutation to mark files as shared was rejected for tablet {}, "
                 + "tablet changed concurrently, clone will retry for this tablet",
             srcTablet.getExtent());
       }
