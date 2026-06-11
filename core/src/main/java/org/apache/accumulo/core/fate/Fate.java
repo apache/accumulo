@@ -48,7 +48,6 @@ import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -393,8 +392,8 @@ public class Fate<T> {
           TStatus status = store.getStatus(tid);
           log.info("status is: {}", status);
           if (status == NEW || status == SUBMITTED) {
-            store.setTransactionInfo(tid, TxInfo.EXCEPTION, new TApplicationException(
-                TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
+            store.setTransactionInfo(tid, TxInfo.EXCEPTION,
+                new IllegalStateException("Fate transaction cancelled by user"));
             store.setStatus(tid, FAILED_IN_PROGRESS);
             log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
                 tidStr);

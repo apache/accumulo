@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Iface;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,17 +44,23 @@ public class ReplicationServicerHandler implements Iface {
 
   private TabletServer tabletServer;
 
+  @Deprecated
   public ReplicationServicerHandler(TabletServer tabletServer) {
     this.tabletServer = tabletServer;
   }
 
+  @Deprecated
   @Override
   public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds)
-      throws TException {
+      throws RemoteReplicationException {
     TableId tableId = TableId.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
-    tabletServer.getContext().getSecurityOperation()
-        .authenticateUser(tabletServer.getContext().rpcCreds(), tcreds);
+    try {
+      tabletServer.getContext().getSecurityOperation()
+          .authenticateUser(tabletServer.getContext().rpcCreds(), tcreds);
+    } catch (ThriftSecurityException e) {
+      throw new IllegalStateException(e);
+    }
 
     String tableName;
 
@@ -117,6 +123,7 @@ public class ReplicationServicerHandler implements Iface {
     return entriesReplicated;
   }
 
+  @Deprecated
   @Override
   public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds) {
     throw new UnsupportedOperationException();
