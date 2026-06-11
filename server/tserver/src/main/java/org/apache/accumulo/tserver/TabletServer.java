@@ -579,7 +579,7 @@ public class TabletServer extends AbstractServer
     var switchedLogEntries = new ArrayList<LogEntry>(logEntries.size());
 
     for (LogEntry logEntry : logEntries) {
-      var switchedWalog = VolumeUtil.switchVolume(logEntry, context.getVolumeReplacements());
+      var switchedWalog = VolumeUtil.switchVolumes(logEntry, context.getVolumeReplacements());
       LogEntry walog;
       if (switchedWalog != null) {
         log.debug("Volume switched for needsRecovery {} -> {}", logEntry, switchedWalog);
