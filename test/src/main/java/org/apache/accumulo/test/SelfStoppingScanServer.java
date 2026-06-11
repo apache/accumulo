@@ -26,7 +26,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletHostingServer;
-import org.apache.thrift.TException;
 
 /**
  * ScanServer implementation that will stop itself after the the 3rd scan batch scan
@@ -42,7 +41,7 @@ public class SelfStoppingScanServer extends ScanServer
   }
 
   @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
+  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
     scanCount.incrementAndGet();
     super.closeMultiScan(tinfo, scanID);
     if (scanCount.get() == 3) {

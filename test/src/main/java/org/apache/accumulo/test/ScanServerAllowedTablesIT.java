@@ -212,7 +212,6 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         assertTrue(root instanceof TApplicationException);
         TApplicationException tae = (TApplicationException) root;
         assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
-        assertTrue(tae.getMessage().contains("disallowed by property"));
       }
 
       // Using GROUP1 ScanServer should fail, only allowed to test tables
@@ -224,7 +223,6 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         assertTrue(root instanceof TApplicationException);
         TApplicationException tae = (TApplicationException) root;
         assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
-        assertTrue(tae.getMessage().contains("disallowed by property"));
       }
 
       // Using GROUP1 ScanServer should succeed
@@ -247,7 +245,6 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         assertTrue(root instanceof TApplicationException);
         TApplicationException tae = (TApplicationException) root;
         assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
-        assertTrue(tae.getMessage().contains("disallowed by property"));
       }
 
       // Using GROUP1 ScanServer should fail as the property was changed

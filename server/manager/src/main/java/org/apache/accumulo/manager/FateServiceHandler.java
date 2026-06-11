@@ -201,7 +201,7 @@ class FateServiceHandler implements FateService.Iface {
           } catch (IOException e) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
-                "Exception thrown while writing splits to file system");
+                "Exception thrown while writing splits to file system: " + e.getMessage());
           }
         }
         NamespaceId namespaceId;
@@ -211,7 +211,7 @@ class FateServiceHandler implements FateService.Iface {
               TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
+              TableOperationExceptionType.NAMESPACE_NOTFOUND, e.getMessage());
         }
 
         if (!manager.security.canCreateTable(c, tableName, namespaceId)) {
@@ -269,7 +269,7 @@ class FateServiceHandler implements FateService.Iface {
               autoCleanup, goalMessage);
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, oldTableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
+              TableOperationExceptionType.NAMESPACE_NOTFOUND, e.getMessage());
         }
 
         break;
@@ -291,7 +291,7 @@ class FateServiceHandler implements FateService.Iface {
         } catch (TableNotFoundException e) {
           // could happen if the table was deleted while processing this request
           throw new ThriftTableOperationException(srcTableId.canonical(), null, tableOp,
-              TableOperationExceptionType.NOTFOUND, "");
+              TableOperationExceptionType.NOTFOUND, e.getMessage());
         }
 
         NamespaceId namespaceId;
@@ -301,7 +301,7 @@ class FateServiceHandler implements FateService.Iface {
         } catch (NamespaceNotFoundException e) {
           // dest namespace does not exist yet, needs to be created
           throw new ThriftTableOperationException(null, tableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
+              TableOperationExceptionType.NAMESPACE_NOTFOUND, e.getMessage());
         }
 
         final boolean canCloneTable;
@@ -614,7 +614,7 @@ class FateServiceHandler implements FateService.Iface {
               TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
           throw new ThriftTableOperationException(null, tableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
+              TableOperationExceptionType.NAMESPACE_NOTFOUND, e.getMessage());
         }
 
         final boolean canImport;
@@ -686,8 +686,7 @@ class FateServiceHandler implements FateService.Iface {
           throw e;
         } catch (TableNotFoundException e) {
           throw new ThriftTableOperationException(tableId.canonical(), null,
-              TableOperation.BULK_IMPORT, TableOperationExceptionType.NOTFOUND,
-              "Table no longer exists");
+              TableOperation.BULK_IMPORT, TableOperationExceptionType.NOTFOUND, e.getMessage());
         }
 
         if (!canBulkImport) {
