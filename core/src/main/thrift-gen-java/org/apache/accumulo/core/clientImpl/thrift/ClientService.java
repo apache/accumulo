@@ -95,7 +95,7 @@ public class ClientService {
 
     public TVersionedProperties getVersionedNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException;
+    public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws ThriftSecurityException, org.apache.thrift.TException;
 
     public boolean checkTableClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, java.lang.String className, java.lang.String interfaceMatch) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
@@ -1161,7 +1161,7 @@ public class ClientService {
     }
 
     @Override
-    public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException
+    public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws ThriftSecurityException, org.apache.thrift.TException
     {
       send_checkClass(tinfo, credentials, className, interfaceMatch);
       return recv_checkClass();
@@ -1177,12 +1177,15 @@ public class ClientService {
       sendBase("checkClass", args);
     }
 
-    public boolean recv_checkClass() throws org.apache.thrift.TException
+    public boolean recv_checkClass() throws ThriftSecurityException, org.apache.thrift.TException
     {
       checkClass_result result = new checkClass_result();
       receiveBase(result, "checkClass");
       if (result.isSetSuccess()) {
         return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "checkClass failed: unknown result");
     }
@@ -2687,7 +2690,7 @@ public class ClientService {
       }
 
       @Override
-      public java.lang.Boolean getResult() throws org.apache.thrift.TException {
+      public java.lang.Boolean getResult() throws ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -4110,8 +4113,12 @@ public class ClientService {
       @Override
       public checkClass_result getResult(I iface, checkClass_args args) throws org.apache.thrift.TException {
         checkClass_result result = getEmptyResultInstance();
-        result.success = iface.checkClass(args.tinfo, args.credentials, args.className, args.interfaceMatch);
-        result.setSuccessIsSet(true);
+        try {
+          result.success = iface.checkClass(args.tinfo, args.credentials, args.className, args.interfaceMatch);
+          result.setSuccessIsSet(true);
+        } catch (ThriftSecurityException sec) {
+          result.sec = sec;
+        }
         return result;
       }
     }
@@ -6830,7 +6837,11 @@ public class ClientService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             checkClass_result result = new checkClass_result();
-            if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof ThriftSecurityException) {
+              result.sec = (ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -45197,15 +45208,18 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("checkClass_result");
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new checkClass_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new checkClass_resultTupleSchemeFactory();
 
     public boolean success; // required
+    public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SUCCESS((short)0, "success");
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -45223,6 +45237,8 @@ public class ClientService {
         switch(fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
+          case 1: // SEC
+            return SEC;
           default:
             return null;
         }
@@ -45273,6 +45289,8 @@ public class ClientService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(checkClass_result.class, metaDataMap);
     }
@@ -45281,11 +45299,13 @@ public class ClientService {
     }
 
     public checkClass_result(
-      boolean success)
+      boolean success,
+      ThriftSecurityException sec)
     {
       this();
       this.success = success;
       setSuccessIsSet(true);
+      this.sec = sec;
     }
 
     /**
@@ -45294,6 +45314,9 @@ public class ClientService {
     public checkClass_result(checkClass_result other) {
       __isset_bitfield = other.__isset_bitfield;
       this.success = other.success;
+      if (other.isSetSec()) {
+        this.sec = new ThriftSecurityException(other.sec);
+      }
     }
 
     @Override
@@ -45305,6 +45328,7 @@ public class ClientService {
     public void clear() {
       setSuccessIsSet(false);
       this.success = false;
+      this.sec = null;
     }
 
     public boolean isSuccess() {
@@ -45330,6 +45354,31 @@ public class ClientService {
       __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public checkClass_result setSec(@org.apache.thrift.annotation.Nullable ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -45338,6 +45387,14 @@ public class ClientService {
           unsetSuccess();
         } else {
           setSuccess((java.lang.Boolean)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((ThriftSecurityException)value);
         }
         break;
 
@@ -45350,6 +45407,9 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSuccess();
+
+      case SEC:
+        return getSec();
 
       }
       throw new java.lang.IllegalStateException();
@@ -45365,6 +45425,8 @@ public class ClientService {
       switch (field) {
       case SUCCESS:
         return isSetSuccess();
+      case SEC:
+        return isSetSec();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -45391,6 +45453,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
       return true;
     }
 
@@ -45399,6 +45470,10 @@ public class ClientService {
       int hashCode = 1;
 
       hashCode = hashCode * 8191 + ((success) ? 131071 : 524287);
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
 
       return hashCode;
     }
@@ -45417,6 +45492,16 @@ public class ClientService {
       }
       if (isSetSuccess()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -45446,6 +45531,14 @@ public class ClientService {
 
       sb.append("success:");
       sb.append(this.success);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
       first = false;
       sb.append(")");
       return sb.toString();
@@ -45504,6 +45597,15 @@ public class ClientService {
                   org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
                 }
                 break;
+              case 1: // SEC
+                if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                  struct.sec = new ThriftSecurityException();
+                  struct.sec.read(iprot);
+                  struct.setSecIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
               default:
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -45528,6 +45630,11 @@ public class ClientService {
           oprot.writeBool(struct.success);
           oprot.writeFieldEnd();
         }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -45550,9 +45657,15 @@ public class ClientService {
         if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           oprot.writeBool(struct.success);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
         }
       }
 
@@ -45561,10 +45674,15 @@ public class ClientService {
         prot.incrementRecursionDepth();
         try {
           org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-          java.util.BitSet incoming = iprot.readBitSet(1);
+          java.util.BitSet incoming = iprot.readBitSet(2);
           if (incoming.get(0)) {
             struct.success = iprot.readBool();
             struct.setSuccessIsSet(true);
+          }
+          if (incoming.get(1)) {
+            struct.sec = new ThriftSecurityException();
+            struct.sec.read(iprot);
+            struct.setSecIsSet(true);
           }
         } finally {
           prot.decrementRecursionDepth();

@@ -65,7 +65,7 @@ class PopulateZookeeper extends ManagerRepo {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,
             "Property or value not valid for create " + tableInfo.getTableName() + " in "
-                + tableInfo.props);
+                + tableInfo.props + " : " + ex.getMessage());
       }
 
       manager.getContext().clearTableListCache();

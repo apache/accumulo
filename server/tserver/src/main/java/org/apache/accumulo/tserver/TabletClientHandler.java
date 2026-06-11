@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -43,7 +44,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -127,7 +127,6 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -217,6 +216,17 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
+      Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime) {
+    try {
+      loadFilesV2(tinfo, credentials, tid, dir, tabletImports, setTime);
+    } catch (ThriftSecurityException e) {
+      log.warn("Received oneway load files message (dir: {}) from user ({}) with bad credentials",
+          dir, credentials.getPrincipal());
+    }
+  }
+
+  @Override
+  public void loadFilesV2(TInfo tinfo, TCredentials credentials, long tid, String dir,
       Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
       throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
@@ -252,14 +262,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
         }
       });
     });
-
-  }
-
-  @Override
-  public void loadFilesV2(TInfo tinfo, TCredentials credentials, long tid, String dir,
-      Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
-      throws ThriftSecurityException {
-    loadFiles(tinfo, credentials, tid, dir, tabletImports, setTime);
   }
 
   @Override
@@ -652,7 +654,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
-  public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+  public boolean cancelUpdate(TInfo tinfo, long updateID) {
     return server.sessionManager.removeIfNotReserved(updateID);
   }
 
@@ -956,7 +958,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials,
       List<ByteBuffer> authorizations, String tableIdStr, TDurability tdurabilty,
-      String classLoaderContext) throws ThriftSecurityException, TException {
+      String classLoaderContext) throws ThriftSecurityException {
 
     TableId tableId = TableId.of(tableIdStr);
     Authorizations userauths = null;
@@ -984,7 +986,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID,
       Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
-      throws NoSuchScanIDException, TException {
+      throws NoSuchScanIDException {
 
     ConditionalSession cs = null;
     Long opid = null;
@@ -1031,9 +1033,13 @@ public class TabletClientHandler implements TabletClientService.Iface {
       }
 
       return results;
-    } catch (IOException | ReflectiveOperationException ioe) {
-      throw new TException(ioe);
-    } catch (Exception e) {
+    } catch (IOException e) {
+      log.warn("Exception returned for conditionalUpdate {}", e);
+      throw new UncheckedIOException(e);
+    } catch (ReflectiveOperationException e) {
+      log.warn("Exception returned for conditionalUpdate {}", e);
+      throw new IllegalStateException(e);
+    } catch (RuntimeException e) {
       log.warn("Exception returned for conditionalUpdate {}", e);
       throw e;
     } finally {
@@ -1441,7 +1447,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
     try {
       checkPermission(context, server, credentials, null, "getActiveCompactions");
     } catch (ThriftSecurityException e) {
@@ -1461,11 +1467,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
 
     if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     return server.getCompactionManager().getCompactionQueueSummaries();
@@ -1474,11 +1480,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
       String queueName, long priority, String compactor, String externalCompactionId)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
 
     if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     ExternalCompactionId eci = ExternalCompactionId.of(externalCompactionId);
@@ -1495,40 +1501,45 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-      throws ThriftSecurityException, TException {
+      String externalCompactionId, TKeyExtent extent, long fileSize, long entries) {
 
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    try {
+      if (security.canPerformSystemActions(credentials)) {
+        server.getCompactionManager().commitExternalCompaction(
+            ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
+            server.getOnlineTablets(), fileSize, entries);
+        return;
+      }
+    } catch (ThriftSecurityException e) {
+      // logged below
     }
-
-    server.getCompactionManager().commitExternalCompaction(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets(), fileSize, entries);
+    log.warn(
+        "Received compaction job finished message (id: {}) from user ({}) with bad credentials",
+        externalCompactionId, credentials.getPrincipal());
   }
 
   @Override
   public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent) throws TException {
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      String externalCompactionId, TKeyExtent extent) {
+    try {
+      if (security.canPerformSystemActions(credentials)) {
+        server.getCompactionManager().externalCompactionFailed(
+            ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
+            server.getOnlineTablets());
+        return;
+      }
+    } catch (ThriftSecurityException e) {
+      // logged below
     }
-
-    server.getCompactionManager().externalCompactionFailed(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets());
+    log.warn("Received compaction job failed message (id: {}) from user ({}) with bad credentials",
+        externalCompactionId, credentials.getPrincipal());
   }
 
   @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     String log = server.logger.getLogFile();
     // Might be null if there no active logger
-    if (log == null) {
-      return Collections.emptyList();
-    }
-    return Collections.singletonList(log);
+    return log == null ? Collections.emptyList() : Collections.singletonList(log);
   }
 
   @Override
@@ -1574,20 +1585,19 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
-      TSummaryRequest request)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
+      TSummaryRequest request) throws ThriftSecurityException, ThriftTableOperationException {
     NamespaceId namespaceId;
     TableId tableId = TableId.of(request.getTableId());
     try {
       namespaceId = server.getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e1) {
       throw new ThriftTableOperationException(tableId.canonical(), null, null,
-          TableOperationExceptionType.NOTFOUND, null);
+          TableOperationExceptionType.NOTFOUND, e1.getMessage());
     }
 
     if (!security.canGetSummaries(credentials, tableId, namespaceId)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     ExecutorService es = server.resourceManager.getSummaryPartitionExecutor();
@@ -1601,12 +1611,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials,
-      TSummaryRequest request, int modulus, int remainder)
-      throws ThriftSecurityException, TException {
+      TSummaryRequest request, int modulus, int remainder) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     ExecutorService spe = server.resourceManager.getSummaryRemoteExecutor();
@@ -1621,12 +1630,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   @Override
   public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials,
-      TSummaryRequest request, Map<String,List<TRowRange>> files)
-      throws ThriftSecurityException, TException {
+      TSummaryRequest request, Map<String,List<TRowRange>> files) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     ExecutorService srp = server.resourceManager.getSummaryRetrievalExecutor();
@@ -1644,8 +1652,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
-  public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId)
-      throws NoSuchScanIDException, TException {
+  public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) throws NoSuchScanIDException {
     SummarySession session = (SummarySession) server.sessionManager.getSession(sessionId);
     if (session == null) {
       throw new NoSuchScanIDException();

@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
@@ -135,11 +136,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       });
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
-          TableOperationExceptionType.NOTFOUND, null);
+          TableOperationExceptionType.NOTFOUND, nne.getMessage());
     } catch (Exception e) {
       Manager.log.warn("{}", e.getMessage(), e);
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
-          TableOperationExceptionType.OTHER, null);
+          TableOperationExceptionType.OTHER, e.getMessage());
     }
     return Long.parseLong(new String(fid, UTF_8));
   }
@@ -290,7 +291,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY);
       throw new ThriftTableOperationException(tableId.canonical(), tableName,
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
-          "Error modifying table properties: tableId: " + tableId.canonical());
+          "Error modifying table properties: " + ex.getMessage());
     } catch (IllegalArgumentException iae) {
       throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
@@ -348,7 +349,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer)
-      throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
+      throws ThriftSecurityException, ThriftNotActiveServiceException {
     if (!manager.security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
@@ -368,10 +369,17 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void reportSplitExtent(TInfo info, TCredentials credentials, String serverName,
-      TabletSplit split) throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
+      TabletSplit split) {
+    try {
+      if (!manager.security.canPerformSystemActions(credentials)) {
+        throw new ThriftSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED);
+      }
+    } catch (ThriftSecurityException e) {
+      // this oneway method can't throw a ThriftSecurityException
+      // convert it to a runtime exception, so at least it gets logged on the server
+      Manager.log.warn("Got a split from a server with bad credentials: {}", serverName);
+      return;
     }
 
     KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
@@ -391,10 +399,18 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void reportTabletStatus(TInfo info, TCredentials credentials, String serverName,
-      TabletLoadState status, TKeyExtent ttablet) throws ThriftSecurityException {
-    if (!manager.security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
+      TabletLoadState status, TKeyExtent ttablet) {
+    try {
+      if (!manager.security.canPerformSystemActions(credentials)) {
+        throw new ThriftSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED);
+      }
+    } catch (ThriftSecurityException e) {
+      // this oneway method can't throw a ThriftSecurityException
+      // convert it to a runtime exception, so at least it gets logged on the server
+      Manager.log.warn("Got a tablet status report from a server with bad credentials: {}",
+          serverName);
+      return;
     }
 
     KeyExtent tablet = KeyExtent.fromThrift(ttablet);
@@ -451,7 +467,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
-      throws TException {
+      throws ThriftSecurityException, ThriftPropertyException {
     if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -462,15 +478,13 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       Manager.log.error("Problem setting invalid property", iae);
       throw new ThriftPropertyException(property, value,
           "Property is invalid. message: " + iae.getMessage());
-    } catch (Exception e) {
-      Manager.log.error("Problem setting config property in zookeeper", e);
-      throw new TException(e.getMessage());
     }
   }
 
   @Override
   public void modifySystemProperties(TInfo info, TCredentials c, TVersionedProperties properties)
-      throws TException {
+      throws ThriftSecurityException, ThriftConcurrentModificationException,
+      ThriftPropertyException {
     if (!manager.security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -484,9 +498,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying system properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());
-    } catch (Exception e) {
-      Manager.log.error("Problem setting config property in zookeeper", e);
-      throw new TException(e.getMessage());
     }
   }
 
@@ -499,7 +510,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void modifyNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns,
-      TVersionedProperties properties) throws TException {
+      TVersionedProperties properties) throws ThriftSecurityException,
+      ThriftTableOperationException, ThriftConcurrentModificationException {
     final NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(), ns,
         TableOperation.SET_PROPERTY);
     if (!manager.security.canAlterNamespace(credentials, namespaceId)) {
@@ -524,9 +536,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       log.warn("Error modifying namespace properties", ex);
       throw new ThriftTableOperationException(namespaceId.canonical(), ns,
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
-          "Error modifying namespace properties");
-    } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
+          "Error modifying namespace properties: " + ex.getMessage());
     }
   }
 
@@ -566,7 +576,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       ClientServiceHandler.checkNamespaceId(manager.getContext(), namespace, op);
       log.info("Error altering namespace property", ex);
       throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
-          TableOperationExceptionType.OTHER, "Problem altering namespace property");
+          TableOperationExceptionType.OTHER,
+          "Problem altering namespace property: " + ex.getMessage());
     } catch (IllegalArgumentException iae) {
       throw new ThriftPropertyException(property, value, iae.getMessage());
     }
@@ -606,7 +617,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
       throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
           TableOperationExceptionType.OTHER, "Invalid table property, tried to set: tableId: "
-              + tableId.canonical() + " to: " + property + "=" + value);
+              + tableId.canonical() + " to: " + property + "=" + value + " : " + ex.getMessage());
     } catch (IllegalArgumentException iae) {
       throw new ThriftPropertyException(property, value, iae.getMessage());
     }
@@ -636,7 +647,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public TDelegationToken getDelegationToken(TInfo tinfo, TCredentials credentials,
-      TDelegationTokenConfig tConfig) throws ThriftSecurityException, TException {
+      TDelegationTokenConfig tConfig) throws ThriftSecurityException {
     if (!manager.security.canObtainDelegationToken(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
@@ -645,7 +656,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     // Make sure we're actually generating the secrets to make delegation tokens
     // Round-about way to verify that SASL is also enabled.
     if (!manager.delegationTokensAvailable()) {
-      throw new TException("Delegation tokens are not available for use");
+      throw new IllegalStateException("Delegation tokens are not available for use");
     }
 
     final DelegationTokenConfig config = DelegationTokenConfigSerializer.deserialize(tConfig);
@@ -656,18 +667,24 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
       return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()),
           pair.getValue().getThriftIdentifier());
-    } catch (Exception e) {
-      throw new TException(e.getMessage());
+    } catch (AccumuloException e) {
+      throw new IllegalStateException(e);
     }
   }
 
   @SuppressWarnings("deprecation")
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
-      Set<String> logsToWatch) throws TException {
+      Set<String> logsToWatch) {
     AccumuloClient client = manager.getContext();
 
-    final Text tableId = new Text(getTableId(manager.getContext(), tableName).canonical());
+    Text tableId;
+    try {
+      tableId = new Text(getTableId(manager.getContext(), tableName).canonical());
+    } catch (ThriftTableOperationException e) {
+      // table or namespace not found from getTableId
+      throw new IllegalStateException(e);
+    }
 
     drainLog.trace("Waiting for {} to be replicated for {}", logsToWatch, tableId);
 

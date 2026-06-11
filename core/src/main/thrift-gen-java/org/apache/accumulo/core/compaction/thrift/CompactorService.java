@@ -37,7 +37,7 @@ public class CompactorService {
 
     public void wake(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void cancel(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.thrift.TException;
+    public void cancel(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, UnknownCompactionIdException, org.apache.thrift.TException;
 
   }
 
@@ -187,7 +187,7 @@ public class CompactorService {
     }
 
     @Override
-    public void cancel(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.thrift.TException
+    public void cancel(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, UnknownCompactionIdException, org.apache.thrift.TException
     {
       send_cancel(tinfo, credentials, externalCompactionId);
       recv_cancel();
@@ -202,10 +202,16 @@ public class CompactorService {
       sendBase("cancel", args);
     }
 
-    public void recv_cancel() throws org.apache.thrift.TException
+    public void recv_cancel() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, UnknownCompactionIdException, org.apache.thrift.TException
     {
       cancel_result result = new cancel_result();
       receiveBase(result, "cancel");
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      if (result.unk != null) {
+        throw result.unk;
+      }
       return;
     }
 
@@ -412,7 +418,7 @@ public class CompactorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, UnknownCompactionIdException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -620,7 +626,13 @@ public class CompactorService {
       @Override
       public cancel_result getResult(I iface, cancel_args args) throws org.apache.thrift.TException {
         cancel_result result = getEmptyResultInstance();
-        iface.cancel(args.tinfo, args.credentials, args.externalCompactionId);
+        try {
+          iface.cancel(args.tinfo, args.credentials, args.externalCompactionId);
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        } catch (UnknownCompactionIdException unk) {
+          result.unk = unk;
+        }
         return result;
       }
     }
@@ -986,7 +998,15 @@ public class CompactorService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             cancel_result result = new cancel_result();
-            if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
+              result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof UnknownCompactionIdException) {
+              result.unk = (UnknownCompactionIdException) e;
+              result.setUnkIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -5586,14 +5606,19 @@ public class CompactorService {
   public static class cancel_result implements org.apache.thrift.TBase<cancel_result, cancel_result._Fields>, java.io.Serializable, Cloneable, Comparable<cancel_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancel_result");
 
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField UNK_FIELD_DESC = new org.apache.thrift.protocol.TField("unk", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new cancel_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new cancel_resultTupleSchemeFactory();
 
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+    public @org.apache.thrift.annotation.Nullable UnknownCompactionIdException unk; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-;
+      SEC((short)1, "sec"),
+      UNK((short)2, "unk");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -5609,6 +5634,10 @@ public class CompactorService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          case 2: // UNK
+            return UNK;
           default:
             return null;
         }
@@ -5650,9 +5679,15 @@ public class CompactorService {
         return _fieldName;
       }
     }
+
+    // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
+      tmpMap.put(_Fields.UNK, new org.apache.thrift.meta_data.FieldMetaData("unk", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, UnknownCompactionIdException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancel_result.class, metaDataMap);
     }
@@ -5660,10 +5695,25 @@ public class CompactorService {
     public cancel_result() {
     }
 
+    public cancel_result(
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
+      UnknownCompactionIdException unk)
+    {
+      this();
+      this.sec = sec;
+      this.unk = unk;
+    }
+
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public cancel_result(cancel_result other) {
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
+      }
+      if (other.isSetUnk()) {
+        this.unk = new UnknownCompactionIdException(other.unk);
+      }
     }
 
     @Override
@@ -5673,11 +5723,79 @@ public class CompactorService {
 
     @Override
     public void clear() {
+      this.sec = null;
+      this.unk = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public cancel_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public UnknownCompactionIdException getUnk() {
+      return this.unk;
+    }
+
+    public cancel_result setUnk(@org.apache.thrift.annotation.Nullable UnknownCompactionIdException unk) {
+      this.unk = unk;
+      return this;
+    }
+
+    public void unsetUnk() {
+      this.unk = null;
+    }
+
+    /** Returns true if field unk is set (has been assigned a value) and false otherwise */
+    public boolean isSetUnk() {
+      return this.unk != null;
+    }
+
+    public void setUnkIsSet(boolean value) {
+      if (!value) {
+        this.unk = null;
+      }
     }
 
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      case UNK:
+        if (value == null) {
+          unsetUnk();
+        } else {
+          setUnk((UnknownCompactionIdException)value);
+        }
+        break;
+
       }
     }
 
@@ -5685,6 +5803,12 @@ public class CompactorService {
     @Override
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
+      case SEC:
+        return getSec();
+
+      case UNK:
+        return getUnk();
+
       }
       throw new java.lang.IllegalStateException();
     }
@@ -5697,6 +5821,10 @@ public class CompactorService {
       }
 
       switch (field) {
+      case SEC:
+        return isSetSec();
+      case UNK:
+        return isSetUnk();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -5714,12 +5842,38 @@ public class CompactorService {
       if (this == that)
         return true;
 
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      boolean this_present_unk = true && this.isSetUnk();
+      boolean that_present_unk = true && that.isSetUnk();
+      if (this_present_unk || that_present_unk) {
+        if (!(this_present_unk && that_present_unk))
+          return false;
+        if (!this.unk.equals(that.unk))
+          return false;
+      }
+
       return true;
     }
 
     @Override
     public int hashCode() {
       int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetUnk()) ? 131071 : 524287);
+      if (isSetUnk())
+        hashCode = hashCode * 8191 + unk.hashCode();
 
       return hashCode;
     }
@@ -5732,6 +5886,26 @@ public class CompactorService {
 
       int lastComparison = 0;
 
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetUnk(), other.isSetUnk());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetUnk()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.unk, other.unk);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -5755,6 +5929,21 @@ public class CompactorService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("cancel_result(");
       boolean first = true;
 
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("unk:");
+      if (this.unk == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.unk);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -5802,6 +5991,24 @@ public class CompactorService {
               break;
             }
             switch (schemeField.id) {
+              case 1: // SEC
+                if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                  struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+                  struct.sec.read(iprot);
+                  struct.setSecIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
+              case 2: // UNK
+                if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                  struct.unk = new UnknownCompactionIdException();
+                  struct.unk.read(iprot);
+                  struct.setUnkIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
               default:
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -5821,6 +6028,16 @@ public class CompactorService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.unk != null) {
+          oprot.writeFieldBegin(UNK_FIELD_DESC);
+          struct.unk.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -5839,6 +6056,20 @@ public class CompactorService {
       @Override
       public void write(org.apache.thrift.protocol.TProtocol prot, cancel_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        if (struct.isSetUnk()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+        if (struct.isSetUnk()) {
+          struct.unk.write(oprot);
+        }
       }
 
       @Override
@@ -5846,6 +6077,17 @@ public class CompactorService {
         prot.incrementRecursionDepth();
         try {
           org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+          java.util.BitSet incoming = iprot.readBitSet(2);
+          if (incoming.get(0)) {
+            struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+            struct.sec.read(iprot);
+            struct.setSecIsSet(true);
+          }
+          if (incoming.get(1)) {
+            struct.unk = new UnknownCompactionIdException();
+            struct.unk.read(iprot);
+            struct.setUnkIsSet(true);
+          }
         } finally {
           prot.decrementRecursionDepth();
         }
