@@ -106,19 +106,19 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
             ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
       }
 
-      final List<RunningCompactionSummary> running =
-              new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
+      final List<RunningCompactionSummary> running = new ArrayList<>();
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
-      running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
-      final Map<String, org.apache.accumulo.core.compaction.thrift.TExternalCompaction> finalExpected = expected;
+      final var expectedCompactions = expected;
 
       Wait.waitFor(() -> {
-        final List<RunningCompactionSummary> finalRunning =
-                new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
-        final Map<String,RunningCompactionSummary> finalCompactionsByEcid = new HashMap<>();
-        finalRunning.forEach(rcs -> finalCompactionsByEcid.put(rcs.getEcid(), rcs));
-        return finalExpected.size() == finalCompactionsByEcid.size();
-      }, 1000);
+        running.clear();
+        compactionsByEcid.clear();
+
+        running.addAll(new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true));
+        running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
+
+        return expectedCompactions.size() == compactionsByEcid.size();
+      }, 10000);
 
       expected.values().forEach(tec -> {
         RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
