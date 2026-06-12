@@ -107,14 +107,16 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
       }
 
       final List<RunningCompactionSummary> running =
-          new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
+              new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
       running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
       final Map<String, org.apache.accumulo.core.compaction.thrift.TExternalCompaction> finalExpected = expected;
 
       Wait.waitFor(() -> {
+        final List<RunningCompactionSummary> finalRunning =
+                new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
         final Map<String,RunningCompactionSummary> finalCompactionsByEcid = new HashMap<>();
-        running.forEach(rcs -> finalCompactionsByEcid.put(rcs.getEcid(), rcs));
+        finalRunning.forEach(rcs -> finalCompactionsByEcid.put(rcs.getEcid(), rcs));
         return finalExpected.size() == finalCompactionsByEcid.size();
       }, 1000);
 
