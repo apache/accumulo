@@ -44,6 +44,7 @@ import org.apache.accumulo.server.util.ListCompactions;
 import org.apache.accumulo.server.util.ListCompactions.RunningCompactionSummary;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -109,8 +110,10 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
           new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
       running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
+      final Map<String, org.apache.accumulo.core.compaction.thrift.TExternalCompaction> finalExpected = expected;
 
-      assertEquals(expected.size(), compactionsByEcid.size());
+      Wait.waitFor(() -> finalExpected.size() == compactionsByEcid.size());
+
       expected.values().forEach(tec -> {
         RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
         assertNotNull(rcs);
