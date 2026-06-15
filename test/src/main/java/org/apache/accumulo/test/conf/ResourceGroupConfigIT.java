@@ -279,7 +279,6 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
         final Set<ResourceGroupId> finalrgs = client.resourceGroupOperations().list();
         return finalrgs.size() == 1 && finalrgs.contains(ResourceGroupId.DEFAULT);
       });
-      assertEquals(ResourceGroupId.DEFAULT, rgs.iterator().next());
       assertThrows(ResourceGroupNotFoundException.class,
           () -> client.resourceGroupOperations().remove(rgid));
     }
