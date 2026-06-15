@@ -114,13 +114,15 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
         running.clear();
         compactionsByEcid.clear();
 
-        running.addAll(new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true));
+        running.addAll(new ListCompactionsWrapper()
+            .getRunningCompactions(getCluster().getServerContext(), true));
         running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
 
-        return expectedCompactions.size() == compactionsByEcid.size();
+        return expectedCompactions.size() == compactionsByEcid.size()
+            && expectedCompactions.keySet().stream().allMatch(compactionsByEcid::containsKey);
       }, 10000);
 
-      expected.values().forEach(tec -> {
+      expectedCompactions.values().forEach(tec -> {
         RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());

@@ -216,8 +216,7 @@ public class LocatorIT extends AccumuloClusterHarness {
         // because they no longer exist. This also test that online and offline tables a properly
         // cleared from the cache.
         var t3 = ctx.getTabletLocationCache(tableId3);
-        return t3 != null
-            && !ctx.isTabletLocationCachePresent(tableId1)
+        return t3 != null && !ctx.isTabletLocationCachePresent(tableId1)
             && !ctx.isTabletLocationCachePresent(tableId4);
       });
 
