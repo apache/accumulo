@@ -1479,48 +1479,42 @@ public class TabletClientHandler implements TabletClientService.Iface {
       String externalCompactionId, TKeyExtent extent, long fileSize, long entries) {
 
     try {
-      if (!security.canPerformSystemActions(credentials)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
+      if (security.canPerformSystemActions(credentials)) {
+        server.getCompactionManager().commitExternalCompaction(
+            ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
+            server.getOnlineTablets(), fileSize, entries);
+        return;
       }
     } catch (ThriftSecurityException e) {
-      log.warn(
-          "Received compaction job finished message (id: {}) from user ({}) with bad credentials",
-          externalCompactionId, credentials.getPrincipal());
+      // logged below
     }
-
-    server.getCompactionManager().commitExternalCompaction(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets(), fileSize, entries);
+    log.warn(
+        "Received compaction job finished message (id: {}) from user ({}) with bad credentials",
+        externalCompactionId, credentials.getPrincipal());
   }
 
   @Override
   public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
       String externalCompactionId, TKeyExtent extent) {
     try {
-      if (!security.canPerformSystemActions(credentials)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
+      if (security.canPerformSystemActions(credentials)) {
+        server.getCompactionManager().externalCompactionFailed(
+            ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
+            server.getOnlineTablets());
+        return;
       }
     } catch (ThriftSecurityException e) {
-      log.warn(
-          "Received compaction job failed message (id: {}) from user ({}) with bad credentials",
-          externalCompactionId, credentials.getPrincipal());
+      // logged below
     }
-
-    server.getCompactionManager().externalCompactionFailed(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets());
+    log.warn("Received compaction job failed message (id: {}) from user ({}) with bad credentials",
+        externalCompactionId, credentials.getPrincipal());
   }
 
   @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     String log = server.logger.getLogFile();
     // Might be null if there no active logger
-    if (log == null) {
-      return Collections.emptyList();
-    }
-    return Collections.singletonList(log);
+    return log == null ? Collections.emptyList() : Collections.singletonList(log);
   }
 
   @Override
