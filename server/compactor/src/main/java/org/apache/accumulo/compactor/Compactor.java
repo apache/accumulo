@@ -435,15 +435,13 @@ public class Compactor extends AbstractServer
   public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
       throws ThriftSecurityException, UnknownCompactionIdException {
     TableId tableId = JOB_HOLDER.getTableId();
+    NamespaceId nsId;
     try {
-      NamespaceId nsId = getContext().getNamespaceId(tableId);
-      if (!getContext().getSecurityOperation().canCompact(credentials, tableId, nsId)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      nsId = getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
-      // if the table is deleted, there is no way to check user permissions to cancel
-      // the system should handle this automatically
+      throw new IllegalStateException("Table " + tableId + " no longer exists");
+    }
+    if (!getContext().getSecurityOperation().canCompact(credentials, tableId, nsId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }

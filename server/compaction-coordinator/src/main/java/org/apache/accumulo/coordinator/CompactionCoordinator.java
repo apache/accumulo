@@ -879,15 +879,13 @@ public class CompactionCoordinator extends AbstractServer implements
       throws ThriftSecurityException {
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+    NamespaceId nsId;
     try {
-      NamespaceId nsId = getContext().getNamespaceId(extent.tableId());
-      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      nsId = getContext().getNamespaceId(extent.tableId());
     } catch (TableNotFoundException e) {
-      // if the table is deleted, there is no way to check user permissions to cancel
-      // the system should handle this automatically
+      throw new IllegalStateException("Table " + extent.tableId() + " no longer exists");
+    }
+    if (!security.canCompact(credentials, extent.tableId(), nsId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
