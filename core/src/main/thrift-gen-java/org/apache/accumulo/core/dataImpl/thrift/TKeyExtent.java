@@ -35,9 +35,9 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TKeyExtentStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TKeyExtentTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer table; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer prevEndRow; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer table; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer prevEndRow; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

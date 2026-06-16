@@ -34,8 +34,8 @@ public class Compacting implements org.apache.thrift.TBase<Compacting, Compactin
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new CompactingStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new CompactingTupleSchemeFactory();
 
-  public int running; // required
-  public int queued; // required
+  private int running; // required
+  private int queued; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

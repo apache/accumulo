@@ -46,28 +46,20 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveScanStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveScanTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String client; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String user; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
-  public long age; // required
-  public long idleTime; // required
-  /**
-   * 
-   * @see ScanType
-   */
-  public @org.apache.thrift.annotation.Nullable ScanType type; // required
-  /**
-   * 
-   * @see ScanState
-   */
-  public @org.apache.thrift.annotation.Nullable ScanState state; // required
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
-  public long scanId; // optional
-  public @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String client; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String user; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
+  private long age; // required
+  private long idleTime; // required
+  private @org.apache.thrift.annotation.Nullable ScanType type; // required
+  private @org.apache.thrift.annotation.Nullable ScanState state; // required
+  private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
+  private long scanId; // optional
+  private @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
