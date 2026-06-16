@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
-
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -686,11 +684,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @param tkey Thrift key
    */
   public Key(TKey tkey) {
-    this.row = toBytes(tkey.row);
-    this.colFamily = toBytes(tkey.colFamily);
-    this.colQualifier = toBytes(tkey.colQualifier);
-    this.colVisibility = toBytes(tkey.colVisibility);
-    this.timestamp = tkey.timestamp;
+    this.row = tkey.getRow();
+    this.colFamily = tkey.getColFamily();
+    this.colQualifier = tkey.getColQualifier();
+    this.colVisibility = tkey.getColVisibility();
+    this.timestamp = tkey.getTimestamp();
     this.deleted = false;
 
     if (row == null) {
@@ -1318,28 +1316,28 @@ public class Key implements WritableComparable<Key>, Cloneable {
 
       if (isEqual(prevKey.row, key.row)) {
         newKey = key.toThrift();
-        newKey.row = null;
+        newKey.setRow((byte[]) null);
       }
 
       if (isEqual(prevKey.colFamily, key.colFamily)) {
         if (newKey == null) {
           newKey = key.toThrift();
         }
-        newKey.colFamily = null;
+        newKey.setColFamily((byte[]) null);
       }
 
       if (isEqual(prevKey.colQualifier, key.colQualifier)) {
         if (newKey == null) {
           newKey = key.toThrift();
         }
-        newKey.colQualifier = null;
+        newKey.setColQualifier((byte[]) null);
       }
 
       if (isEqual(prevKey.colVisibility, key.colVisibility)) {
         if (newKey == null) {
           newKey = key.toThrift();
         }
-        newKey.colVisibility = null;
+        newKey.setColVisibility((byte[]) null);
       }
 
       if (newKey == null) {
@@ -1360,20 +1358,20 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public static void decompress(List<TKeyValue> param) {
     for (int i = 1; i < param.size(); i++) {
-      TKey prevKey = param.get(i - 1).key;
-      TKey key = param.get(i).key;
+      TKey prevKey = param.get(i - 1).getKey();
+      TKey key = param.get(i).getKey();
 
-      if (key.row == null) {
-        key.row = prevKey.row;
+      if (key.getRow() == null) {
+        key.setRow(prevKey.getRow());
       }
-      if (key.colFamily == null) {
-        key.colFamily = prevKey.colFamily;
+      if (key.getColFamily() == null) {
+        key.setColFamily(prevKey.getColFamily());
       }
-      if (key.colQualifier == null) {
-        key.colQualifier = prevKey.colQualifier;
+      if (key.getColQualifier() == null) {
+        key.setColQualifier(prevKey.getColQualifier());
       }
-      if (key.colVisibility == null) {
-        key.colVisibility = prevKey.colVisibility;
+      if (key.getColVisibility() == null) {
+        key.setColVisibility(prevKey.getColVisibility());
       }
     }
   }
