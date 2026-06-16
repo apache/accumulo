@@ -41,7 +41,7 @@ import org.junit.jupiter.api.Test;
 
 public class MergeCommandTest {
 
-  public static class testMergeCommand extends MergeCommand {
+  public static class TestMergeCommand extends MergeCommand {
     @Override
     int executeMerge(Shell shellState, String tableName, Text startRow, Text endRow, long size,
         boolean verbose, boolean force)
@@ -62,7 +62,7 @@ public class MergeCommandTest {
 
   @Test
   public void mockMetadataMergeTest() throws Exception {
-    MergeCommand cmd = new testMergeCommand();
+    MergeCommand cmd = new TestMergeCommand();
 
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     ClientContext context = EasyMock.createMock(ClientContext.class);
@@ -92,7 +92,7 @@ public class MergeCommandTest {
 
   @Test
   public void mockMergeAllTabletsTest() throws Exception {
-    MergeCommand cmd = new testMergeCommand();
+    MergeCommand cmd = new TestMergeCommand();
 
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     ClientContext context = EasyMock.createMock(ClientContext.class);
