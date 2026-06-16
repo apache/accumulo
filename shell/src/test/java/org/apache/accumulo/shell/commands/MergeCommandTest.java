@@ -20,9 +20,38 @@ package org.apache.accumulo.shell.commands;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Optional;
+
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.shell.Shell;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
+import org.apache.hadoop.io.Text;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class MergeCommandTest {
+
+  public static class testMergeCommand extends MergeCommand {
+    @Override
+    int executeMerge(Shell shellState, String tableName, Text startRow, Text endRow, long size,
+        boolean verbose, boolean force)
+        throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      if (size > 0) {
+        shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
+      }
+      return 0;
+    }
+  }
 
   @Test
   public void testBeginRowHelp() {
@@ -31,4 +60,63 @@ public class MergeCommandTest {
         "-b should say it is exclusive");
   }
 
+  @Test
+  public void mockMetadataMergeTest() throws Exception {
+    MergeCommand cmd = new testMergeCommand();
+
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
+    ClientContext context = EasyMock.createMock(ClientContext.class);
+    TableOperations tableOps = EasyMock.createMock(TableOperations.class);
+    InstanceOperations instOps = EasyMock.createMock(InstanceOperations.class);
+    Shell shellState = EasyMock.createMock(Shell.class);
+
+    Options opts = cmd.getOptions();
+
+    CommandLineParser parser = new DefaultParser();
+    String[] args = {"-t", MetadataTable.NAME, "-s", "0"};
+    CommandLine cli = parser.parse(opts, args);
+
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();
+    EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
+    EasyMock.expect(shellState.isVerbose()).andReturn(false).anyTimes();
+    EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.expect(tableOps.exists(MetadataTable.NAME)).andReturn(true).anyTimes();
+    EasyMock.expect(shellState.confirm(
+        " Warning!!! Merging the accumulo.metadata table incorrectly can result in system instability. Are you REALLY sure you want to merge?!?!?!"))
+        .andReturn(Optional.of(true)).once();
+
+    EasyMock.replay(client, context, tableOps, instOps, shellState);
+    cmd.execute("merge", cli, shellState);
+    EasyMock.verify(client, context, tableOps, instOps, shellState);
+  }
+
+  @Test
+  public void mockMergeAllTabletsTest() throws Exception {
+    MergeCommand cmd = new testMergeCommand();
+
+    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
+    ClientContext context = EasyMock.createMock(ClientContext.class);
+    TableOperations tableOps = EasyMock.createMock(TableOperations.class);
+    InstanceOperations instOps = EasyMock.createMock(InstanceOperations.class);
+    Shell shellState = EasyMock.createMock(Shell.class);
+
+    Options opts = cmd.getOptions();
+
+    CommandLineParser parser = new DefaultParser();
+    String[] args = {"-t", "testTable"};
+    CommandLine cli = parser.parse(opts, args);
+
+    EasyMock.expect(shellState.getAccumuloClient()).andReturn(client).anyTimes();
+    EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
+    EasyMock.expect(shellState.isVerbose()).andReturn(false).anyTimes();
+    EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
+    EasyMock.expect(tableOps.exists("testTable")).andReturn(true).anyTimes();
+    EasyMock.expect(shellState.confirm(
+        " Warning!!! Are you REALLY sure you want to merge the entire table { testTable } into one tablet?!?!?!"))
+        .andReturn(Optional.of(true)).once();
+
+    EasyMock.replay(client, context, tableOps, instOps, shellState);
+    cmd.execute("merge", cli, shellState);
+    EasyMock.verify(client, context, tableOps, instOps, shellState);
+  }
 }

@@ -18,7 +18,11 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -52,6 +56,15 @@ public class MergeCommand extends Command {
     if (cl.hasOption(sizeOpt.getOpt())) {
       size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
+    if (tableName.equals(MetadataTable.NAME)) {
+      if (!shellState
+          .confirm(
+              " Warning!!! Merging the " + MetadataTable.NAME + " table incorrectly can result in "
+                  + "system instability. Are you REALLY sure you want to merge?!?!?!")
+          .orElse(false)) {
+        return 0;
+      }
+    }
     if (startRow == null && endRow == null && size < 0 && !all) {
       if (!shellState
           .confirm(" Warning!!! Are you REALLY sure you want to merge the entire table { "
@@ -60,21 +73,7 @@ public class MergeCommand extends Command {
         return 0;
       }
     }
-    if (size < 0) {
-      shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
-    } else {
-      final boolean finalVerbose = verbose;
-      final Merge merge = new Merge() {
-        @Override
-        protected void message(String fmt, Object... args) {
-          if (finalVerbose) {
-            shellState.getWriter().println(String.format(fmt, args));
-          }
-        }
-      };
-      merge.mergomatic(shellState.getAccumuloClient(), tableName, startRow, endRow, size, force);
-    }
-    return 0;
+    return executeMerge(shellState, tableName, startRow, endRow, size, verbose, force);
   }
 
   @Override
@@ -108,6 +107,27 @@ public class MergeCommand extends Command {
     o.addOption(forceOpt);
     o.addOption(allOpt);
     return o;
+  }
+
+  // This method is stubbed out to allow for mock testing
+  int executeMerge(Shell shellState, String tableName, Text startRow, Text endRow, long size,
+      boolean verbose, boolean force) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, Merge.MergeException {
+    if (size < 0) {
+      shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
+    } else {
+      final boolean finalVerbose = verbose;
+      final Merge merge = new Merge() {
+        @Override
+        protected void message(String fmt, Object... args) {
+          if (finalVerbose) {
+            shellState.getWriter().println(String.format(fmt, args));
+          }
+        }
+      };
+      merge.mergomatic(shellState.getAccumuloClient(), tableName, startRow, endRow, size, force);
+    }
+    return 0;
   }
 
 }
