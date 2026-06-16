@@ -50,6 +50,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
@@ -183,6 +184,30 @@ public class Endpoints {
       throw new NotFoundException("ServersView object for table " + table.name() + " not found");
     }
     return view;
+  }
+
+  @GET
+  @Path("servers/detail")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a UI-ready metric table for one server process")
+  public TableData getServerDetail(@QueryParam("type") ServerId.Type type,
+      @QueryParam("server") String server, @QueryParam("resourceGroup") String resourceGroup) {
+    if (type == null) {
+      throw new BadRequestException("A 'type' parameter is required");
+    }
+    if (server == null || server.isBlank()) {
+      throw new BadRequestException("A 'server' parameter is required");
+    }
+
+    MetricResponse response = monitor.getInformationFetcher().getSummaryForEndpoint()
+        .getServerMetricResponse(type, resourceGroup, server);
+    if (response == null) {
+      String groupMessage = resourceGroup == null || resourceGroup.isBlank() ? ""
+          : " in resource group " + resourceGroup;
+      throw new NotFoundException(
+          "Server " + type.name() + " " + server + groupMessage + " not found");
+    }
+    return TableDataFactory.forServer(response);
   }
 
   @GET

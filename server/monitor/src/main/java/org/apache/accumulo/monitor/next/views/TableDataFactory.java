@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
+import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.monitor.next.views.TableData.Column;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 
@@ -53,14 +54,30 @@ public class TableDataFactory {
 
   public static final String RG_COL_KEY = "resourceGroup";
   public static final String ADDR_COL_KEY = "serverAddress";
+  public static final String TYPE_COL_KEY = "serverType";
+  public static final String LINK_RG_COL_KEY = "serverLinkResourceGroup";
   public static final String TIME_COL_KEY = "lastContact";
+  public static final String METRIC_NAME_COL_KEY = "metricName";
+  public static final String METRIC_VALUE_COL_KEY = "metricValue";
+  public static final String METRIC_TYPE_COL_KEY = "metricType";
+  public static final String METRIC_TAGS_COL_KEY = "metricTags";
+  public static final String METRIC_DESCRIPTION_COL_KEY = "metricDescription";
+  public static final String METRIC_SECTION_COL_KEY = "metricSection";
 
   public static final Column LAST_CONTACT_COLUMN = new Column(TIME_COL_KEY, "Last Contact",
       "Time since the server last responded to the monitor", "duration");
   public static final Column RG_COLUMN =
       new Column(RG_COL_KEY, "Resource Group", "Resource Group", "");
   public static final Column ADDR_COLUMN =
-      new Column(ADDR_COL_KEY, "Server Address", "Server address", "");
+      new Column(ADDR_COL_KEY, "Server Address", "Server address", "server-address");
+
+  private static final List<Column> SERVER_DETAIL_COLUMNS =
+      List.of(new Column(METRIC_NAME_COL_KEY, "Metric", "Metric name", ""),
+          new Column(METRIC_VALUE_COL_KEY, "Value", "Metric value", ""),
+          new Column(METRIC_TYPE_COL_KEY, "Type", "Metric type", ""),
+          new Column(METRIC_TAGS_COL_KEY, "Tags", "Metric tags", ""),
+          new Column(METRIC_SECTION_COL_KEY, "Section", "Metric documentation section", ""),
+          new Column(METRIC_DESCRIPTION_COL_KEY, "Description", "Metric description", ""));
 
   /**
    * Server-process table identifiers accepted by /rest-v2/servers/view. These enum names are used
@@ -146,6 +163,8 @@ public class TableDataFactory {
     List<Map<String,Object>> data = new ArrayList<>();
     serverMetricRows.forEach(serverMetricRow -> {
       Map<String,Object> row = new LinkedHashMap<>();
+      row.put(TYPE_COL_KEY, serverMetricRow.server().getType().name());
+      row.put(LINK_RG_COL_KEY, serverMetricRow.server().getResourceGroup().canonical());
       for (ColumnFactory colf : requestedColumns) {
         row.put(colf.getColumn().key(), colf.getRowData(serverMetricRow.server(),
             serverMetricRow.response(), serverMetricRow.metrics()));
@@ -155,6 +174,44 @@ public class TableDataFactory {
 
     return new TableData(columns, data);
 
+  }
+
+  public static TableData forServer(final MetricResponse metricResponse) {
+    if (!hasMetricData(metricResponse)) {
+      return new TableData(SERVER_DETAIL_COLUMNS, List.of());
+    }
+
+    List<Map<String,Object>> data = new ArrayList<>();
+    for (var binary : metricResponse.getMetrics()) {
+      var metric = FMetric.getRootAsFMetric(binary);
+      Map<String,Object> row = new LinkedHashMap<>();
+      row.put(METRIC_NAME_COL_KEY, metric.name());
+      row.put(METRIC_VALUE_COL_KEY, SystemInformation.getMetricValue(metric));
+      row.put(METRIC_TYPE_COL_KEY, metric.type());
+      row.put(METRIC_TAGS_COL_KEY, formatTags(metric));
+
+      try {
+        Metric metricDefinition = Metric.fromName(metric.name());
+        row.put(METRIC_SECTION_COL_KEY, metricDefinition.getDocSection().getSectionTitle());
+        row.put(METRIC_DESCRIPTION_COL_KEY, metricDefinition.getDescription());
+      } catch (IllegalArgumentException e) {
+        row.put(METRIC_SECTION_COL_KEY, "");
+        row.put(METRIC_DESCRIPTION_COL_KEY, "");
+      }
+      data.add(row);
+    }
+
+    return new TableData(SERVER_DETAIL_COLUMNS, data);
+  }
+
+  private static String formatTags(FMetric metric) {
+    List<String> tags = new ArrayList<>();
+    FTag tag = new FTag();
+    for (int i = 0; i < metric.tagsLength(); i++) {
+      tag = metric.tags(tag, i);
+      tags.add(tag.key() + "=" + tag.value());
+    }
+    return String.join(", ", tags);
   }
 
   public static TableData forTable(final TableName table, final Set<ServerId> servers,
