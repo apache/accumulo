@@ -63,7 +63,7 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
         LOG.debug("ManagerClient request failed, retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.user, e.code, e);
+        throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
           case NAMESPACE_NOTFOUND:
@@ -111,7 +111,7 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
         LOG.debug("ManagerClient request failed, retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.user, e.code, e);
+        throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
           case NAMESPACE_NOTFOUND:

@@ -71,7 +71,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -126,9 +125,9 @@ public class Gatherer {
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
       CryptoService cryptoService) {
     this.ctx = context;
-    this.tableId = TableId.of(request.tableId);
-    this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
-    this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
+    this.tableId = TableId.of(request.getTableId());
+    this.startRow = new Text(request.getBounds().getStartRow());
+    this.endRow = new Text(request.getBounds().getEndRow());
     this.clipRange = new Range(startRow, false, endRow, true);
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
@@ -319,8 +318,8 @@ public class Gatherer {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
                 getRequest(), files.entrySet().stream().collect(Collectors
                     .toMap(entry -> entry.getKey().getNormalizedPathStr(), Entry::getValue)));
-            while (!tSums.finished && !cancelFlag.get()) {
-              tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
+            while (!tSums.isFinished() && !cancelFlag.get()) {
+              tSums = client.contiuneGetSummaries(tinfo, tSums.getSessionId());
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
@@ -436,8 +435,8 @@ public class Gatherer {
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
     Function<TRowRange,RowRange> fromThrift = tRowRange -> {
-      Text lowerBound = ByteBufferUtil.toText(tRowRange.startRow);
-      Text upperBound = ByteBufferUtil.toText(tRowRange.endRow);
+      Text lowerBound = new Text(tRowRange.getStartRow());
+      Text upperBound = new Text(tRowRange.getEndRow());
       return RowRange.range(lowerBound, false, upperBound, true);
     };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
@@ -483,8 +482,8 @@ public class Gatherer {
         tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
-          while (!tsr.finished && !cancelFlag.get()) {
-            tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
+          while (!tsr.isFinished() && !cancelFlag.get()) {
+            tsr = client.contiuneGetSummaries(tinfo, tsr.getSessionId());
           }
           return tsr;
         });
