@@ -217,11 +217,11 @@ public class IteratorConfigUtil {
         Class<SortedKeyValueIterator<Key,Value>> clazz = null;
         log.trace("Attempting to load iterator class {}", iterInfo.getClassName());
         if (iteratorBuilder.useClassCache) {
-          clazz = classCache.get(iterInfo.getIterName());
+          clazz = classCache.get(iterInfo.getClassName());
 
           if (clazz == null) {
             clazz = loadClass(useClassLoader, iteratorBuilder.context, iterInfo);
-            classCache.put(iterInfo.getIterName(), clazz);
+            classCache.put(iterInfo.getClassName(), clazz);
           }
         } else {
           clazz = loadClass(useClassLoader, iteratorBuilder.context, iterInfo);
