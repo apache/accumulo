@@ -23,7 +23,7 @@ const htmlServerMetricsBanner = '#serverMetricsStatusBanner';
 const htmlServerMetricsBannerMessage = '#server-metrics-banner-message';
 
 function refreshServerMetrics() {
-  if (!serverMetricsType || !serverMetricsAddress) {
+  if (!serverMetricsType || !serverMetricsResourceGroup || !serverMetricsAddress) {
     sessionStorage[SERVER_METRICS] = JSON.stringify({
       data: [],
       columns: []

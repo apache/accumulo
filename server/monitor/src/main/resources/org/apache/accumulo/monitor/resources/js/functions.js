@@ -329,7 +329,7 @@ function serverMetricsHref(serverType, resourceGroup, serverAddress) {
 }
 
 function renderServerMetricsLink(serverType, resourceGroup, serverAddress) {
-  if (!serverType || !serverAddress) {
+  if (!serverType || !resourceGroup || !serverAddress) {
     return escapeHtml(serverAddress);
   }
   return '<a class="link-body-emphasis" href="' +
@@ -633,11 +633,8 @@ function getServerProcessView(table, storageKey) {
 }
 
 function getServerMetrics(serverType, resourceGroup, serverAddress) {
-  var url = REST_V2_PREFIX + '/servers/detail?type=' + encodeURIComponent(serverType) +
-    '&server=' + encodeURIComponent(serverAddress);
-  if (resourceGroup !== null && resourceGroup !== undefined && resourceGroup !== '') {
-    url += '&resourceGroup=' + encodeURIComponent(resourceGroup);
-  }
+  var url = REST_V2_PREFIX + '/servers/detail/' + encodeURIComponent(serverType) + '/' +
+    encodeURIComponent(resourceGroup) + '/' + encodeURIComponent(serverAddress);
   return getJSONForTable(url, SERVER_METRICS);
 }
 

@@ -1643,11 +1643,12 @@ public class SystemInformation {
 
   public MetricResponse getServerMetricResponse(ServerId.Type type, String resourceGroup,
       String serverAddress) {
-    return allMetrics.asMap().entrySet().stream().filter(e -> e.getKey().getType() == type)
-        .filter(e -> resourceGroup == null || resourceGroup.isBlank()
-            || e.getKey().getResourceGroup().canonical().equals(resourceGroup))
-        .filter(e -> e.getKey().toHostPortString().equals(serverAddress)).map(Entry::getValue)
-        .findFirst().orElse(null);
+    HostAndPort address = HostAndPort.fromString(serverAddress);
+    if (!address.hasPort()) {
+      throw new IllegalArgumentException("Server address must be host:port");
+    }
+    return allMetrics.getIfPresent(new ServerId(type, ResourceGroupId.of(resourceGroup),
+        address.getHost(), address.getPort()));
   }
 
   public static Number getMetricValue(FMetric metric) {
