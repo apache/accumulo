@@ -182,8 +182,9 @@ public class TableDataFactory {
     }
 
     List<Map<String,Object>> data = new ArrayList<>();
+    FMetric metric = new FMetric();
     for (var binary : metricResponse.getMetrics()) {
-      var metric = FMetric.getRootAsFMetric(binary);
+      metric = FMetric.getRootAsFMetric(binary, metric);
       Map<String,Object> row = new LinkedHashMap<>();
       row.put(METRIC_NAME_COL_KEY, metric.name());
       row.put(METRIC_VALUE_COL_KEY, SystemInformation.getMetricValue(metric));
