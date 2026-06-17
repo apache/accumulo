@@ -138,7 +138,7 @@ public class Column implements WritableComparable<Column> {
    * @param tcol Thrift column
    */
   public Column(TColumn tcol) {
-    this(tcol.getColumnFamily(), tcol.getColumnQualifier(), tcol.getColumnVisibility());
+    this(toBytes(tcol.bufferForColumnFamily()), toBytes(tcol.bufferForColumnQualifier()), toBytes(tcol.bufferForColumnVisibility()));
   }
 
   @Override
