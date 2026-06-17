@@ -78,6 +78,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -690,13 +691,12 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     if (server == null) {
       return;
     }
-    try {
-      getSummary().processError(server);
-      LOG.info("{} has been evicted", server);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      LOG.warn("{} could not be evicted", server, e);
+    final SystemInformation currentSummary = summaryRef.get();
+    if (currentSummary == null) {
+      return;
     }
+    currentSummary.processError(server);
+    LOG.info("{} has been evicted", server);
   }
 
   /**
@@ -792,26 +792,53 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   public void run() {
 
     long lastRunTime = 0;
+    final Timer noConnectionTimer = Timer.startNew();
+    final int clearStateMins = 10;
+    final Duration clearStateDuration = Duration.ofMinutes(clearStateMins);
+    final long minimumRefreshTimeMs = 5000;
     while (true) {
 
-      // Don't fetch new data if there are no connections.
-      // On an initial connection, no data may be displayed.
-      // If a connection has not been made in a while, stale data may be displayed.
-      // Only refresh every 5s (old monitor logic).
-      while (!newConnectionEvent.get() && connectionCount.get() == 0
-          && NanoTime.millisElapsed(lastRunTime, NanoTime.now()) > 5000) {
+      // Only refresh internal data structure every 5s (old monitor logic).
+      while (NanoTime.millisElapsed(lastRunTime, NanoTime.now()) < minimumRefreshTimeMs) {
+        LOG.trace("Waiting for the 5s refresh interval");
         try {
-          Thread.sleep(100);
+          Thread.sleep(250);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException(
               "Thread " + Thread.currentThread().getName() + " interrupted", e);
         }
       }
+
+      // Don't fetch new data if there are no connections.
+      // When summaryRef is not set, then the REST endpoint will wait
+      // until data is retrieved. summaryRef is not set on initial
+      // connection or when there has been no connection for 5 minutes
+      noConnectionTimer.restart();
+      while (!newConnectionEvent.get() && connectionCount.get() == 0) {
+        LOG.trace("Waiting for a connection, connections: {}", connectionCount.get());
+        try {
+          Thread.sleep(250);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(
+              "Thread " + Thread.currentThread().getName() + " interrupted", e);
+        }
+        // If a connection has not been made in 5 minutes,
+        // then clear the summaryRef so that stale data is not displayed.
+        if (this.summaryRef.get() != null && noConnectionTimer.hasElapsed(clearStateDuration)) {
+          LOG.debug("Clearing internal summary state due to no connection for {} minutes",
+              clearStateMins);
+          SystemInformation oldSummary = summaryRef.getAndSet(null);
+          if (oldSummary != null) {
+            oldSummary.clear();
+          }
+        }
+      }
       // reset the connection event flag
       newConnectionEvent.compareAndExchange(true, false);
 
-      LOG.info("Fetching information from servers");
+      LOG.info("Fetching information from servers, connection count: {}", connectionCount.get());
       long fetchCycleStart = System.currentTimeMillis();
 
       final UpdateTasks futures = new UpdateTasks();
