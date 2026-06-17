@@ -50,7 +50,7 @@ public class TabletStatsKeeper {
         data.setElapsed(data.getElapsed() + t);
         data.setQueueTime(data.getQueueTime() + q);
         data.setSumDev(data.getSumDev() + t * t);
-        data.setQueueTime(data.getQueueTime() + q * q);
+        data.setQueueSumDev(data.getQueueSumDev() + q * q);
         if (data.getElapsed() < 0 || data.getSumDev() < 0 || data.getQueueSumDev() < 0
             || data.getQueueTime() < 0) {
           resetTimes();
