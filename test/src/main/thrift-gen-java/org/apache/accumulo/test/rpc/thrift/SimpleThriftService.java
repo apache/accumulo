@@ -1189,7 +1189,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoPass_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoPass_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -1578,7 +1578,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoPass_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoPass_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String success; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -1966,7 +1966,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new onewayPass_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new onewayPass_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -2355,7 +2355,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoFail_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoFail_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -2744,7 +2744,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoFail_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoFail_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String success; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -3132,7 +3132,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new onewayFail_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new onewayFail_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -3521,7 +3521,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoRuntimeFail_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoRuntimeFail_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -3910,7 +3910,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoRuntimeFail_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoRuntimeFail_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String success; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -4298,7 +4298,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new onewayRuntimeFail_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new onewayRuntimeFail_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -4687,7 +4687,7 @@ public class SimpleThriftService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new echoPassVoid_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new echoPassVoid_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String value; // required
+    private @org.apache.thrift.annotation.Nullable java.lang.String value; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
