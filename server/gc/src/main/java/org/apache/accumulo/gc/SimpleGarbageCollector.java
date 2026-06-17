@@ -227,17 +227,20 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               var userGC = new GCRun(DataLevel.USER, getContext());
 
               log.info("Starting Root table Garbage Collection.");
-              status.getCurrent().setBulks(status.getCurrent().getBulks() + new GarbageCollectionAlgorithm().collect(rootGC));
+              status.getCurrent().setBulks(status.getCurrent().getBulks()
+                  + new GarbageCollectionAlgorithm().collect(rootGC));
               incrementStatsForRun(rootGC);
               logStats();
 
               log.info("Starting Metadata table Garbage Collection.");
-              status.getCurrent().setBulks(status.getCurrent().getBulks() + new GarbageCollectionAlgorithm().collect(mdGC));
+              status.getCurrent().setBulks(
+                  status.getCurrent().getBulks() + new GarbageCollectionAlgorithm().collect(mdGC));
               incrementStatsForRun(mdGC);
               logStats();
 
               log.info("Starting User table Garbage Collection.");
-              status.getCurrent().setBulks(status.getCurrent().getBulks() + new GarbageCollectionAlgorithm().collect(userGC));
+              status.getCurrent().setBulks(status.getCurrent().getBulks()
+                  + new GarbageCollectionAlgorithm().collect(userGC));
               incrementStatsForRun(userGC);
               logStats();
 
@@ -354,7 +357,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private void incrementStatsForRun(GCRun gcRun) {
-    status.getCurrent().setCandidates(status.getCurrent().getCandidates() + gcRun.getCandidatesStat());
+    status.getCurrent()
+        .setCandidates(status.getCurrent().getCandidates() + gcRun.getCandidatesStat());
     status.getCurrent().setInUse(status.getCurrent().getInUse() + gcRun.getInUseStat());
     status.getCurrent().setDeleted(status.getCurrent().getDeleted() + gcRun.getDeletedStat());
     status.getCurrent().setErrors(status.getCurrent().getErrors() + gcRun.getErrorsStat());
@@ -362,7 +366,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   // public for ExitCodesIT
   public void logStats() {
-    log.info("Number of data file candidates for deletion: {}", status.getCurrent().getCandidates());
+    log.info("Number of data file candidates for deletion: {}",
+        status.getCurrent().getCandidates());
     log.info("Number of data file candidates still in use: {}", status.getCurrent().getInUse());
     log.info("Number of successfully deleted data files: {}", status.getCurrent().getDeleted());
     log.info("Number of data files delete failures: {}", status.getCurrent().getErrors());
