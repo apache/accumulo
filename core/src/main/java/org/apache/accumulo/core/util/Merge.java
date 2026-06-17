@@ -36,6 +36,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -107,6 +109,9 @@ public class Merge {
         if (!client.tableOperations().exists(opts.tableName)) {
           System.err.println("table " + opts.tableName + " does not exist");
           return;
+        }
+        if (RootTable.NAME.equals(opts.tableName)) {
+          throw new IllegalArgumentException("Cannot merge the root table");
         }
         if (opts.goalSize == null || opts.goalSize < 1) {
           AccumuloConfiguration tableConfig =
@@ -247,7 +252,8 @@ public class Merge {
     try {
       ClientContext context = (ClientContext) client;
       tableId = context.getTableId(tableName);
-      tablets = TabletsMetadata.builder(context).scanMetadataTable()
+      DataLevel dataLevel = DataLevel.of(tableId);
+      tablets = TabletsMetadata.builder(context).scanTable(dataLevel.metaTable())
           .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
           .build();
     } catch (Exception e) {
