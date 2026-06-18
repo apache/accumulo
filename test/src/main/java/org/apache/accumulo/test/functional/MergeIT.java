@@ -21,9 +21,12 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -45,6 +48,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -276,6 +281,126 @@ public class MergeIT extends AccumuloClusterHarness {
           assertTrue(tablet.getExternalCompactions().isEmpty());
         }
       }
+    }
+  }
+
+  @Test
+  public void testMetadataTableMergesSuccessfully() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      c.tableOperations().addSplits(MetadataTable.NAME,
+          new TreeSet<>(List.of(new Text("~del"), new Text("~sserv"), new Text("~err"))));
+
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      TableId tableId = getServerContext().getTableId(tableName);
+      try (BatchWriter writer = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", "NonNull Value");
+        writer.addMutation(m);
+      }
+      c.tableOperations().flush(tableName, null, null, true);
+
+      // Grab the current number of tablets
+      long expectedTablets = getServerContext().getAmple().readTablets().forTable(MetadataTable.ID)
+          .build().stream().count();
+      // We have added two adjacent splits, so the number of tablets should now be increased by 2.
+      c.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(
+          List.of(new Text(tableId.canonical()), new Text(tableId.canonical() + "<"))));
+
+      try (var tablets =
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+        assertEquals(expectedTablets + 2, tablets.stream().count());
+      }
+
+      List<String> args = new ArrayList<>(List.of("-t", MetadataTable.NAME, "-e", "~"));
+      getClientProps().stringPropertyNames().forEach(keyProp -> {
+        args.add("-o");
+        args.add(keyProp + "=" + getClientProps().getProperty(keyProp));
+      });
+      Merge.main(args.toArray(String[]::new));
+      try (var tablets =
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+        assertEquals(expectedTablets, tablets.stream().count());
+      }
+    }
+  }
+
+  @Test
+  public void testMetadataTableSingleByteLimit() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      TableId tableId = getServerContext().getTableId(tableName);
+      try (BatchWriter writer = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", "NonNull Value");
+        writer.addMutation(m);
+      }
+      c.tableOperations().flush(tableName, null, null, true);
+
+      // Grab the current number of tablets
+      long expectedTablets = getServerContext().getAmple().readTablets().forTable(MetadataTable.ID)
+          .build().stream().count();
+      // We have added two adjacent splits, so the number of tablets should now be increased by 2.
+      c.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(
+          List.of(new Text(tableId.canonical()), new Text(tableId.canonical() + "<"))));
+
+      try (var tablets =
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+        assertEquals(expectedTablets + 2, tablets.stream().count());
+      }
+
+      List<String> args = new ArrayList<>(List.of("-t", MetadataTable.NAME, "-e", "~", "-s", "1"));
+      getClientProps().stringPropertyNames().forEach(keyProp -> {
+        args.add("-o");
+        args.add(keyProp + "=" + getClientProps().getProperty(keyProp));
+      });
+      Merge.main(args.toArray(String[]::new));
+      try (var tablets =
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+        assertEquals(expectedTablets + 2, tablets.stream().count());
+      }
+      // Add splits for zero length entries in the ~del markers
+      c.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(
+          List.of(new Text("~del0"), new Text("~del1"), new Text("~del2"), new Text("~del3"))));
+      try (var tablets =
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+        assertEquals(expectedTablets + 6, tablets.stream().count());
+      }
+      // Perform a merge that will collapse the empty tablets into a single "~del" tablet.
+      List<String> newArgs =
+          new ArrayList<>(List.of("-t", MetadataTable.NAME, "-b", "~", "-e", "~del9", "-s", "1"));
+      getClientProps().stringPropertyNames().forEach(keyProp -> {
+        newArgs.add("-o");
+        newArgs.add(keyProp + "=" + getClientProps().getProperty(keyProp));
+      });
+      Merge.main(newArgs.toArray(String[]::new));
+      try (var tablets =
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+        for (var tablet : tablets) {
+          System.out.println("Row Extent" + tablet.getExtent());
+        }
+        // ~del3 is now an empty tablet and cannot be merged with the ~ tablet that is over 1 byte
+        // in size
+        assertEquals(expectedTablets + 3, tablets.stream().count());
+      }
+    }
+  }
+
+  @Test
+  public void testRootTableDoesNotMerge() {
+    List<String> args = new ArrayList<>(List.of("-t", RootTable.NAME));
+    getClientProps().stringPropertyNames().forEach(keyProp -> {
+      args.add("-o");
+      args.add(keyProp + "=" + getClientProps().getProperty(keyProp));
+    });
+    Exception e =
+        assertThrows(Merge.MergeException.class, () -> Merge.main(args.toArray(String[]::new)));
+    assertInstanceOf(IllegalArgumentException.class, e.getCause());
+    assertTrue(e.getMessage().contains("Cannot merge the root table"));
+    try (var tablets = getServerContext().getAmple().readTablets().forTable(RootTable.ID).build()) {
+      assertEquals(1, tablets.stream().count());
     }
   }
 }

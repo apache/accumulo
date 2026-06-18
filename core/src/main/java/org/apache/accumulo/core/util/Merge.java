@@ -36,7 +36,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -63,7 +64,7 @@ public class Merge {
   private static final Logger log = LoggerFactory.getLogger(Merge.class);
 
   protected void message(String format, Object... args) {
-    log.info(String.format(format, args));
+    log.info("{}", String.format(format, args));
   }
 
   public static class MemoryConverter implements IStringConverter<Long> {
@@ -109,10 +110,16 @@ public class Merge {
           System.err.println("table " + opts.tableName + " does not exist");
           return;
         }
+        if (RootTable.NAME.equals(opts.tableName)) {
+          throw new IllegalArgumentException("Cannot merge the root table");
+        }
         if (opts.goalSize == null || opts.goalSize < 1) {
           AccumuloConfiguration tableConfig =
               new ConfigurationCopy(client.tableOperations().getConfiguration(opts.tableName));
-          opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+          long newGoalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
+          message("Invalid goal size: " + opts.goalSize + " Using the "
+              + Property.TABLE_SPLIT_THRESHOLD.getKey() + " value of : " + newGoalSize);
+          opts.goalSize = newGoalSize;
         }
 
         message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
@@ -144,9 +151,6 @@ public class Merge {
   public void mergomatic(AccumuloClient client, String table, Text start, Text end, long goalSize,
       boolean force) throws MergeException {
     try {
-      if (table.equals(MetadataTable.NAME)) {
-        throw new IllegalArgumentException("cannot merge tablets on the metadata table");
-      }
       List<Size> sizes = new ArrayList<>();
       long totalSize = 0;
       // Merge any until you get larger than the goal size, and then merge one less tablet
@@ -239,7 +243,7 @@ public class Merge {
     }
   }
 
-  protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename, Text start,
+  protected Iterator<Size> getSizeIterator(AccumuloClient client, String tableName, Text start,
       Text end) throws MergeException {
     // open up metadata, walk through the tablets.
 
@@ -247,8 +251,9 @@ public class Merge {
     TabletsMetadata tablets;
     try {
       ClientContext context = (ClientContext) client;
-      tableId = context.getTableId(tablename);
-      tablets = TabletsMetadata.builder(context).scanMetadataTable()
+      tableId = context.getTableId(tableName);
+      DataLevel dataLevel = DataLevel.of(tableId);
+      tablets = TabletsMetadata.builder(context).scanTable(dataLevel.metaTable())
           .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
           .build();
     } catch (Exception e) {
