@@ -32,11 +32,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -60,6 +67,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -81,8 +89,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -91,7 +101,9 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -300,6 +312,8 @@ public class Upgrader11to12 implements Upgrader {
     removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
     removeBulkFileColumnsFromTable(context, SystemTables.METADATA.tableName());
+    LOG.info("Removing major compaction temp files from prior versions");
+    deleteCompactionTempFiles(context, new DeleteStats(), new HashSet<Path>());
   }
 
   private static void addAssistantManager(ServerContext context) {
@@ -921,6 +935,7 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  // visible for IT
   public void removeScanServerRanges(ServerContext context) {
     try (BatchDeleter batchDeleter =
         context.createBatchDeleter(Ample.DataLevel.USER.metaTable(), Authorizations.EMPTY, 4)) {
@@ -987,5 +1002,107 @@ public class Upgrader11to12 implements Upgrader {
 
     LOG.info(
         "Moving table properties from system configuration to namespace configurations complete.");
+  }
+
+  // visible for IT
+  public void deleteCompactionTempFiles(final ServerContext ctx, final DeleteStats stats,
+      final Collection<Path> deletedFiles) {
+
+    final String pattern = "/tables/*/*/*";
+    final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+    final ExecutorService svc = Executors.newFixedThreadPool(vols.size());
+    final List<Future<Void>> futures = new ArrayList<>(vols.size());
+    final Set<Path> oldCompactionTmpFiles = new HashSet<>();
+
+    for (Volume vol : vols) {
+      final Path volPattern = new Path(vol.getBasePath() + pattern);
+      LOG.info("Looking for old compaction tmp files that match pattern: {}", volPattern);
+      futures.add(svc.submit(() -> {
+        try {
+          FileStatus[] files = vol.getFileSystem().globStatus(volPattern,
+              (p) -> (p.getName().startsWith("" + FilePrefix.FULL_COMPACTION.getPrefix())
+                  || p.getName().startsWith("" + FilePrefix.COMPACTION.getPrefix()))
+                  && p.getName().endsWith(".rf_tmp"));
+          Arrays.stream(files).forEach(fs -> oldCompactionTmpFiles.add(fs.getPath()));
+        } catch (IOException e) {
+          LOG.error("Error looking for old compaction tmp files in volume: {}", vol, e);
+        }
+        return null;
+      }));
+    }
+    svc.shutdown();
+
+    LOG.info("Waiting for tasks to complete finding files");
+    while (futures.size() > 0) {
+      Iterator<Future<Void>> iter = futures.iterator();
+      while (iter.hasNext()) {
+        Future<Void> future = iter.next();
+        if (future.isDone()) {
+          iter.remove();
+          try {
+            future.get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error getting list of old compaction tmp files", e);
+          }
+        }
+      }
+      int remaining = futures.size();
+      if (remaining > 0) {
+        LOG.debug("Waiting for {} tasks to complete", remaining);
+        UtilWaitThread.sleep(3_000);
+      }
+    }
+    LOG.info("Found {} old compaction tmp files:", oldCompactionTmpFiles.size());
+    oldCompactionTmpFiles.forEach(p -> LOG.debug("{}", p));
+
+    LOG.info("Deleting old compaction tmp files...");
+    final ExecutorService delSvc = Executors.newFixedThreadPool(vols.size());
+    // use a linked list to make removal from the middle of the list quick
+    final List<Future<Boolean>> delFutures = new LinkedList<>();
+
+    oldCompactionTmpFiles.forEach(p -> {
+      delFutures.add(delSvc.submit(() -> {
+        if (ctx.getVolumeManager().exists(p)) {
+          boolean result = ctx.getVolumeManager().delete(p);
+          if (result) {
+            LOG.debug("Removed old temp file {}", p);
+            deletedFiles.add(p);
+          } else {
+            LOG.error(
+                "Unable to remove old temp file {}, operation returned false with no exception", p);
+          }
+          return result;
+        }
+        return true;
+      }));
+    });
+    delSvc.shutdown();
+
+    while (delFutures.size() > 0) {
+      Iterator<Future<Boolean>> iter = delFutures.iterator();
+      while (iter.hasNext()) {
+        Future<Boolean> future = iter.next();
+        if (future.isDone()) {
+          iter.remove();
+          try {
+            if (future.get()) {
+              stats.success++;
+            } else {
+              stats.failure++;
+            }
+          } catch (InterruptedException | ExecutionException e) {
+            stats.error++;
+            LOG.error("Error deleting a compaction tmp file", e);
+          }
+        }
+      }
+      int remaining = oldCompactionTmpFiles.size();
+      if (remaining > 0) {
+        LOG.debug("Waiting on {} background delete operations", remaining);
+        UtilWaitThread.sleep(3_000);
+      }
+    }
+    LOG.info("Deletion of compaction tmp files completed. Success:{}, Failure:{}, Error:{}",
+        stats.success, stats.failure, stats.error);
   }
 }
