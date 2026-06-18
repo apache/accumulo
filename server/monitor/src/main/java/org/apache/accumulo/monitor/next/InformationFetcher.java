@@ -794,8 +794,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
     long lastRunTime = 0;
     final Timer noConnectionTimer = Timer.startNew();
-    final int clearStateMins = 10;
-    final Duration clearStateDuration = Duration.ofMinutes(clearStateMins);
+    final long clearStateThreshold =
+        ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
+    final Duration clearStateDuration = Duration.ofMillis(clearStateThreshold);
     final long minimumRefreshTimeMs = 5000;
     while (true) {
 
@@ -828,8 +829,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         // If a connection has not been made in the configured duration,
         // then clear the summaryRef so that stale data is not displayed.
         if (this.summaryRef.get() != null && noConnectionTimer.hasElapsed(clearStateDuration)) {
-          LOG.debug("Clearing internal summary state due to no connection for {} minutes",
-              clearStateMins);
+          LOG.debug("Clearing internal summary state due to no connection for {} ms",
+              clearStateThreshold);
           SystemInformation oldSummary = summaryRef.getAndSet(null);
           if (oldSummary != null) {
             oldSummary.clear();
