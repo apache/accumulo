@@ -363,25 +363,26 @@ public class MergeIT extends AccumuloClusterHarness {
       }
       // Add splits for zero length entries in the ~del markers
       c.tableOperations().addSplits(MetadataTable.NAME, new TreeSet<>(
-              List.of(new Text("~del0"), new Text("~del1"), new Text("~del2"),
-                      new Text("~del3"))));
+          List.of(new Text("~del0"), new Text("~del1"), new Text("~del2"), new Text("~del3"))));
       try (var tablets =
-                   getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
         assertEquals(expectedTablets + 6, tablets.stream().count());
       }
       // Perform a merge that will collapse the empty tablets into a single "~del" tablet.
-      List<String> newArgs = new ArrayList<>(List.of("-t", MetadataTable.NAME, "-b", "~", "-e", "~del9", "-s", "1"));
+      List<String> newArgs =
+          new ArrayList<>(List.of("-t", MetadataTable.NAME, "-b", "~", "-e", "~del9", "-s", "1"));
       getClientProps().stringPropertyNames().forEach(keyProp -> {
         newArgs.add("-o");
         newArgs.add(keyProp + "=" + getClientProps().getProperty(keyProp));
       });
       Merge.main(newArgs.toArray(String[]::new));
       try (var tablets =
-                   getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
+          getServerContext().getAmple().readTablets().forTable(MetadataTable.ID).build()) {
         for (var tablet : tablets) {
           System.out.println("Row Extent" + tablet.getExtent());
         }
-        // ~del3 is now an empty tablet and cannot be merged with the ~ tablet that is over 1 byte in size
+        // ~del3 is now an empty tablet and cannot be merged with the ~ tablet that is over 1 byte
+        // in size
         assertEquals(expectedTablets + 3, tablets.stream().count());
       }
     }
