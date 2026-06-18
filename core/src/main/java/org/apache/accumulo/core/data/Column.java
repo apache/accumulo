@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -138,7 +139,8 @@ public class Column implements WritableComparable<Column> {
    * @param tcol Thrift column
    */
   public Column(TColumn tcol) {
-    this(toBytes(tcol.bufferForColumnFamily()), toBytes(tcol.bufferForColumnQualifier()), toBytes(tcol.bufferForColumnVisibility()));
+    this(toBytes(tcol.bufferForColumnFamily()), toBytes(tcol.bufferForColumnQualifier()),
+        toBytes(tcol.bufferForColumnVisibility()));
   }
 
   @Override
