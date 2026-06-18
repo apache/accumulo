@@ -95,7 +95,7 @@ public class MergeCommand extends Command {
             + " the user for confirmation");
     allOpt = allBuilder.build();
     Option.Builder dryRunBuilder = Option.builder().longOpt("dry-run").hasArg(false)
-        .desc("will print out the ranges it will merge but not perform any merge operations.");
+        .desc("print the ranges it will merge, but do not perform any merge operations");
     dryRunOpt = dryRunBuilder.build();
 
     o.addOption(OptUtil.startRowOpt());

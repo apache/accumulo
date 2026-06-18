@@ -19,8 +19,11 @@
 package org.apache.accumulo.shell.commands;
 
 import static org.easymock.EasyMock.capture;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.newCapture;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -42,7 +45,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 import org.easymock.Capture;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class MergeCommandTest {
@@ -82,12 +84,12 @@ public class MergeCommandTest {
   public void mockDryRunMergeTest() throws Exception {
     MergeCommand cmd = new TestMergeCommand();
 
-    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
-    ClientContext context = EasyMock.createMock(ClientContext.class);
-    TableOperations tableOps = EasyMock.createMock(TableOperations.class);
-    InstanceOperations instOps = EasyMock.createMock(InstanceOperations.class);
-    Shell shellState = EasyMock.createMock(Shell.class);
-    PrintWriter pw = EasyMock.createMock(PrintWriter.class);
+    AccumuloClient client = createMock(AccumuloClient.class);
+    ClientContext context = createMock(ClientContext.class);
+    TableOperations tableOps = createMock(TableOperations.class);
+    InstanceOperations instOps = createMock(InstanceOperations.class);
+    Shell shellState = createMock(Shell.class);
+    PrintWriter pw = createMock(PrintWriter.class);
 
     Capture<String> capture = newCapture();
     pw.println(capture(capture));
@@ -105,9 +107,9 @@ public class MergeCommandTest {
     expect(tableOps.exists("testTable")).andReturn(true).anyTimes();
     expect(shellState.getWriter()).andReturn(pw);
 
-    EasyMock.replay(client, context, tableOps, instOps, shellState, pw);
+    replay(client, context, tableOps, instOps, shellState, pw);
     cmd.execute("merge", cli, shellState);
-    EasyMock.verify(client, context, tableOps, instOps, shellState, pw);
+    verify(client, context, tableOps, instOps, shellState, pw);
     assertEquals(
         "dry-run would have started a Fate Merge for table testTable tablet range (-inf to +inf]",
         capture.getValue());
@@ -117,11 +119,11 @@ public class MergeCommandTest {
   public void mockMergeAllTabletsTest() throws Exception {
     MergeCommand cmd = new TestMergeCommand();
 
-    AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
-    ClientContext context = EasyMock.createMock(ClientContext.class);
-    TableOperations tableOps = EasyMock.createMock(TableOperations.class);
-    InstanceOperations instOps = EasyMock.createMock(InstanceOperations.class);
-    Shell shellState = EasyMock.createMock(Shell.class);
+    AccumuloClient client = createMock(AccumuloClient.class);
+    ClientContext context = createMock(ClientContext.class);
+    TableOperations tableOps = createMock(TableOperations.class);
+    InstanceOperations instOps = createMock(InstanceOperations.class);
+    Shell shellState = createMock(Shell.class);
 
     Options opts = cmd.getOptions();
 
@@ -138,8 +140,8 @@ public class MergeCommandTest {
         " Warning!!! Are you REALLY sure you want to merge the entire table { testTable } into one tablet?!?!?!"))
         .andReturn(Optional.of(true)).once();
 
-    EasyMock.replay(client, context, tableOps, instOps, shellState);
+    replay(client, context, tableOps, instOps, shellState);
     cmd.execute("merge", cli, shellState);
-    EasyMock.verify(client, context, tableOps, instOps, shellState);
+    verify(client, context, tableOps, instOps, shellState);
   }
 }
