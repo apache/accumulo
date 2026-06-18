@@ -22,7 +22,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
@@ -65,10 +64,4 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     return false;
   }
 
-  @Override
-  public void invalidateCache(String tserver) {
-    // The path for the tserver contains a resource group. The resource group is unknown, so can not
-    // construct a prefix. Therefore clear any path that contains the tserver.
-    zc.clear(path -> path.startsWith(Constants.ZTSERVERS) && path.contains(tserver));
-  }
 }
