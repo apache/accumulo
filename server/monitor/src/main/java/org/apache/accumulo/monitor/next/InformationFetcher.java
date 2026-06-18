@@ -661,9 +661,6 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
   // Protect against NPE and wait for initial data gathering
   private SystemInformation getSummary() throws InterruptedException {
-    while (summaryRef.get() == null) {
-      Thread.sleep(100);
-    }
     SystemInformation summary;
     while ((summary = summaryRef.get()) == null) {
       Thread.sleep(100);
@@ -817,7 +814,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       // Don't fetch new data if there are no connections.
       // When summaryRef is not set, then the REST endpoint will wait
       // until data is retrieved. summaryRef is not set on initial
-      // connection or when there has been no connection for 5 minutes
+      // connection or when there has been no connection for the configured duration.
       noConnectionTimer.restart();
       while (!newConnectionEvent.get() && connectionCount.get() == 0) {
         LOG.trace("Waiting for a connection, connections: {}", connectionCount.get());
@@ -828,7 +825,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           throw new IllegalStateException(
               "Thread " + Thread.currentThread().getName() + " interrupted", e);
         }
-        // If a connection has not been made in 5 minutes,
+        // If a connection has not been made in the configured duration,
         // then clear the summaryRef so that stale data is not displayed.
         if (this.summaryRef.get() != null && noConnectionTimer.hasElapsed(clearStateDuration)) {
           LOG.debug("Clearing internal summary state due to no connection for {} minutes",
