@@ -664,7 +664,11 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     while (summaryRef.get() == null) {
       Thread.sleep(100);
     }
-    return summaryRef.get();
+    SystemInformation summary;
+    while ((summary = summaryRef.get()) == null) {
+      Thread.sleep(100);
+    }
+    return summary;
   }
 
   /**
