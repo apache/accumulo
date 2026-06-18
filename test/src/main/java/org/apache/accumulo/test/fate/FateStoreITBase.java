@@ -396,8 +396,8 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
       // After deletion, make sure we can create again with the same key
       var fateId2 =
           seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
-      txStore = store.reserve(fateId);
       assertEquals(fateId, fateId2);
+      txStore = store.reserve(fateId2);
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(TStatus.SUBMITTED, txStore.getStatus());
     } finally {
