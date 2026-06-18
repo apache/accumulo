@@ -57,7 +57,7 @@ public class MergeTest {
     protected void message(String format, Object... args) {}
 
     @Override
-    protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename,
+    protected Iterator<Size> getSizeIterator(AccumuloClient client, String tableName,
         final Text start, final Text end) throws MergeException {
       final Iterator<Size> impl = tablets.iterator();
       return new Iterator<>() {
@@ -103,8 +103,8 @@ public class MergeTest {
     }
 
     @Override
-    protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
-        throws MergeException {
+    protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge,
+        boolean dryRun) throws MergeException {
       List<Size> merge = new ArrayList<>();
       for (int i = 0; i < numToMerge; i++) {
         merge.add(sizes.get(i));
@@ -127,20 +127,20 @@ public class MergeTest {
     // Merge everything to the last tablet
     int i;
     MergeTester test = new MergeTester(10, 20, 30);
-    test.mergomatic(null, "table", null, null, 1000, false);
+    test.mergomatic(null, "table", null, null, 1000, false, false);
     assertEquals(1, test.merges.size());
     assertArrayEquals(new int[] {10, 20, 30}, sizes(test.merges.get(i = 0)));
 
     // Merge ranges around tablets that are big enough
     test = new MergeTester(1, 2, 100, 1000, 17, 1000, 4, 5, 6, 900);
-    test.mergomatic(null, "table", null, null, 1000, false);
+    test.mergomatic(null, "table", null, null, 1000, false, false);
     assertEquals(2, test.merges.size());
     assertArrayEquals(new int[] {1, 2, 100}, sizes(test.merges.get(i = 0)));
     assertArrayEquals(new int[] {4, 5, 6, 900}, sizes(test.merges.get(++i)));
 
     // Test the force option
     test = new MergeTester(1, 2, 100, 1000, 17, 1000, 4, 5, 6, 900);
-    test.mergomatic(null, "table", null, null, 1000, true);
+    test.mergomatic(null, "table", null, null, 1000, true, false);
     assertEquals(3, test.merges.size());
     assertArrayEquals(new int[] {1, 2, 100}, sizes(test.merges.get(i = 0)));
     assertArrayEquals(new int[] {17, 1000}, sizes(test.merges.get(++i)));
@@ -148,25 +148,25 @@ public class MergeTest {
 
     // Limit the low-end of the merges
     test = new MergeTester(1, 2, 1000, 17, 1000, 4, 5, 6, 900);
-    test.mergomatic(null, "table", new Text("00004"), null, 1000, false);
+    test.mergomatic(null, "table", new Text("00004"), null, 1000, false, false);
     assertEquals(1, test.merges.size());
     assertArrayEquals(new int[] {4, 5, 6, 900}, sizes(test.merges.get(i = 0)));
 
     // Limit the upper end of the merges
     test = new MergeTester(1, 2, 1000, 17, 1000, 4, 5, 6, 900);
-    test.mergomatic(null, "table", null, new Text("00004"), 1000, false);
+    test.mergomatic(null, "table", null, new Text("00004"), 1000, false, false);
     assertEquals(1, test.merges.size());
     assertArrayEquals(new int[] {1, 2}, sizes(test.merges.get(i = 0)));
 
     // Limit both ends
     test = new MergeTester(1, 2, 1000, 17, 1000, 4, 5, 6, 900);
-    test.mergomatic(null, "table", new Text("00002"), new Text("00004"), 1000, true);
+    test.mergomatic(null, "table", new Text("00002"), new Text("00004"), 1000, true, false);
     assertEquals(1, test.merges.size());
     assertArrayEquals(new int[] {17, 1000}, sizes(test.merges.get(i = 0)));
 
     // Clump up tablets into larger values
     test = new MergeTester(100, 250, 500, 600, 100, 200, 500, 200);
-    test.mergomatic(null, "table", null, null, 1000, false);
+    test.mergomatic(null, "table", null, null, 1000, false, false);
     assertEquals(3, test.merges.size());
     assertArrayEquals(new int[] {100, 250, 500}, sizes(test.merges.get(i = 0)));
     assertArrayEquals(new int[] {600, 100, 200}, sizes(test.merges.get(++i)));
