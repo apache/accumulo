@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness.conf;
+package org.apache.accumulo.test.harness;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.test.harness.AccumuloClusterHarness.ClusterType;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,7 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
-import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,11 +81,11 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
       clientConf = System.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
     }
 
-    ClusterType type;
+    AccumuloClusterHarness.ClusterType type;
     if (clusterTypeValue == null) {
       type = ClusterType.MINI;
     } else {
-      type = ClusterType.valueOf(clusterTypeValue);
+      type = AccumuloClusterHarness.ClusterType.valueOf(clusterTypeValue);
     }
 
     log.info("Using {} cluster type from system properties", type);
@@ -113,7 +113,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  public Map<String,String> getConfiguration(ClusterType type) {
+  public Map<String,String> getConfiguration(AccumuloClusterHarness.ClusterType type) {
     requireNonNull(type);
 
     String prefix = switch (type) {

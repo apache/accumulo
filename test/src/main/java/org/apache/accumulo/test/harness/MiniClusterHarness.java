@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness;
+package org.apache.accumulo.test.harness;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -65,7 +65,7 @@ public class MiniClusterHarness {
   public static final String TRUE = Boolean.toString(true);
 
   public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
-      TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
+                                        TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName(), token, configCallback, kdc);
   }
 

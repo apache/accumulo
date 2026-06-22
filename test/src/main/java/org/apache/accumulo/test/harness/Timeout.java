@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness;
+package org.apache.accumulo.test.harness;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 

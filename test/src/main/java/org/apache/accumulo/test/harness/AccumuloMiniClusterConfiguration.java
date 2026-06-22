@@ -16,18 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness.conf;
+package org.apache.accumulo.test.harness;
 
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.test.harness.AccumuloClusterHarness.ClusterType;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
-import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
