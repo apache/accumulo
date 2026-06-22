@@ -236,8 +236,8 @@ public class Mutation implements Writable {
    * @param tmutation Thrift mutation
    */
   public Mutation(TMutation tmutation) {
-    this.row = tmutation.getRow();
-    this.data = tmutation.getData();
+    this.row = ByteBufferUtil.toBytes(tmutation.bufferForRow());
+    this.data = ByteBufferUtil.toBytes(tmutation.bufferForData());
     this.entries = tmutation.getEntries();
     this.values = ByteBufferUtil.toBytesList(tmutation.getValues());
 

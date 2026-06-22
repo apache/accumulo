@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.dataImpl.thrift.TKey;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
@@ -684,10 +685,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @param tkey Thrift key
    */
   public Key(TKey tkey) {
-    this.row = tkey.getRow();
-    this.colFamily = tkey.getColFamily();
-    this.colQualifier = tkey.getColQualifier();
-    this.colVisibility = tkey.getColVisibility();
+    this.row = ByteBufferUtil.toBytes(tkey.bufferForRow());
+    this.colFamily = ByteBufferUtil.toBytes(tkey.bufferForColFamily());
+    this.colQualifier = ByteBufferUtil.toBytes(tkey.bufferForColQualifier());
+    this.colVisibility = ByteBufferUtil.toBytes(tkey.bufferForColVisibility());
     this.timestamp = tkey.getTimestamp();
     this.deleted = false;
 

@@ -71,6 +71,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -126,8 +127,8 @@ public class Gatherer {
       CryptoService cryptoService) {
     this.ctx = context;
     this.tableId = TableId.of(request.getTableId());
-    this.startRow = new Text(request.getBounds().getStartRow());
-    this.endRow = new Text(request.getBounds().getEndRow());
+    this.startRow = ByteBufferUtil.toText(request.getBounds().bufferForStartRow());
+    this.endRow = ByteBufferUtil.toText(request.getBounds().bufferForEndRow());
     this.clipRange = new Range(startRow, false, endRow, true);
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
@@ -435,8 +436,8 @@ public class Gatherer {
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
     Function<TRowRange,RowRange> fromThrift = tRowRange -> {
-      Text lowerBound = new Text(tRowRange.getStartRow());
-      Text upperBound = new Text(tRowRange.getEndRow());
+      Text lowerBound = ByteBufferUtil.toText(request.getBounds().bufferForStartRow());
+      Text upperBound = ByteBufferUtil.toText(request.getBounds().bufferForEndRow());
       return RowRange.range(lowerBound, false, upperBound, true);
     };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
