@@ -163,6 +163,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the alerts template
+   *
+   * @return Alerts model
+   */
+  @GET
+  @Path("alerts")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getAlerts() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Alerts"); // Need this for the browser tab title
+    model.put("tablesTitle", "Alerts");
+    model.put("template", "alerts.ftl");
+    model.put("js", "alerts.js");
+    return model;
+  }
+
+  /**
    * Returns the tservers templates
    *
    * @param server TServer to show details
@@ -201,6 +219,24 @@ public class WebViews {
     model.put("title", "Scan Server Status");
     model.put("template", "sservers.ftl");
     model.put("js", "sservers.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the recovery template
+   *
+   * @return Recovery model
+   */
+  @GET
+  @Path("recovery")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getRecoveryInformation() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Tablet Recoveries");
+    model.put("template", "recovery.ftl");
+    model.put("js", "recovery.js");
 
     return model;
   }
@@ -264,6 +300,23 @@ public class WebViews {
    * @return Compactors model
    */
   @GET
+  @Path("coordinator")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactionOverview() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compaction Overview");
+    model.put("template", "coordinator.ftl");
+    model.put("js", "coordinator.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
   @Path("compactors")
   @Template(name = "/default.ftl")
   public Map<String,Object> getCompactors() {
@@ -276,19 +329,19 @@ public class WebViews {
   }
 
   /**
-   * Returns the bulk import template
+   * Returns the Fate template
    *
-   * @return Bulk Import model
+   * @return Fate model
    */
   @GET
-  @Path("bulkImports")
+  @Path("fate")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getBulkImports() {
+  public Map<String,Object> getFate() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Bulk Imports");
-    model.put("template", "bulkImport.ftl");
-    model.put("js", "bulkImport.js");
+    model.put("title", "Fate Transaction Details");
+    model.put("template", "fate.ftl");
+    model.put("js", "fate.js");
 
     return model;
   }

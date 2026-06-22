@@ -318,6 +318,10 @@ public class FateExecutor<T> {
       while (fate.getKeepRunning().get() && !isShutdown()) {
         try {
           var localPartitions = partitions.get();
+          if (localPartitions.isEmpty()) {
+            Thread.sleep(250);
+            continue;
+          }
           // if the set of partitions changes, we should stop looking for work w/ the old set of
           // partitions
           BooleanSupplier keepRunning =

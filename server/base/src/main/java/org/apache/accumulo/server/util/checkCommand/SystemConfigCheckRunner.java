@@ -76,8 +76,6 @@ public class SystemConfigCheckRunner implements CheckRunner {
       var servers = context.instanceOperations().getServers(serverType);
 
       switch (serverType) {
-        case MANAGER:
-          // essential process
         case GARBAGE_COLLECTOR:
           // essential process
           if (servers.size() != 1) {
@@ -101,6 +99,8 @@ public class SystemConfigCheckRunner implements CheckRunner {
             log.trace("Verified ZooKeeper lock for {}", servers);
           }
           break;
+        case MANAGER:
+          // essential process(es)
         case TABLET_SERVER:
           // essential process(es)
         case COMPACTOR:

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.EnumSet;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -30,6 +32,8 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
+
+import com.google.gson.JsonObject;
 
 public class DeleteTable extends AbstractFateOperation {
 
@@ -64,5 +68,13 @@ public class DeleteTable extends AbstractFateOperation {
   public void undo(FateId fateId, FateEnv env) {
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    return GSON.get().toJson(details);
   }
 }

@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -667,6 +668,26 @@ public interface Ample {
   }
 
   default ScanServerRefStore scanServerRefs() {
+    throw new UnsupportedOperationException();
+  }
+
+  record OrphanedCompaction(ExternalCompactionId id, TableId table, String dir) {
+  }
+
+  /**
+   * Tracks compactions that were removed from the metadata table but may still be running on
+   * compactors. The tmp files associated with these compactions can eventually be removed when the
+   * compaction is no longer running.
+   */
+  interface OrphanedCompactionStore {
+    Stream<OrphanedCompaction> list();
+
+    void add(Collection<OrphanedCompaction> orphanedCompactions);
+
+    void delete(Collection<OrphanedCompaction> orphanedCompactions);
+  }
+
+  default OrphanedCompactionStore orphanedCompactions() {
     throw new UnsupportedOperationException();
   }
 }

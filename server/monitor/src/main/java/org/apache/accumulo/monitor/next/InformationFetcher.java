@@ -18,18 +18,28 @@
  */
 package org.apache.accumulo.monitor.next;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Monitor;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.AlertPriority.Info;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -44,16 +54,38 @@ import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.filters.NoCurrentLocationFilter;
+import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
+import org.apache.accumulo.server.util.adminCommand.Fate;
+import org.apache.zookeeper.KeeperException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
@@ -108,7 +140,65 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class MetricFetcher implements Runnable {
+  record UpdateTaskFuture(Future<?> future, UpdateTask<?> task) {
+  }
+
+  static class UpdateTasks {
+
+    private final Comparator<UpdateTaskFuture> c = new Comparator<>() {
+
+      @Override
+      public int compare(UpdateTaskFuture o1, UpdateTaskFuture o2) {
+        if (o1.future() == o2.future()) {
+          return 0;
+        } else {
+          if (Objects.equals(o1.task(), o2.task())) {
+            return 0;
+          } else {
+            return Integer.compare(o1.task().hashCode(), o2.task().hashCode());
+          }
+        }
+      }
+
+    };
+    private final ConcurrentSkipListSet<UpdateTaskFuture> futures = new ConcurrentSkipListSet<>(c);
+    private final AtomicBoolean stopTables = new AtomicBoolean(false);
+
+    boolean isEmpty() {
+      return futures.isEmpty();
+    }
+
+    Iterator<UpdateTaskFuture> iterator() {
+      return futures.iterator();
+    }
+
+    int size() {
+      return futures.size();
+    }
+
+    void add(UpdateTaskFuture f) {
+      if (stopTables.get() && f.task().getType() == UpdateType.TABLE) {
+        return;
+      }
+      futures.add(f);
+    }
+  }
+
+  enum UpdateType {
+    COMPACTION, COMPACTION_RGS, FATE, METRIC, SCANS, TABLE;
+  }
+
+  interface UpdateTask<T extends Object> extends Runnable, Comparable<UpdateTask<T>> {
+
+    UpdateType getType();
+
+    T getResource();
+
+    String getFailureMessage();
+
+  }
+
+  class MetricFetcher implements UpdateTask<ServerId> {
 
     private final ServerContext ctx;
     private final ServerId server;
@@ -121,25 +211,75 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
 
     @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      result = prime * result + Objects.hash(getResource());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      MetricFetcher other = (MetricFetcher) obj;
+      return Objects.equals(getType(), other.getType())
+          && Objects.equals(getResource(), other.getResource());
+    }
+
+    @Override
+    public int compareTo(UpdateTask<ServerId> other) {
+      int result = this.getType().compareTo(other.getType());
+      if (result == 0) {
+        result = getResource().compareTo(other.getResource());
+      }
+      return result;
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.METRIC;
+    }
+
+    @Override
+    public ServerId getResource() {
+      return server;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get metrics from server: " + server;
+    }
+
+    @Override
     public void run() {
       try {
         Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), ctx);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(), ctx.rpcCreds());
+          retainedProblemServers.invalidate(server);
           summary.processResponse(server, response);
         } finally {
           ThriftUtil.returnClient(metricsClient, ctx);
         }
       } catch (Exception e) {
         LOG.warn("Error trying to get metrics from server: {}", server, e);
+        retainedProblemServers.put(server, Boolean.TRUE);
         summary.processMetricsError(server);
       }
     }
-
   }
 
-  private class TableInformationFetcher implements Runnable {
+  class TableInformationFetcher implements UpdateTask<TableId> {
     private final ServerContext ctx;
     private final TableId tableId;
     private final SystemInformation summary;
@@ -148,6 +288,55 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       this.ctx = ctx;
       this.tableId = tableId;
       this.summary = summary;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      result = prime * result + Objects.hash(getResource());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      TableInformationFetcher other = (TableInformationFetcher) obj;
+      return Objects.equals(getType(), other.getType())
+          && Objects.equals(getResource(), other.getResource());
+    }
+
+    @Override
+    public int compareTo(UpdateTask<TableId> other) {
+      int result = this.getType().compareTo(other.getType());
+      if (result == 0) {
+        result = getResource().compareTo(other.getResource());
+      }
+      return result;
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.TABLE;
+    }
+
+    @Override
+    public TableId getResource() {
+      return tableId;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get information for table: " + tableId;
     }
 
     @Override
@@ -167,7 +356,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class RunningCompactionFetcher implements Runnable {
+  class RunningCompactionFetcher implements UpdateTask<Void> {
 
     private final SystemInformation summary;
     private final ThreadPoolExecutor executor;
@@ -175,6 +364,49 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     public RunningCompactionFetcher(SystemInformation summary, ThreadPoolExecutor executor) {
       this.summary = summary;
       this.executor = executor;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      RunningCompactionFetcher other = (RunningCompactionFetcher) obj;
+      return Objects.equals(getType(), other.getType());
+    }
+
+    @Override
+    public int compareTo(UpdateTask<Void> other) {
+      return this.getType().compareTo(other.getType());
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.COMPACTION;
+    }
+
+    @Override
+    public Void getResource() {
+      return null;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get running compactions";
     }
 
     @Override
@@ -189,6 +421,209 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
+  class FateTransactionFetcher implements UpdateTask<Void> {
+
+    private final SystemInformation summary;
+
+    public FateTransactionFetcher(SystemInformation summary) {
+      this.summary = summary;
+    }
+
+    @Override
+    public void run() {
+      try {
+        AdminUtil<Fate> admin = new AdminUtil<>();
+        var zTableLocksPath = ctx.getServerPaths().createTableLocksPath();
+        var zk = ctx.getZooSession();
+        FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null, false);
+        summary.processFateTransactions(status.getTransactions());
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      FateTransactionFetcher other = (FateTransactionFetcher) obj;
+      return Objects.equals(getType(), other.getType());
+    }
+
+    @Override
+    public int compareTo(UpdateTask<Void> other) {
+      return this.getType().compareTo(other.getType());
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.FATE;
+    }
+
+    @Override
+    public Void getResource() {
+      return null;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Error fetching fate transaction details";
+    }
+  }
+
+  class ConfiguredCompactionResourceGroupFetcher implements UpdateTask<Void> {
+
+    private final SystemInformation summary;
+
+    public ConfiguredCompactionResourceGroupFetcher(SystemInformation summary) {
+      this.summary = summary;
+    }
+
+    @Override
+    public void run() {
+      try {
+        summary.addConfiguredCompactionGroups(
+            CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx));
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ConfiguredCompactionResourceGroupFetcher other =
+          (ConfiguredCompactionResourceGroupFetcher) obj;
+      return Objects.equals(getType(), other.getType());
+    }
+
+    @Override
+    public int compareTo(UpdateTask<Void> other) {
+      return this.getType().compareTo(other.getType());
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.COMPACTION_RGS;
+    }
+
+    @Override
+    public Void getResource() {
+      return null;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Error fetching configured compaction resource groups";
+    }
+
+  }
+
+  class ActiveScansFetcher implements UpdateTask<ServerId> {
+
+    private final ServerContext ctx;
+    private final ServerId server;
+    private final SystemInformation summary;
+
+    private ActiveScansFetcher(ServerContext ctx, ServerId server, SystemInformation summary) {
+      this.ctx = ctx;
+      this.server = server;
+      this.summary = summary;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + Objects.hash(getType());
+      result = prime * result + Objects.hash(getResource());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ActiveScansFetcher other = (ActiveScansFetcher) obj;
+      return Objects.equals(getType(), other.getType())
+          && Objects.equals(getResource(), other.getResource());
+    }
+
+    @Override
+    public void run() {
+      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
+      TabletScanClientService.Client client = null;
+      try {
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, ctx);
+        List<ActiveScan> activeScans = client.getActiveScans(null, ctx.rpcCreds());
+        summary.processActiveScans(server, activeScans);
+      } catch (Exception ex) {
+        LOG.error("Failed to get active scans from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(client, ctx);
+      }
+    }
+
+    @Override
+    public int compareTo(UpdateTask<ServerId> o) {
+      return 0;
+    }
+
+    @Override
+    public UpdateType getType() {
+      return UpdateType.SCANS;
+    }
+
+    @Override
+    public ServerId getResource() {
+      return server;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get active scans from server: " + server;
+    }
+
+  }
+
   private final String poolName = "MonitorMetricsThreadPool";
   private final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools()
       .getPoolBuilder(poolName).numCoreThreads(10).withTimeOut(30, SECONDS).build();
@@ -197,13 +632,27 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   private final Supplier<Long> connectionCount;
   private final AtomicBoolean newConnectionEvent = new AtomicBoolean(false);
   private final Cache<ServerId,MetricResponse> allMetrics;
+  private final Cache<ServerId,Boolean> retainedProblemServers;
   private final AtomicReference<SystemInformation> summaryRef = new AtomicReference<>();
+  private final ReadOnlyFateStore<Fate> readOnlyMFS;
+  private final ReadOnlyFateStore<Fate> readOnlyUFS;
+  private final Map<FateInstanceType,ReadOnlyFateStore<Fate>> stores;
+  private final TabletMetadataFilter noLocation = new NoCurrentLocationFilter();
 
   public InformationFetcher(ServerContext ctx, Supplier<Long> connectionCount) {
     this.ctx = ctx;
     this.connectionCount = connectionCount;
     this.allMetrics = Caffeine.newBuilder().executor(pool).scheduler(Scheduler.systemScheduler())
         .expireAfterWrite(Duration.ofMinutes(10)).evictionListener(this::onRemoval).build();
+    this.retainedProblemServers = Caffeine.newBuilder().executor(pool)
+        .scheduler(Scheduler.systemScheduler()).expireAfterWrite(Duration.ofMinutes(10)).build();
+    try {
+      this.readOnlyMFS = new MetaFateStore<>(ctx.getZooSession(), null, null);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Exception creating MetaFateStore", e);
+    }
+    this.readOnlyUFS = new UserFateStore<>(ctx, SystemTables.FATE.tableName(), null, null);
+    this.stores = Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
   }
 
   public void newConnectionEvent() {
@@ -211,11 +660,12 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   // Protect against NPE and wait for initial data gathering
-  public SystemInformation getSummary() throws InterruptedException {
-    while (summaryRef.get() == null) {
+  private SystemInformation getSummary() throws InterruptedException {
+    SystemInformation summary;
+    while ((summary = summaryRef.get()) == null) {
       Thread.sleep(100);
     }
-    return summaryRef.get();
+    return summary;
   }
 
   /**
@@ -242,124 +692,301 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     if (server == null) {
       return;
     }
+    final SystemInformation currentSummary = summaryRef.get();
+    if (currentSummary == null) {
+      return;
+    }
+    currentSummary.processError(server);
+    LOG.info("{} has been evicted", server);
+  }
+
+  /**
+   * Obtains a count of the metadata tablets with no location. This work is done in a Thread because
+   * the Scanner used by Ample will sit and wait for the tablets to be hosted.
+   *
+   * @return count of metadata tablets with no location
+   */
+  private long countMetadataTabletsNoLocation() {
+    // If any Metadata tablet is not hosted, then don't look for table information
+    // on other tables.
+    AtomicLong metadataNoLocation = new AtomicLong(0);
+    // This is a background task because the tserver could go down and
+    // the scanner inside Ample will sit there and wait.
+    Runnable countTask = () -> {
+      metadataNoLocation.set(ctx.getAmple().readTablets().forTable(SystemTables.METADATA.tableId())
+          .fetch(ColumnType.LOCATION).filter(noLocation).build().stream().count());
+    };
+    Thread countThread = new Thread(countTask, "Metadata-Tablets-Location-Thread");
+    countThread.start();
     try {
-      getSummary().processError(server);
-      LOG.info("{} has been evicted", server);
+      countThread.join(30_000);
     } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      LOG.warn("{} could not be evicted", server, e);
+      throw new RuntimeException(
+          "Interrupted while waiting for thread counting metadata tablet locations");
+    }
+    if (countThread.isAlive()) {
+      countThread.interrupt();
+    }
+    return metadataNoLocation.get();
+  }
+
+  /**
+   * Validates that tablet location is a tablet server that is alive and has its lock
+   *
+   * @param location TabletMetadata Location
+   * @return true if location is valid
+   */
+  private boolean isLocationValid(Location location) {
+    if (location != null) {
+      // Verify location is alive
+      Set<ServiceLockPath> servers = ctx.getServerPaths().getTabletServer(
+          ResourceGroupPredicate.ANY, AddressSelector.exact(location.getHostAndPort()), true);
+      if (servers != null && !servers.isEmpty()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void fetchTabletInformation(SystemInformation summary, UpdateTasks futures,
+      Location rootTabletLocation) {
+
+    // Fetch information about the root tablet, this is pulled from ZK so
+    // it doesn't depend on the tablet being hosted.
+    TableInformationFetcher rtif =
+        new TableInformationFetcher(this.ctx, SystemTables.ROOT.tableId(), summary);
+    Future<?> rtiff = this.pool.submit(rtif);
+    futures.add(new UpdateTaskFuture(rtiff, rtif));
+
+    if (isLocationValid(rootTabletLocation)) {
+
+      // If the root tablet is hosted, then we can ask about the metadata table
+      TableInformationFetcher tif =
+          new TableInformationFetcher(this.ctx, SystemTables.METADATA.tableId(), summary);
+      Future<?> tiff = this.pool.submit(tif);
+      futures.add(new UpdateTaskFuture(tiff, tif));
+
+      final long metadataNoLocation = countMetadataTabletsNoLocation();
+      if (metadataNoLocation == 0) {
+
+        // If the metadata table is fully hosted, then we can ask about
+        // all of the other tables
+        for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
+          if (tableId.equals(SystemTables.ROOT.tableId())
+              || tableId.equals(SystemTables.METADATA.tableId())) {
+            continue; // we already spawned a task
+          }
+          tif = new TableInformationFetcher(this.ctx, tableId, summary);
+          tiff = this.pool.submit(tif);
+          futures.add(new UpdateTaskFuture(tiff, tif));
+        }
+
+      } else {
+        summary.addAlert(Critical, Table, metadataNoLocation + " metadata tablets are not hosted");
+      }
+    } else {
+      summary.addAlert(Critical, Table, "The root tablet is not currently hosted");
     }
   }
 
   @Override
   public void run() {
 
-    long refreshTime = 0;
-
+    long lastRunTime = 0;
+    final Timer noConnectionTimer = Timer.startNew();
+    final long clearStateThreshold =
+        ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
+    final Duration clearStateDuration = Duration.ofMillis(clearStateThreshold);
+    final long minimumRefreshTimeMs = 5000;
     while (true) {
 
-      // Don't fetch new data if there are no connections.
-      // On an initial connection, no data may be displayed.
-      // If a connection has not been made in a while, stale data may be displayed.
-      // Only refresh every 5s (old monitor logic).
-      while (!newConnectionEvent.get() && connectionCount.get() == 0
-          && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
+      // Only refresh internal data structure every 5s (old monitor logic).
+      while (NanoTime.millisElapsed(lastRunTime, NanoTime.now()) < minimumRefreshTimeMs) {
+        LOG.trace("Waiting for the 5s refresh interval");
         try {
-          Thread.sleep(100);
+          Thread.sleep(250);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException(
               "Thread " + Thread.currentThread().getName() + " interrupted", e);
         }
       }
+
+      // Don't fetch new data if there are no connections.
+      // When summaryRef is not set, then the REST endpoint will wait
+      // until data is retrieved. summaryRef is not set on initial
+      // connection or when there has been no connection for the configured duration.
+      noConnectionTimer.restart();
+      while (!newConnectionEvent.get() && connectionCount.get() == 0) {
+        LOG.trace("Waiting for a connection, connections: {}", connectionCount.get());
+        try {
+          Thread.sleep(250);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(
+              "Thread " + Thread.currentThread().getName() + " interrupted", e);
+        }
+        // If a connection has not been made in the configured duration,
+        // then clear the summaryRef so that stale data is not displayed.
+        if (this.summaryRef.get() != null && noConnectionTimer.hasElapsed(clearStateDuration)) {
+          LOG.debug("Clearing internal summary state due to no connection for {} ms",
+              clearStateThreshold);
+          SystemInformation oldSummary = summaryRef.getAndSet(null);
+          if (oldSummary != null) {
+            oldSummary.clear();
+          }
+        }
+      }
       // reset the connection event flag
       newConnectionEvent.compareAndExchange(true, false);
 
-      LOG.info("Fetching metrics from servers");
+      LOG.info("Fetching information from servers, connection count: {}", connectionCount.get());
+      long fetchCycleStart = System.currentTimeMillis();
 
-      final List<Future<?>> futures = new ArrayList<>();
+      final UpdateTasks futures = new UpdateTasks();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
-      Set<ServerId> managers = this.ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
-      HostAndPort coordinatorHost = null;
-      if (!managers.isEmpty()) {
-        ServerId manager = managers.iterator().next();
-        coordinatorHost = HostAndPort.fromParts(manager.getHost(), manager.getPort());
-      }
-      Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
-      summary.processExternalCompactionInventory(compactors, coordinatorHost);
 
+      // Fetch Fate transaction information
+      FateTransactionFetcher fateFetcher = new FateTransactionFetcher(summary);
+      Future<?> fff = this.pool.submit(fateFetcher);
+      futures.add(new UpdateTaskFuture(fff, fateFetcher));
+
+      // Fetch metrics from the other server processes. This
+      // makes an RPC call to AbstractServer.getMetrics
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {
           continue;
         }
         for (ServerId server : this.ctx.instanceOperations().getServers(type)) {
-          futures.add(this.pool.submit(new MetricFetcher(this.ctx, server, summary)));
+          MetricFetcher mf = new MetricFetcher(this.ctx, server, summary);
+          Future<?> mff = this.pool.submit(mf);
+          futures.add(new UpdateTaskFuture(mff, mf));
+
+          if (server.getType() == Type.SCAN_SERVER || server.getType() == Type.TABLET_SERVER) {
+            ActiveScansFetcher asf = new ActiveScansFetcher(this.ctx, server, summary);
+            Future<?> asff = this.pool.submit(asf);
+            futures.add(new UpdateTaskFuture(asff, asf));
+          }
         }
       }
-      ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
       // Fetch external compaction information from the Compactors
-      futures.add(this.pool.submit(new RunningCompactionFetcher(summary, pool)));
+      RunningCompactionFetcher rcf = new RunningCompactionFetcher(summary, pool);
+      Future<?> rcff = this.pool.submit(rcf);
+      futures.add(new UpdateTaskFuture(rcff, rcf));
 
-      // Fetch Tablet / Tablet information from the metadata table
-      for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
-        futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
-      }
+      final TabletMetadata rootTabletMetadata =
+          new RootTabletMetadata(new String(ctx.getZooCache().get(RootTable.ZROOT_TABLET), UTF_8))
+              .toTabletMetadata();
+      final Location rootTabletLocation = rootTabletMetadata.getLocation();
+      fetchTabletInformation(summary, futures, rootTabletLocation);
 
-      futures.add(this.pool.submit(() -> {
-        try {
-          var groups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx);
-          summary.addConfiguredCompactionGroups(groups);
-        } catch (ReflectiveOperationException e) {
-          throw new IllegalStateException(e);
-        }
-      }));
+      ConfiguredCompactionResourceGroupFetcher r =
+          new ConfiguredCompactionResourceGroupFetcher(summary);
+      Future<?> f = this.pool.submit(r);
+      futures.add(new UpdateTaskFuture(f, r));
 
-      long monitorFetchTimeout =
+      ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
+
+      final long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
-      long allFuturesAdded = NanoTime.now();
+      final long allFuturesAdded = NanoTime.now();
       boolean tookToLong = false;
+
+      final List<UpdateTaskFuture> failures = new ArrayList<>();
+      final List<UpdateTaskFuture> cancelled = new ArrayList<>();
+      boolean firstIteration = true;
       while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
+          String message =
+              "Fetching information for Monitor has taken longer than %1$d ms. Cancelling all remaining tasks (%2$d) "
+                  + "and monitor will display old information. Resolve issue causing this or increase property %3$s.";
+          LOG.warn(String.format(message, monitorFetchTimeout, futures.size(),
+              Property.MONITOR_FETCH_TIMEOUT.getKey()));
           tookToLong = true;
         }
 
-        Iterator<Future<?>> iter = futures.iterator();
+        boolean isRootLocationValid = isLocationValid(rootTabletLocation);
+        long unhostedMetadataTabletCount = 1;
+        if (isRootLocationValid) {
+          unhostedMetadataTabletCount = countMetadataTabletsNoLocation();
+        }
+        Iterator<UpdateTaskFuture> iter = futures.iterator();
         while (iter.hasNext()) {
-          Future<?> future = iter.next();
-          if (tookToLong && !future.isCancelled()) {
-            future.cancel(true);
-          } else if (future.isDone()) {
+
+          UpdateTaskFuture future = iter.next();
+
+          if (future.future().isDone()) {
             iter.remove();
             try {
-              future.get();
-            } catch (CancellationException | InterruptedException | ExecutionException e) {
+              future.future().get();
+            } catch (CancellationException e) {
+              if (!tookToLong) {
+                cancelled.add(future);
+              }
+            } catch (InterruptedException | ExecutionException e) {
+              failures.add(future);
               LOG.error("Error getting status from future", e);
             }
+          } else if (future.task().getClass().equals(TableInformationFetcher.class)
+              && (!isRootLocationValid || unhostedMetadataTabletCount > 0)) {
+            TableInformationFetcher task = (TableInformationFetcher) future.task();
+            TableId tid = task.getResource();
+            if (!isRootLocationValid && !tid.equals(SystemTables.ROOT.tableId())) {
+              LOG.warn(
+                  "Cancelling TableInformationFetcher tasks for non-root tables as root tablet is unhosted. {}",
+                  future.task().getFailureMessage());
+              future.future().cancel(true);
+              cancelled.add(future);
+            } else if (unhostedMetadataTabletCount > 0 && (!tid.equals(SystemTables.ROOT.tableId())
+                && !tid.equals(SystemTables.METADATA.tableId()))) {
+              LOG.warn(
+                  "Cancelling TableInformationFetcher tasks for user tables as metadata tablet has {} unhosted tablets. {}",
+                  unhostedMetadataTabletCount, future.task().getFailureMessage());
+              future.future().cancel(true);
+              cancelled.add(future);
+            }
+          } else if (tookToLong && !future.future().isCancelled()) {
+            LOG.warn("Cancelling task as it took too long. {}", future.task().getFailureMessage());
+            future.future().cancel(true);
+            cancelled.add(future);
           }
         }
+        if (!firstIteration) {
+          // Update current alerts on the Monitor that we are
+          // waiting on tasks to complete to complete a refresh
+          final String waitingMsg = "Waiting on " + futures.size()
+              + " tasks to complete. Time remaining before cancellation: "
+              + (monitorFetchTimeout - NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()))
+                  / 1000
+              + " seconds";
+          SystemInformation currentSummary = summaryRef.get();
+          if (currentSummary != null) {
+            currentSummary.removeAlert(Info, Monitor,
+                " tasks to complete. Time remaining before cancellation: ");
+            currentSummary.addAlert(Info, Monitor, waitingMsg);
+          }
+        }
+
         if (!futures.isEmpty()) {
           UtilWaitThread.sleep(3_000);
         }
+        firstIteration = false;
       }
 
-      summary.finish();
+      lastRunTime = NanoTime.now();
 
-      refreshTime = NanoTime.now();
+      retainedProblemServers.asMap().keySet().forEach(summary::retainProblemServer);
+      summary.finish(failures, cancelled, fetchCycleStart);
+
       LOG.info("Finished fetching metrics from servers");
       LOG.info(
-          "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
-          allMetrics.estimatedSize(), summary.getManager() != null,
-          summary.getGarbageCollector() != null,
-          summary.getCompactorAllMetricSummary().isEmpty() ? 0
-              : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getSServerAllMetricSummary().isEmpty() ? 0
-              : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary.getTServerAllMetricSummary()
-              .entrySet().iterator().next().getValue().count());
+          "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+          allMetrics.estimatedSize(), summary.getManagers().size(),
+          summary.getGarbageCollector() != null, summary.getActiveServers(Type.COMPACTOR).size(),
+          summary.getActiveServers(Type.SCAN_SERVER).size(),
+          summary.getActiveServers(Type.TABLET_SERVER).size());
 
       SystemInformation oldSummary = summaryRef.getAndSet(summary);
       if (oldSummary != null) {

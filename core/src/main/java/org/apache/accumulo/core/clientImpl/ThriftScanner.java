@@ -627,11 +627,10 @@ public final class ThriftScanner {
     return addr;
   }
 
-  public static List<KeyValue> scan(ClientContext context, ScanState scanState, Duration timeOut)
-      throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
+  public static List<KeyValue> scan(ClientContext context, ScanState scanState, Duration timeOut,
+      Timer scanTimer) throws ScanTimedOutException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
 
-    Timer scanTimer = Timer.startNew();
     String lastError = null;
     String error = null;
     int tooManyFilesCount = 0;

@@ -105,6 +105,9 @@ public class SplitIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
+    // Splitting a tablet w/ a compaction can result in a dead compaction. Run the detector more
+    // frequently to clean them up as they could cause tests to hang.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
   }
 
   private String tservMaxMem;

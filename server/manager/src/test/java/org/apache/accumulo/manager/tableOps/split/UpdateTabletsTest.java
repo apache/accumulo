@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
@@ -37,6 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
@@ -250,6 +253,24 @@ public class UpdateTabletsTest {
     EasyMock.expect(fateEnv.getFileRangeCache()).andReturn(fileRangeCache).atLeastOnce();
     EasyMock.expect(fateEnv.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
         .atLeastOnce();
+    Set<Ample.OrphanedCompaction> orphanedCompactionSet = new HashSet<>();
+    Ample.OrphanedCompactionStore ocs = new Ample.OrphanedCompactionStore() {
+      @Override
+      public Stream<Ample.OrphanedCompaction> list() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public void add(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        orphanedCompactionSet.addAll(removedCompactions);
+      }
+
+      @Override
+      public void delete(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        throw new UnsupportedOperationException();
+      }
+    };
+    EasyMock.expect(ample.orphanedCompactions()).andReturn(ocs).atLeastOnce();
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
@@ -289,6 +310,7 @@ public class UpdateTabletsTest {
         UnSplittableMetadata.toUnSplittable(origExtent, 1000, 1001, 1002, tabletFiles.keySet());
     EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(usm).atLeastOnce();
     EasyMock.expect(tabletMeta.getMigration()).andReturn(migration).atLeastOnce();
+    EasyMock.expect(tabletMeta.getDirName()).andReturn("td1").atLeastOnce();
 
     EasyMock.expect(ample.readTablet(origExtent)).andReturn(tabletMeta);
 
@@ -408,6 +430,10 @@ public class UpdateTabletsTest {
 
     EasyMock.verify(fateEnv, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
         tablet1Mutator, tablet2Mutator, tablet3Mutator, cr, compactions);
+
+    assertEquals(Set.of(new Ample.OrphanedCompaction(cid1, tableId, "td1"),
+        new Ample.OrphanedCompaction(cid2, tableId, "td1"),
+        new Ample.OrphanedCompaction(cid3, tableId, "td1")), orphanedCompactionSet);
   }
 
   @Test

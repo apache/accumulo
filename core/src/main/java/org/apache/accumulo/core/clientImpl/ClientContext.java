@@ -748,7 +748,7 @@ public class ClientContext implements AccumuloClient {
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
     if (!tableNodeExists(tableId)) {
-      throw new TableDeletedException(tableId.canonical());
+      throw new TableDeletedException(tableId);
     }
     return tableId;
   }
@@ -1208,7 +1208,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     if (caches == null) {
       caches = Caches.getInstance();
-      if (micrometer != null
+      if (micrometer != null && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED)
           && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
         caches.registerMetrics(micrometer);
       }
@@ -1327,12 +1327,11 @@ public class ClientContext implements AccumuloClient {
   }
 
   private static Set<String> createPersistentWatcherPaths() {
-    return Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
-        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
-        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
-        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS,
-        Constants.ZMANAGER_ASSIGNMENTS);
+    return Set.of(Constants.ZCOMPACTORS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK,
+        Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK, Constants.ZNAMESPACES, Constants.ZRECOVERY,
+        Constants.ZSSERVERS, Constants.ZTABLES, Constants.ZTSERVERS, Constants.ZUSERS,
+        RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK, Constants.ZMANAGER_ASSISTANT_LOCK,
+        Constants.ZRESOURCEGROUPS, Constants.ZMANAGER_ASSIGNMENTS);
   }
 
 }

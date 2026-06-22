@@ -44,6 +44,7 @@ import org.apache.accumulo.server.util.ListCompactions;
 import org.apache.accumulo.server.util.ListCompactions.RunningCompactionSummary;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -105,13 +106,23 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
             ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
       }
 
-      final List<RunningCompactionSummary> running =
-          new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
+      final List<RunningCompactionSummary> running = new ArrayList<>();
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
-      running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
+      final var expectedCompactions = expected;
 
-      assertEquals(expected.size(), compactionsByEcid.size());
-      expected.values().forEach(tec -> {
+      Wait.waitFor(() -> {
+        running.clear();
+        compactionsByEcid.clear();
+
+        running.addAll(new ListCompactionsWrapper()
+            .getRunningCompactions(getCluster().getServerContext(), true));
+        running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
+
+        return expectedCompactions.size() == compactionsByEcid.size()
+            && expectedCompactions.keySet().stream().allMatch(compactionsByEcid::containsKey);
+      }, 10000);
+
+      expectedCompactions.values().forEach(tec -> {
         RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());

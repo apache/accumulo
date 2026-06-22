@@ -16,18 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar
-*/
 "use strict";
 
 // Suffixes for quantity
-var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
+const QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
-var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+
 const REST_V2_PREFIX = contextPath + 'rest-v2';
-const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
+const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
+const COORDINATOR_QUEUE_PROCESS_VIEW = 'coordinatorQueueView';
+const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
+const GC_FILE_SERVER_PROCESS_VIEW = 'gcFileView';
+const GC_WAL_SERVER_PROCESS_VIEW = 'gcWalView';
+const MANAGER_SERVER_PROCESS_VIEW = 'managerssView';
+const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
+const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
+const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
+const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
+const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
+const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
+const AUTO_REFRESH_KEY = 'auto-refresh';
+const FATE = 'fate';
+const ALERT_CATEGORIES = 'alertCategories';
+const ALERTS = 'alerts';
+const ALERT_COUNTS = 'alertCounts';
+const RECOVERY = 'recovery';
+const INSTANCE_OVERVIEW = 'instanceOverview';
+const SCANS = 'scans';
+const LAST_UPDATE = 'lastUpdate';
+
+var STATUS_REQUEST = null;
+var TABLE_MAP = {};
+
+function computeTableMap() {
+  TABLE_MAP = {};
+  var tables = getStoredJson('tables', {});
+  return Object.keys(tables).map(function (key) {
+    var tableInfo = tables[key];
+    var name = tableInfo.tableName;
+    TABLE_MAP[key] = name;
+  });
+}
+
+function renderTableLink(data, type, row) {
+  var tableName = TABLE_MAP[data];
+  return '<a class="link-body-emphasis" href="tables/' + data + '">' + tableName + '</a>';
+}
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -44,25 +79,17 @@ if ($.fn && $.fn.dataTable) {
  * and creates listeners for auto refresh
  */
 function setupAutoRefresh() {
-  // Sets auto refresh to true or false
-  if (!sessionStorage.autoRefresh) {
-    sessionStorage.autoRefresh = 'false';
-  }
-  // Need this to set the initial value for the autorefresh on page load
-  if (sessionStorage.autoRefresh === 'false') {
-    $('.auto-refresh').parent().removeClass('active');
+
+  var autoRefreshSwitch = $('#autoRefreshSwitch');
+  var savedValue = localStorage.getItem(AUTO_REFRESH_KEY);
+  if (savedValue === null || savedValue === 'false') {
+    autoRefreshSwitch.prop('checked', false);
   } else {
-    $('.auto-refresh').parent().addClass('active');
+    autoRefreshSwitch.prop('checked', true);
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').on("click", function () {
-    if ($(this).parent().attr('class') === 'active') {
-      $(this).parent().removeClass('active');
-      sessionStorage.autoRefresh = 'false';
-    } else {
-      $(this).parent().addClass('active');
-      sessionStorage.autoRefresh = 'true';
-    }
+  $('#autoRefreshSwitch').on("change", function () {
+    localStorage.setItem(AUTO_REFRESH_KEY, $(this).is(':checked'));
   });
 }
 
@@ -77,15 +104,24 @@ function refresh() {
  * Global timer that checks for auto refresh status every 5 seconds
  */
 TIMER = setInterval(function () {
-  if (sessionStorage.autoRefresh === 'true') {
-    $('.auto-refresh').parent().addClass('active');
+  if (localStorage.getItem(AUTO_REFRESH_KEY) === 'true') {
     refresh();
     refreshNavBar();
-  } else {
-    $('.auto-refresh').parent().removeClass('active');
+    refreshLastUpdate();
   }
 }, 5000);
 
+
+function refreshLastUpdate() {
+  getLastUpdate().then(function () {
+    var timing = getStoredJson(LAST_UPDATE, {});
+    $('#lastUpdateDiv').empty();
+    var msg = $(document.createElement("span"));
+    msg.text('Data as of ' + dateFormat(timing.finishTime).replace(/&nbsp;/g, ' ') +
+      '. Took ' + timeDuration(timing.durationMs).replace(/&nbsp;/g, ' ') + ' to collect.');
+    $('#lastUpdateDiv').append(msg);
+  });
+}
 /**
  * Adds the suffix to the number, converts the number to one close to the base
  *
@@ -363,11 +399,25 @@ function getJSONForTable(call, sessionDataVar) {
   });
 }
 
+function getStoredJson(storageKey, defaultValue) {
+  var storedValue = sessionStorage.getItem(storageKey);
+  if (!storedValue) {
+    return defaultValue;
+  }
+
+  return JSON.parse(storedValue);
+}
+
+function getStoredArray(storageKey) {
+  var storedValue = getStoredJson(storageKey, []);
+  return Array.isArray(storedValue) ? storedValue : [];
+}
+
 /**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
- * @param {boolean} shouldSanitize Whether to sanitize the call 
+ * @param {boolean} shouldSanitize Whether to sanitize the call
  */
 function doLoggedPostCall(call, callback, shouldSanitize) {
 
@@ -388,171 +438,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
   });
 }
 
-///// REST Calls /////////////
-
-/**
- * REST GET call for the manager information,
- * stores it on a sessionStorage variable
- */
-function getManager() {
-  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
-}
-
-/**
- * Extracts the manager goal state from a metrics array.
- *
- * @param {array} metrics Metric list from rest-v2/manager or rest-v2/manager/metrics
- * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
- */
-function getManagerGoalStateFromMetrics(metrics) {
-  if (!Array.isArray(metrics)) {
-    console.error('Metrics is not an array:', metrics);
-    return null;
-  }
-  const metric = metrics.find(m => m?.name === MANAGER_GOAL_STATE_METRIC);
-  if (!metric || typeof metric.value !== 'number') {
-    console.debug('Manager goal state metric not found or invalid:', metric);
-    return null;
-  }
-  switch (metric.value) {
-  case 0:
-    return 'CLEAN_STOP';
-  case 1:
-    return 'SAFE_MODE';
-  case 2:
-    return 'NORMAL';
-  default:
-    return null;
-  }
-}
-
-/**
- * Gets the manager goal state from the cached manager response, if available.
- *
- * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
- */
-function getManagerGoalStateFromSession() {
-  if (!sessionStorage?.manager) {
-    console.debug('No manager data in session storage. Returning null.');
-    return null;
-  }
-  try {
-    const managerData = JSON.parse(sessionStorage.manager);
-    return getManagerGoalStateFromMetrics(managerData.metrics);
-  } catch (e) {
-    console.error('Failed to parse manager data from session storage', e);
-    return null;
-  }
-}
-
-/**
- * REST GET call for the namespaces, stores it on a global variable
- */
-function getNamespaces() {
-  return getJSONForTable(contextPath + 'rest/tables/namespaces', 'NAMESPACES');
-}
-
-/**
- * REST GET call for the tables, stores it on a sessionStorage variable
- */
-function getTables() {
-  return getJSONForTable(contextPath + 'rest/tables', 'tables');
-}
-
-/**
- * REST GET call for the tables on each namespace,
- * stores it on a sessionStorage variable
- *
- * @param {array} namespaces Array holding the selected namespaces
- */
-function getNamespaceTables(namespaces) {
-
-  // Creates a JSON object to store the tables
-  var namespaceList = "";
-
-  /*
-   * If the namespace array include *, get all tables, otherwise,
-   * get tables from specific namespaces
-   */
-  if (namespaces.indexOf('*') !== -1) {
-    return getTables();
-  }
-  // Convert the list to a string for the REST call
-  namespaceList = namespaces.toString();
-
-  return getJSONForTable(contextPath + 'rest/tables/namespaces/' + namespaceList, 'tables');
-}
-
-/**
- * REST POST call to clear a specific dead server
- *
- * @param {string} server Dead Server ID
- */
-function clearDeadServers(server) {
-  doLoggedPostCall(contextPath + 'rest/tservers?server=' + server, null, false);
-}
-
-/**
- * REST GET call for the tservers, stores it on a sessionStorage variable
- */
-function getTServers() {
-  return getJSONForTable(contextPath + 'rest/tservers', 'tservers');
-}
-
-/**
- * REST GET call for the tservers, stores it on a sessionStorage variable
- *
- * @param {string} server Server ID
- */
-function getTServer(server) {
-  return getJSONForTable(contextPath + 'rest/tservers/' + server, 'server');
-}
-
-/**
- * REST GET call for the scans, stores it on a sessionStorage variable
- */
-function getScans() {
-  return getJSONForTable(contextPath + 'rest/scans', 'scans');
-}
-
-/**
- * REST GET call for the bulk imports, stores it on a sessionStorage variable
- */
-function getBulkImports() {
-  return getJSONForTable(contextPath + 'rest/bulkImports', 'bulkImports');
-}
-
-/**
- * REST GET call for the server stats, stores it on a sessionStorage variable
- */
-function getServerStats() {
-  return getJSONForTable(contextPath + 'rest/tservers/serverStats', 'serverStats');
-}
-
-/**
- * REST GET call for the recovery list, stores it on a sessionStorage variable
- */
-function getRecoveryList() {
-  return getJSONForTable(contextPath + 'rest/tservers/recovery', 'recoveryList');
-}
-
-/**
- * REST GET call for the participating tablet servers,
- * stores it on a sessionStorage variable
- *
- * @param {string} table Table ID
- */
-function getTableServers(tableID) {
-  return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
-}
-
-/**
- * REST GET call for the server status, stores it on a sessionStorage variable
- */
-function getStatus() {
-  return getJSONForTable(contextPath + 'rest/status', 'status');
-}
-
 /*
  * Jquery call to clear all data from cells of a table
  */
@@ -563,14 +448,13 @@ function clearAllTableCells(tableId) {
   });
 }
 
-// NEW REST CALLS
+///// REST Calls /////////////
 
 /**
- * REST GET call for /problems,
- * stores it on a sessionStorage variable
+ * REST GET call for the scans, stores it on a sessionStorage variable
  */
-function getProblems() {
-  return getJSONForTable(REST_V2_PREFIX + '/problems', 'problems');
+function getScans() {
+  return getJSONForTable(REST_V2_PREFIX + '/scans', SCANS);
 }
 
 /**
@@ -578,38 +462,45 @@ function getProblems() {
  * stores it on a sessionStorage variable
  */
 function getLastUpdate() {
-  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', 'lastUpdate');
+  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', LAST_UPDATE);
+}
+
+
+/**
+ * REST GET call for /alerts/categories
+ * store it on a sessionStorage variable
+ */
+function getAlertCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/alerts/categories', ALERT_CATEGORIES);
 }
 
 /**
- * REST GET call for /tservers/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
+ * REST GET call for /alerts/counts
+ * store it on a sessionStorage variable
  */
-function getTserversSummary(group) {
-  const url = `${REST_V2_PREFIX}/tservers/summary/${group}`;
-  const sessionDataVar = `tserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
+function getAlertCounts() {
+  return getJSONForTable(REST_V2_PREFIX + '/alerts/counts', ALERT_COUNTS);
 }
 
 /**
- * REST GET call for /suggestions,
- * stores it on a sessionStorage variable
+ * REST GET call for /alerts,
+ * results are not stored in session as this
+ * function takes parameters driven by toggles
+ * in the UI.
  */
-function getSuggestions() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestions', 'suggestions');
+function getAlerts(high, info, cats) {
+
+  const params = new URLSearchParams();
+  params.append('high', high);
+  params.append('info', info);
+  $.each(cats, function (index, cat) {
+    params.append('category', cat);
+  });
+
+  var call = REST_V2_PREFIX + '/alerts?' + params.toString();
+  return getJSONForTable(call, ALERTS);
 }
 
-/**
- * REST GET call for /compactors/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getCompactorsDetail(group) {
-  const url = `${REST_V2_PREFIX}/compactors/detail/${group}`;
-  const sessionDataVar = `compactorsDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
 
 /**
  * REST GET call for /stats,
@@ -617,17 +508,6 @@ function getCompactorsDetail(group) {
  */
 function getStats() {
   return getJSONForTable(REST_V2_PREFIX + '/stats', 'stats');
-}
-
-/**
- * REST GET call for /compactors/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getCompactorsSummary(group) {
-  const url = `${REST_V2_PREFIX}/compactors/summary/${group}`;
-  const sessionDataVar = `compactorsSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
 }
 
 /**
@@ -642,30 +522,51 @@ function getTableTablets(name) {
 }
 
 /**
- * REST GET call for /metrics,
+ * REST GET call for /recovery,
  * stores it on a sessionStorage variable
  */
-function getMetrics() {
-  return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+function getRecoveryInformation() {
+  return getJSONForTable(REST_V2_PREFIX + '/recovery', RECOVERY);
 }
 
 /**
- * REST GET call for /gc,
+ * REST GET call for /status,
  * stores it on a sessionStorage variable
  */
-function getGc() {
-  return getJSONForTable(REST_V2_PREFIX + '/gc', 'gc');
+function getStatus() {
+  if (STATUS_REQUEST) {
+    return STATUS_REQUEST;
+  }
+  STATUS_REQUEST = getJSONForTable(REST_V2_PREFIX + '/status', 'status');
+  STATUS_REQUEST.always(function () {
+    STATUS_REQUEST = null;
+  });
+  return STATUS_REQUEST;
 }
 
-/**
- * REST GET call for /tservers/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getTserversDetail(group) {
-  const url = `${REST_V2_PREFIX}/tservers/detail/${group}`;
-  const sessionDataVar = `tserversDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
+function getStoredStatusData() {
+  return sessionStorage.status ? JSON.parse(sessionStorage.status) : null;
+}
+
+function getComponentStatus(statusData, componentType) {
+  if (!statusData || !statusData.componentStatuses) {
+    return 'ERROR';
+  }
+
+  var status = statusData.componentStatuses[componentType];
+  if (!status || !status.hasServers) {
+    return 'ERROR';
+  }
+
+  if (status.level === 'ERROR') {
+    return 'ERROR';
+  }
+
+  if (status.level === 'WARN') {
+    return 'WARN';
+  }
+
+  return 'OK';
 }
 
 /**
@@ -693,46 +594,73 @@ function getDeployment() {
 }
 
 /**
- * REST GET call for /sservers/view,
+ * REST GET call for /fate,
  * stores it on a sessionStorage variable
  */
+function getFate() {
+  return getJSONForTable(REST_V2_PREFIX + '/fate', FATE);
+}
+
+function getServerProcessView(table, storageKey) {
+  var url = REST_V2_PREFIX + '/servers/view;table=' + table;
+  return getJSONForTable(url, storageKey);
+}
+
+function getCompactorsView() {
+  return getServerProcessView('COMPACTORS', COMPACTOR_SERVER_PROCESS_VIEW);
+}
+
+function getCoordinatorQueueView() {
+  return getServerProcessView('COORDINATOR_QUEUES', COORDINATOR_QUEUE_PROCESS_VIEW);
+}
+
+function getGcView() {
+  return getServerProcessView('GC_SUMMARY', GC_SERVER_PROCESS_VIEW);
+}
+
+function getGcFileView() {
+  return getServerProcessView('GC_FILES', GC_FILE_SERVER_PROCESS_VIEW);
+}
+
+function getGcWalView() {
+  return getServerProcessView('GC_WALS', GC_WAL_SERVER_PROCESS_VIEW);
+}
+
+function getManagersView() {
+  return getServerProcessView('MANAGERS', MANAGER_SERVER_PROCESS_VIEW);
+}
+
+function getManagersFateView() {
+  return getServerProcessView('MANAGER_FATE', MANAGER_FATE_SERVER_PROCESS_VIEW);
+}
+
+function getManagersCompactionView() {
+  return getServerProcessView('MANAGER_COMPACTIONS', MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
+}
+
 function getSserversView() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/view', 'sserversView');
+  return getServerProcessView('SCAN_SERVERS', SCAN_SERVER_PROCESS_VIEW);
 }
 
-/**
- * REST GET call for /tservers/summary,
- * stores it on a sessionStorage variable
- */
-function getTserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/tservers/summary', 'tserversSummary');
+function getTserversView() {
+  return getServerProcessView('TABLET_SERVERS', TABLET_SERVER_PROCESS_VIEW);
 }
 
+
 /**
- * REST GET call for /instance,
+ * REST GET call for /instance/info,
  * stores it on a sessionStorage variable
  */
 function getInstanceInfo() {
-  return getJSONForTable(REST_V2_PREFIX + '/instance', 'instance');
+  return getJSONForTable(REST_V2_PREFIX + '/instance/info', 'instance');
 }
 
 /**
- * REST GET call for /sservers/detail/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getSserversDetail(group) {
-  const url = `${REST_V2_PREFIX}/sservers/detail/${group}`;
-  const sessionDataVar = `sserversDetail_${group}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactors/summary,
+ * REST GET call for /instance/overview,
  * stores it on a sessionStorage variable
  */
-function getCompactorsSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactors/summary', 'compactorsSummary');
+function getInstanceOverview() {
+  return getJSONForTable(REST_V2_PREFIX + '/instance/overview', INSTANCE_OVERVIEW);
 }
 
 /**
@@ -747,11 +675,19 @@ function getTable(name) {
 }
 
 /**
- * REST GET call for /compactions/summary,
+ * REST GET call for /compactions/running/table,
  * stores it on a sessionStorage variable
  */
-function getCompactionsSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
+function getRunningCompactionsByTable() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/table', RUNNING_COMPACTIONS_BY_TABLE);
+}
+
+/**
+ * REST GET call for /compactions/running/group,
+ * stores it on a sessionStorage variable
+ */
+function getRunningCompactionsByGroup() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
 }
 
 /**

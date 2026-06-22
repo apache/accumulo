@@ -125,7 +125,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,managers,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
@@ -306,7 +306,7 @@ function parse_config() {
 
   RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
   debug "Printing resource groups to $RG_FILE"
-  "$accumulo_cmd" conf zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
+  "$accumulo_cmd" zk info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
   read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
   debug "All resource groups: ${all_resource_groups[*]}"
 
@@ -333,7 +333,7 @@ function parse_config() {
   else
     for group in $COMPACTOR_GROUPS; do
       if ! arrayContains "$group" "${all_resource_groups[@]}"; then
-        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo inst init --add-resource-groups' to create it"
         exit 1
       fi
       G="COMPACTOR_HOSTS_$group"
@@ -349,7 +349,7 @@ function parse_config() {
   else
     for group in $TSERVER_GROUPS; do
       if ! arrayContains "$group" "${all_resource_groups[@]}"; then
-        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo inst init --add-resource-groups' to create it"
         exit 1
       fi
       G="TSERVER_HOSTS_$group"
@@ -369,7 +369,7 @@ function parse_config() {
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
       if ! arrayContains "$group" "${all_resource_groups[@]}"; then
-        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo inst init --add-resource-groups' to create it"
         exit 1
       fi
       G="SSERVER_HOSTS_$group"
@@ -408,9 +408,9 @@ function execute_command() {
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
-    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*"
+    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o rpc.bind.addr=$host $*"
   else
-    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*'"
+    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o rpc.bind.addr=$host $*'"
   fi
 }
 
@@ -526,7 +526,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -tservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" zk zap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -580,7 +580,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -sservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" zk zap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -605,14 +605,14 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -compactors --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" zk zap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -managers -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" zk zap -verbose -managers -tservers -compactors -sservers --gc --monitor
   fi
 
   wait
@@ -672,9 +672,9 @@ function prune_group() {
   esac
 
   if isDebug; then
-    "$accumulo_cmd" proc zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
+    "$accumulo_cmd" zk zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
   else
-    "$accumulo_cmd" proc zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
+    "$accumulo_cmd" zk zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
   fi
 }
 

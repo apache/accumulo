@@ -148,6 +148,10 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     @Parameter(names = {"-t", "--type"},
         description = "<type>... Print transactions of fate instance type(s) {USER, META}")
     List<String> instanceTypes = new ArrayList<>();
+
+    @Parameter(names = {"-i", "--info"},
+        description = "Includes detailed transaction information when printing")
+    boolean printDetails;
   }
 
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
@@ -245,7 +249,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
             getCmdLineInstanceTypeFilters(options.instanceTypes);
         readOnlyFateStores = createReadOnlyFateStores(context, zk);
         admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
-            fateIdFilter, statusFilter, typesFilter);
+            fateIdFilter, statusFilter, typesFilter, options.printDetails);
         // print line break at the end
         System.out.println();
       }
@@ -354,7 +358,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
       NamespaceNotFoundException {
 
     var zk = context.getZooSession();
-    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
+    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null, false);
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.

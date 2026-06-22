@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -115,5 +117,10 @@ class MoveExportedFiles extends AbstractFateOperation {
     }
 
     return new FinishImportTable(tableInfo);
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

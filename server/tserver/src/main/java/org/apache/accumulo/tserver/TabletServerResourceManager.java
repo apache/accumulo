@@ -23,9 +23,9 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toUnmodifiableMap;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_ASSIGNMENT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_MIGRATION_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCAN_EXECUTOR_PREFIX;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TABLET_ASSIGNMENT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_META_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_ROOT_POOL;
@@ -202,14 +202,14 @@ public class TabletServerResourceManager {
     }
 
     scanExecQueues.put(sec.name, queue);
-    ThreadPoolExecutor es = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(ACCUMULO_POOL_PREFIX.poolName + ".scan." + sec.name)
-        .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
-        .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
-        .enableThreadPoolMetrics(enableMetrics).build();
+    ThreadPoolExecutor es =
+        ThreadPools.getServerThreadPools().getPoolBuilder(SCAN_EXECUTOR_PREFIX.poolName + sec.name)
+            .numCoreThreads(sec.getCurrentMaxThreads()).numMaxThreads(sec.getCurrentMaxThreads())
+            .withTimeOut(0L, MILLISECONDS).withQueue(queue).atPriority(sec.priority)
+            .enableThreadPoolMetrics(enableMetrics).build();
 
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads,
-        ACCUMULO_POOL_PREFIX.poolName + ".scan." + sec.name, es);
+        SCAN_EXECUTOR_PREFIX.poolName + sec.name, es);
     return es;
 
   }

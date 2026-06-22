@@ -23,13 +23,6 @@ include "data.thrift"
 include "security.thrift"
 include "client.thrift"
 
-struct DeadServer {
-  1:string server
-  2:i64 lastStatus
-  3:string status
-  4:string resourceGroup
-}
-
 struct TabletSplit {
   1:data.TKeyExtent oldTablet
   2:list<data.TKeyExtent> newTablets
@@ -129,17 +122,6 @@ struct TabletServerStatus {
   16:i64 syncs
   19:string version
   18:i64 responseTime
-}
-
-struct ManagerMonitorInfo {
-  1:map<string, TableInfo> tableMap
-  2:list<TabletServerStatus> tServerInfo
-  3:map<string, i8> badTServers
-  4:ManagerState state
-  5:ManagerGoalState goalState
-  6:i32 unassignedTablets
-  7:set<string> serversShuttingDown
-  8:list<DeadServer> deadTabletServers
 }
 
 enum TFateInstanceType {
@@ -449,16 +431,6 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
     3:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-
-  // system monitoring methods
-  ManagerMonitorInfo getManagerStats(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
   void waitForBalance(

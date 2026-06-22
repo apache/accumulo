@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -194,7 +193,7 @@ public class LocatorIT extends AccumuloClusterHarness {
       tableOps.create(table3, new NewTableConfiguration().createOffline());
       tableOps.create(table4, new NewTableConfiguration().createOffline());
 
-      ClientContext ctx = (ClientContext) client;
+      var ctx = getCluster().getServerContext();
 
       ctx.setClearFrequency(Duration.ofMillis(100));
 
@@ -216,8 +215,8 @@ public class LocatorIT extends AccumuloClusterHarness {
         // Accessing table3 in the cache should cause table1 and table4 to eventually be cleared
         // because they no longer exist. This also test that online and offline tables a properly
         // cleared from the cache.
-        assertNotNull(ctx.getTabletLocationCache(tableId3));
-        return !ctx.isTabletLocationCachePresent(tableId1)
+        var t3 = ctx.getTabletLocationCache(tableId3);
+        return t3 != null && !ctx.isTabletLocationCachePresent(tableId1)
             && !ctx.isTabletLocationCachePresent(tableId4);
       });
 

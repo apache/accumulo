@@ -29,7 +29,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 /**
  * Data Transfer Object for the Monitor Deployment page.
  */
-public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown) {
+public record DeploymentOverview(List<DeploymentRow> breakdown) {
 
   /**
    * Data Transfer Object containing counts of total and responding servers for a given resource
@@ -39,10 +39,10 @@ public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown)
       long responding) {
   }
 
-  public static DeploymentOverview fromSummary(
-      Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment, long lastUpdate) {
+  public static DeploymentOverview
+      fromSummary(Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment) {
     if (deployment == null || deployment.isEmpty()) {
-      return new DeploymentOverview(lastUpdate, List.of());
+      return new DeploymentOverview(List.of());
     }
 
     var breakdown =
@@ -63,7 +63,7 @@ public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown)
               });
         }).toList();
 
-    return new DeploymentOverview(lastUpdate, breakdown);
+    return new DeploymentOverview(breakdown);
   }
 
   /**

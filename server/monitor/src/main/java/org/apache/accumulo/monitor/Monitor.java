@@ -20,28 +20,13 @@ package org.apache.accumulo.monitor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.SCAN_SERVER;
-import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.TABLET_SERVER;
 
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Supplier;
 
 import jakarta.inject.Singleton;
 
@@ -53,33 +38,15 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService;
-import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TableInfo;
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metrics.MetricsInfo;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
-import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
-import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.InformationFetcher;
-import org.apache.accumulo.monitor.rest.bulkImports.BulkImport;
-import org.apache.accumulo.monitor.rest.bulkImports.BulkImportInformation;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.accumulo.server.util.bulkCommand.ListBulk;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.ee10.servlet.ResourceServlet;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
@@ -97,7 +64,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -106,9 +72,6 @@ import com.google.common.net.HostAndPort;
 public class Monitor extends AbstractServer implements Connection.Listener {
 
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
-  private static final int REFRESH_TIME = 5;
-
-  private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
     AbstractServer.startServer(new Monitor(new ServerOpts(), args), log);
@@ -116,234 +79,17 @@ public class Monitor extends AbstractServer implements Connection.Listener {
 
   Monitor(ServerOpts opts, String[] args) {
     super(ServerId.Type.MONITOR, opts, ServerContext::new, args);
-    START_TIME = System.currentTimeMillis();
     this.connStats = new ConnectionStatistics();
     this.fetcher = new InformationFetcher(getContext(), connStats::getConnections);
   }
 
   private final ConnectionStatistics connStats;
   private final InformationFetcher fetcher;
-  private final AtomicLong lastRecalc = new AtomicLong(0L);
-  private double totalIngestRate = 0.0;
-  private double totalQueryRate = 0.0;
-  private double totalScanRate = 0.0;
-  private long totalEntries = 0L;
-  private int totalTabletCount = 0;
-  private long totalHoldTime = 0;
-  private long totalLookups = 0;
-  private int totalTables = 0;
-
-  private EventCounter lookupRateTracker = new EventCounter();
-  private EventCounter indexCacheHitTracker = new EventCounter();
-  private EventCounter indexCacheRequestTracker = new EventCounter();
-  private EventCounter dataCacheHitTracker = new EventCounter();
-  private EventCounter dataCacheRequestTracker = new EventCounter();
-
-  private final AtomicBoolean fetching = new AtomicBoolean(false);
-  private ManagerMonitorInfo mmi;
-  private GCStatus gcStatus;
-  private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
 
   private EmbeddedWebServer server;
   private int livePort = 0;
 
   private ServiceLock monitorLock;
-
-  private static class EventCounter {
-
-    Map<String,Pair<Long,Long>> prevSamples = new HashMap<>();
-    Map<String,Pair<Long,Long>> samples = new HashMap<>();
-    Set<String> serversUpdated = new HashSet<>();
-
-    synchronized void startingUpdates() {
-      serversUpdated.clear();
-    }
-
-    synchronized void updateTabletServer(String name, long sampleTime, long numEvents) {
-      Pair<Long,Long> newSample = new Pair<>(sampleTime, numEvents);
-      Pair<Long,Long> lastSample = samples.get(name);
-
-      if (lastSample == null || !lastSample.equals(newSample)) {
-        samples.put(name, newSample);
-        if (lastSample != null) {
-          prevSamples.put(name, lastSample);
-        }
-      }
-      serversUpdated.add(name);
-    }
-
-    synchronized void finishedUpdating() {
-      // remove any tablet servers not updated
-      samples.keySet().retainAll(serversUpdated);
-      prevSamples.keySet().retainAll(serversUpdated);
-    }
-
-    synchronized double calculateRate() {
-      double totalRate = 0;
-
-      for (Entry<String,Pair<Long,Long>> entry : prevSamples.entrySet()) {
-        Pair<Long,Long> prevSample = entry.getValue();
-        Pair<Long,Long> sample = samples.get(entry.getKey());
-
-        totalRate += (sample.getSecond() - prevSample.getSecond())
-            / ((sample.getFirst() - prevSample.getFirst()) / (double) 1000);
-      }
-
-      return totalRate;
-    }
-
-  }
-
-  public void fetchData() {
-    ServerContext context = getContext();
-    double totalIngestRate = 0.;
-    double totalQueryRate = 0.;
-    double totalScanRate = 0.;
-    long totalEntries = 0;
-    int totalTabletCount = 0;
-    long totalHoldTime = 0;
-    long totalLookups = 0;
-    boolean retry = true;
-
-    // only recalc every so often
-    long currentTime = System.currentTimeMillis();
-    if (currentTime - lastRecalc.get() < REFRESH_TIME * 1000) {
-      return;
-    }
-
-    // try to begin fetching; return if unsuccessful (because another thread is already fetching)
-    if (!fetching.compareAndSet(false, true)) {
-      return;
-    }
-    // DO NOT ADD CODE HERE that could throw an exception before we enter the try block
-    // Otherwise, we'll never release the lock by unsetting 'fetching' in the finally block
-    try {
-      while (retry) {
-        ManagerClientService.Client client = null;
-        try {
-          client = ThriftClientTypes.MANAGER.getConnection(context);
-          if (client != null) {
-            mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
-            retry = false;
-            // Now that Manager is up, set the coordinator host
-            Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
-            if (managers == null || managers.isEmpty()) {
-              throw new IllegalStateException(
-                  "io.getServers returned nothing for Manager, but it's up.");
-            }
-            ServerId manager = managers.iterator().next();
-            Optional<HostAndPort> nextCoordinatorHost =
-                Optional.of(HostAndPort.fromString(manager.toHostPortString()));
-            if (coordinatorHost.isEmpty()
-                || !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow())) {
-              coordinatorHost = nextCoordinatorHost;
-            }
-          } else {
-            mmi = null;
-            log.error("Unable to get info from Manager");
-          }
-          gcStatus = fetchGcStatus();
-
-        } catch (Exception e) {
-          mmi = null;
-          log.info("Error fetching stats: ", e);
-        } finally {
-          if (client != null) {
-            ThriftUtil.close(client, context);
-          }
-        }
-        if (mmi == null) {
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
-        }
-      }
-
-      if (mmi != null) {
-
-        lookupRateTracker.startingUpdates();
-        indexCacheHitTracker.startingUpdates();
-        indexCacheRequestTracker.startingUpdates();
-        dataCacheHitTracker.startingUpdates();
-        dataCacheRequestTracker.startingUpdates();
-
-        for (TabletServerStatus server : mmi.tServerInfo) {
-          TableInfo summary = TableInfoUtil.summarizeTableStats(server);
-          totalIngestRate += summary.ingestRate;
-          totalQueryRate += summary.queryRate;
-          totalScanRate += summary.scanRate;
-          totalEntries += summary.recs;
-          totalHoldTime += server.holdTime;
-          totalLookups += server.lookups;
-          lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
-          indexCacheHitTracker.updateTabletServer(server.name, server.lastContact,
-              server.indexCacheHits);
-          indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact,
-              server.indexCacheRequest);
-          dataCacheHitTracker.updateTabletServer(server.name, server.lastContact,
-              server.dataCacheHits);
-          dataCacheRequestTracker.updateTabletServer(server.name, server.lastContact,
-              server.dataCacheRequest);
-        }
-
-        lookupRateTracker.finishedUpdating();
-        indexCacheHitTracker.finishedUpdating();
-        indexCacheRequestTracker.finishedUpdating();
-        dataCacheHitTracker.finishedUpdating();
-        dataCacheRequestTracker.finishedUpdating();
-
-        int totalTables = 0;
-        for (TableInfo tInfo : mmi.tableMap.values()) {
-          totalTabletCount += tInfo.tablets;
-          totalTables++;
-        }
-        this.totalIngestRate = totalIngestRate;
-        this.totalTables = totalTables;
-        this.totalQueryRate = totalQueryRate;
-        this.totalScanRate = totalScanRate;
-        this.totalEntries = totalEntries;
-        this.totalTabletCount = totalTabletCount;
-        this.totalHoldTime = totalHoldTime;
-        this.totalLookups = totalLookups;
-
-      }
-
-    } finally {
-      lastRecalc.set(currentTime);
-      // stop fetching; log an error if this thread wasn't already fetching
-      if (!fetching.compareAndSet(true, false)) {
-        throw new AssertionError("Not supposed to happen; somebody broke this code");
-      }
-    }
-  }
-
-  private GCStatus fetchGcStatus() {
-    ServerContext context = getContext();
-    GCStatus result = null;
-    HostAndPort address = null;
-    try {
-      // Read the gc location from its lock
-      ZooReaderWriter zk = context.getZooSession().asReaderWriter();
-      var path = context.getServerPaths().createGarbageCollectorPath();
-      List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
-      if (locks != null && !locks.isEmpty()) {
-        address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
-            .map(sld -> sld.getAddress(ThriftService.GC)).orElse(null);
-        if (address == null) {
-          log.warn("Unable to contact the garbage collector (no address)");
-          return null;
-        }
-        GCMonitorService.Client client =
-            ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
-        try {
-          result = client.getStatus(TraceUtil.traceInfo(), context.rpcCreds());
-        } finally {
-          ThriftUtil.returnClient(client, context);
-        }
-      }
-    } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at {}", address, ex);
-    }
-    return result;
-  }
 
   @Override
   public void run() {
@@ -358,7 +104,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
         log.debug("Trying monitor on port {}", port);
         server = new EmbeddedWebServer(this, port);
         server.addServlet(getResourcesServlet(), "/resources/*");
-        server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getRestV2Servlet(), "/rest-v2/*");
         server.addServlet(getViewServlet(), "/*");
         server.start();
@@ -422,17 +167,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
-    // need to regularly fetch data so plot data is updated
-    Threads.createCriticalThread("Data fetcher", () -> {
-      while (true) {
-        try {
-          fetchData();
-        } catch (Exception e) {
-          log.warn("{}", e.getMessage(), e);
-        }
-        sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
-      }
-    }).start();
     Threads.createCriticalThread("Metric Fetcher Thread", fetcher).start();
 
     while (!isShutdownRequested()) {
@@ -491,154 +225,12 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     return new ServletHolder(new ServletContainer(rc));
   }
 
-  private ServletHolder getRestServlet() {
-    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
-        .register(new MonitorFactory(this))
-        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
-        .register(JacksonFeature.class);
-    return new ServletHolder(new ServletContainer(rc));
-  }
-
   private ServletHolder getRestV2Servlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.next")
         .register(new MonitorFactory(this))
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
         .register(JacksonFeature.class);
     return new ServletHolder(new ServletContainer(rc));
-  }
-
-  public static class ScanStats {
-    public final long scanCount;
-    public final Long oldestScan;
-    public final long fetched;
-
-    ScanStats(List<ActiveScan> active) {
-      this.scanCount = active.size();
-      long oldest = -1;
-      for (ActiveScan scan : active) {
-        oldest = Math.max(oldest, scan.age);
-      }
-      this.oldestScan = oldest < 0 ? null : oldest;
-      // use clock time for date friendly display
-      this.fetched = System.currentTimeMillis();
-    }
-  }
-
-  public static class CompactionStats {
-    public final long count;
-    public final Long oldest;
-    public final long fetched;
-
-    CompactionStats(List<ActiveCompaction> active) {
-      this.count = active.size();
-      long oldest = -1;
-      for (ActiveCompaction a : active) {
-        oldest = Math.max(oldest, a.age);
-      }
-      this.oldest = oldest < 0 ? null : oldest;
-      // use clock time for date friendly display
-      this.fetched = System.currentTimeMillis();
-    }
-  }
-
-  private final long expirationTimeMinutes = 1;
-
-  // Use Suppliers.memoizeWithExpiration() to cache the results of expensive fetch operations. This
-  // avoids unnecessary repeated fetches within the expiration period and ensures that multiple
-  // requests around the same time use the same cached data.
-  private final Supplier<Map<HostAndPort,ScanStats>> tserverScansSupplier =
-      Suppliers.memoizeWithExpiration(this::fetchTServerScans, expirationTimeMinutes, MINUTES);
-
-  private final Supplier<Map<HostAndPort,ScanStats>> sserverScansSupplier =
-      Suppliers.memoizeWithExpiration(this::fetchSServerScans, expirationTimeMinutes, MINUTES);
-
-  private final Supplier<Map<HostAndPort,CompactionStats>> compactionsSupplier =
-      Suppliers.memoizeWithExpiration(this::fetchCompactions, expirationTimeMinutes, MINUTES);
-
-  private final Supplier<BulkImport> bulkImportSupplier =
-      Suppliers.memoizeWithExpiration(this::computeBulkImports, expirationTimeMinutes, MINUTES);
-
-  /**
-   * @return active tablet server scans. Values are cached and refresh after
-   *         {@link #expirationTimeMinutes}.
-   */
-  public Map<HostAndPort,ScanStats> getScans() {
-    return tserverScansSupplier.get();
-  }
-
-  /**
-   * @return active scan server scans. Values are cached and refresh after
-   *         {@link #expirationTimeMinutes}.
-   */
-  public Map<HostAndPort,ScanStats> getScanServerScans() {
-    return sserverScansSupplier.get();
-  }
-
-  /**
-   * @return active compactions. Values are cached and refresh after {@link #expirationTimeMinutes}.
-   */
-  public Map<HostAndPort,CompactionStats> getCompactions() {
-    return compactionsSupplier.get();
-  }
-
-  private BulkImport computeBulkImports() {
-    BulkImport bulkImport = new BulkImport();
-    ListBulk.list(getContext(), bulkStatus -> {
-      bulkImport.addBulkImport(
-          new BulkImportInformation(bulkStatus.sourceDir(), bulkStatus.lastUpdate().toEpochMilli(),
-              bulkStatus.state(), bulkStatus.tableId(), bulkStatus.fateId()));
-    });
-    return bulkImport;
-  }
-
-  public BulkImport getBulkImports() {
-    return bulkImportSupplier.get();
-  }
-
-  private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {
-    ServerContext context = getContext();
-    Map<HostAndPort,ScanStats> scans = new HashMap<>();
-    for (ServerId server : servers) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
-      TabletScanClientService.Client client = null;
-      try {
-        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
-        List<ActiveScan> activeScans = client.getActiveScans(null, context.rpcCreds());
-        scans.put(parsedServer, new ScanStats(activeScans));
-      } catch (Exception ex) {
-        log.error("Failed to get active scans from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(client, context);
-      }
-    }
-    return Collections.unmodifiableMap(scans);
-  }
-
-  private Map<HostAndPort,ScanStats> fetchTServerScans() {
-    return fetchScans(getContext().instanceOperations().getServers(TABLET_SERVER));
-  }
-
-  private Map<HostAndPort,ScanStats> fetchSServerScans() {
-    return fetchScans(getContext().instanceOperations().getServers(SCAN_SERVER));
-  }
-
-  private Map<HostAndPort,CompactionStats> fetchCompactions() {
-    ServerContext context = getContext();
-    Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
-    for (ServerId server : context.instanceOperations().getServers(TABLET_SERVER)) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
-      Client tserver = null;
-      try {
-        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
-        var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
-        allCompactions.put(parsedServer, new CompactionStats(compacts));
-      } catch (Exception ex) {
-        log.debug("Failed to get active compactions from {}", server, ex);
-      } finally {
-        ThriftUtil.returnClient(tserver, context);
-      }
-    }
-    return Collections.unmodifiableMap(allCompactions);
   }
 
   /**
@@ -705,62 +297,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     }
 
     log.info("Got Monitor lock.");
-  }
-
-  public ManagerMonitorInfo getMmi() {
-    return mmi;
-  }
-
-  public int getTotalTables() {
-    return totalTables;
-  }
-
-  public int getTotalTabletCount() {
-    return totalTabletCount;
-  }
-
-  public long getTotalEntries() {
-    return totalEntries;
-  }
-
-  public double getTotalIngestRate() {
-    return totalIngestRate;
-  }
-
-  public double getTotalQueryRate() {
-    return totalQueryRate;
-  }
-
-  public double getTotalScanRate() {
-    return totalScanRate;
-  }
-
-  public long getTotalHoldTime() {
-    return totalHoldTime;
-  }
-
-  public GCStatus getGcStatus() {
-    return gcStatus;
-  }
-
-  public long getTotalLookups() {
-    return totalLookups;
-  }
-
-  public long getStartTime() {
-    return START_TIME;
-  }
-
-  public double getLookupRate() {
-    return lookupRateTracker.calculateRate();
-  }
-
-  public Optional<HostAndPort> getCoordinatorHost() {
-    return coordinatorHost;
-  }
-
-  public int getLivePort() {
-    return livePort;
   }
 
   @Override

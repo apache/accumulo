@@ -71,6 +71,22 @@ body {
   width: 90%;
 }
 
+.critical-alert-banner {
+  align-items: center;
+  border-radius: 0;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 0;
+  text-align: center;
+  text-decoration: none;
+}
+
+.critical-alert-banner:hover,
+.critical-alert-banner:focus {
+  text-decoration: none;
+}
+
 h1 {
   font-size: 2.2em;
   text-align: center;
@@ -116,7 +132,7 @@ table {
 
 .table-bordered th,
 .table-bordered td {
-    border: 1px solid #ddd !important;
+    border: 1px solid light-dark(#ddd, #444) !important;
  }
 
 table.sortable {
@@ -170,14 +186,7 @@ tr.details td.details-control {
 }
 
 a {
-  text-decoration: none;
-  color: #0000ff;
   line-height: 1.5em;
-}
-
-a:hover {
-  color: #004400;
-  text-decoration: underline;
 }
 
 a img {
@@ -257,6 +266,87 @@ pre.logevent {
 
 .normal-inv, .normal-inv a {
   color: #5cb85c;
+}
+
+.server-count {
+  color: #6c757d;
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+}
+
+.deployment-overview-content {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.deployment-matrix-table {
+  margin: 0 auto;
+  table-layout: auto;
+  width: auto;
+}
+
+.deployment-matrix-table th,
+.deployment-matrix-table td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.deployment-matrix-group {
+  min-width: 10rem;
+  text-align: left !important;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.deployment-matrix-cell {
+  min-width: 5.25rem;
+}
+
+.deployment-matrix-total {
+  font-weight: 600;
+}
+
+.deployment-matrix-header {
+  font-weight: 600;
+  white-space: normal;
+  line-height: 1.15;
+  background-color: #f8f9fa;
+}
+
+.deployment-matrix-table tfoot th,
+.deployment-matrix-table tfoot td {
+  font-weight: 600;
+}
+
+.deployment-count-badge {
+  --bs-badge-font-size: 1em;
+  --bs-badge-padding-x: 0.65em;
+  --bs-badge-padding-y: 0.2em;
+  min-width: 2rem;
+  color: #333333;
+  font-variant-numeric: tabular-nums;
+}
+
+.deployment-count-total {
+  background-color: #f5f5f5;
+  border: 1px solid #d9d9d9;
+}
+
+.deployment-count-ok {
+  background-color: #5cb85c;
+}
+
+.deployment-count-warn {
+  background-color: #f0ad4e;
+}
+
+.deployment-count-error {
+  background-color: #d9534f;
+}
+
+.deployment-count-empty {
+  background-color: #f5f5f5;
 }
 
 .highlight {
@@ -420,14 +510,6 @@ pre.logevent {
 .dropdown-menu {
   left: unset;
 }
-
-.active  {
-  color: #fff;
-  text-decoration: none;
-  background-color: #337ab7;
-  outline: 0;
-}
-
 
 .btn-white-font {
   color: #fff;

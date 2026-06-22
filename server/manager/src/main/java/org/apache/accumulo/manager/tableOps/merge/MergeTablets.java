@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.tableOps.merge.DeleteRows.verifyAccepted;
 
 import java.util.ArrayList;
@@ -75,6 +76,7 @@ public class MergeTablets extends AbstractFateOperation {
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>();
     TabletMetadata firstTabletMeta = null;
     TabletMetadata lastTabletMeta = null;
+    List<Ample.OrphanedCompaction> orphanedCompactions = new ArrayList<>();
 
     try (var tabletsMetadata = env.getContext().getAmple().readTablets().forTable(range.tableId())
         .overlapping(range.prevEndRow(), range.endRow()).build()) {
@@ -141,6 +143,19 @@ public class MergeTablets extends AbstractFateOperation {
             dirs.clear();
           }
         }
+
+        // These compaction metadata entries will be deleted, queue up removal of the tmp file once
+        // the compaction is no longer running
+        tabletMeta.getExternalCompactions().keySet().stream()
+            .map(ecid -> new Ample.OrphanedCompaction(ecid, tabletMeta.getExtent().tableId(),
+                tabletMeta.getDirName()))
+            .forEach(orphanedCompactions::add);
+        if (orphanedCompactions.size() > 1000 && tabletsSeen > 1) {
+          orphanedCompactions
+              .forEach(rc -> log.trace("{} adding removed compaction {}", fateId, rc));
+          env.getContext().getAmple().orphanedCompactions().add(orphanedCompactions);
+          orphanedCompactions.clear();
+        }
       }
 
       if (tabletsSeen == 1) {
@@ -153,6 +168,9 @@ public class MergeTablets extends AbstractFateOperation {
       Preconditions.checkState(lastTabletMeta != null, "%s no tablets seen in range %s", opid,
           lastTabletMeta);
     }
+
+    orphanedCompactions.forEach(rc -> log.trace("{} adding removed compaction {}", fateId, rc));
+    env.getContext().getAmple().orphanedCompactions().add(orphanedCompactions);
 
     log.info("{} merge low tablet {}", fateId, firstTabletMeta.getExtent());
     log.info("{} merge high tablet {}", fateId, lastTabletMeta.getExtent());
@@ -278,5 +296,10 @@ public class MergeTablets extends AbstractFateOperation {
     // Clip range if exists
     fenced = file.hasRange() ? file.getRange().clip(fenced) : fenced;
     return StoredTabletFile.of(file.getPath(), fenced);
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
   }
 }

@@ -77,7 +77,7 @@ public class MiniAccumuloClusterTest extends WithTestNames {
         new MiniAccumuloConfig(tempDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
-    site.put(Property.TSERV_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
+    site.put(Property.GENERAL_SERVER_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
@@ -194,7 +194,7 @@ public class MiniAccumuloClusterTest extends WithTestNames {
     // ensure what user passed in is what comes back
     assertEquals(0, accumulo.getConfig().getZooKeeperPort());
     HashMap<String,String> site = new HashMap<>();
-    site.put(Property.TSERV_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
+    site.put(Property.GENERAL_SERVER_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
     assertEquals(site, accumulo.getConfig().getSiteConfig());
   }
 

@@ -28,6 +28,10 @@ $(function () {
     sessionStorage.ecDetailsJSON = JSON.stringify([]);
   }
 
+  getTables().then(function () {
+    computeTableMap();
+  });
+
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
 
@@ -47,6 +51,10 @@ $(function () {
     "stateSave": true,
     "dom": 't<"align-left"l>p',
     "columnDefs": [{
+        targets: '_all',
+        defaultContent: '&mdash;'
+      },
+      {
         "targets": "duration",
         "render": function (data, type, row) {
           if (type === 'display') data = timeDuration(data);
@@ -77,7 +85,8 @@ $(function () {
       },
       {
         "data": "tableId",
-        "name": tableIdColumnName
+        "name": tableIdColumnName,
+        "render": renderTableLink
       },
       {
         "data": "ecid",
@@ -290,6 +299,7 @@ $(function () {
     }
   });
 
+  refreshManagerStatus();
   refreshRunningCompactions();
 });
 
@@ -297,6 +307,10 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
+  getTables().then(function () {
+    computeTableMap();
+  });
+  refreshManagerStatus();
   refreshRunningCompactions();
 }
 
@@ -304,32 +318,20 @@ function refresh() {
  * Refreshes the running compactions
  */
 function refreshRunningCompactions() {
-  refreshManagerStatus().then(function (managerStatus) {
-    // tables will not be shown, avoid reloading
-    if (managerStatus === 'ERROR') {
-      return;
-    }
-
-    // user paging is not reset on reload
-    ajaxReloadTable(runningTable);
-  });
+  // user paging is not reset on reload
+  ajaxReloadTable(runningTable);
 }
 
 /**
- * Updates session storage then checks if the manager is running. If it is,
- * show the tables and hide the 'manager not running' banner. Else, vice-versa.
+ * Updates session storage then checks if the manager is running and updates the banner.
  */
 async function refreshManagerStatus() {
   return getStatus().then(function () {
-    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    var managerStatus = getComponentStatus(getStoredStatusData(), 'MANAGER');
     if (managerStatus === 'ERROR') {
-      // show banner and hide tables
       $('#managerBanner').show();
-      $('#runningDiv').hide();
     } else {
-      // otherwise, hide banner and show tables
       $('#managerBanner').hide();
-      $('#runningDiv').show();
     }
     return managerStatus;
   });

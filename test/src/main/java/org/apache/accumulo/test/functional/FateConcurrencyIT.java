@@ -264,7 +264,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
             Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
 
-        withLocks = admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null);
+        withLocks = admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null, true);
 
         // call method that does not use locks.
         noLocks = admin.getTransactionStatus(readOnlyFateStores, null, null, null);
@@ -299,7 +299,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       if (isCompaction(tx)) {
 
-        log.trace("Fate id: {}, status: {}", tx.getFateId(), tx.getStatus());
+        log.info("Fate id: {}, status: {}, details: {}", tx.getFateId(), tx.getStatus(),
+            tx.getDetails());
+
+        assertNotNull(tx.getDetails());
 
         for (AdminUtil.TransactionStatus tx2 : noLocks) {
           if (tx2.getFateId().equals(tx.getFateId())) {

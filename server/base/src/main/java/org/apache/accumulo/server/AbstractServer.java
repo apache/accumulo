@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,6 +40,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
@@ -65,7 +68,6 @@ import com.google.common.net.HostAndPort;
 import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
@@ -95,7 +97,9 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final Set<String> monitorMetricExclusions;
 
+  @SuppressWarnings("deprecation")
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
@@ -103,10 +107,10 @@ public abstract class AbstractServer
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(siteConfig
+        .resolve(Property.RPC_PROCESS_BIND_ADDRESS, Property.GENERAL_PROCESS_BIND_ADDRESS));
     // If new bind parameter passed on command line or in file, then use it.
-    if (newBindParameter != null
-        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (newBindParameter != null && !newBindParameter.isBlank()) {
       this.bindAddress = newBindParameter;
     } else {
       this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
@@ -177,6 +181,7 @@ public abstract class AbstractServer
       default:
         throw new IllegalArgumentException("Unhandled server type: " + serverType);
     }
+    monitorMetricExclusions = Metric.getMonitorExclusions(serverType);
   }
 
   /**
@@ -400,13 +405,18 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
-    if (context.getMetricsInfo().isMetricsEnabled()) {
-      Metrics.globalRegistry.getMeters().forEach(m -> {
-        if (m.getId().getName().startsWith("accumulo.")) {
-          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
-              response::writeDistributionSummary, response::writeLongTaskTimer,
-              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
-              response::writeMeter);
+    final MetricsInfo mi = getContext().getMetricsInfo();
+    if (mi.isMonitorRegistryEnabled()) {
+      mi.getMonitorRegistry().getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")
+            || m.getId().getName().equals(Metric.EXECUTOR_COMPLETED.getName())
+            || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())) {
+          if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
+            m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+                response::writeDistributionSummary, response::writeLongTaskTimer,
+                response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+                response::writeMeter);
+          }
         }
       });
     }

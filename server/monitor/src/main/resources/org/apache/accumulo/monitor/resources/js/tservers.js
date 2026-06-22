@@ -16,244 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
-    ajaxReloadTable
-*/
 "use strict";
 
+const htmlBanner = '#tserversStatusBanner'
+const htmlBannerMessage = '#tservers-banner-message'
+const htmlTable = '#tservers'
 var tserversTable;
-var recoveryList = [];
-
-/**
- * Checks if the given server is in the global recoveryList variable
- * 
- * @param {JSON} server json server object
- * @returns true if the server is in the recoveryList, else false
- */
-function serverIsInRecoveryList(server) {
-  return recoveryList.includes(server.hostname);
-}
-
-/**
- * Refreshes the list of recovering tservers and shows/hides the recovery caption
- */
-function refreshRecoveryList() {
-  getRecoveryList().then(function () {
-    var sessionStorageRecoveryList, sessionStorageTserversList;
-
-    // get list of recovering servers and online servers from sessionStorage
-    sessionStorageRecoveryList = sessionStorage.recoveryList === undefined ? [] : JSON.parse(sessionStorage.recoveryList).recoveryList;
-    sessionStorageTserversList = sessionStorage.tservers === undefined ? [] : JSON.parse(sessionStorage.tservers).servers;
-
-    // update global recovery list variable
-    recoveryList = sessionStorageRecoveryList.map(function (entry) {
-      return entry.server;
-    });
-
-    // show the recovery caption if any online servers are in the recovery list
-    if (sessionStorageTserversList.some(serverIsInRecoveryList)) {
-      $('#recovery-caption').show();
-    } else {
-      $('#recovery-caption').hide();
-    }
-  });
-}
-
-/**
- * Refreshes data in the tserver table
- */
-function refreshTServersTable() {
-  refreshRecoveryList();
-  ajaxReloadTable(tserversTable);
-}
 
 /**
  * Show a page banner that matches the tablet server status shown in the navbar.
  */
-function refreshTServersBanner(statusData) {
-  if (statusData.managerStatus === 'ERROR') {
-    $('#tserversManagerBanner').show();
-    $('#tserversWarnBanner').hide();
-    $('#tserversErrorBanner').hide();
-    $('#tservers_wrapper').hide();
-    $('#recovery-caption').hide();
-  } else {
-    $('#tserversManagerBanner').hide();
-    $('#tservers_wrapper').show();
-    if (statusData.tServerStatus === 'ERROR') {
-      $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').show();
-    } else if (statusData.tServerStatus === 'WARN') {
-      $('#tserversWarnBanner').show();
-      $('#tserversErrorBanner').hide();
-    } else {
-      $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').hide();
-    }
-  }
-}
-
-/**
- * Makes the REST calls, generates the tables with the new information
- */
-function refreshTServers() {
+function refreshTServersBanner() {
   getStatus().then(function () {
-    var statusData = JSON.parse(sessionStorage.status);
-    var managerStatus = statusData.managerStatus;
-    refreshTServersBanner(statusData);
-
-    if (managerStatus === 'ERROR') {
-      return;
+    var statusData = getStoredStatusData();
+    if (getComponentStatus(statusData, 'MANAGER') === 'ERROR') {
+      $('#tserversManagerBanner').show();
+      $(htmlBanner).hide();
+      $('#recovery-caption').hide();
+    } else {
+      $('#tserversManagerBanner').hide();
     }
-
-    getTServers().then(function () {
-      refreshTServersTable();
-    });
   });
 }
 
-/**
- * Used to redraw the page
- */
+
 function refresh() {
-  refreshTServers();
+  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
+  refreshTServersBanner();
 }
 
-/**
- * Creates initial tables
- */
 $(function () {
-
-  refreshRecoveryList();
-
-  // Create a table for tserver list
-  tserversTable = $('#tservers').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/tservers',
-      "dataSrc": "servers"
-    },
-    "stateSave": true,
-    "columnDefs": [{
-        "targets": "big-num",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = bigNumberForQuantity(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "percent",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = Math.round(data * 100) + '%';
-          }
-          return data;
-        }
-      },
-      // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
-      // instead of sorting them lexicographically by the string itself.
-      // Specifically: 'targets' column will use the values in the 'orderData' columns
-
-      // scan column will be sorted by number of running, then by number of queued
-      {
-        "targets": [8],
-        "type": "numeric",
-        "orderData": [14, 15]
-      },
-      // minor compaction column will be sorted by number of running, then by number of queued
-      {
-        "targets": [9],
-        "type": "numeric",
-        "orderData": [16, 17]
-      },
-    ],
-    "columns": [{
-        "data": "hostname",
-        "type": "html",
-        "render": function (data, type, row) {
-          if (type === 'display') {
-            data = '<a href="tservers?s=' + row.id + '">' + row.hostname + '</a>';
-          }
-          return data;
-        }
-      },
-      {
-        "data": "tablets"
-      },
-      {
-        "data": "lastContact"
-      },
-      {
-        "data": "responseTime"
-      },
-      {
-        "data": "entries"
-      },
-      {
-        "data": "ingest"
-      },
-      {
-        "data": "query"
-      },
-      {
-        "data": "holdtime"
-      },
-      {
-        "data": "scansCombo"
-      },
-      {
-        "data": "minorCombo"
-      },
-      {
-        "data": "indexCacheHitRate"
-      },
-      {
-        "data": "dataCacheHitRate"
-      },
-      {
-        "data": "osload"
-      },
-      {
-        "data": "scansRunning",
-        "visible": false
-      },
-      {
-        "data": "scansQueued",
-        "visible": false
-      },
-      {
-        "data": "minorRunning",
-        "visible": false
-      },
-      {
-        "data": "minorQueued",
-        "visible": false
-      }
-    ],
-    "rowCallback": function (row, data, index) {
-      // reset background of each row
-      $(row).css('background-color', '');
-
-      // if the curent hostname is in the reovery list
-      if (serverIsInRecoveryList(data)) {
-        // highlight the current row
-        console.log('Highlighting row index:' + index + ' tserver:' + data.hostname);
-        $(row).css('background-color', 'gold');
-      }
-    }
+  sessionStorage[TABLET_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: []
   });
 
-  refreshTServers();
+  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
+  refreshTServersBanner();
 });

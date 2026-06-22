@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -28,6 +30,9 @@ import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 public class UnreserveSystemMerge extends AbstractFateOperation {
 
@@ -74,5 +79,15 @@ public class UnreserveSystemMerge extends AbstractFateOperation {
         "Aborted merge because the tablets in a range do not form a linked list.";
     };
 
+  }
+
+  @Override
+  public String getDetails() {
+    Gson gson = GSON.get();
+    JsonObject details = gson.toJsonTree(mergeInfo).getAsJsonObject();
+    details.addProperty("maxTotalSize", maxTotalSize);
+    details.addProperty("maxFiles", maxFileCount);
+    details.addProperty("reason", reason.name());
+    return gson.toJson(details);
   }
 }

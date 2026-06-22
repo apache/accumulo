@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -33,15 +35,14 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.gson.JsonObject;
 
 public class RefreshTablet extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private final TKeyExtent extent;
   private final String tserverInstance;
-  private final String compactionId;
 
-  public RefreshTablet(String ecid, TKeyExtent extent, String tserverInstance) {
-    this.compactionId = ecid;
+  public RefreshTablet(TKeyExtent extent, String tserverInstance) {
     this.extent = extent;
     this.tserverInstance = tserverInstance;
   }
@@ -64,4 +65,13 @@ public class RefreshTablet extends AbstractFateOperation {
 
     return null;
   }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("extent", extent.toString());
+    details.addProperty("TServerInstance", tserverInstance);
+    return GSON.get().toJson(details);
+  }
+
 }
