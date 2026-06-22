@@ -557,6 +557,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           byte[] bytes = zooReader.getData(path);
           return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
         } catch (InterruptedException | KeeperException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new RuntimeException(e);
         }
       default:

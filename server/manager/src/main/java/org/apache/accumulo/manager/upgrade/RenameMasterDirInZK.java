@@ -65,6 +65,9 @@ public class RenameMasterDirInZK {
       }
       return mastersDirExists;
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Unable to rename " + mastersZooDir + " in ZooKeeper", e);
     }
   }

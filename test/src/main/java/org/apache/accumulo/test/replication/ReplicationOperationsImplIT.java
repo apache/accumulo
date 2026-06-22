@@ -200,6 +200,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       fail("ReplicationOperations.drain did not complete");
     }
 
@@ -284,6 +285,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       fail("ReplicationOperations.drain did not complete");
     }
 
@@ -362,6 +364,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       fail("ReplicationOperations.drain did not complete");
     }
 
@@ -445,6 +448,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     try {
       t.join(5000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       fail("ReplicationOperations.drain did not complete");
     }
 

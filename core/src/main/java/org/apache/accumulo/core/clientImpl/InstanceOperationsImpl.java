@@ -154,6 +154,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
               "Unable to modify instance properties for because of concurrent modification");
           retry.waitForNextAttempt(log, "Modify instance properties");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {
@@ -349,6 +350,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
         try {
           ret.addAll(future.get());
         } catch (InterruptedException | ExecutionException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           if (e.getCause() instanceof ThriftSecurityException) {
             ThriftSecurityException tse = (ThriftSecurityException) e.getCause();
             throw new AccumuloSecurityException(tse.user, tse.code, e);

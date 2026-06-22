@@ -105,6 +105,9 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
         try {
           this.getContext().getZooReaderWriter().exists(tableZPath, new StuckWatcher());
         } catch (KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           LOG.error("Error setting watch at: {}", tableZPath, e);
         }
         LOG.info("Set StuckWatcher at: {}", tableZPath);

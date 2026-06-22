@@ -154,6 +154,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
         try {
           Thread.sleep(10);
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(ex);
         }
       }
@@ -533,7 +534,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
           try {
             this.wait();
           } catch (InterruptedException e) {
-            // empty
+            Thread.currentThread().interrupt();
           }
         }
         LruBlockCache cache = this.cache.get();

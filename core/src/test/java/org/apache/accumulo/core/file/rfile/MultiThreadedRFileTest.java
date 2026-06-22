@@ -257,6 +257,7 @@ public class MultiThreadedRFileTest {
         try {
           pool.awaitTermination(Long.MAX_VALUE, MILLISECONDS);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           e.printStackTrace();
         }
       }

@@ -359,6 +359,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
 
     } catch (TableNotFoundException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
 

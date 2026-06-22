@@ -392,6 +392,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
       }
     } catch (InterruptedException e1) {
+      Thread.currentThread().interrupt();
       log.error("{}", e1.getMessage(), e1);
     }
 

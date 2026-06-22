@@ -483,6 +483,7 @@ public class Fate<T> {
         try {
           executor.awaitTermination(1, SECONDS);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
         }
       }

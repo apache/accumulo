@@ -138,6 +138,9 @@ public class MinorCompactor extends FileCompactor {
           reportedProblem = true;
           retryCounter++;
         } catch (CompactionCanceledException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new IllegalStateException(e);
         }
 

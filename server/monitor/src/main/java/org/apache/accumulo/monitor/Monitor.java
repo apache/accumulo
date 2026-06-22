@@ -512,6 +512,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       monitorLock.replaceLockData(monitorHostAndPort.toString().getBytes(UTF_8));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception updating monitor lock with host and port", e);
     }
 
@@ -558,6 +561,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
       }

@@ -564,6 +564,7 @@ public class AdminUtil<T> {
         return false;
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
       if (this.exitOnError) {
         System.exit(1);

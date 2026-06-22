@@ -719,6 +719,9 @@ public class Tablet extends TabletBase {
       String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -769,6 +772,9 @@ public class Tablet extends TabletBase {
 
       return new Pair<>(compactID, overlappingConfig);
     } catch (InterruptedException | DecoderException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting compaction ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -1024,6 +1030,7 @@ public class Tablet extends TabletBase {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error(e.toString());
         }
       }
@@ -1093,6 +1100,7 @@ public class Tablet extends TabletBase {
             runningScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("Interrupted waiting to completeClose for extent {}", extent, e);
       }
     }
