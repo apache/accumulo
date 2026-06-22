@@ -24,6 +24,7 @@ import static org.apache.accumulo.test.util.FileMetadataUtil.verifyMergedMarkerC
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -223,10 +224,10 @@ public abstract class MergeTabletsITBase extends SharedMiniClusterBase {
       }
       c.tableOperations().flush(tableName, null, null, true);
       Merge merge = new Merge();
-      merge.mergomatic(c, tableName, null, null, 100, false);
+      merge.mergomatic(c, tableName, null, null, 100, false, false);
       assertArrayEquals("b c d e f x y".split(" "),
           toStrings(c.tableOperations().listSplits(tableName)));
-      merge.mergomatic(c, tableName, null, null, 100, true);
+      merge.mergomatic(c, tableName, null, null, 100, true, false);
       assertArrayEquals("c e f y".split(" "), toStrings(c.tableOperations().listSplits(tableName)));
     }
   }
@@ -722,4 +723,66 @@ public abstract class MergeTabletsITBase extends SharedMiniClusterBase {
       }
     }
   }
+
+  @Test
+  public void testDryRunMerge() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().addSplits(tableName,
+          new TreeSet<>(List.of(new Text("row0"), new Text("row1"), new Text("row10"))));
+      try (BatchWriter writer = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(String.format("row00%d", i));
+          m.put("cf", "cq", "Test Value");
+          writer.addMutation(m);
+        }
+      }
+      c.tableOperations().flush(tableName, null, null, true);
+
+      TableId tableId = getCluster().getServerContext().getTableId(tableName);
+      try (var tablets =
+          getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+        assertEquals(4, tablets.stream().count());
+      }
+
+      Merge merge = new Merge();
+      merge.mergomatic(c, tableName, null, null, 1073741824, false, true);
+      try (var tablets =
+          getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+        assertEquals(4, tablets.stream().count());
+      }
+    }
+  }
+
+  @Test
+  public void testMetadataTableDoesNotMerge() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      Merge merge = new Merge();
+      Throwable ex = assertThrows(Merge.MergeException.class, () -> merge.mergomatic(c,
+          SystemTables.METADATA.tableName(), null, new Text("~"), 1, false, false));
+      assertInstanceOf(IllegalArgumentException.class, ex.getCause());
+      assertEquals(
+          "java.lang.IllegalArgumentException: cannot merge tablets on the accumulo.metadata table",
+          ex.getMessage());
+    }
+  }
+
+  @Test
+  public void testRootTableDoesNotMerge() {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      Merge merge = new Merge();
+      Exception e = assertThrows(Merge.MergeException.class, () -> merge.mergomatic(c,
+          SystemTables.ROOT.tableName(), null, new Text("~"), 1, false, false));
+      assertInstanceOf(IllegalArgumentException.class, e.getCause());
+      assertEquals(
+          "java.lang.IllegalArgumentException: cannot merge tablets on the accumulo.root table",
+          e.getMessage());
+      try (var tablets = getCluster().getServerContext().getAmple().readTablets()
+          .forTable(SystemTables.ROOT.tableId()).build()) {
+        assertEquals(1, tablets.stream().count());
+      }
+    }
+  }
+
 }
