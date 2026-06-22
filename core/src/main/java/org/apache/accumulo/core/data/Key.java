@@ -684,7 +684,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @param tkey Thrift key
    */
   public Key(TKey tkey) {
-    this.row = tkey.getRow();
+    this.row = ByteBufferUtil.toBytes(tkey.bufferForRow());
     this.colFamily = tkey.getColFamily();
     this.colQualifier = tkey.getColQualifier();
     this.colVisibility = tkey.getColVisibility();
