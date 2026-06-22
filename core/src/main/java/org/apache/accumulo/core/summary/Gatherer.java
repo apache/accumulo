@@ -126,7 +126,7 @@ public class Gatherer {
       CryptoService cryptoService) {
     this.ctx = context;
     this.tableId = TableId.of(request.getTableId());
-    this.startRow = new Text(request.getBounds().getStartRow());
+    this.startRow = ByteBufferUtil.toText(request.getBounds().bufferForStartRow());
     this.endRow = new Text(request.getBounds().getEndRow());
     this.clipRange = new Range(startRow, false, endRow, true);
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
