@@ -37,15 +37,11 @@ public class MetricResponse implements org.apache.thrift.TBase<MetricResponse, M
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new MetricResponseStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new MetricResponseTupleSchemeFactory();
 
-  /**
-   * 
-   * @see MetricSource
-   */
-  public @org.apache.thrift.annotation.Nullable MetricSource serverType; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String server; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String resourceGroup; // required
-  public long timestamp; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> metrics; // required
+  private @org.apache.thrift.annotation.Nullable MetricSource serverType; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String server; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String resourceGroup; // required
+  private long timestamp; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> metrics; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

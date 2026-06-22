@@ -123,10 +123,11 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
       }, 10000);
 
       expectedCompactions.values().forEach(tec -> {
-        RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
+        RunningCompactionSummary rcs =
+            compactionsByEcid.get(tec.getJob().getExternalCompactionId());
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());
-        assertEquals(tec.groupName, rcs.getGroup().canonical());
+        assertEquals(tec.getGroupName(), rcs.getGroup().canonical());
         assertEquals(tec.getCompactor(), rcs.getAddr());
       });
 

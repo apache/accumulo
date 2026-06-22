@@ -905,7 +905,7 @@ public class SystemInformation {
     captureRecoveriesInProgress(server, response);
     FMetric flatbuffer = new FMetric();
     FTag tag = new FTag();
-    switch (response.serverType) {
+    switch (response.getServerType()) {
       case COMPACTOR:
         compactors
             .computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
@@ -1084,13 +1084,13 @@ public class SystemInformation {
         }
         break;
       default:
-        LOG.error("Unhandled server type in fetch metric response: {}", response.serverType);
+        LOG.error("Unhandled server type in fetch metric response: {}", response.getServerType());
         break;
     }
   }
 
   public void processExternalCompaction(TExternalCompaction tec) {
-    var tableId = KeyExtent.fromThrift(tec.getJob().extent).tableId();
+    var tableId = KeyExtent.fromThrift(tec.getJob().getExtent()).tableId();
     runningCompactionsPerTable.computeIfAbsent(tableId, t -> new LongAdder()).increment();
     runningCompactionsPerGroup.computeIfAbsent(tec.getGroupName(), t -> new LongAdder())
         .increment();
@@ -1345,7 +1345,7 @@ public class SystemInformation {
       ServerId sid = e.getKey();
       MetricResponse mr = e.getValue();
       if (mr != null) {
-        List<ByteBuffer> metrics = mr.metrics;
+        List<ByteBuffer> metrics = mr.getMetrics();
         if (sid.getType() == ServerId.Type.SCAN_SERVER
             || sid.getType() == ServerId.Type.TABLET_SERVER) {
           for (ByteBuffer binary : metrics) {

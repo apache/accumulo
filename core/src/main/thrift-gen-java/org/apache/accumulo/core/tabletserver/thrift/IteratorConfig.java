@@ -33,7 +33,7 @@ public class IteratorConfig implements org.apache.thrift.TBase<IteratorConfig, I
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new IteratorConfigStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new IteratorConfigTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.List<TIteratorSetting> iterators; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<TIteratorSetting> iterators; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

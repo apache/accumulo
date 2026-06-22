@@ -34,8 +34,8 @@ public class TCompactionGroupSummary implements org.apache.thrift.TBase<TCompact
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionGroupSummaryStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionGroupSummaryTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String group; // required
-  public short priority; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String group; // required
+  private short priority; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

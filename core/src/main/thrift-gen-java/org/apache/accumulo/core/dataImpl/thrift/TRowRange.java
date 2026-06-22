@@ -34,8 +34,8 @@ public class TRowRange implements org.apache.thrift.TBase<TRowRange, TRowRange._
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TRowRangeStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TRowRangeTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer startRow; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer startRow; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

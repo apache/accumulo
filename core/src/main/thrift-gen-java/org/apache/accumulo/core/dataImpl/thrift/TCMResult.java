@@ -34,12 +34,8 @@ public class TCMResult implements org.apache.thrift.TBase<TCMResult, TCMResult._
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCMResultStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCMResultTupleSchemeFactory();
 
-  public long cmid; // required
-  /**
-   * 
-   * @see TCMStatus
-   */
-  public @org.apache.thrift.annotation.Nullable TCMStatus status; // required
+  private long cmid; // required
+  private @org.apache.thrift.annotation.Nullable TCMStatus status; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

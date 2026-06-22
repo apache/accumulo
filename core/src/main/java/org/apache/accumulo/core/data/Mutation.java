@@ -236,10 +236,10 @@ public class Mutation implements Writable {
    * @param tmutation Thrift mutation
    */
   public Mutation(TMutation tmutation) {
-    this.row = ByteBufferUtil.toBytes(tmutation.row);
-    this.data = ByteBufferUtil.toBytes(tmutation.data);
-    this.entries = tmutation.entries;
-    this.values = ByteBufferUtil.toBytesList(tmutation.values);
+    this.row = ByteBufferUtil.toBytes(tmutation.bufferForRow());
+    this.data = ByteBufferUtil.toBytes(tmutation.bufferForData());
+    this.entries = tmutation.getEntries();
+    this.values = ByteBufferUtil.toBytesList(tmutation.getValues());
 
     if (this.row == null) {
       throw new IllegalArgumentException("null row");

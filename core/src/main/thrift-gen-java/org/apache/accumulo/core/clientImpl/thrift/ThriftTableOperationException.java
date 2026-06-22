@@ -37,19 +37,11 @@ public class ThriftTableOperationException extends org.apache.thrift.TException 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ThriftTableOperationExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ThriftTableOperationExceptionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String tableName; // required
-  /**
-   * 
-   * @see TableOperation
-   */
-  public @org.apache.thrift.annotation.Nullable TableOperation op; // required
-  /**
-   * 
-   * @see TableOperationExceptionType
-   */
-  public @org.apache.thrift.annotation.Nullable TableOperationExceptionType type; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String description; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String tableName; // required
+  private @org.apache.thrift.annotation.Nullable TableOperation op; // required
+  private @org.apache.thrift.annotation.Nullable TableOperationExceptionType type; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

@@ -720,7 +720,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     final AuthenticationTokenSecretManager secretManager = context.getSecretManager();
     try {
       Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
-          secretManager.generateToken(credentials.principal, config);
+          secretManager.generateToken(credentials.getPrincipal(), config);
 
       return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()),
           pair.getValue().getThriftIdentifier());

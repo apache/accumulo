@@ -338,15 +338,15 @@ public class LogSorter implements MetricsProducer {
     synchronized (currentWork) {
       for (Entry<String,LogProcessor> entries : currentWork.entrySet()) {
         RecoveryStatus status = new RecoveryStatus();
-        status.name = entries.getKey();
+        status.setName(entries.getKey());
         try {
           double progress = entries.getValue().getBytesCopied() / walBlockSize;
           // to be sure progress does not exceed 100%
-          status.progress = Math.min(progress, 99.9);
+          status.setProgress(Math.min(progress, 99.9));
         } catch (IOException ex) {
           log.warn("Error getting bytes read");
         }
-        status.runtime = (int) entries.getValue().getSortTime();
+        status.setRuntime((int) entries.getValue().getSortTime());
         result.add(status);
       }
       return result;
