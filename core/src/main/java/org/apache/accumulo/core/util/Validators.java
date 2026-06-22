@@ -167,16 +167,16 @@ public class Validators {
   });
 
   public static final Validator<String> NOT_BUILTIN_TABLE = new Validator<>(t -> {
-    if (Namespace.ACCUMULO.name().equals(TableNameUtil.qualify(t).getFirst())) {
+    if (Namespace.ACCUMULO.name().equals(TableNameUtil.qualify(t).namespaceName())) {
       return Optional.of("Table must not be in the '" + Namespace.ACCUMULO.name() + "' namespace");
     }
     return Validator.OK;
   });
 
   public static Validator<String> sameNamespaceAs(String oldTableName) {
-    final String oldNamespace = TableNameUtil.qualify(oldTableName).getFirst();
+    final String oldNamespace = TableNameUtil.qualify(oldTableName).namespaceName();
     return new Validator<>(newName -> {
-      if (!oldNamespace.equals(TableNameUtil.qualify(newName).getFirst())) {
+      if (!oldNamespace.equals(TableNameUtil.qualify(newName).namespaceName())) {
         return Optional
             .of("Unable to move tables to a new namespace by renaming. The namespace for " + newName
                 + " does not match " + oldTableName);

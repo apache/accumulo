@@ -130,7 +130,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     }
     // clean up any added tables, namespaces, and users, after each test
     for (String t : c.tableOperations().list()) {
-      if (!TableNameUtil.qualify(t).getFirst().equals(Namespace.ACCUMULO.name())) {
+      if (!TableNameUtil.qualify(t).namespaceName().equals(Namespace.ACCUMULO.name())) {
         c.tableOperations().delete(t);
       }
     }
