@@ -28,7 +28,7 @@ import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 

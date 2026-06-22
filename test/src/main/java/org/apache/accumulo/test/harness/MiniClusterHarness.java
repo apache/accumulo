@@ -65,7 +65,7 @@ public class MiniClusterHarness {
   public static final String TRUE = Boolean.toString(true);
 
   public MiniAccumuloClusterImpl create(AccumuloITBase testBase, AuthenticationToken token,
-                                        TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
+      TestingKdc kdc, MiniClusterConfigurationCallback configCallback) throws Exception {
     return create(testBase.getClass().getName(), testBase.testName(), token, configCallback, kdc);
   }
 

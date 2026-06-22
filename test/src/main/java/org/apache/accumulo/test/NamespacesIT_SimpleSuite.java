@@ -19,7 +19,7 @@
 package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -79,8 +79,8 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;

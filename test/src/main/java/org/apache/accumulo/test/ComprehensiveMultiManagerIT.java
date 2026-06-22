@@ -18,15 +18,18 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.test.harness.AccumuloClusterHarness.getCluster;
+import static org.apache.accumulo.test.harness.SharedMiniClusterBase.getClientProps;
+
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
