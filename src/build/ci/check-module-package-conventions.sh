@@ -39,10 +39,6 @@ ALLOWED=(
   server/native/src/main/resources/Makefile
   server/native/src/main/resources/NOTICE
 
-  start/src/test/java/test/HelloWorldTemplate
-  start/src/test/java/test/TestTemplate
-  start/src/test/java/test/Test.java
-
   # TODO: these test resources should be moved into the correct package for the module
   core/src/test/resources/accumulo.jceks
   core/src/test/resources/empty.jceks
