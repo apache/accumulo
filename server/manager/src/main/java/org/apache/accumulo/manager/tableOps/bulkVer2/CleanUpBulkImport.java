@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.AbstractId;
@@ -78,8 +79,7 @@ public class CleanUpBulkImport extends AbstractBulkFateOperation {
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
     try {
-      env.getVolumeManager().delete(renamingFile);
-      env.getVolumeManager().delete(mappingFile);
+      env.getVolumeManager().deleteBulk(Set.of(renamingFile, mappingFile));
     } catch (IOException ioe) {
       log.debug("{} Failed to delete renames and/or loadmap", fateId, ioe);
     }
