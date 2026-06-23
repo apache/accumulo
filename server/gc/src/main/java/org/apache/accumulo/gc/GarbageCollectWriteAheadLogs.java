@@ -53,13 +53,13 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.filters.GcWalsFilter;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
+import org.apache.accumulo.server.log.WalStateManager.WalStatePath;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -126,7 +126,7 @@ public class GarbageCollectWriteAheadLogs {
       long count;
       long fileScanStop;
       Map<TServerInstance,Set<UUID>> logsByServer;
-      Map<UUID,Pair<WalState,Path>> logsState;
+      Map<UUID,WalStatePath> logsState;
       Map<UUID,Path> recoveryLogs;
 
       Span span = TraceUtil.startSpan(this.getClass(), "getCandidates");
@@ -260,7 +260,7 @@ public class GarbageCollectWriteAheadLogs {
     });
   }
 
-  private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
+  private long removeFiles(Collection<WalStatePath> collection, final GCStatus status) {
 
     final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
@@ -268,10 +268,10 @@ public class GarbageCollectWriteAheadLogs {
     final AtomicLong counter = new AtomicLong();
 
     try {
-      for (Pair<WalState,Path> stateFile : collection) {
-        Path path = stateFile.getSecond();
+      for (WalStatePath stateFile : collection) {
+        Path path = stateFile.path();
         futures.put(path, removeFile(deleteThreadPool, path, counter,
-            "Removing " + stateFile.getFirst() + " WAL " + path));
+            "Removing " + stateFile.state() + " WAL " + path));
       }
 
       while (!futures.isEmpty()) {
@@ -342,7 +342,7 @@ public class GarbageCollectWriteAheadLogs {
   }
 
   private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates,
-      Set<TServerInstance> liveServers, Map<UUID,Pair<WalState,Path>> logsState,
+      Set<TServerInstance> liveServers, Map<UUID,WalStatePath> logsState,
       Map<UUID,Path> recoveryLogs) {
 
     Map<UUID,TServerInstance> result = new HashMap<>();
@@ -389,8 +389,8 @@ public class GarbageCollectWriteAheadLogs {
       // Server may not have any logs yet
       if (idsForServer != null) {
         for (UUID id : idsForServer) {
-          Pair<WalState,Path> stateFile = logsState.get(id);
-          if (stateFile.getFirst() != WalState.UNREFERENCED) {
+          WalStatePath stateFile = logsState.get(id);
+          if (stateFile.state() != WalState.UNREFERENCED) {
             result.remove(id);
           }
         }
@@ -408,7 +408,7 @@ public class GarbageCollectWriteAheadLogs {
    * @return total number of log files
    */
   private long getCurrent(Map<TServerInstance,Set<UUID>> logsByServer,
-      Map<UUID,Pair<WalState,Path>> logState) throws Exception {
+      Map<UUID,WalStatePath> logState) throws Exception {
 
     // get all the unused WALs in zookeeper
     long result = 0;

@@ -30,11 +30,10 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalStatePath;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.hadoop.fs.Path;
 
 import com.google.common.collect.Sets;
 
@@ -169,10 +168,10 @@ public class SystemConfigCheckRunner implements CheckRunner {
     var walsBefore = gatherWalsFromZK(context, zrw);
 
     // gather any wals present in ZooKeeper but missing in DFS
-    Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>> missingWals = new HashMap<>();
+    Map<TServerInstance,Set<WalStatePath>> missingWals = new HashMap<>();
     for (var instanceAndWals : walsBefore.entrySet()) {
       for (var wal : instanceAndWals.getValue()) {
-        if (!context.getVolumeManager().exists(wal.getSecond())) {
+        if (!context.getVolumeManager().exists(wal.path())) {
           missingWals.computeIfAbsent(instanceAndWals.getKey(), k -> new HashSet<>()).add(wal);
         }
       }
@@ -195,10 +194,10 @@ public class SystemConfigCheckRunner implements CheckRunner {
     return status;
   }
 
-  private static Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>>
-      gatherWalsFromZK(ServerContext context, ZooReaderWriter zrw) throws Exception {
+  private static Map<TServerInstance,Set<WalStatePath>> gatherWalsFromZK(ServerContext context,
+      ZooReaderWriter zrw) throws Exception {
     final var rootWalsDir = WalStateManager.ZWALS;
-    Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>> wals = new HashMap<>();
+    Map<TServerInstance,Set<WalStatePath>> wals = new HashMap<>();
     var tserverInstances = TabletMetadata.getLiveTServers(context);
     for (var tsi : tserverInstances) {
       wals.put(tsi, new HashSet<>());
@@ -222,8 +221,8 @@ public class SystemConfigCheckRunner implements CheckRunner {
         }
         var parseRes = WalStateManager.parse(data);
         log.trace("Successfully parsed WAL metadata at {} result {}", fullWalPath, parseRes);
-        if (parseRes.getFirst() == WalStateManager.WalState.OPEN
-            || parseRes.getFirst() == WalStateManager.WalState.CLOSED) {
+        if (parseRes.state() == WalStateManager.WalState.OPEN
+            || parseRes.state() == WalStateManager.WalState.CLOSED) {
           wals.get(tsi).add(parseRes);
         }
       }
