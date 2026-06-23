@@ -388,12 +388,8 @@ public class GarbageCollectWriteAheadLogs {
       Set<UUID> idsForServer = candidates.get(liveServer);
       // Server may not have any logs yet
       if (idsForServer != null) {
-        for (UUID id : idsForServer) {
-          WalStatePath stateFile = logsState.get(id);
-          if (stateFile.state() != WalState.UNREFERENCED) {
-            result.remove(id);
-          }
-        }
+        result.keySet().removeIf(
+            id -> idsForServer.contains(id) && logsState.get(id).state() != WalState.UNREFERENCED);
 
         recoveryLogs.keySet().removeAll(idsForServer);
       }

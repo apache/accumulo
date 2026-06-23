@@ -22,9 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -215,15 +217,15 @@ public class WalStateManager {
     }
   }
 
-  // utility combination of getAllMarkers and state
-  public Map<Path,WalState> getAllState() throws WalMarkerException {
-    Map<Path,WalState> result = new HashMap<>();
+  /**
+   * @return the state and path for all WAL markers.
+   */
+  public Set<WalStatePath> getAllState() throws WalMarkerException {
+    Set<WalStatePath> result = new HashSet<>();
     for (Entry<TServerInstance,List<UUID>> entry : getAllMarkers().entrySet()) {
       for (UUID id : entry.getValue()) {
-        // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
-        // expect the following call to fail because the WAL info in ZK was deleted.
-        WalStatePath walStatePath = state(entry.getKey(), id);
-        result.put(walStatePath.path(), walStatePath.state());
+        // WAL markers can be deleted while reading them.
+        result.add(state(entry.getKey(), id));
       }
     }
     return result;
