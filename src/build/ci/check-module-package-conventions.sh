@@ -39,22 +39,9 @@ ALLOWED=(
   server/native/src/main/resources/Makefile
   server/native/src/main/resources/NOTICE
 
-  # TODO: these test classes should be moved into the correct package for the module
   start/src/test/java/test/HelloWorldTemplate
   start/src/test/java/test/TestTemplate
   start/src/test/java/test/Test.java
-  test/src/main/java/org/apache/accumulo/test/harness/AccumuloClusterConfiguration.java
-  test/src/main/java/org/apache/accumulo/test/harness/AccumuloMiniClusterConfiguration.java
-  test/src/main/java/org/apache/accumulo/test/harness/AccumuloClusterPropertyConfiguration.java
-  test/src/main/java/org/apache/accumulo/test/harness/StandaloneAccumuloClusterConfiguration.java
-  test/src/main/java/org/apache/accumulo/test/harness/Timeout.java
-  test/src/main/java/org/apache/accumulo/test/harness/WithTestNames.java
-  test/src/main/java/org/apache/accumulo/test/harness/AccumuloClusterHarness.java
-  test/src/main/java/org/apache/accumulo/test/harness/AccumuloITBase.java
-  test/src/main/java/org/apache/accumulo/test/harness/MiniClusterConfigurationCallback.java
-  test/src/main/java/org/apache/accumulo/test/harness/MiniClusterHarness.java
-  test/src/main/java/org/apache/accumulo/test/harness/SharedMiniClusterBase.java
-  test/src/main/java/org/apache/accumulo/test/harness/TestingKdc.java
 
   # TODO: these test resources should be moved into the correct package for the module
   core/src/test/resources/accumulo.jceks

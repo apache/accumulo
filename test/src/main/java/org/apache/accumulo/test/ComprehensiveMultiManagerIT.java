@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.test.harness.AccumuloClusterHarness.getCluster;
-import static org.apache.accumulo.test.harness.SharedMiniClusterBase.getClientProps;
-
 import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;

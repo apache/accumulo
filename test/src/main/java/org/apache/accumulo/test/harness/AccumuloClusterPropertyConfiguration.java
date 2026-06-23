@@ -81,11 +81,11 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
       clientConf = System.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
     }
 
-    AccumuloClusterHarness.ClusterType type;
+    ClusterType type;
     if (clusterTypeValue == null) {
       type = ClusterType.MINI;
     } else {
-      type = AccumuloClusterHarness.ClusterType.valueOf(clusterTypeValue);
+      type = ClusterType.valueOf(clusterTypeValue);
     }
 
     log.info("Using {} cluster type from system properties", type);
@@ -113,7 +113,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  public Map<String,String> getConfiguration(AccumuloClusterHarness.ClusterType type) {
+  public Map<String,String> getConfiguration(ClusterType type) {
     requireNonNull(type);
 
     String prefix = switch (type) {

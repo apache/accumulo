@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.test.harness.SharedMiniClusterBase.getClientProps;
-
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
