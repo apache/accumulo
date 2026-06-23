@@ -556,8 +556,6 @@ public class ClientTabletCacheImplTest {
       return true;
     }
 
-    @Override
-    public void invalidateCache(String server) {}
   }
 
   static class TestRootClientTabletCache extends RootClientTabletCache {
@@ -1564,9 +1562,6 @@ public class ClientTabletCacheImplTest {
           public boolean isLockHeld(String tserver, String session) {
             return activeLocks.contains(tserver + ":" + session);
           }
-
-          @Override
-          public void invalidateCache(String server) {}
         });
 
     KeyExtent ke1 = createNewKeyExtent("foo", null, null);

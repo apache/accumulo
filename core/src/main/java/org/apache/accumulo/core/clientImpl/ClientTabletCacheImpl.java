@@ -155,8 +155,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   public interface TabletServerLockChecker {
     boolean isLockHeld(String tserver, String session);
-
-    void invalidateCache(String server);
   }
 
   private class LockCheckerSession {
