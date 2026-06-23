@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -935,7 +936,7 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
-  // visible for IT
+  @VisibleForTesting
   public void removeScanServerRanges(ServerContext context) {
     try (BatchDeleter batchDeleter =
         context.createBatchDeleter(Ample.DataLevel.USER.metaTable(), Authorizations.EMPTY, 4)) {
@@ -1004,7 +1005,7 @@ public class Upgrader11to12 implements Upgrader {
         "Moving table properties from system configuration to namespace configurations complete.");
   }
 
-  // visible for IT
+  @VisibleForTesting
   public void deleteCompactionTempFiles(final ServerContext ctx, final DeleteStats stats,
       final Collection<Path> deletedFiles) {
 
@@ -1012,7 +1013,7 @@ public class Upgrader11to12 implements Upgrader {
     final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
     final ExecutorService svc = Executors.newFixedThreadPool(vols.size());
     final List<Future<Void>> futures = new ArrayList<>(vols.size());
-    final Set<Path> oldCompactionTmpFiles = new HashSet<>();
+    final Set<Path> oldCompactionTmpFiles = ConcurrentHashMap.newKeySet();
 
     for (Volume vol : vols) {
       final Path volPattern = new Path(vol.getBasePath() + pattern);
@@ -1060,13 +1061,14 @@ public class Upgrader11to12 implements Upgrader {
     // use a linked list to make removal from the middle of the list quick
     final List<Future<Boolean>> delFutures = new LinkedList<>();
 
+    final Set<Path> filesDeleted = ConcurrentHashMap.newKeySet();
     oldCompactionTmpFiles.forEach(p -> {
       delFutures.add(delSvc.submit(() -> {
         if (ctx.getVolumeManager().exists(p)) {
           boolean result = ctx.getVolumeManager().delete(p);
           if (result) {
             LOG.debug("Removed old temp file {}", p);
-            deletedFiles.add(p);
+            filesDeleted.add(p);
           } else {
             LOG.error(
                 "Unable to remove old temp file {}, operation returned false with no exception", p);
@@ -1096,12 +1098,13 @@ public class Upgrader11to12 implements Upgrader {
           }
         }
       }
-      int remaining = oldCompactionTmpFiles.size();
+      int remaining = delFutures.size();
       if (remaining > 0) {
         LOG.debug("Waiting on {} background delete operations", remaining);
         UtilWaitThread.sleep(3_000);
       }
     }
+    deletedFiles.addAll(filesDeleted);
     LOG.info("Deletion of compaction tmp files completed. Success:{}, Failure:{}, Error:{}",
         stats.success, stats.failure, stats.error);
   }
