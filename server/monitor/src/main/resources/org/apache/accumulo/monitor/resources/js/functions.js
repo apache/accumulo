@@ -44,6 +44,7 @@ const ALERT_COUNTS = 'alertCounts';
 const RECOVERY = 'recovery';
 const INSTANCE_OVERVIEW = 'instanceOverview';
 const SCANS = 'scans';
+const SERVER_METRICS = 'serverMetrics';
 const LAST_UPDATE = 'lastUpdate';
 
 var STATUS_REQUEST = null;
@@ -309,6 +310,31 @@ function timeDuration(time) {
  */
 function sanitize(url) {
   return url.split('+').join('%2B');
+}
+
+function escapeHtml(value) {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return $('<div>').text(value).html();
+}
+
+function serverMetricsHref(serverType, resourceGroup, serverAddress) {
+  var href = 'server?type=' + encodeURIComponent(serverType) +
+    '&s=' + encodeURIComponent(serverAddress);
+  if (resourceGroup !== null && resourceGroup !== undefined && resourceGroup !== '') {
+    href += '&resourceGroup=' + encodeURIComponent(resourceGroup);
+  }
+  return href;
+}
+
+function renderServerMetricsLink(serverType, resourceGroup, serverAddress) {
+  if (!serverType || !resourceGroup || !serverAddress) {
+    return escapeHtml(serverAddress);
+  }
+  return '<a class="link-body-emphasis" href="' +
+    serverMetricsHref(serverType, resourceGroup, serverAddress) + '">' +
+    escapeHtml(serverAddress) + '</a>';
 }
 
 /**
@@ -604,6 +630,12 @@ function getFate() {
 function getServerProcessView(table, storageKey) {
   var url = REST_V2_PREFIX + '/servers/view;table=' + table;
   return getJSONForTable(url, storageKey);
+}
+
+function getServerMetrics(serverType, resourceGroup, serverAddress) {
+  var url = REST_V2_PREFIX + '/servers/detail/' + encodeURIComponent(serverType) + '/' +
+    encodeURIComponent(resourceGroup) + '/' + encodeURIComponent(serverAddress);
+  return getJSONForTable(url, SERVER_METRICS);
 }
 
 function getCompactorsView() {
