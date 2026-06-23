@@ -243,6 +243,7 @@ public class VolumeManagerImpl implements VolumeManager {
     return getFileSystemByPath(path).delete(path, true);
   }
 
+  @Override
   public Map<Path,DeleteStatus> deleteBulk(Collection<Path> paths) throws IOException {
 
     requireNonNull(paths);

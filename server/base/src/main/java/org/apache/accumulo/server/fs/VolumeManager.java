@@ -143,7 +143,7 @@ public interface VolumeManager extends AutoCloseable {
    *
    * @param paths paths of files to delete
    * @return paths map of input path to delete state
-   * @throws IOException
+   * @throws IOException on any exception deleting files
    */
   Map<Path,DeleteStatus> deleteBulk(Collection<Path> paths) throws IOException;
 
