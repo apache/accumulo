@@ -229,7 +229,7 @@ class FateServiceHandler implements FateService.Iface {
           }
         }
         NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(),
-            TableNameUtil.qualify(tableName).getFirst(), tableOp);
+            TableNameUtil.qualify(tableName).namespaceName(), tableOp);
 
         if (!security.canCreateTable(c, tableName, namespaceId)) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -318,7 +318,7 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(),
-            TableNameUtil.qualify(tableName).getFirst(), tableOp);
+            TableNameUtil.qualify(tableName).namespaceName(), tableOp);
 
         final boolean canCloneTable;
         try {
@@ -593,7 +593,7 @@ class FateServiceHandler implements FateService.Iface {
         List<ByteBuffer> exportDirArgs = arguments.stream().skip(3).collect(Collectors.toList());
         Set<String> exportDirs = ByteBufferUtil.toStringSet(exportDirArgs);
         NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(),
-            TableNameUtil.qualify(tableName).getFirst(), tableOp);
+            TableNameUtil.qualify(tableName).namespaceName(), tableOp);
 
         final boolean canImport;
         try {
