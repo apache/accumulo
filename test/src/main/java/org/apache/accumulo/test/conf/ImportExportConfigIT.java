@@ -21,11 +21,18 @@ package org.apache.accumulo.test.conf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -45,11 +52,20 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.conf.util.ExportConfigCommand;
 import org.apache.accumulo.server.conf.util.ImportConfigCommand;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.yaml.snakeyaml.constructor.DuplicateKeyException;
 
 public class ImportExportConfigIT extends AccumuloClusterHarness {
+
+  @TempDir
+  private static Path tempDir;
+
   private static final String YAML1 =
       """
           scope: SYSTEM
@@ -763,6 +779,242 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       }
     }
 
+  }
+
+  /**
+   * Test when yaml has duplicate scope+name, should fail.
+   */
+  @Test
+  public void testDuplicate() throws Exception {
+
+    var template = """
+        scope: __SCOPE__
+        name: dup
+        properties: {
+          table.split.threshold: 5
+        }
+        ---
+        scope: __SCOPE__
+        name: dup
+        properties: {
+          table.split.threshold: 7
+        }
+        """;
+
+    var correctTemplate = """
+        scope: __SCOPE__
+        name: dup
+        properties: {
+          table.split.threshold: 5
+        }
+        """;
+
+    for (var scope : ExportConfigCommand.Scope.values()) {
+      var yaml = template.replace("__SCOPE__", scope.name());
+      var iae = assertThrows(IllegalArgumentException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream(yaml.getBytes(UTF_8)), DRY_RUN_IGNORE_EXTRA_OPTS));
+      assertEquals("Duplicate scope+name in input, scope:" + scope.name() + " name:dup",
+          iae.getMessage());
+
+      var opts = new ImportConfigCommand.Opts();
+      opts.expectedFile = write(yaml);
+      opts.dryRun = true;
+      opts.ignoreExtra = true;
+      var correctYaml = correctTemplate.replace("__SCOPE__", scope.name());
+      iae = assertThrows(IllegalArgumentException.class, () -> ImportConfigCommand
+          .load(getServerContext(), new ByteArrayInputStream(correctYaml.getBytes(UTF_8)), opts));
+      assertEquals("Duplicate scope+name in expected file, scope:" + scope.name() + " name:dup",
+          iae.getMessage());
+
+    }
+
+    // Test snake yaml settings dissallow duplicate map keys
+    var dupMapKeys = """
+        scope: SYSTEM
+        scope: RESOURCE_GROUP
+        name: ''
+        name: "rgid1"
+        properties: {
+        }
+        """;
+    var opts = new ImportConfigCommand.Opts();
+    opts.expectedFile = write(dupMapKeys);
+    opts.dryRun = true;
+    opts.ignoreExtra = true;
+    assertThrows(DuplicateKeyException.class, () -> ImportConfigCommand.load(getServerContext(),
+        new ByteArrayInputStream(dupMapKeys.getBytes(UTF_8)), opts));
+
+  }
+
+  private String write(String yaml) throws IOException {
+    var expectedFile = Files.createTempFile(tempDir, "iet", "yaml");
+    try (var out = Files.newBufferedWriter(expectedFile, StandardOpenOption.CREATE,
+        StandardOpenOption.TRUNCATE_EXISTING)) {
+      out.write(yaml);
+    }
+    return expectedFile.toAbsolutePath().toString();
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void testExpected(boolean precheckExpected) throws Exception {
+
+    var opts = new ImportConfigCommand.Opts();
+    opts.ignoreExtra = true;
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      assertEquals(Map.of(), client.instanceOperations().getSystemProperties());
+
+      var expectedSystem = """
+          scope: SYSTEM
+          name: ''
+          properties: {
+          }
+          """;
+      var updateSystem1 = """
+          scope: SYSTEM
+          name: ''
+          properties: {
+            general.server.threadpool.size: 5
+          }
+          """;
+      var updateSystem2 = """
+          scope: SYSTEM
+          name: ''
+          properties: {
+            general.micrometer.log.metrics: log4j2,
+            general.micrometer.enabled: true
+          }
+          """;
+      assertEquals(Map.of(), client.instanceOperations().getSystemProperties());
+      opts.expectedFile = write(expectedSystem);
+      opts.inputFile = write(updateSystem1);
+      ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
+          opts, precheckExpected);
+      Wait.waitFor(() -> Map.of("general.server.threadpool.size", "5")
+          .equals(client.instanceOperations().getSystemProperties()));
+      // running the command again should fail because the expected is not correct
+      opts.expectedFile = write(expectedSystem);
+      opts.inputFile = write(updateSystem2);
+      var cme = assertThrows(ConcurrentModificationException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
+      assertEquals(
+          "Properties in scope:SYSTEM name: do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
+          cme.getMessage());
+      if (precheckExpected) {
+        assertNull(cme.getCause());
+      } else {
+        // when a failure happens in the zookeeper atomic update will have an exception wrapping an
+        // exception
+        assertNotNull(cme.getCause());
+        assertEquals(ConcurrentModificationException.class, cme.getCause().getClass());
+      }
+
+      // test dry run with expected
+      opts.dryRun = true;
+      if (precheckExpected) {
+        cme = assertThrows(ConcurrentModificationException.class,
+            () -> ImportConfigCommand.load(getServerContext(),
+                new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
+        assertEquals(
+            "Properties in scope:SYSTEM name: do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
+            cme.getMessage());
+      } else {
+        // should not fail and should not change anything, this is testing the test code.
+        ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
+            opts, precheckExpected);
+      }
+      opts.dryRun = false;
+
+      // The properties should not have changed, give any changes that may have been erroneously
+      // made time to propagate
+      Thread.sleep(100);
+      assertEquals(Map.of("general.server.threadpool.size", "5"),
+          client.instanceOperations().getSystemProperties());
+
+      // running the import again should succeed w/ the new expected file
+      opts.expectedFile = write(updateSystem1);
+      opts.inputFile = write(updateSystem2);
+      ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
+          opts, precheckExpected);
+      Wait.waitFor(() -> Map
+          .of("general.micrometer.log.metrics", "log4j2", "general.micrometer.enabled", "true")
+          .equals(client.instanceOperations().getSystemProperties()));
+
+      // test resource groups, namespaces and tables
+      ResourceGroupId rgid1 = ResourceGroupId.of("expectedRG");
+      client.resourceGroupOperations().create(rgid1);
+      assertEquals(Map.of(), client.resourceGroupOperations().getProperties(rgid1));
+      client.resourceGroupOperations().setProperty(rgid1, "general.server.threadpool.size",
+          "987654321");
+      client.resourceGroupOperations().setProperty(rgid1, "general.micrometer.enabled", "false");
+      client.namespaceOperations().create("expns");
+      client.namespaceOperations().setProperty("expns", "table.file.max", "50");
+      client.tableOperations().create("expns.t1", new NewTableConfiguration().withoutDefaults());
+      client.tableOperations().setProperty("expns.t1", "table.split.threshold", "100M");
+      var exportYaml = ExportConfigCommand.export(getServerContext());
+      client.resourceGroupOperations().setProperty(rgid1, "general.micrometer.enabled", "true");
+      opts.expectedFile = write(exportYaml);
+      opts.inputFile = write(exportYaml.replace("9", "10"));
+      cme = assertThrows(ConcurrentModificationException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
+      assertEquals(
+          "Properties in scope:RESOURCE_GROUP name:expectedRG do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
+          cme.getMessage());
+      // The properties should not have changed, give any changes that may have been erroneously
+      // made time to propagate
+      Thread.sleep(100);
+      assertEquals(Map.of("general.server.threadpool.size", "987654321",
+          "general.micrometer.enabled", "true"),
+          client.resourceGroupOperations().getProperties(rgid1));
+      // correct the expected file to work and run again
+      client.resourceGroupOperations().setProperty(rgid1, "general.micrometer.enabled", "false");
+      opts.expectedFile = write(exportYaml);
+      opts.inputFile = write(exportYaml.replace("987654321", "10"));
+      ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
+          opts, precheckExpected);
+      Wait.waitFor(() -> Map
+          .of("general.server.threadpool.size", "10", "general.micrometer.enabled", "false")
+          .equals(client.resourceGroupOperations().getProperties(rgid1)));
+
+      // check table scope
+      exportYaml = ExportConfigCommand.export(getServerContext());
+      client.tableOperations().setProperty("expns.t1", "table.split.threshold", "200M");
+      opts.expectedFile = write(exportYaml);
+      opts.inputFile = write(exportYaml.replace("100M", "600M"));
+      cme = assertThrows(ConcurrentModificationException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
+      assertEquals(
+          "Properties in scope:TABLE name:expns.t1 do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
+          cme.getMessage());
+      assertEquals(Map.of("table.split.threshold", "200M"),
+          client.tableOperations().getTableProperties("expns.t1"));
+      // correct expected file
+      opts.expectedFile = write(exportYaml.replace("100M", "200M"));
+      ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
+          opts, precheckExpected);
+      Wait.waitFor(() -> Map.of("table.split.threshold", "600M")
+          .equals(client.tableOperations().getTableProperties("expns.t1")));
+
+      // check case where expected file is missing a section
+      exportYaml = ExportConfigCommand.export(getServerContext());
+      client.tableOperations().create("expns.t2", new NewTableConfiguration().withoutDefaults());
+      // the export yaml does not contain the new table
+      var exportYaml2 = ExportConfigCommand.export(getServerContext());
+      opts.expectedFile = write(exportYaml);
+      opts.inputFile = write(exportYaml2.replace("600M", "123M"));
+      var iae = assertThrows(IllegalArgumentException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
+      assertEquals(
+          "Scope+name present in input but not present in expected file, scope:TABLE name:expns.t2",
+          iae.getMessage());
+    }
   }
 
   @Test
