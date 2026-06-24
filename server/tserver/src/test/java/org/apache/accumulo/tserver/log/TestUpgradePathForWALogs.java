@@ -54,11 +54,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TestUpgradePathForWALogs extends WithTestNames {
 
   // older logs no longer compatible
-  private static final String WALOG_FROM_15 = "walog-from-15.walog";
+  private static final String WALOG_FROM_15 = "org/apache/accumulo/tserver/walog-from-15.walog";
   // logs from versions 1.6 through 1.10 should be the same
-  private static final String WALOG_FROM_16 = "walog-from-16.walog";
+  private static final String WALOG_FROM_16 = "org/apache/accumulo/tserver/walog-from-16.walog";
   // logs from 2.0 were changed for improved crypto
-  private static final String WALOG_FROM_20 = "walog-from-20.walog";
+  private static final String WALOG_FROM_20 = "org/apache/accumulo/tserver/walog-from-20.walog";
 
   private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
