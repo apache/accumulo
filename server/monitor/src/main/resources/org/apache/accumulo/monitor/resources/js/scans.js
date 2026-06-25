@@ -41,6 +41,15 @@ $(function () {
         defaultContent: '&mdash;'
       },
       {
+        "targets": 0,
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            return renderServerMetricsLink(row.type, row.resourceGroup, data);
+          }
+          return data;
+        }
+      },
+      {
         "targets": "duration",
         "render": function (data, type, row) {
           if (type === 'display') data = timeDuration(data);
@@ -56,7 +65,7 @@ $(function () {
       }
     ],
     "columns": [{
-        "data": "server",
+        "data": "server"
       },
       {
         "data": "type"
