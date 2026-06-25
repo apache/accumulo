@@ -57,6 +57,15 @@ $(function () {
         }
       },
       {
+        "targets": "scan-state",
+        "render": function (data, type) {
+          if (type === 'display') {
+            return renderActivityState(data === 'IDLE' ? 1 : 0, type);
+          }
+          return data;
+        }
+      },
+      {
         "targets": "date",
         "render": function (data, type, row) {
           if (type === 'display') data = dateFormat(data);
@@ -100,6 +109,8 @@ $(function () {
       }
     ]
   });
+
+  refresh();
 });
 
 
