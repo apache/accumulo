@@ -22,16 +22,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -83,6 +84,9 @@ public class WalStateManager {
     CLOSED,
     /* unreferenced: no tablet needs the log for recovery */
     UNREFERENCED
+  }
+
+  public record WalStatePath(WalState state, Path path) {
   }
 
   private final ZooReaderWriter zoo;
@@ -144,9 +148,9 @@ public class WalStateManager {
     updateState(tsi, path, WalState.UNREFERENCED);
   }
 
-  public static Pair<WalState,Path> parse(byte[] data) {
+  public static WalStatePath parse(byte[] data) {
     String[] parts = new String(data, UTF_8).split(",");
-    return new Pair<>(WalState.valueOf(parts[0]), new Path(parts[1]));
+    return new WalStatePath(WalState.valueOf(parts[0]), new Path(parts[1]));
   }
 
   // Manager needs to know the logs for the given instance
@@ -168,9 +172,9 @@ public class WalStateManager {
         }
 
         if (zdata != null) {
-          Pair<WalState,Path> parts = parse(zdata);
-          if (parts.getFirst() != WalState.UNREFERENCED) {
-            result.add(parts.getSecond());
+          WalStatePath parts = parse(zdata);
+          if (parts.state() != WalState.UNREFERENCED) {
+            result.add(parts.path());
           }
         }
       }
@@ -204,7 +208,7 @@ public class WalStateManager {
   }
 
   // garbage collector wants to know the state (open/closed) of a log, and the filename to delete
-  public Pair<WalState,Path> state(TServerInstance instance, UUID uuid) throws WalMarkerException {
+  public WalStatePath state(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
       String path = root() + "/" + instance + "/" + uuid;
       return parse(zoo.getData(path));
@@ -213,15 +217,16 @@ public class WalStateManager {
     }
   }
 
-  // utility combination of getAllMarkers and state
-  public Map<Path,WalState> getAllState() throws WalMarkerException {
-    Map<Path,WalState> result = new HashMap<>();
-    for (Entry<TServerInstance,List<UUID>> entry : getAllMarkers().entrySet()) {
+  /**
+   * @return the state and path for all WAL markers.
+   */
+  public Set<WalStatePath> getAllState() throws WalMarkerException {
+    Map<TServerInstance,List<UUID>> markers = getAllMarkers();
+    Set<WalStatePath> result = new HashSet<>(markers.size());
+    for (Entry<TServerInstance,List<UUID>> entry : markers.entrySet()) {
       for (UUID id : entry.getValue()) {
-        // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
-        // expect the following call to fail because the WAL info in ZK was deleted.
-        Pair<WalState,Path> state = state(entry.getKey(), id);
-        result.put(state.getSecond(), state.getFirst());
+        // WAL markers can be deleted while reading them.
+        result.add(state(entry.getKey(), id));
       }
     }
     return result;
