@@ -436,8 +436,8 @@ public class Gatherer {
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
     Function<TRowRange,RowRange> fromThrift = tRowRange -> {
-      Text lowerBound = ByteBufferUtil.toText(request.getBounds().bufferForStartRow());
-      Text upperBound = ByteBufferUtil.toText(request.getBounds().bufferForEndRow());
+      Text lowerBound = ByteBufferUtil.toText(tRowRange.bufferForStartRow());
+      Text upperBound = ByteBufferUtil.toText(tRowRange.bufferForEndRow());
       return RowRange.range(lowerBound, false, upperBound, true);
     };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
