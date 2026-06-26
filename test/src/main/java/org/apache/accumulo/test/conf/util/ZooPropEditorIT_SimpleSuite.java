@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.conf.util;
 
 import static org.apache.accumulo.core.conf.SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY;
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,8 +33,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

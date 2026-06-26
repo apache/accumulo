@@ -39,23 +39,6 @@ ALLOWED=(
   server/native/src/main/resources/Makefile
   server/native/src/main/resources/NOTICE
 
-  # TODO: these test classes should be moved into the correct package for the module
-  start/src/test/java/test/HelloWorldTemplate
-  start/src/test/java/test/TestTemplate
-  start/src/test/java/test/Test.java
-  test/src/main/java/org/apache/accumulo/harness/conf/AccumuloClusterConfiguration.java
-  test/src/main/java/org/apache/accumulo/harness/conf/AccumuloMiniClusterConfiguration.java
-  test/src/main/java/org/apache/accumulo/harness/conf/AccumuloClusterPropertyConfiguration.java
-  test/src/main/java/org/apache/accumulo/harness/conf/StandaloneAccumuloClusterConfiguration.java
-  test/src/main/java/org/apache/accumulo/harness/Timeout.java
-  test/src/main/java/org/apache/accumulo/harness/WithTestNames.java
-  test/src/main/java/org/apache/accumulo/harness/AccumuloClusterHarness.java
-  test/src/main/java/org/apache/accumulo/harness/AccumuloITBase.java
-  test/src/main/java/org/apache/accumulo/harness/MiniClusterConfigurationCallback.java
-  test/src/main/java/org/apache/accumulo/harness/MiniClusterHarness.java
-  test/src/main/java/org/apache/accumulo/harness/SharedMiniClusterBase.java
-  test/src/main/java/org/apache/accumulo/harness/TestingKdc.java
-
   # TODO: these minicluster classes should be moved into the correct package for the module
   minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloCluster.java
   minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControl.java

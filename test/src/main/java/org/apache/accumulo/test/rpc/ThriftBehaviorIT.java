@@ -19,12 +19,12 @@
 package org.apache.accumulo.test.rpc;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.apache.accumulo.harness.WithTestNames;
+import org.apache.accumulo.test.harness.WithTestNames;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;

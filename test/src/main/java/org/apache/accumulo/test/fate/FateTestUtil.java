@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
