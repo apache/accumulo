@@ -79,7 +79,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Encoding;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -611,8 +610,8 @@ public class Upgrader11to12 implements Upgrader {
     // state gets created last
     LOG.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
-    tableName = qualifiedTableName.getSecond();
+    var qualifiedTableName = TableNameUtil.qualify(tableName);
+    tableName = qualifiedTableName.tableName();
     String zTablePath = Constants.ZTABLES + "/" + tableId;
     final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);

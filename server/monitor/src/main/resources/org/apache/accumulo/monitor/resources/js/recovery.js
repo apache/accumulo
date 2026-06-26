@@ -154,9 +154,19 @@ $(function () {
     "stateSave": true,
     "colReorder": true,
     "columnDefs": [{
-      targets: '_all',
-      defaultContent: '&mdash;'
-    }],
+        targets: '_all',
+        defaultContent: '&mdash;'
+      },
+      {
+        "targets": 0,
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            return renderServerMetricsLink(row.type, row.resourceGroup, data);
+          }
+          return data;
+        }
+      }
+    ],
     "columns": [{
         "data": "server"
       },

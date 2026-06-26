@@ -889,7 +889,9 @@ public class SystemInformation {
 
     if (!qm.isEmpty()) {
       // Create a ServersView object from the MetricResponse for each queue
-      return TableDataFactory.forColumns(qm.keySet(), qm, cols);
+      TableData tableData = TableDataFactory.forColumns(qm.keySet(), qm, cols);
+      tableData.data().forEach(row -> row.put(TableDataFactory.LINK_RG_COL_KEY, ""));
+      return tableData;
     }
     return TableDataFactory.forColumns(Set.of(), Map.of(), cols);
   }
@@ -1637,6 +1639,16 @@ public class SystemInformation {
       return view.get();
     }
     return null;
+  }
+
+  public MetricResponse getServerMetricResponse(ServerId.Type type, String resourceGroup,
+      String serverAddress) {
+    HostAndPort address = HostAndPort.fromString(serverAddress);
+    if (!address.hasPort()) {
+      throw new IllegalArgumentException("Server address must be host:port");
+    }
+    return allMetrics.getIfPresent(new ServerId(type, ResourceGroupId.of(resourceGroup),
+        address.getHost(), address.getPort()));
   }
 
   public static Number getMetricValue(FMetric metric) {

@@ -77,6 +77,10 @@ public class WebViews {
    */
   private static final String TSERVER_PARAM_KEY = "s";
 
+  private static final String SERVER_TYPE_PARAM_KEY = "type";
+
+  private static final String RESOURCE_GROUP_PARAM_KEY = "resourceGroup";
+
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
   @Inject
@@ -195,13 +199,41 @@ public class WebViews {
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
     if (server != null && !server.isBlank()) {
+      model.put("title", "Server Metrics");
       model.put("template", "server.ftl");
       model.put("js", "server.js");
       model.put("server", server);
+      model.put("serverType", "TABLET_SERVER");
+      model.put("resourceGroup", "");
       return model;
     }
     model.put("template", "tservers.ftl");
     model.put("js", "tservers.js");
+    return model;
+  }
+
+  /**
+   * Returns the server metrics template
+   *
+   * @param serverType Accumulo server process type
+   * @param resourceGroup server resource group
+   * @param server server address
+   * @return server metrics model
+   */
+  @GET
+  @Path("server")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getServerMetrics(@QueryParam(SERVER_TYPE_PARAM_KEY) String serverType,
+      @QueryParam(RESOURCE_GROUP_PARAM_KEY) String resourceGroup,
+      @QueryParam(TSERVER_PARAM_KEY) @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Server Metrics");
+    model.put("template", "server.ftl");
+    model.put("js", "server.js");
+    model.put("server", server);
+    model.put("serverType", serverType);
+    model.put("resourceGroup", resourceGroup == null ? "" : resourceGroup);
     return model;
   }
 

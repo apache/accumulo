@@ -257,7 +257,7 @@ function createDataTable(table, storageKey) {
       "text": '<i class="bi bi-gear"></i>',
       "titleAttr": 'Columns'
     }],
-    "dom": '<"row"<"col-sm-12 col-md-4"l><"col-sm-12 col-md-6"f><"col-sm-12 col-md-2"B>>' +
+    "dom": '<"row"<"col-sm-12 col-md-4"l><"col-sm-12 col-md-6 text-md-end"f><"col-sm-12 col-md-2 text-md-end"B>>' +
       '<"row dt-row"<"col-sm-12"rt>>' +
       '<"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
     "stateSave": true,
@@ -368,6 +368,15 @@ function createDataTable(table, storageKey) {
       {
         "targets": "memory-state",
         "render": renderMemoryState
+      },
+      {
+        "targets": "server-address",
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            return renderServerMetricsLink(row.serverType, row.serverLinkResourceGroup, data);
+          }
+          return data;
+        }
       }
     ],
     "columns": getDataTableCols(storageKey)
