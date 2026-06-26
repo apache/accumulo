@@ -197,8 +197,8 @@ public class SystemConfigCheckRunner implements CheckRunner {
   private static Map<TServerInstance,Set<WalStatePath>> gatherWalsFromZK(ServerContext context,
       ZooReaderWriter zrw) throws Exception {
     final var rootWalsDir = WalStateManager.ZWALS;
-    Map<TServerInstance,Set<WalStatePath>> wals = new HashMap<>();
     var tserverInstances = TabletMetadata.getLiveTServers(context);
+    Map<TServerInstance,Set<WalStatePath>> wals = new HashMap<>(tserverInstances.size());
     for (var tsi : tserverInstances) {
       wals.put(tsi, new HashSet<>());
       // each child node of the root wals dir is a TServerInstance

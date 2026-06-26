@@ -221,8 +221,9 @@ public class WalStateManager {
    * @return the state and path for all WAL markers.
    */
   public Set<WalStatePath> getAllState() throws WalMarkerException {
-    Set<WalStatePath> result = new HashSet<>();
-    for (Entry<TServerInstance,List<UUID>> entry : getAllMarkers().entrySet()) {
+    Map<TServerInstance,List<UUID>> markers = getAllMarkers();
+    Set<WalStatePath> result = new HashSet<>(markers.size());
+    for (Entry<TServerInstance,List<UUID>> entry : markers.entrySet()) {
       for (UUID id : entry.getValue()) {
         // WAL markers can be deleted while reading them.
         result.add(state(entry.getKey(), id));
