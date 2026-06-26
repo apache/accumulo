@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness;
+package org.apache.accumulo.test.harness;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;

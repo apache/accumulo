@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.time.Duration;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.start.TestMain;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
 public class StartIT extends AccumuloClusterHarness {

@@ -16,27 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness;
+package org.apache.accumulo.test.harness;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.TestInfo;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 
-// This is only for the unit tests and integration tests in this module
-// It must be copied for use in other modules, because tests in one module
-// don't have dependencies on other modules, and we can't put this in a
-// regular, non-test jar, because we don't want to add a dependency on
-// JUnit in a non-test jar
-public class WithTestNames {
+/**
+ * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml
+ * file used by the MiniAccumuloCluster
+ */
+@FunctionalInterface
+public interface MiniClusterConfigurationCallback {
 
-  private String testName;
+  class NoCallback implements MiniClusterConfigurationCallback {
 
-  @BeforeEach
-  public void setTestName(TestInfo info) {
-    testName = info.getTestMethod().orElseThrow().getName();
+    private NoCallback() {}
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      return;
+    }
   }
 
-  public String testName() {
-    return testName;
-  }
+  MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
+
+  void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
 
 }

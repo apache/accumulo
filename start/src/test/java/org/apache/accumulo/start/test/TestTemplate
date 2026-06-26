@@ -16,12 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package test;
+package org.apache.accumulo.start.test;
 
-public interface Test {
+public class TestObject implements Test {
+    
+    int i = 0;
 
-  String hello();
+    @Override
+    public String hello() {
+        return "Hello from testX";
+    }
 
-  int add();
+    @Override
+    public int add() {
+        i += 1;
+        return i;
+    }
 
 }
