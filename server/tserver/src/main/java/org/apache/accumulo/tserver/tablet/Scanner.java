@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -142,7 +142,7 @@ public class Scanner {
 
       if (results.getResults() == null) {
         range = null;
-        return new Pair<>(new ScanBatch(new ArrayList<>(), false), dataSource);
+        return new Pair<>(new ScanBatch(List.of(), false), dataSource);
       } else if (results.getContinueKey() == null) {
         return new Pair<>(new ScanBatch(results.getResults(), false), dataSource);
       } else {

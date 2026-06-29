@@ -444,7 +444,8 @@ public class SessionManager {
 
   public List<ActiveScan> getActiveScans() {
 
-    final List<ActiveScan> activeScans = new ArrayList<>();
+    final List<ActiveScan> activeScans =
+        new ArrayList<>(sessions.size() + deferredCleanupQueue.size());
     final long ct = System.currentTimeMillis();
     final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 

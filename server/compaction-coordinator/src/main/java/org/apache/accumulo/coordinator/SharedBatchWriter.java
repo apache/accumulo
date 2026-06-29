@@ -83,7 +83,7 @@ public class SharedBatchWriter {
   private void processMutations() {
     Timer timer = Timer.startNew();
     while (true) {
-      ArrayList<Work> batch = new ArrayList<>();
+      ArrayList<Work> batch = new ArrayList<>(mutations.size());
       try {
         batch.add(mutations.take());
       } catch (InterruptedException e) {

@@ -143,7 +143,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       this.batchSize = batchSize;
       this.readaheadThreshold = readaheadThreshold;
 
-      buffer = bufferFactory.newBuffer();
+      buffer = bufferFactory.newBuffer(this.batchSize);
 
       this.source = newIterator(range);
 
@@ -172,11 +172,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
 
   }
 
-  public interface RowBufferFactory {
-    RowBuffer newBuffer();
+  private interface RowBufferFactory {
+    RowBuffer newBuffer(int initialSize);
   }
 
-  public interface RowBuffer extends Iterable<Entry<Key,Value>> {
+  private interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
 
     @Override
@@ -185,17 +185,21 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     void clear();
   }
 
-  public static class MemoryRowBufferFactory implements RowBufferFactory {
+  private static class MemoryRowBufferFactory implements RowBufferFactory {
 
     @Override
-    public RowBuffer newBuffer() {
-      return new MemoryRowBuffer();
+    public RowBuffer newBuffer(int initialSize) {
+      return new MemoryRowBuffer(initialSize);
     }
   }
 
   public static class MemoryRowBuffer implements RowBuffer {
 
-    private final ArrayList<Entry<Key,Value>> buffer = new ArrayList<>();
+    private final ArrayList<Entry<Key,Value>> buffer;
+
+    private MemoryRowBuffer(int initialSize) {
+      buffer = new ArrayList<>(initialSize);
+    }
 
     @Override
     public void add(Entry<Key,Value> entry) {
