@@ -186,7 +186,7 @@ public class HadoopCredentialProviderTest {
       dfs.copyFromLocalFile(new Path(populatedKeyStore.toURI()), destPath);
 
       Configuration cpConf = dfsConfiguration;
-      HadoopCredentialProvider.setPath(cpConf, "jceks://hdfs/accumulo.jceks");
+      HadoopCredentialProvider.setPath(cpConf, "jceks://hdfs/" + destPath);
 
       // The values in the keystore
       Map<String,String> expectations = new HashMap<>();
