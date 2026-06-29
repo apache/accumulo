@@ -200,7 +200,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       throw new NotServingTabletException(extent.toThrift());
     }
 
-    HashSet<Column> columnSet = new HashSet<>();
+    HashSet<Column> columnSet = new HashSet<>(columns.size(), 1.0f);
     for (TColumn tcolumn : columns) {
       columnSet.add(new Column(tcolumn));
     }
@@ -356,7 +356,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       Map<String,String> executionHints, long busyTimeout)
       throws ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException {
 
-    final Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    final Map<KeyExtent,List<TRange>> batch = new HashMap<>(tbatch.size(), 1.0f);
     tbatch.forEach((k, v) -> {
       batch.put(KeyExtent.fromThrift(k), v);
     });

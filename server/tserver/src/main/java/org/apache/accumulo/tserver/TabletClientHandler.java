@@ -177,7 +177,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
         for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
           TKeyExtent tke = entry.getKey();
           Map<String,MapFileInfo> fileMap = entry.getValue();
-          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>();
+          Map<TabletFile,MapFileInfo> fileRefMap = new HashMap<>(fileMap.size(), 1.0f);
           for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
             Path path = new Path(mapping.getKey());
             FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
@@ -219,7 +219,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
-        Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
+        Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>(fileMap.size(), 1.0f);
 
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
@@ -1209,7 +1209,9 @@ public class TabletClientHandler implements TabletClientService.Iface {
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 
-          Set<KeyExtent> all = new HashSet<>();
+          Set<KeyExtent> all = new HashSet<>(
+              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
+              1.0f);
           all.addAll(unopenedOverlapping);
           all.addAll(openingOverlapping);
           all.addAll(onlineOverlapping);

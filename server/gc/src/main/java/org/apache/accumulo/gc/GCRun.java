@@ -244,8 +244,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     while (retries <= 10) {
       try {
         zr.sync(tablesPath);
-        final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(tablesPath)) {
+        var tables = zr.getChildren(tablesPath);
+        final Map<TableId,TableState> tids = new HashMap<>(tables.size(), 1.0f);
+        for (String table : tables) {
           TableId tableId = TableId.of(table);
           TableState tableState = null;
           String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
@@ -607,8 +608,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     } else if (level == DataLevel.METADATA) {
       return Set.of(MetadataTable.ID);
     } else if (level == DataLevel.USER) {
-      Set<TableId> tableIds = new HashSet<>();
-      getTableIDs().forEach((k, v) -> {
+      var tids = getTableIDs();
+      Set<TableId> tableIds = new HashSet<>(tids.size(), 1.0f);
+      tids.forEach((k, v) -> {
         if (v == TableState.ONLINE || v == TableState.OFFLINE) {
           // Don't return tables that are NEW, DELETING, or in an
           // UNKNOWN state.

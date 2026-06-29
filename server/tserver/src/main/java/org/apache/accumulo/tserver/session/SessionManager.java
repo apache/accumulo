@@ -406,7 +406,7 @@ public class SessionManager {
   public Map<TableId,MapCounter<ScanRunState>> getActiveScansPerTable() {
     Map<TableId,MapCounter<ScanRunState>> counts = new HashMap<>();
 
-    Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
+    Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>(deferredCleanupQueue.size(), 1.0f);
 
     /**
      * Add sessions so that get the list returned in the active scans call
@@ -446,7 +446,8 @@ public class SessionManager {
 
     final List<ActiveScan> activeScans = new ArrayList<>();
     final long ct = System.currentTimeMillis();
-    final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
+    final Set<Entry<Long,Session>> copiedIdleSessions =
+        new HashSet<>(deferredCleanupQueue.size(), 1.0f);
 
     /**
      * Add sessions that get the list returned in the active scans call
