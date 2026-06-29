@@ -1540,12 +1540,6 @@ public class Manager extends AbstractServer
       if (!deleted.isEmpty()) {
         // This set is read from zookeeper, so only get it if its actually needed
         var serversToShutdown = shutdownServers();
-        for (TServerInstance dead : deleted) {
-          String cause = "unexpected failure";
-          if (serversToShutdown.contains(dead)) {
-            cause = "clean shutdown"; // maybe an incorrect assumption
-          }
-        }
 
         Set<TServerInstance> unexpected = new HashSet<>(deleted);
         unexpected.removeAll(serversToShutdown);
