@@ -193,6 +193,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         }
         retry.waitForNextAttempt(log, "handle conditional mutations with unknown status");
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
 

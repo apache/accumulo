@@ -1960,6 +1960,7 @@ public class ClientTabletCacheImplTest {
             }
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         } finally {
           activeLookups.decrementAndGet();

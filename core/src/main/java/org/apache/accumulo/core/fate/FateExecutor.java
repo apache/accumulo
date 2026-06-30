@@ -348,6 +348,7 @@ public class FateExecutor<T> {
                     break;
                   }
                 } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
                   throw new IllegalStateException(e);
                 }
               }

@@ -252,6 +252,7 @@ public class Manager extends AbstractServer
         try {
           tserverStatusNtfyObj.wait();
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
         }
       }
@@ -290,6 +291,9 @@ public class Manager extends AbstractServer
     try {
       allConfig = CompactionConfigStorage.getAllConfig(getContext(), tablePredicate);
     } catch (InterruptedException | KeeperException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
     return Maps.transformValues(allConfig, CompactionConfig::getExecutionHints);
@@ -957,6 +961,9 @@ public class Manager extends AbstractServer
       // manager processes to work on stuff.
       getAssistantManagerLock();
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Unable to get manager lock ", e);
     }
 
@@ -1106,6 +1113,7 @@ public class Manager extends AbstractServer
         log.debug("Manager main thread is waiting for upgrade to complete");
         Thread.sleep(1000);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Interrupted while waiting for upgrade to complete", e);
       }
     }
@@ -1355,6 +1363,9 @@ public class Manager extends AbstractServer
       ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
           .scheduleWithFixedDelay(userCleaner::ageOff, 10, 4 * 60, MINUTES));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
   }
@@ -1653,6 +1664,9 @@ public class Manager extends AbstractServer
           getContext().getZooSession().asReader().getChildren(Constants.ZSHUTTING_DOWN_TSERVERS);
       return children.stream().map(TServerInstance::new).collect(Collectors.toSet());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }
