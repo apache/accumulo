@@ -34,8 +34,8 @@ public class TFatePartition implements org.apache.thrift.TBase<TFatePartition, T
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TFatePartitionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TFatePartitionTupleSchemeFactory();
 
-  private @org.apache.thrift.annotation.Nullable java.lang.String start; // required
-  private @org.apache.thrift.annotation.Nullable java.lang.String stop; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String start; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String stop; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

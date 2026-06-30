@@ -21,7 +21,6 @@ package org.apache.accumulo.server.tablets;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -89,10 +88,10 @@ public class ConditionCheckerContext {
   SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,
       TCondition tc) throws IOException, ReflectiveOperationException {
 
-    ArrayByteSequence key = new ArrayByteSequence(tc.getIterators());
+    ArrayByteSequence key = new ArrayByteSequence(tc.iterators);
     MergedIterConfig mic = mergedIterCache.get(key);
     if (mic == null) {
-      IterConfig ic = compressedIters.decompress(ByteBuffer.wrap(tc.getIterators()));
+      IterConfig ic = compressedIters.decompress(tc.iterators);
 
       List<IterInfo> mergedIters = new ArrayList<>(tableIters.size() + ic.ssiList.size());
       Map<String,Map<String,String>> mergedItersOpts =
@@ -118,7 +117,7 @@ public class ConditionCheckerContext {
     for (TCondition tc : scm.getConditions()) {
 
       Range range;
-      if (tc.isHasTimestamp()) {
+      if (tc.hasTimestamp) {
         range = Range.exact(new Text(scm.getRow()), new Text(tc.getCf()), new Text(tc.getCq()),
             new Text(tc.getCv()), tc.getTs());
       } else {

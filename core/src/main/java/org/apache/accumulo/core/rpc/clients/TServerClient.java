@@ -173,7 +173,7 @@ public interface TServerClient<C extends TServiceClient> {
         client = pair.getSecond();
         return exec.execute(client);
       } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
+        throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
@@ -214,7 +214,7 @@ public interface TServerClient<C extends TServiceClient> {
         exec.execute(client);
         return;
       } catch (ThriftSecurityException e) {
-        throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
+        throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {

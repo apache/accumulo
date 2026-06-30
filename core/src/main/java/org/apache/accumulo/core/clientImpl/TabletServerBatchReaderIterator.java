@@ -767,7 +767,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     // translate returned failures, remove them from unscanned, and add them to failures
     // @formatter:off
-    Map<KeyExtent, List<Range>> retFailures = scanResult.getFailures().entrySet().stream().collect(Collectors.toMap(
+    Map<KeyExtent, List<Range>> retFailures = scanResult.failures.entrySet().stream().collect(Collectors.toMap(
                     entry -> KeyExtent.fromThrift(entry.getKey()),
                     entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
     ));
@@ -777,25 +777,25 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     // translate full scans and remove them from unscanned
     Set<KeyExtent> fullScans =
-        scanResult.getFullScans().stream().map(KeyExtent::fromThrift).collect(Collectors.toSet());
+        scanResult.fullScans.stream().map(KeyExtent::fromThrift).collect(Collectors.toSet());
     unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
-    if (scanResult.getPartScan() != null) {
-      KeyExtent ke = KeyExtent.fromThrift(scanResult.getPartScan());
-      Key nextKey = new Key(scanResult.getPartNextKey());
+    if (scanResult.partScan != null) {
+      KeyExtent ke = KeyExtent.fromThrift(scanResult.partScan);
+      Key nextKey = new Key(scanResult.partNextKey);
 
       ListIterator<Range> iterator = unscanned.get(ke).listIterator();
       while (iterator.hasNext()) {
         Range range = iterator.next();
 
         if (range.afterEndKey(nextKey) || (nextKey.equals(range.getEndKey())
-            && scanResult.isPartNextKeyInclusive() != range.isEndKeyInclusive())) {
+            && scanResult.partNextKeyInclusive != range.isEndKeyInclusive())) {
           iterator.remove();
         } else if (range.contains(nextKey)) {
           iterator.remove();
-          Range partRange = new Range(nextKey, scanResult.isPartNextKeyInclusive(),
-              range.getEndKey(), range.isEndKeyInclusive());
+          Range partRange = new Range(nextKey, scanResult.partNextKeyInclusive, range.getEndKey(),
+              range.isEndKeyInclusive());
           iterator.add(partRange);
         }
       }
@@ -940,35 +940,33 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
             options.batchTimeout, options.classLoaderContext, execHints, busyTimeout);
-        scanIdToClose = imsr.getScanID();
+        scanIdToClose = imsr.scanID;
         if (waitForWrites) {
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
         }
 
-        MultiScanResult scanResult = imsr.getResult();
+        MultiScanResult scanResult = imsr.result;
 
         if (timer != null) {
-          log.trace("Got 1st multi scan results, #results={} {} in {}",
-              scanResult.getResults().size(),
-              (scanResult.isMore() ? "scanID=" + imsr.getScanID() : ""),
+          log.trace("Got 1st multi scan results, #results={} {} in {}", scanResult.results.size(),
+              (scanResult.more ? "scanID=" + imsr.scanID : ""),
               String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
         }
 
-        ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.getResults().size());
-        for (TKeyValue kv : scanResult.getResults()) {
-          entries.add(new SimpleImmutableEntry<>(new Key(kv.getKey()), new Value(kv.getValue())));
+        ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
+        for (TKeyValue kv : scanResult.results) {
+          entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
         }
 
         if (!entries.isEmpty()) {
           receiver.receive(entries);
         }
 
-        if (!entries.isEmpty() || !scanResult.getFullScans().isEmpty()
-            || scanResult.getPartScan() != null) {
+        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty() || scanResult.partScan != null) {
           // Got some data back, finished scanning a tablet w/o getting data, or partially scanned a
           // tablet w/o getting data. Any of these indicate the scan is making progress.
           timeoutSession.madeProgress();
-        } else if (!scanResult.getFailures().isEmpty()) {
+        } else if (!scanResult.failures.isEmpty()) {
           // Observed no progress and only tablets failed. Want to eventually timeout if this
           // situation continues.
           timeoutTracker.sawOnlyFailures(timeoutSession);
@@ -978,45 +976,44 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
         AtomicLong nextOpid = new AtomicLong();
 
-        while (scanResult.isMore()) {
+        while (scanResult.more) {
 
           timeoutSession.check();
 
           if (timer != null) {
-            log.trace("oid={} Continuing multi scan, scanid={}", nextOpid.get(), imsr.getScanID());
+            log.trace("oid={} Continuing multi scan, scanid={}", nextOpid.get(), imsr.scanID);
             timer.restart();
           }
 
-          scanResult =
-              client.continueMultiScan(TraceUtil.traceInfo(), imsr.getScanID(), busyTimeout);
+          scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID, busyTimeout);
 
           if (timer != null) {
             log.trace("oid={} Got more multi scan results, #results={} {} in {}",
-                nextOpid.getAndIncrement(), scanResult.getResults().size(),
-                (scanResult.isMore() ? " scanID=" + imsr.getScanID() : ""),
+                nextOpid.getAndIncrement(), scanResult.results.size(),
+                (scanResult.more ? " scanID=" + imsr.scanID : ""),
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
           }
 
-          entries = new ArrayList<>(scanResult.getResults().size());
-          for (TKeyValue kv : scanResult.getResults()) {
-            entries.add(new SimpleImmutableEntry<>(new Key(kv.getKey()), new Value(kv.getValue())));
+          entries = new ArrayList<>(scanResult.results.size());
+          for (TKeyValue kv : scanResult.results) {
+            entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value)));
           }
 
           if (!entries.isEmpty()) {
             receiver.receive(entries);
           }
 
-          if (!entries.isEmpty() || !scanResult.getFullScans().isEmpty()
-              || scanResult.getPartScan() != null) {
+          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty()
+              || scanResult.partScan != null) {
             timeoutSession.madeProgress();
-          } else if (!scanResult.getFailures().isEmpty()) {
+          } else if (!scanResult.failures.isEmpty()) {
             timeoutTracker.sawOnlyFailures(timeoutSession);
           }
 
           trackScanning(failures, unscanned, scanResult);
         }
 
-        client.closeMultiScan(TraceUtil.traceInfo(), imsr.getScanID());
+        client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
         scanIdToClose = null;
 
       } finally {
@@ -1041,7 +1038,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
-      throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
+      throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TApplicationException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       throw new AccumuloServerException(server, e);

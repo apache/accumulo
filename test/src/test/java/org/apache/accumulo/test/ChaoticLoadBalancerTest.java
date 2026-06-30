@@ -58,17 +58,17 @@ public class ChaoticLoadBalancerTest {
     TServerStatus getStatus() {
       org.apache.accumulo.core.manager.thrift.TabletServerStatus thriftStatus =
           new org.apache.accumulo.core.manager.thrift.TabletServerStatus();
-      thriftStatus.setTableMap(new HashMap<>());
+      thriftStatus.tableMap = new HashMap<>();
       for (TabletId extent : tablets) {
         TableId table = extent.getTable();
-        TableInfo info = thriftStatus.getTableMap().get(table.canonical());
+        TableInfo info = thriftStatus.tableMap.get(table.canonical());
         if (info == null) {
-          thriftStatus.getTableMap().put(table.canonical(), info = new TableInfo());
+          thriftStatus.tableMap.put(table.canonical(), info = new TableInfo());
         }
-        info.setOnlineTablets(info.getOnlineTablets() + 1);
-        info.setRecs(info.getOnlineTablets());
-        info.setIngestRate(123.);
-        info.setQueryRate(456.);
+        info.onlineTablets++;
+        info.recs = info.onlineTablets;
+        info.ingestRate = 123.;
+        info.queryRate = 456.;
       }
 
       return new TServerStatusImpl(thriftStatus);

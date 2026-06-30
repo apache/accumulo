@@ -91,8 +91,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
       return;
     }
 
-    Class<? extends AuthenticationToken> tokenClass =
-        getTokenClassFromName(tcreds.getTokenClassName());
+    Class<? extends AuthenticationToken> tokenClass = getTokenClassFromName(tcreds.tokenClassName);
 
     // The Accumulo principal extracted from the SASL transport
     final String principal = UGIAssumingProcessor.rpcPrincipal();
@@ -101,9 +100,9 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     // should match
     if (UGIAssumingProcessor.rpcMechanism() == SaslMechanism.DIGEST_MD5
         && DelegationTokenImpl.class.isAssignableFrom(tokenClass)) {
-      if (!principal.equals(tcreds.getPrincipal())) {
+      if (!principal.equals(tcreds.principal)) {
         log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the "
-            + "Accumulo principal {}. Disallowing RPC", principal, tcreds.getPrincipal());
+            + "Accumulo principal {}. Disallowing RPC", principal, tcreds.principal);
         throw new ThriftSecurityException("RPC principal did not match provided Accumulo principal",
             SecurityErrorCode.BAD_CREDENTIALS);
       }
@@ -129,13 +128,13 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
     // The principal from the SASL transport should match what the user requested as their Accumulo
     // principal
-    if (!principal.equals(tcreds.getPrincipal())) {
+    if (!principal.equals(tcreds.principal)) {
       UsersWithHosts usersWithHosts = impersonation.get(principal);
       if (usersWithHosts == null) {
-        principalMismatch(principal, tcreds.getPrincipal());
+        principalMismatch(principal, tcreds.principal);
       }
-      if (!usersWithHosts.getUsers().contains(tcreds.getPrincipal())) {
-        principalMismatch(principal, tcreds.getPrincipal());
+      if (!usersWithHosts.getUsers().contains(tcreds.principal)) {
+        principalMismatch(principal, tcreds.principal);
       }
       String clientAddr = TServerUtils.clientAddress.get();
       if (!usersWithHosts.getHosts().contains(clientAddr)) {

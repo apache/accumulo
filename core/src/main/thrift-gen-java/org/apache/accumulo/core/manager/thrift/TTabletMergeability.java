@@ -34,8 +34,8 @@ public class TTabletMergeability implements org.apache.thrift.TBase<TTabletMerge
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TTabletMergeabilityStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TTabletMergeabilityTupleSchemeFactory();
 
-  private boolean never; // required
-  private long delay; // required
+  public boolean never; // required
+  public long delay; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

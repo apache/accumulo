@@ -55,9 +55,9 @@ public class CompactionCommitData implements Serializable {
       obj.addProperty("ecid", src.ecid);
       obj.addProperty("extent", src.textent.toString());
       obj.addProperty("outputTmpPath", src.outputTmpPath);
-      obj.addProperty("entriesRead", src.stats.getEntriesRead());
-      obj.addProperty("entriesWritten", src.stats.getEntriesWritten());
-      obj.addProperty("fileSize", src.stats.getFileSize());
+      obj.addProperty("entriesRead", src.stats.entriesRead);
+      obj.addProperty("entriesWritten", src.stats.entriesWritten);
+      obj.addProperty("fileSize", src.stats.fileSize);
       JsonArray arr = new JsonArray();
       src.inputPaths.forEach(arr::add);
       obj.add("inputs", arr);

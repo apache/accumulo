@@ -223,26 +223,23 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             try {
               System.gc(); // make room
 
-              status.getCurrent().setStarted(System.currentTimeMillis());
+              status.current.started = System.currentTimeMillis();
               var rootGC = new GCRun(DataLevel.ROOT, getContext());
               var mdGC = new GCRun(DataLevel.METADATA, getContext());
               var userGC = new GCRun(DataLevel.USER, getContext());
 
               log.info("Starting Root table Garbage Collection.");
-              status.getCurrent().setBulks(status.getCurrent().getBulks()
-                  + new GarbageCollectionAlgorithm().collect(rootGC));
+              status.current.bulks += new GarbageCollectionAlgorithm().collect(rootGC);
               incrementStatsForRun(rootGC);
               logStats();
 
               log.info("Starting Metadata table Garbage Collection.");
-              status.getCurrent().setBulks(
-                  status.getCurrent().getBulks() + new GarbageCollectionAlgorithm().collect(mdGC));
+              status.current.bulks += new GarbageCollectionAlgorithm().collect(mdGC);
               incrementStatsForRun(mdGC);
               logStats();
 
               log.info("Starting User table Garbage Collection.");
-              status.getCurrent().setBulks(status.getCurrent().getBulks()
-                  + new GarbageCollectionAlgorithm().collect(userGC));
+              status.current.bulks += new GarbageCollectionAlgorithm().collect(userGC);
               incrementStatsForRun(userGC);
               logStats();
 
@@ -250,10 +247,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               TraceUtil.setException(innerSpan, e, false);
               log.error("{}", e.getMessage(), e);
             } finally {
-              status.getCurrent().setFinished(System.currentTimeMillis());
-              status.setLast(status.getCurrent());
-              gcCycleMetrics.setLastCollect(status.getCurrent());
-              status.setCurrent(new GcCycleStats());
+              status.current.finished = System.currentTimeMillis();
+              status.last = status.current;
+              gcCycleMetrics.setLastCollect(status.current);
+              status.current = new GcCycleStats();
             }
 
             log.info(String.format("Collect cycle took %.2f seconds",
@@ -266,7 +263,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                   new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet);
               log.info("Beginning garbage collection of write-ahead logs");
               walogCollector.collect(status);
-              gcCycleMetrics.setLastWalCollect(status.getLastLog());
+              gcCycleMetrics.setLastWalCollect(status.lastLog);
             } catch (Exception e) {
               TraceUtil.setException(walSpan, e, false);
               log.error("{}", e.getMessage(), e);
@@ -361,21 +358,19 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private void incrementStatsForRun(GCRun gcRun) {
-    status.getCurrent()
-        .setCandidates(status.getCurrent().getCandidates() + gcRun.getCandidatesStat());
-    status.getCurrent().setInUse(status.getCurrent().getInUse() + gcRun.getInUseStat());
-    status.getCurrent().setDeleted(status.getCurrent().getDeleted() + gcRun.getDeletedStat());
-    status.getCurrent().setErrors(status.getCurrent().getErrors() + gcRun.getErrorsStat());
+    status.current.candidates += gcRun.getCandidatesStat();
+    status.current.inUse += gcRun.getInUseStat();
+    status.current.deleted += gcRun.getDeletedStat();
+    status.current.errors += gcRun.getErrorsStat();
   }
 
   // public for ExitCodesIT
   public void logStats() {
-    log.info("Number of data file candidates for deletion: {}",
-        status.getCurrent().getCandidates());
-    log.info("Number of data file candidates still in use: {}", status.getCurrent().getInUse());
-    log.info("Number of successfully deleted data files: {}", status.getCurrent().getDeleted());
-    log.info("Number of data files delete failures: {}", status.getCurrent().getErrors());
-    log.info("Number of bulk imports in progress: {}", status.getCurrent().getBulks());
+    log.info("Number of data file candidates for deletion: {}", status.current.candidates);
+    log.info("Number of data file candidates still in use: {}", status.current.inUse);
+    log.info("Number of successfully deleted data files: {}", status.current.deleted);
+    log.info("Number of data files delete failures: {}", status.current.errors);
+    log.info("Number of bulk imports in progress: {}", status.current.bulks);
   }
 
   /**

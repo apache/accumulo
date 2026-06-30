@@ -34,8 +34,12 @@ public class TFateId implements org.apache.thrift.TBase<TFateId, TFateId._Fields
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TFateIdStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TFateIdTupleSchemeFactory();
 
-  private @org.apache.thrift.annotation.Nullable TFateInstanceType type; // required
-  private @org.apache.thrift.annotation.Nullable java.lang.String txUUIDStr; // required
+  /**
+   * 
+   * @see TFateInstanceType
+   */
+  public @org.apache.thrift.annotation.Nullable TFateInstanceType type; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String txUUIDStr; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

@@ -308,11 +308,11 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     ScanResult scanResult = new ScanResult(Key.compress(bresult.getResults()), bresult.isMore());
 
-    scanSession.entriesReturned += scanResult.getResults().size();
+    scanSession.entriesReturned += scanResult.results.size();
 
     scanSession.batchCount++;
 
-    if (scanResult.isMore() && scanSession.batchCount > scanSession.readaheadThreshold) {
+    if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
       // start reading next batch while current batch is transmitted
       // to client
       scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
@@ -320,7 +320,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
           getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
-    if (!scanResult.isMore()) {
+    if (!scanResult.more) {
       closeScan(tinfo, scanID);
     }
 

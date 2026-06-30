@@ -400,7 +400,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               "Target namespace does not exist");
         default:
           String tableInfo = context.getPrintableTableInfoFromName(tableOrNamespaceName);
-          throw new AccumuloSecurityException(e.getUser(), e.getCode(), tableInfo, e);
+          throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
@@ -418,7 +418,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case BULK_CONCURRENT_MERGE:
           throw new AccumuloBulkMergeException(e);
         default:
-          throw new AccumuloException(e.getDescription(), e);
+          throw new AccumuloException(e.description, e);
       }
     } catch (Exception e) {
       throw new AccumuloException(e.getMessage(), e);
@@ -1016,12 +1016,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new TableNotFoundException(tableId.canonical(), null, e.getMessage(), e);
       }
       log.debug("flush security exception on table id {}", tableId);
-      throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
+      throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (ThriftTableOperationException e) {
       if (requireNonNull(e.getType()) == TableOperationExceptionType.NOTFOUND) {
         throw new TableNotFoundException(e);
       }
-      throw new AccumuloException(e.getDescription(), e);
+      throw new AccumuloException(e.description, e);
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
@@ -1592,7 +1592,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           case NAMESPACE_NOTFOUND:
             throw new TableNotFoundException(e.getTableName(), new NamespaceNotFoundException(e));
           default:
-            throw new AccumuloException(e.getDescription(), e);
+            throw new AccumuloException(e.description, e);
         }
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.getUser(), e.getCode());
@@ -2069,8 +2069,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         TSummaries ret = ThriftClientTypes.TABLET_SERVER.execute(context, client -> {
           TSummaries tsr =
               client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
-          while (!tsr.isFinished()) {
-            tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.getSessionId());
+          while (!tsr.finished) {
+            tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
           }
           return tsr;
         });

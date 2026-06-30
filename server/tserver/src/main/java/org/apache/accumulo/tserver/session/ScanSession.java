@@ -147,22 +147,22 @@ public abstract class ScanSession<T> extends Session implements ScanInfo {
 
     @Override
     public String getIteratorClass() {
-      return ii.getClassName();
+      return ii.className;
     }
 
     @Override
     public String getName() {
-      return ii.getIterName();
+      return ii.iterName;
     }
 
     @Override
     public int getPriority() {
-      return ii.getPriority();
+      return ii.priority;
     }
 
     @Override
     public Map<String,String> getOptions() {
-      Map<String,String> opts = scanParams.getSsio().get(ii.getIterName());
+      Map<String,String> opts = scanParams.getSsio().get(ii.iterName);
       return opts == null || opts.isEmpty() ? Collections.emptyMap()
           : Collections.unmodifiableMap(opts);
     }

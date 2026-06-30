@@ -397,10 +397,9 @@ public class FateManager {
       try {
 
         var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());
-        var partitions = tparitions.getPartitions().stream().map(FatePartition::from)
-            .collect(Collectors.toSet());
-        currentAssignments.put(address,
-            new CurrentPartitions(tparitions.getUpdateId(), partitions));
+        var partitions =
+            tparitions.partitions.stream().map(FatePartition::from).collect(Collectors.toSet());
+        currentAssignments.put(address, new CurrentPartitions(tparitions.updateId, partitions));
       } finally {
         ThriftUtil.returnClient(client, context);
       }

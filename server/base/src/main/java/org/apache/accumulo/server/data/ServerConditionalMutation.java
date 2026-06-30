@@ -29,10 +29,10 @@ public class ServerConditionalMutation extends ServerMutation {
   private final List<TCondition> conditions;
 
   public ServerConditionalMutation(TConditionalMutation input) {
-    super(input.getMutation());
+    super(input.mutation);
 
-    this.cmid = input.getId();
-    this.conditions = input.getConditions();
+    this.cmid = input.id;
+    this.conditions = input.conditions;
   }
 
   public long getID() {

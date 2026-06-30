@@ -29,7 +29,7 @@ public record FatePartition(FateId start, FateId end) {
   }
 
   public static FatePartition from(TFatePartition tfp) {
-    return new FatePartition(FateId.from(tfp.getStart()), FateId.from(tfp.getStop()));
+    return new FatePartition(FateId.from(tfp.start), FateId.from(tfp.stop));
   }
 
   private static final FatePartition ALL_USER =

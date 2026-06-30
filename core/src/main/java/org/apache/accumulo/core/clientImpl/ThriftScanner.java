@@ -152,15 +152,15 @@ public final class ThriftScanner {
           serversWaitedForWrites.get(ttype).add(server);
         }
 
-        Key.decompress(isr.getResult().getResults());
+        Key.decompress(isr.result.results);
 
-        for (TKeyValue kv : isr.getResult().getResults()) {
-          results.put(new Key(kv.getKey()), new Value(kv.getValue()));
+        for (TKeyValue kv : isr.result.results) {
+          results.put(new Key(kv.key), new Value(kv.value));
         }
 
-        client.closeScan(tinfo, isr.getScanID());
+        client.closeScan(tinfo, isr.scanID);
 
-        return isr.getResult().isMore();
+        return isr.result.more;
       } finally {
         ThriftUtil.returnClient(client, context);
       }
@@ -170,7 +170,7 @@ public final class ThriftScanner {
       log.debug("Tablet ({}) has too many files {} : {}", extent, server, e.getMessage());
     } catch (ThriftSecurityException e) {
       log.warn("Security Violation in scan request to {}: {}", server, e.getMessage());
-      throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
+      throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (TException e) {
       log.debug("Error getting transport to {}: {}", server, e.getMessage());
     }
@@ -897,12 +897,12 @@ public final class ThriftScanner {
           serversWaitedForWrites.get(ttype).add(addr.serverAddress);
         }
 
-        sr = is.getResult();
+        sr = is.result;
 
-        if (sr.isMore()) {
-          scanState.scanID = is.getScanID();
+        if (sr.more) {
+          scanState.scanID = is.scanID;
         } else {
-          client.closeScan(tinfo, is.getScanID());
+          client.closeScan(tinfo, is.scanID);
         }
 
       } else {
@@ -916,17 +916,17 @@ public final class ThriftScanner {
         }
 
         sr = client.continueScan(tinfo, scanState.scanID, busyTimeout);
-        if (!sr.isMore()) {
+        if (!sr.more) {
           client.closeScan(tinfo, scanState.scanID);
           scanState.scanID = null;
         }
       }
 
-      if (sr.isMore()) {
+      if (sr.more) {
         if (timer != null) {
           log.trace("Finished scan in {} #results={} scanid={}",
-              String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
-              sr.getResults().size(), scanState.scanID);
+              String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0), sr.results.size(),
+              scanState.scanID);
         }
       } else {
         if (addr.getExtent().endRow() == null) {
@@ -935,7 +935,7 @@ public final class ThriftScanner {
           if (timer != null) {
             log.trace("Completely finished scan in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
-                sr.getResults().size());
+                sr.results.size());
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
@@ -946,35 +946,34 @@ public final class ThriftScanner {
           if (timer != null) {
             log.trace("Finished scanning tablet in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
-                sr.getResults().size());
+                sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
             log.trace("Completely finished in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
-                sr.getResults().size());
+                sr.results.size());
           }
         }
       }
 
-      Key.decompress(sr.getResults());
+      Key.decompress(sr.results);
 
-      if (!sr.getResults().isEmpty() && !scanState.finished) {
-        scanState.range =
-            new Range(new Key(sr.getResults().get(sr.getResults().size() - 1).getKey()), false,
-                scanState.range.getEndKey(), scanState.range.isEndKeyInclusive());
+      if (!sr.results.isEmpty() && !scanState.finished) {
+        scanState.range = new Range(new Key(sr.results.get(sr.results.size() - 1).key), false,
+            scanState.range.getEndKey(), scanState.range.isEndKeyInclusive());
       }
 
-      List<KeyValue> results = new ArrayList<>(sr.getResults().size());
-      for (TKeyValue tkv : sr.getResults()) {
-        results.add(new KeyValue(new Key(tkv.getKey()), tkv.getValue()));
+      List<KeyValue> results = new ArrayList<>(sr.results.size());
+      for (TKeyValue tkv : sr.results) {
+        results.add(new KeyValue(new Key(tkv.key), tkv.value));
       }
 
       return results;
 
     } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
+      throw new AccumuloSecurityException(e.user, e.code, e);
     } finally {
       ThriftUtil.returnClient(client, context);
       Thread.currentThread().setName(old);

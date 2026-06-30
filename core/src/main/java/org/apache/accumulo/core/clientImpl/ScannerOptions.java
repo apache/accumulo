@@ -81,7 +81,7 @@ public class ScannerOptions implements ScannerBase {
     }
 
     for (IterInfo ii : serverSideIteratorList) {
-      if (ii.getIterName().equals(si.getName())) {
+      if (ii.iterName.equals(si.getName())) {
         throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
       }
       if (ii.getPriority() == si.getPriority()) {
@@ -108,7 +108,7 @@ public class ScannerOptions implements ScannerBase {
     }
 
     for (IterInfo ii : serverSideIteratorList) {
-      if (ii.getIterName().equals(iteratorName)) {
+      if (ii.iterName.equals(iteratorName)) {
         serverSideIteratorList.remove(ii);
         break;
       }

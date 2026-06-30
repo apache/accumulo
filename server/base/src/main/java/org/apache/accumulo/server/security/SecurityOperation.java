@@ -590,7 +590,7 @@ public class SecurityOperation {
     // This is a bit hackier then I (vines) wanted, but I think this one hackiness makes the overall
     // SecurityOperations more succinct.
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.ALTER_NAMESPACE, namespace, false)
-        || hasNamespacePermission(c, c.getPrincipal(), namespace, NamespacePermission.GRANT);
+        || hasNamespacePermission(c, c.principal, namespace, NamespacePermission.GRANT);
   }
 
   protected boolean canRevokeSystem(TCredentials c, String user, SystemPermission sysPerm)
