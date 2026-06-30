@@ -148,10 +148,10 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
     long timestamp)
   {
     this();
-    this.row = org.apache.thrift.TBaseHelper.copyBinary(row);
-    this.colFamily = org.apache.thrift.TBaseHelper.copyBinary(colFamily);
-    this.colQualifier = org.apache.thrift.TBaseHelper.copyBinary(colQualifier);
-    this.colVisibility = org.apache.thrift.TBaseHelper.copyBinary(colVisibility);
+    this.row = row;
+    this.colFamily = colFamily;
+    this.colQualifier = colQualifier;
+    this.colVisibility = colVisibility;
     this.timestamp = timestamp;
     setTimestampIsSet(true);
   }
@@ -197,16 +197,16 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public java.nio.ByteBuffer bufferForRow() {
-    return org.apache.thrift.TBaseHelper.copyBinary(row);
+    return row;
   }
 
   public TKey setRow(byte[] row) {
-    this.row = row == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(row.clone());
+    this.row = row == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(row);
     return this;
   }
 
   public TKey setRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer row) {
-    this.row = org.apache.thrift.TBaseHelper.copyBinary(row);
+    this.row = row;
     return this;
   }
 
@@ -231,16 +231,16 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public java.nio.ByteBuffer bufferForColFamily() {
-    return org.apache.thrift.TBaseHelper.copyBinary(colFamily);
+    return colFamily;
   }
 
   public TKey setColFamily(byte[] colFamily) {
-    this.colFamily = colFamily == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(colFamily.clone());
+    this.colFamily = colFamily == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(colFamily);
     return this;
   }
 
   public TKey setColFamily(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colFamily) {
-    this.colFamily = org.apache.thrift.TBaseHelper.copyBinary(colFamily);
+    this.colFamily = colFamily;
     return this;
   }
 
@@ -265,16 +265,16 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public java.nio.ByteBuffer bufferForColQualifier() {
-    return org.apache.thrift.TBaseHelper.copyBinary(colQualifier);
+    return colQualifier;
   }
 
   public TKey setColQualifier(byte[] colQualifier) {
-    this.colQualifier = colQualifier == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(colQualifier.clone());
+    this.colQualifier = colQualifier == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(colQualifier);
     return this;
   }
 
   public TKey setColQualifier(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colQualifier) {
-    this.colQualifier = org.apache.thrift.TBaseHelper.copyBinary(colQualifier);
+    this.colQualifier = colQualifier;
     return this;
   }
 
@@ -299,16 +299,16 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public java.nio.ByteBuffer bufferForColVisibility() {
-    return org.apache.thrift.TBaseHelper.copyBinary(colVisibility);
+    return colVisibility;
   }
 
   public TKey setColVisibility(byte[] colVisibility) {
-    this.colVisibility = colVisibility == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(colVisibility.clone());
+    this.colVisibility = colVisibility == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(colVisibility);
     return this;
   }
 
   public TKey setColVisibility(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer colVisibility) {
-    this.colVisibility = org.apache.thrift.TBaseHelper.copyBinary(colVisibility);
+    this.colVisibility = colVisibility;
     return this;
   }
 

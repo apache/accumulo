@@ -165,15 +165,15 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
     java.nio.ByteBuffer iterators)
   {
     this();
-    this.cf = org.apache.thrift.TBaseHelper.copyBinary(cf);
-    this.cq = org.apache.thrift.TBaseHelper.copyBinary(cq);
-    this.cv = org.apache.thrift.TBaseHelper.copyBinary(cv);
+    this.cf = cf;
+    this.cq = cq;
+    this.cv = cv;
     this.ts = ts;
     setTsIsSet(true);
     this.hasTimestamp = hasTimestamp;
     setHasTimestampIsSet(true);
-    this.val = org.apache.thrift.TBaseHelper.copyBinary(val);
-    this.iterators = org.apache.thrift.TBaseHelper.copyBinary(iterators);
+    this.val = val;
+    this.iterators = iterators;
   }
 
   /**
@@ -224,16 +224,16 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public java.nio.ByteBuffer bufferForCf() {
-    return org.apache.thrift.TBaseHelper.copyBinary(cf);
+    return cf;
   }
 
   public TCondition setCf(byte[] cf) {
-    this.cf = cf == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cf.clone());
+    this.cf = cf == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cf);
     return this;
   }
 
   public TCondition setCf(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cf) {
-    this.cf = org.apache.thrift.TBaseHelper.copyBinary(cf);
+    this.cf = cf;
     return this;
   }
 
@@ -258,16 +258,16 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public java.nio.ByteBuffer bufferForCq() {
-    return org.apache.thrift.TBaseHelper.copyBinary(cq);
+    return cq;
   }
 
   public TCondition setCq(byte[] cq) {
-    this.cq = cq == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cq.clone());
+    this.cq = cq == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cq);
     return this;
   }
 
   public TCondition setCq(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cq) {
-    this.cq = org.apache.thrift.TBaseHelper.copyBinary(cq);
+    this.cq = cq;
     return this;
   }
 
@@ -292,16 +292,16 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public java.nio.ByteBuffer bufferForCv() {
-    return org.apache.thrift.TBaseHelper.copyBinary(cv);
+    return cv;
   }
 
   public TCondition setCv(byte[] cv) {
-    this.cv = cv == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cv.clone());
+    this.cv = cv == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(cv);
     return this;
   }
 
   public TCondition setCv(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cv) {
-    this.cv = org.apache.thrift.TBaseHelper.copyBinary(cv);
+    this.cv = cv;
     return this;
   }
 
@@ -372,16 +372,16 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public java.nio.ByteBuffer bufferForVal() {
-    return org.apache.thrift.TBaseHelper.copyBinary(val);
+    return val;
   }
 
   public TCondition setVal(byte[] val) {
-    this.val = val == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(val.clone());
+    this.val = val == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(val);
     return this;
   }
 
   public TCondition setVal(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer val) {
-    this.val = org.apache.thrift.TBaseHelper.copyBinary(val);
+    this.val = val;
     return this;
   }
 
@@ -406,16 +406,16 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public java.nio.ByteBuffer bufferForIterators() {
-    return org.apache.thrift.TBaseHelper.copyBinary(iterators);
+    return iterators;
   }
 
   public TCondition setIterators(byte[] iterators) {
-    this.iterators = iterators == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(iterators.clone());
+    this.iterators = iterators == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(iterators);
     return this;
   }
 
   public TCondition setIterators(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer iterators) {
-    this.iterators = org.apache.thrift.TBaseHelper.copyBinary(iterators);
+    this.iterators = iterators;
     return this;
   }
 

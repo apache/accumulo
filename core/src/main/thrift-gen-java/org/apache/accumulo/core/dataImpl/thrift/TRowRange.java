@@ -122,8 +122,8 @@ public class TRowRange implements org.apache.thrift.TBase<TRowRange, TRowRange._
     java.nio.ByteBuffer endRow)
   {
     this();
-    this.startRow = org.apache.thrift.TBaseHelper.copyBinary(startRow);
-    this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
+    this.startRow = startRow;
+    this.endRow = endRow;
   }
 
   /**
@@ -155,16 +155,16 @@ public class TRowRange implements org.apache.thrift.TBase<TRowRange, TRowRange._
   }
 
   public java.nio.ByteBuffer bufferForStartRow() {
-    return org.apache.thrift.TBaseHelper.copyBinary(startRow);
+    return startRow;
   }
 
   public TRowRange setStartRow(byte[] startRow) {
-    this.startRow = startRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(startRow.clone());
+    this.startRow = startRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(startRow);
     return this;
   }
 
   public TRowRange setStartRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer startRow) {
-    this.startRow = org.apache.thrift.TBaseHelper.copyBinary(startRow);
+    this.startRow = startRow;
     return this;
   }
 
@@ -189,16 +189,16 @@ public class TRowRange implements org.apache.thrift.TBase<TRowRange, TRowRange._
   }
 
   public java.nio.ByteBuffer bufferForEndRow() {
-    return org.apache.thrift.TBaseHelper.copyBinary(endRow);
+    return endRow;
   }
 
   public TRowRange setEndRow(byte[] endRow) {
-    this.endRow = endRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(endRow.clone());
+    this.endRow = endRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(endRow);
     return this;
   }
 
   public TRowRange setEndRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow) {
-    this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
+    this.endRow = endRow;
     return this;
   }
 

@@ -130,9 +130,9 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
     java.nio.ByteBuffer prevEndRow)
   {
     this();
-    this.table = org.apache.thrift.TBaseHelper.copyBinary(table);
-    this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
-    this.prevEndRow = org.apache.thrift.TBaseHelper.copyBinary(prevEndRow);
+    this.table = table;
+    this.endRow = endRow;
+    this.prevEndRow = prevEndRow;
   }
 
   /**
@@ -168,16 +168,16 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public java.nio.ByteBuffer bufferForTable() {
-    return org.apache.thrift.TBaseHelper.copyBinary(table);
+    return table;
   }
 
   public TKeyExtent setTable(byte[] table) {
-    this.table = table == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(table.clone());
+    this.table = table == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(table);
     return this;
   }
 
   public TKeyExtent setTable(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer table) {
-    this.table = org.apache.thrift.TBaseHelper.copyBinary(table);
+    this.table = table;
     return this;
   }
 
@@ -202,16 +202,16 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public java.nio.ByteBuffer bufferForEndRow() {
-    return org.apache.thrift.TBaseHelper.copyBinary(endRow);
+    return endRow;
   }
 
   public TKeyExtent setEndRow(byte[] endRow) {
-    this.endRow = endRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(endRow.clone());
+    this.endRow = endRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(endRow);
     return this;
   }
 
   public TKeyExtent setEndRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow) {
-    this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
+    this.endRow = endRow;
     return this;
   }
 
@@ -236,16 +236,16 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public java.nio.ByteBuffer bufferForPrevEndRow() {
-    return org.apache.thrift.TBaseHelper.copyBinary(prevEndRow);
+    return prevEndRow;
   }
 
   public TKeyExtent setPrevEndRow(byte[] prevEndRow) {
-    this.prevEndRow = prevEndRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(prevEndRow.clone());
+    this.prevEndRow = prevEndRow == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(prevEndRow);
     return this;
   }
 
   public TKeyExtent setPrevEndRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer prevEndRow) {
-    this.prevEndRow = org.apache.thrift.TBaseHelper.copyBinary(prevEndRow);
+    this.prevEndRow = prevEndRow;
     return this;
   }
 

@@ -150,8 +150,8 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
     int entries)
   {
     this();
-    this.row = org.apache.thrift.TBaseHelper.copyBinary(row);
-    this.data = org.apache.thrift.TBaseHelper.copyBinary(data);
+    this.row = row;
+    this.data = data;
     this.values = values;
     this.entries = entries;
     setEntriesIsSet(true);
@@ -200,16 +200,16 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   }
 
   public java.nio.ByteBuffer bufferForRow() {
-    return org.apache.thrift.TBaseHelper.copyBinary(row);
+    return row;
   }
 
   public TMutation setRow(byte[] row) {
-    this.row = row == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(row.clone());
+    this.row = row == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(row);
     return this;
   }
 
   public TMutation setRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer row) {
-    this.row = org.apache.thrift.TBaseHelper.copyBinary(row);
+    this.row = row;
     return this;
   }
 
@@ -234,16 +234,16 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   }
 
   public java.nio.ByteBuffer bufferForData() {
-    return org.apache.thrift.TBaseHelper.copyBinary(data);
+    return data;
   }
 
   public TMutation setData(byte[] data) {
-    this.data = data == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(data.clone());
+    this.data = data == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(data);
     return this;
   }
 
   public TMutation setData(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer data) {
-    this.data = org.apache.thrift.TBaseHelper.copyBinary(data);
+    this.data = data;
     return this;
   }
 

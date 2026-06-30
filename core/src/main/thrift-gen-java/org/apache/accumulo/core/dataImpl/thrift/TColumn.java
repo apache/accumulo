@@ -130,9 +130,9 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
     java.nio.ByteBuffer columnVisibility)
   {
     this();
-    this.columnFamily = org.apache.thrift.TBaseHelper.copyBinary(columnFamily);
-    this.columnQualifier = org.apache.thrift.TBaseHelper.copyBinary(columnQualifier);
-    this.columnVisibility = org.apache.thrift.TBaseHelper.copyBinary(columnVisibility);
+    this.columnFamily = columnFamily;
+    this.columnQualifier = columnQualifier;
+    this.columnVisibility = columnVisibility;
   }
 
   /**
@@ -168,16 +168,16 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public java.nio.ByteBuffer bufferForColumnFamily() {
-    return org.apache.thrift.TBaseHelper.copyBinary(columnFamily);
+    return columnFamily;
   }
 
   public TColumn setColumnFamily(byte[] columnFamily) {
-    this.columnFamily = columnFamily == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(columnFamily.clone());
+    this.columnFamily = columnFamily == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(columnFamily);
     return this;
   }
 
   public TColumn setColumnFamily(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnFamily) {
-    this.columnFamily = org.apache.thrift.TBaseHelper.copyBinary(columnFamily);
+    this.columnFamily = columnFamily;
     return this;
   }
 
@@ -202,16 +202,16 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public java.nio.ByteBuffer bufferForColumnQualifier() {
-    return org.apache.thrift.TBaseHelper.copyBinary(columnQualifier);
+    return columnQualifier;
   }
 
   public TColumn setColumnQualifier(byte[] columnQualifier) {
-    this.columnQualifier = columnQualifier == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(columnQualifier.clone());
+    this.columnQualifier = columnQualifier == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(columnQualifier);
     return this;
   }
 
   public TColumn setColumnQualifier(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnQualifier) {
-    this.columnQualifier = org.apache.thrift.TBaseHelper.copyBinary(columnQualifier);
+    this.columnQualifier = columnQualifier;
     return this;
   }
 
@@ -236,16 +236,16 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public java.nio.ByteBuffer bufferForColumnVisibility() {
-    return org.apache.thrift.TBaseHelper.copyBinary(columnVisibility);
+    return columnVisibility;
   }
 
   public TColumn setColumnVisibility(byte[] columnVisibility) {
-    this.columnVisibility = columnVisibility == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(columnVisibility.clone());
+    this.columnVisibility = columnVisibility == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(columnVisibility);
     return this;
   }
 
   public TColumn setColumnVisibility(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnVisibility) {
-    this.columnVisibility = org.apache.thrift.TBaseHelper.copyBinary(columnVisibility);
+    this.columnVisibility = columnVisibility;
     return this;
   }
 

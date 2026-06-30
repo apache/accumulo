@@ -9494,7 +9494,7 @@ public class ClientService {
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.password = org.apache.thrift.TBaseHelper.copyBinary(password);
+      this.password = password;
     }
 
     /**
@@ -9609,16 +9609,16 @@ public class ClientService {
     }
 
     public java.nio.ByteBuffer bufferForPassword() {
-      return org.apache.thrift.TBaseHelper.copyBinary(password);
+      return password;
     }
 
     public createLocalUser_args setPassword(byte[] password) {
-      this.password = password == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(password.clone());
+      this.password = password == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(password);
       return this;
     }
 
     public createLocalUser_args setPassword(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer password) {
-      this.password = org.apache.thrift.TBaseHelper.copyBinary(password);
+      this.password = password;
       return this;
     }
 
@@ -11610,7 +11610,7 @@ public class ClientService {
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.password = org.apache.thrift.TBaseHelper.copyBinary(password);
+      this.password = password;
     }
 
     /**
@@ -11725,16 +11725,16 @@ public class ClientService {
     }
 
     public java.nio.ByteBuffer bufferForPassword() {
-      return org.apache.thrift.TBaseHelper.copyBinary(password);
+      return password;
     }
 
     public changeLocalUserPassword_args setPassword(byte[] password) {
-      this.password = password == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(password.clone());
+      this.password = password == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(password);
       return this;
     }
 
     public changeLocalUserPassword_args setPassword(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer password) {
-      this.password = org.apache.thrift.TBaseHelper.copyBinary(password);
+      this.password = password;
       return this;
     }
 

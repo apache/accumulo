@@ -140,7 +140,7 @@ public class TAuthenticationKey implements org.apache.thrift.TBase<TAuthenticati
     java.nio.ByteBuffer secret)
   {
     this();
-    this.secret = org.apache.thrift.TBaseHelper.copyBinary(secret);
+    this.secret = secret;
   }
 
   /**
@@ -178,16 +178,16 @@ public class TAuthenticationKey implements org.apache.thrift.TBase<TAuthenticati
   }
 
   public java.nio.ByteBuffer bufferForSecret() {
-    return org.apache.thrift.TBaseHelper.copyBinary(secret);
+    return secret;
   }
 
   public TAuthenticationKey setSecret(byte[] secret) {
-    this.secret = secret == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(secret.clone());
+    this.secret = secret == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(secret);
     return this;
   }
 
   public TAuthenticationKey setSecret(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer secret) {
-    this.secret = org.apache.thrift.TBaseHelper.copyBinary(secret);
+    this.secret = secret;
     return this;
   }
 

@@ -2906,8 +2906,8 @@ public class TabletServerClientService {
       this.credentials = credentials;
       this.lock = lock;
       this.tableId = tableId;
-      this.startRow = org.apache.thrift.TBaseHelper.copyBinary(startRow);
-      this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
+      this.startRow = startRow;
+      this.endRow = endRow;
     }
 
     /**
@@ -3055,16 +3055,16 @@ public class TabletServerClientService {
     }
 
     public java.nio.ByteBuffer bufferForStartRow() {
-      return org.apache.thrift.TBaseHelper.copyBinary(startRow);
+      return startRow;
     }
 
     public flush_args setStartRow(byte[] startRow) {
-      this.startRow = startRow == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(startRow.clone());
+      this.startRow = startRow == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(startRow);
       return this;
     }
 
     public flush_args setStartRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer startRow) {
-      this.startRow = org.apache.thrift.TBaseHelper.copyBinary(startRow);
+      this.startRow = startRow;
       return this;
     }
 
@@ -3089,16 +3089,16 @@ public class TabletServerClientService {
     }
 
     public java.nio.ByteBuffer bufferForEndRow() {
-      return org.apache.thrift.TBaseHelper.copyBinary(endRow);
+      return endRow;
     }
 
     public flush_args setEndRow(byte[] endRow) {
-      this.endRow = endRow == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(endRow.clone());
+      this.endRow = endRow == null ? (java.nio.ByteBuffer)null     : java.nio.ByteBuffer.wrap(endRow);
       return this;
     }
 
     public flush_args setEndRow(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow) {
-      this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
+      this.endRow = endRow;
       return this;
     }
 

@@ -123,7 +123,7 @@ public class TKeyValue implements org.apache.thrift.TBase<TKeyValue, TKeyValue._
   {
     this();
     this.key = key;
-    this.value = org.apache.thrift.TBaseHelper.copyBinary(value);
+    this.value = value;
   }
 
   /**
@@ -180,16 +180,16 @@ public class TKeyValue implements org.apache.thrift.TBase<TKeyValue, TKeyValue._
   }
 
   public java.nio.ByteBuffer bufferForValue() {
-    return org.apache.thrift.TBaseHelper.copyBinary(value);
+    return value;
   }
 
   public TKeyValue setValue(byte[] value) {
-    this.value = value == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(value.clone());
+    this.value = value == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(value);
     return this;
   }
 
   public TKeyValue setValue(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer value) {
-    this.value = org.apache.thrift.TBaseHelper.copyBinary(value);
+    this.value = value;
     return this;
   }
 

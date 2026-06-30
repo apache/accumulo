@@ -140,7 +140,7 @@ public class TCredentials implements org.apache.thrift.TBase<TCredentials, TCred
     this();
     this.principal = principal;
     this.tokenClassName = tokenClassName;
-    this.token = org.apache.thrift.TBaseHelper.copyBinary(token);
+    this.token = token;
     this.instanceId = instanceId;
   }
 
@@ -231,16 +231,16 @@ public class TCredentials implements org.apache.thrift.TBase<TCredentials, TCred
   }
 
   public java.nio.ByteBuffer bufferForToken() {
-    return org.apache.thrift.TBaseHelper.copyBinary(token);
+    return token;
   }
 
   public TCredentials setToken(byte[] token) {
-    this.token = token == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(token.clone());
+    this.token = token == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(token);
     return this;
   }
 
   public TCredentials setToken(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer token) {
-    this.token = org.apache.thrift.TBaseHelper.copyBinary(token);
+    this.token = token;
     return this;
   }
 
