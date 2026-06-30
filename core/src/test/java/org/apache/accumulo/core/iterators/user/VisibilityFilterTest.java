@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -156,10 +156,43 @@ public class VisibilityFilterTest {
   }
 
   @Test
+  public void testMulitAllowAuthorizedLabelsOnly() throws IOException {
+    IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
+    VisibilityFilter.setAuthorizations(is,
+        List.of(new Authorizations("abc"), new Authorizations("def")));
+
+    TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
+    verify(source, 3, is.getOptions(), GOOD, GOOD, GOOD_VIS, 1);
+
+    source = createSourceWithHiddenData(30, 500);
+    verify(source, 530, is.getOptions(), GOOD, GOOD, GOOD_VIS, 30);
+
+    source = createSourceWithHiddenData(1000, 500);
+    verify(source, 1500, is.getOptions(), GOOD, GOOD, GOOD_VIS, 1000);
+  }
+
+  @Test
   public void testAllowUnauthorizedLabelsOnly() throws IOException {
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
     VisibilityFilter.setNegate(is, true);
     VisibilityFilter.setAuthorizations(is, new Authorizations("def"));
+
+    TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
+    verify(source, 3, is.getOptions(), BAD, BAD, HIDDEN_VIS, 2);
+
+    source = createSourceWithHiddenData(30, 500);
+    verify(source, 530, is.getOptions(), BAD, BAD, HIDDEN_VIS, 500);
+
+    source = createSourceWithHiddenData(1000, 500);
+    verify(source, 1500, is.getOptions(), BAD, BAD, HIDDEN_VIS, 500);
+  }
+
+  @Test
+  public void testMultiAllowUnauthorizedLabelsOnly() throws IOException {
+    IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
+    VisibilityFilter.setNegate(is, true);
+    VisibilityFilter.setAuthorizations(is,
+        List.of(new Authorizations("abc"), new Authorizations("def")));
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, is.getOptions(), BAD, BAD, HIDDEN_VIS, 2);
@@ -203,7 +236,7 @@ public class VisibilityFilterTest {
 
   @Test
   public void testCommaSeparatedAuthorizations() throws IOException {
-    Map<String,String> options = Collections.singletonMap("auths", "x,def,y");
+    Map<String,String> options = Map.of("numAuths", "1", "auth_0", "x,def,y");
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, options, GOOD, GOOD, GOOD_VIS, 1);
@@ -218,7 +251,7 @@ public class VisibilityFilterTest {
   @Test
   public void testSerializedAuthorizations() throws IOException {
     Map<String,String> options =
-        Collections.singletonMap("auths", new Authorizations("x", "def", "y").serialize());
+        Map.of("numAuths", "1", "auth_0", new Authorizations("x", "def", "y").serialize());
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, options, GOOD, GOOD, GOOD_VIS, 1);
@@ -240,7 +273,7 @@ public class VisibilityFilterTest {
     Map<String,String> opts = is.getOptions();
     assertEquals("false", opts.get("filterInvalid"));
     assertEquals("true", opts.get("negate"));
-    assertEquals(new Authorizations("abc", "def").serialize(), opts.get("auths"));
+    assertEquals(new Authorizations("abc", "def").serialize(), opts.get("auth_0"));
   }
 
   @Test
