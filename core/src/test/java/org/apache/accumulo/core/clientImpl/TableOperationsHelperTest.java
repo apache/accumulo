@@ -212,6 +212,22 @@ public class TableOperationsHelperTest {
     public void online(String tableName, boolean wait) {}
 
     @Override
+    public void lock(String tableName)
+        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+
+    @Override
+    public void lock(String tableName, boolean wait)
+        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+
+    @Override
+    public void unlock(String tableName)
+        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+
+    @Override
+    public void unlock(String tableName, boolean wait)
+        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
+
+    @Override
     public void setTabletAvailability(String tableName, RowRange rowRange,
         TabletAvailability tabletAvailability)
         throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}

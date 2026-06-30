@@ -166,6 +166,17 @@ public class NewTableConfigurationTest {
     assertTrue(ntcOnline.getInitialTableState() == InitialTableState.ONLINE);
   }
 
+  /**
+   * Verify that createLocked option
+   */
+  @Test
+  public void testCreateLocked() {
+    NewTableConfiguration ntcLocked = new NewTableConfiguration().createLocked();
+    assertTrue(ntcLocked.getInitialTableState() == InitialTableState.LOCKED);
+    NewTableConfiguration ntcOnline = new NewTableConfiguration();
+    assertTrue(ntcOnline.getInitialTableState() == InitialTableState.ONLINE);
+  }
+
   public void populateOptions() {
     options = new HashMap<>();
     options.put("hasher", "murmur3_32");
