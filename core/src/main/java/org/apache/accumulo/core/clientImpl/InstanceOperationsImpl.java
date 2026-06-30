@@ -31,6 +31,7 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.INSTANCE_OPS_COMPACTIONS_FINDER_POOL;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
@@ -215,8 +216,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public Set<String> getCompactors() {
-    Set<String> compactors = new HashSet<>();
-    ExternalCompactionUtil.getCompactorAddrs(context).values().forEach(addrs -> {
+    Collection<List<HostAndPort>> compactorGroups =
+        ExternalCompactionUtil.getCompactorAddrs(context).values();
+    Set<String> compactors =
+        new HashSet<>(compactorGroups.stream().mapToInt(List::size).sum(), 1.0f);
+    compactorGroups.forEach(addrs -> {
       addrs.forEach(hp -> compactors.add(hp.toString()));
     });
     return compactors;

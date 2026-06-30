@@ -129,7 +129,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (input == null) {
       return Collections.emptySet();
     }
-    Set<KeyExtent> result = new HashSet<>();
+    Set<KeyExtent> result = new HashSet<>(count, 1.0f);
     for (int i = 0; i < count; i++) {
       // need a count and cannot use InputStream.available() because its behavior is not reliable
       // across InputStream impls
@@ -142,8 +142,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (tableIDs == null) {
       return null;
     }
-    Set<TableId> result = new HashSet<>();
-    for (String tableID : tableIDs.split(",")) {
+    String[] ids = tableIDs.split(",");
+    Set<TableId> result = new HashSet<>(ids.length, 1.0f);
+    for (String tableID : ids) {
       result.add(TableId.of(tableID));
     }
     return result;
@@ -154,9 +155,10 @@ public class TabletStateChangeIterator extends SkippingIterator {
       return null;
     }
     // parse "host:port[INSTANCE]"
-    Set<TServerInstance> result = new HashSet<>();
     if (!servers.isEmpty()) {
-      for (String part : servers.split(",")) {
+      String[] s = servers.split(",");
+      Set<TServerInstance> result = new HashSet<>(s.length, 1.0f);
+      for (String part : s) {
         String[] parts = part.split("\\[", 2);
         String hostport = parts[0];
         String instance = parts[1];
@@ -165,8 +167,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
         }
         result.add(new TServerInstance(AddressUtil.parseAddress(hostport, false), instance));
       }
+      return result;
     }
-    return result;
+    return null;
   }
 
   private Map<TableId,MergeInfo> parseMerges(String merges) {

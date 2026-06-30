@@ -1219,11 +1219,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
-    Map<String,Set<Text>> groups2 = new HashMap<>();
+    Map<String,Set<Text>> groups2 = new HashMap<>(groups.size(), 1.0f);
 
     for (Entry<String,Set<ByteSequence>> entry : groups.entrySet()) {
 
-      HashSet<Text> colFams = new HashSet<>();
+      HashSet<Text> colFams = new HashSet<>(entry.getValue().size(), 1.0f);
 
       for (ByteSequence bs : entry.getValue()) {
         colFams.add(new Text(bs.toArray()));
@@ -1293,7 +1293,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     mergedExtents.addAll(unmergedExtents);
 
-    Set<Range> ranges = new HashSet<>();
+    Set<Range> ranges = new HashSet<>(mergedExtents.size(), 1.0f);
     for (KeyExtent k : mergedExtents) {
       ranges.add(k.toDataRange().clip(range));
     }
@@ -1673,7 +1673,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     boolean keepOffline = ic.isKeepOffline();
     boolean keepMapping = ic.isKeepMappings();
 
-    Set<String> checkedImportDirs = new HashSet<>();
+    Set<String> checkedImportDirs = new HashSet<>(importDirs.size(), 1.0f);
     try {
       for (String s : importDirs) {
         checkedImportDirs.add(checkPath(s, "Table", "").toString());

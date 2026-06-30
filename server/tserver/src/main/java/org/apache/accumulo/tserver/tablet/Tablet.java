@@ -341,7 +341,7 @@ public class Tablet extends TabletBase {
       final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
-        Set<String> absPaths = new HashSet<>();
+        Set<String> absPaths = new HashSet<>(datafiles.size());
         for (TabletFile ref : datafiles.keySet()) {
           absPaths.add(ref.getPathStr());
         }
@@ -395,7 +395,7 @@ public class Tablet extends TabletBase {
         }
       }
       // make some closed references that represent the recovered logs
-      currentLogs = new HashSet<>();
+      currentLogs = new HashSet<>(logEntries.size(), 1.0f);
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
             logEntry.filename, logEntry.getColumnQualifier().toString()));

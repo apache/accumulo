@@ -535,11 +535,12 @@ public class TabletMetadata {
    * pulled from org.apache.accumulo.server.manager.LiveTServerSet
    */
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
-    final Set<TServerInstance> liveServers = new HashSet<>();
 
     final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    final List<String> children = context.getZooCache().getChildren(path);
+    final Set<TServerInstance> liveServers = new HashSet<>(children.size());
 
-    for (String child : context.getZooCache().getChildren(path)) {
+    for (String child : children) {
       checkServer(context, path, child).ifPresent(liveServers::add);
     }
     log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
