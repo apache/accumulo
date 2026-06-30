@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -49,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -251,7 +251,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new IllegalStateException(e);
       }
       scanner.setRange(range);
-      return scanner.stream().filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
+      scanner.addScanIterator(new IteratorSetting(25, "gcCandidate", GcCandidateFilter.class));
+      return scanner.stream()
           .map(
               entry -> new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
                   entry.getKey().getTimestamp()))
