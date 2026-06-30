@@ -53,7 +53,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -69,6 +68,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private AccumuloClient client;
   private ServerContext context;
 
+  @Deprecated
   @BeforeEach
   public void configureInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
@@ -106,15 +106,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
       @Override
       protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
           final String tableName, final Set<String> wals) {
-        try {
-          return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
-        } catch (TException e) {
-          throw new RuntimeException(e);
-        }
+        return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
       }
     };
   }
 
+  @Deprecated
   @Test
   public void waitsUntilEntriesAreReplicated() throws Exception {
     client.tableOperations().create("foo");
@@ -208,6 +205,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     assertFalse(exception.get(), "Saw unexpected exception");
   }
 
+  @Deprecated
   @Test
   public void unrelatedReplicationRecordsDontBlockDrain() throws Exception {
     client.tableOperations().create("foo");
@@ -292,6 +290,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     assertFalse(exception.get(), "Saw unexpected exception");
   }
 
+  @Deprecated
   @Test
   public void inprogressReplicationRecordsBlockExecution() throws Exception {
     client.tableOperations().create("foo");
@@ -370,6 +369,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     assertFalse(exception.get(), "Saw unexpected exception");
   }
 
+  @Deprecated
   @Test
   public void laterCreatedLogsDontBlockExecution() throws Exception {
     client.tableOperations().create("foo");

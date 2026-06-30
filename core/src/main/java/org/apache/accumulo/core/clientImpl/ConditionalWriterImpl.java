@@ -86,7 +86,6 @@ import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,7 +233,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
     @Override
     public void run() {
-      TabletClientService.Iface client = null;
+      TabletClientService.Client client = null;
 
       for (SessionID sid : sessions) {
         if (!sid.isActive()) {
@@ -246,7 +245,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
         } catch (Exception e) {} finally {
-          ThriftUtil.returnClient((TServiceClient) client, context);
+          ThriftUtil.returnClient(client, context);
         }
 
       }
@@ -487,7 +486,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   private final HashMap<HostAndPort,SessionID> cachedSessionIDs = new HashMap<>();
 
-  private SessionID reserveSessionID(HostAndPort location, TabletClientService.Iface client,
+  private SessionID reserveSessionID(HostAndPort location, TabletClientService.Client client,
       TInfo tinfo) throws ThriftSecurityException, TException {
     // avoid cost of repeatedly making RPC to create sessions, reuse sessions
     synchronized (cachedSessionIDs) {
@@ -556,8 +555,8 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     return activeSessions;
   }
 
-  private TabletClientService.Iface getClient(HostAndPort location) throws TTransportException {
-    TabletClientService.Iface client;
+  private TabletClientService.Client getClient(HostAndPort location) throws TTransportException {
+    TabletClientService.Client client;
     if (timeout < context.getClientTimeoutInMillis()) {
       client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location, context, timeout);
     } else {
@@ -567,7 +566,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private void sendToServer(HostAndPort location, TabletServerMutations<QCMutation> mutations) {
-    TabletClientService.Iface client = null;
+    TabletClientService.Client client = null;
 
     TInfo tinfo = TraceUtil.traceInfo();
 
@@ -582,7 +581,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       CompressedIterators compressedIters = new CompressedIterators();
       convertMutations(mutations, cmidToCm, cmid, tmutations, compressedIters);
 
-      // getClient() call must come after converMutations in case it throws a TException
+      // getClient() call must come after convertMutations in case it throws a TException
       client = getClient(location);
 
       List<TCMResult> tresults = null;
@@ -634,7 +633,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       if (sessionId != null) {
         unreserveSessionID(location);
       }
-      ThriftUtil.returnClient((TServiceClient) client, context);
+      ThriftUtil.returnClient(client, context);
     }
   }
 
@@ -724,7 +723,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
-    TabletClientService.Iface client = null;
+    TabletClientService.Client client = null;
 
     TInfo tinfo = TraceUtil.traceInfo();
 
@@ -732,7 +731,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       client = getClient(location);
       client.invalidateConditionalUpdate(tinfo, sessionId);
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client, context);
+      ThriftUtil.returnClient(client, context);
     }
   }
 

@@ -224,6 +224,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:ThriftPropertyException tpe
   )
 
   void setNamespaceProperty(
@@ -260,6 +261,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
+    4:ThriftPropertyException tpe
   )
 
   // system management methods

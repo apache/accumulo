@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -27,7 +26,6 @@ import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.TabletClientHandler;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WriteTracker;
-import org.apache.thrift.TException;
 
 public class NonCommittingExternalCompactionTabletClientHandler extends TabletClientHandler
     implements TabletClientService.Iface {
@@ -39,14 +37,13 @@ public class NonCommittingExternalCompactionTabletClientHandler extends TabletCl
 
   @Override
   public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-      throws ThriftSecurityException, TException {
+      String externalCompactionId, TKeyExtent extent, long fileSize, long entries) {
     // do nothing
   }
 
   @Override
   public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent) throws TException {
+      String externalCompactionId, TKeyExtent extent) {
     // do nothing
   }
 

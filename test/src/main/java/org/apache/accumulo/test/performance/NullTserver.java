@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -83,7 +82,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
 
 import com.beust.jcommander.Parameter;
@@ -115,7 +113,7 @@ public class NullTserver {
     }
 
     @Override
-    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+    public boolean cancelUpdate(TInfo tinfo, long updateID) {
       return true;
     }
 
@@ -289,25 +287,23 @@ public class NullTserver {
 
     @Override
     public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo,
-        TCredentials credentials) throws ThriftSecurityException, TException {
+        TCredentials credentials) {
       return null;
     }
 
     @Override
     public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-        String queueName, long priority, String compactor, String externalCompactionId)
-        throws ThriftSecurityException, TException {
+        String queueName, long priority, String compactor, String externalCompactionId) {
       return null;
     }
 
     @Override
     public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-        throws ThriftSecurityException, TException {}
+        String externalCompactionId, TKeyExtent extent, long fileSize, long entries) {}
 
     @Override
     public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent) throws TException {}
+        String externalCompactionId, TKeyExtent extent) {}
 
   }
 

@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver.managermessage;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Iface;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -37,7 +37,7 @@ public class TabletStatusMessage implements ManagerMessage {
   }
 
   @Override
-  public void send(TCredentials auth, String serverName, Iface client)
+  public void send(TCredentials auth, String serverName, ManagerClientService.Client client)
       throws TException, ThriftSecurityException {
     client.reportTabletStatus(TraceUtil.traceInfo(), auth, serverName, status, extent.toThrift());
   }
