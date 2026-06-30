@@ -188,6 +188,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
           }
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting tserver locks", e);
       }
     }
@@ -203,6 +206,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
           }
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting compactors from zookeeper", e);
       }
 
@@ -219,6 +225,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
           }
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting scan server locks", e);
       }
     }

@@ -812,6 +812,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
     this.getContext().setServiceLock(compactorLock);
@@ -1041,6 +1044,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }

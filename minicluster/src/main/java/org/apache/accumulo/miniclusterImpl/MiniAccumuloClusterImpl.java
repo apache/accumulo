@@ -550,6 +550,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               MiniAccumuloClusterImpl.this.terminate();
             }
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           } catch (Exception e) {
             log.error("Exception while attempting to stop the MiniAccumuloCluster.", e);

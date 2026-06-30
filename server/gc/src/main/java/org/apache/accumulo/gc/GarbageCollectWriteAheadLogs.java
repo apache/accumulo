@@ -283,6 +283,9 @@ public class GarbageCollectWriteAheadLogs {
               iter.remove();
               f.getValue().get();
             } catch (InterruptedException | ExecutionException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException("Uncaught exception deleting wal file" + f.getKey(), e);
             }
           }
@@ -323,6 +326,9 @@ public class GarbageCollectWriteAheadLogs {
               iter.remove();
               f.getValue().get();
             } catch (InterruptedException | ExecutionException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException(
                   "Uncaught exception deleting recovery log file" + f.getKey(), e);
             }

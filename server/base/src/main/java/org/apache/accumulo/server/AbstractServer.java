@@ -138,6 +138,9 @@ public abstract class AbstractServer
                 + Constants.ZPREPARE_FOR_UPGRADE);
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error checking for upgrade preparation node ("
           + Constants.ZPREPARE_FOR_UPGRADE + ") in zookeeper", e);
     }
@@ -458,6 +461,7 @@ public abstract class AbstractServer
                     interval);
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 if (serverThread.isAlive()) {
                   // this is marked as a critical thread, and will halt the process when it dies
                   throw new IllegalStateException(

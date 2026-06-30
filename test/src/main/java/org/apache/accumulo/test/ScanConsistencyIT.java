@@ -344,6 +344,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
         try {
           wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }

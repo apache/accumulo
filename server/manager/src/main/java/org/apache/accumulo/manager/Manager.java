@@ -602,7 +602,6 @@ public class Manager extends AbstractServer
         } catch (KeeperException e) {
           log.error("Exception trying to delete empty scan server ZNodes, will retry", e);
         } catch (InterruptedException e) {
-          Thread.interrupted();
           log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
         } finally {
           // sleep for 5 mins
@@ -983,6 +982,9 @@ public class Manager extends AbstractServer
     try {
       sld = getPrimaryManagerLock(context.getServerPaths().createManagerPath());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception getting manager lock", e);
     }
     // Setting the Manager state to HAVE_LOCK has the side-effect of
@@ -1024,6 +1026,9 @@ public class Manager extends AbstractServer
         }
       });
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
@@ -1127,6 +1132,9 @@ public class Manager extends AbstractServer
         upgradeMetadataFuture.get();
       }
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
 
@@ -1171,6 +1179,9 @@ public class Manager extends AbstractServer
       try {
         keyDistributor.initialize();
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
       authenticationTokenKeyManagerThread = Threads
@@ -1206,6 +1217,9 @@ public class Manager extends AbstractServer
     try {
       primaryManagerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
@@ -1220,6 +1234,7 @@ public class Manager extends AbstractServer
       try {
         mainWait();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
       }
@@ -1241,6 +1256,7 @@ public class Manager extends AbstractServer
     try {
       statusThread.join(remaining(deadline));
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException("Exception stopping status thread", e);
     }
 
@@ -1256,6 +1272,7 @@ public class Manager extends AbstractServer
           authenticationTokenKeyManagerThread.join(remaining(deadline));
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Exception waiting on delegation-token key manager", e);
       }
     }
@@ -1266,6 +1283,7 @@ public class Manager extends AbstractServer
       try {
         watcher.join(remaining(deadline));
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
@@ -1310,6 +1328,9 @@ public class Manager extends AbstractServer
             "Unexpected previous fateClient reference map already initialized");
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception setting up Fate clients", e);
     }
   }

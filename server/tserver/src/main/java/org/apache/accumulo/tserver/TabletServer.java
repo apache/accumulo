@@ -538,6 +538,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       try {
         authKeyWatcher.updateAuthKeys();
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         // TODO Does there need to be a better check? What are the error conditions that we'd fall
         // out here? AUTH_FAILURE?
         // If we get the error, do we just put it on a timer and retry the exists(String, Watcher)
@@ -664,6 +667,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       } catch (Exception e) {

@@ -317,6 +317,7 @@ public class TabletServerLogger {
           try {
             nextLog.offer(e, 12, TimeUnit.HOURS);
           } catch (InterruptedException e2) {
+            Thread.currentThread().interrupt();
             // This is a critical thread, so dying will log this then halt the VM.
             throw new IllegalStateException("Next log maker thread interrupted", e2);
           }

@@ -152,6 +152,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
         count--;
         return result;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException(e);
       }
     }

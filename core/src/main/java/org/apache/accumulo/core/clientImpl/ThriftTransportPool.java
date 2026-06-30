@@ -264,6 +264,7 @@ public class ThriftTransportPool {
     try {
       checkThread.join();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
   }

@@ -402,6 +402,9 @@ public class ServiceLock implements Watcher {
                     LOG.debug("[{}] Renewed watch on prior node {}", vmLockPrefix, nodeToWatch);
                   }
                 } catch (KeeperException | InterruptedException e) {
+                  if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                  }
                   lw.failedToAcquireLock(
                       new Exception("Failed to renew watch on prior node: " + nodeToWatch, e));
                 }
@@ -562,6 +565,9 @@ public class ServiceLock implements Watcher {
       determineLockOwnership(lw);
 
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       lw.failedToAcquireLock(e);
     }
   }
@@ -831,6 +837,9 @@ public class ServiceLock implements Watcher {
     try {
       return null != this.zooKeeper.exists(lockPath, null);
     } catch (KeeperException | InterruptedException | RuntimeException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Error verfiying lock at {}", lockPath, e);
       return false;
     }

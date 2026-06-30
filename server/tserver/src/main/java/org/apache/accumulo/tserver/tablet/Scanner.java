@@ -103,6 +103,7 @@ public class Scanner {
         // would not handle that well.
         readInProgress = true;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         sawException = true;
       }
 
@@ -232,6 +233,7 @@ public class Scanner {
         isolatedDataSource.close(false);
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       return false;
     } finally {
       if (obtainedLock) {

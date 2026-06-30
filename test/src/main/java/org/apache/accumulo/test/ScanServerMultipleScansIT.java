@@ -129,6 +129,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             startLatch.countDown();
             startLatch.await();
           } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
             fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
@@ -200,6 +201,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             startLatch.countDown();
             startLatch.await();
           } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
             fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
@@ -258,6 +260,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             startLatch.countDown();
             startLatch.await();
           } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
             fail("InterruptedException waiting for latch");
           }
           try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
@@ -325,6 +328,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             startLatch.countDown();
             startLatch.await();
           } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
             fail("InterruptedException waiting for latch");
           }
           try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
