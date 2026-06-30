@@ -190,7 +190,7 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
-    return new ServerAddress(new CustomThreadedSelectorServer(options), address);
+    return new ServerAddress(new TThreadedSelectorServer(options), address);
   }
 
   /**
