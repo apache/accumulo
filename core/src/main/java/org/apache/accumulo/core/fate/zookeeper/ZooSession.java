@@ -148,6 +148,7 @@ public class ZooSession {
             zooKeeper.close();
             zooKeeper = null;
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.warn("interrupted", e);
           }
         }

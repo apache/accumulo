@@ -84,6 +84,9 @@ public class ZooKeeperInitializer {
             "Failed to create default system props during initialization at: {}" + sysPropPath);
       }
     } catch (IOException | KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to initialize configuration for prop store", ex);
     }
   }

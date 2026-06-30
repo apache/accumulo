@@ -101,6 +101,9 @@ public final class ZKAuthenticator implements Authenticator {
         constructUser(principal, ZKSecurityTool.createPass(token));
       }
     } catch (KeeperException | AccumuloException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     }
@@ -139,6 +142,7 @@ public final class ZKAuthenticator implements Authenticator {
       }
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (AccumuloException e) {
@@ -156,6 +160,7 @@ public final class ZKAuthenticator implements Authenticator {
             NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new RuntimeException(e);
     } catch (KeeperException e) {
@@ -185,6 +190,7 @@ public final class ZKAuthenticator implements Authenticator {
         log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("{}", e.getMessage(), e);
         throw new RuntimeException(e);
       } catch (AccumuloException e) {

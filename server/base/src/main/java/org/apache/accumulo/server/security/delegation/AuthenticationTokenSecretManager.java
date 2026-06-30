@@ -257,6 +257,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
         try {
           keyDistributor.remove(key);
         } catch (KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Failed to remove AuthenticationKey from ZooKeeper. Exiting", e);
           throw new RuntimeException(e);
         }

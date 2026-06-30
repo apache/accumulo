@@ -77,6 +77,7 @@ public class CleanUp {
           try {
             Thread.sleep(100);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("{}", e.getMessage(), e);
           }
         }

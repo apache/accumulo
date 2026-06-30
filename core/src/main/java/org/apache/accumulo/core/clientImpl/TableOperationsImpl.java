@@ -530,6 +530,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     } finally {
       executor.shutdown();
@@ -1065,6 +1066,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               + " because of concurrent modification");
           retry.waitForNextAttempt(log, "modify table properties for " + tableName);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {
@@ -1956,6 +1958,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
                 rangeList.size()));
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
       locator.invalidateCache();

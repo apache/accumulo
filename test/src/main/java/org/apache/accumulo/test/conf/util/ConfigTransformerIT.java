@@ -121,6 +121,9 @@ public class ConfigTransformerIT {
     try {
       ZKUtil.deleteRecursive(zooKeeper, Constants.ZROOT);
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
     }
     verify(context, watcher);

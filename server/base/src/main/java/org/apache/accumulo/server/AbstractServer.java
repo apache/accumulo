@@ -113,6 +113,9 @@ public abstract class AbstractServer
                 + upgradePrepNode);
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(
           "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper", e);
     }
@@ -312,6 +315,7 @@ public abstract class AbstractServer
                     interval);
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 if (serverThread.isAlive()) {
                   // throw an Error, which will cause this process to be terminated
                   throw new Error("Sleep interrupted in ServiceLock verification thread");

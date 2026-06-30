@@ -156,6 +156,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         resultsQueue.put(entries);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) {
           log.debug("Failed to add Batch Scan result", e);
         } else {
@@ -215,6 +216,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
@@ -288,6 +290,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
 
@@ -491,6 +494,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               try {
                 resultsQueue.put(LAST_BATCH);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 fatalException = e;
                 if (!resultsQueue.offer(LAST_BATCH)) {
                   log.debug("Could not add to result queue after seeing fatalException",

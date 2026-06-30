@@ -257,6 +257,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
               + " because of concurrent modification");
           retry.waitForNextAttempt(log, "Modify namespace properties for " + namespace);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {

@@ -103,7 +103,7 @@ public class ServiceLockSupport {
           LOG.info("{} lock held by someone else, waiting for a change in state", serviceName);
           wait();
         } catch (InterruptedException e) {
-          // empty
+          Thread.currentThread().interrupt();
         }
       }
     }

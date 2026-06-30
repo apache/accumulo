@@ -57,6 +57,9 @@ public class UGIAssumingTransport extends FilterTransport {
         return null;
       });
     } catch (IOException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
 

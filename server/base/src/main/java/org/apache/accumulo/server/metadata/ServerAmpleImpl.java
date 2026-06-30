@@ -257,6 +257,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         jsonBytes =
             zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e);
       }
       return new RootGcCandidates(new String(jsonBytes, UTF_8)).sortedStream().iterator();

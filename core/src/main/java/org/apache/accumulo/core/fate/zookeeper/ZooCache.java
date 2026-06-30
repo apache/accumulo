@@ -263,6 +263,7 @@ public class ZooCache {
             log.warn("Zookeeper error, will retry", e);
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.info("Zookeeper error, will retry", e);
         } catch (ConcurrentModificationException e) {
           log.debug("Zookeeper was modified, will retry");
@@ -272,6 +273,7 @@ public class ZooCache {
           // do not hold lock while sleeping
           Thread.sleep(sleepTime);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.debug("Wait in retry() was interrupted.", e);
         }
         LockSupport.parkNanos(sleepTime);

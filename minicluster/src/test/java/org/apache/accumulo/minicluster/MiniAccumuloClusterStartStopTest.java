@@ -55,6 +55,9 @@ public class MiniAccumuloClusterStartStopTest extends WithTestNames {
       try {
         accumulo.stop();
       } catch (IOException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.warn("Failure during tear down", e);
       }
     }
