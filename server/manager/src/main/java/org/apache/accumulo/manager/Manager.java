@@ -1282,8 +1282,10 @@ public class Manager extends AbstractServer
   @VisibleForTesting
   protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
       ServerContext context) {
-    return new Fate<>(env, store, true, TraceRepo::toLogString, getConfiguration(),
+    var fate = new Fate<>(env, store, true, TraceRepo::toLogString, getConfiguration(),
         context.getScheduledExecutor());
+    fate.start();
+    return fate;
   }
 
   private void setupFate(ServerContext context) {
