@@ -180,7 +180,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       ExecutorConfig[] execConfigs =
           new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
-      List<Executor> tmpExec = new ArrayList<>();
+      List<Executor> tmpExec = new ArrayList<>(execConfigs.length);
 
       for (ExecutorConfig executorConfig : execConfigs) {
         Long maxSize = executorConfig.maxSize == null ? null

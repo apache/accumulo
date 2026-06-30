@@ -174,7 +174,7 @@ public class LogSorter {
       final long bufferSize = sortedLogConf.getAsBytes(prop);
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
-        final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
+        final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>(512);
         try {
           long start = input.getPos();
           while (input.getPos() - start < bufferSize) {
@@ -274,7 +274,8 @@ public class LogSorter {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
       Key k = logFileKey.toKey();
-      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>()).addAll(logFileValue.getMutations());
+      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>(logFileValue.getMutations().size()))
+          .addAll(logFileValue.getMutations());
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
@@ -302,8 +303,8 @@ public class LogSorter {
   }
 
   public List<RecoveryStatus> getLogSorts() {
-    List<RecoveryStatus> result = new ArrayList<>();
     synchronized (currentWork) {
+      List<RecoveryStatus> result = new ArrayList<>(currentWork.size());
       for (Entry<String,LogProcessor> entries : currentWork.entrySet()) {
         RecoveryStatus status = new RecoveryStatus();
         status.name = entries.getKey();

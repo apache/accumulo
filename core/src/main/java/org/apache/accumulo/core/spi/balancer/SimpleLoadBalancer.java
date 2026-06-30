@@ -168,7 +168,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
       // Sort by total number of online tablets, per server
       int total = 0;
-      ArrayList<ServerCounts> totals = new ArrayList<>();
+      ArrayList<ServerCounts> totals = new ArrayList<>(current.size());
       for (Entry<TabletServerId,TServerStatus> entry : current.entrySet()) {
         int serverTotal = 0;
         if (entry.getValue() != null && entry.getValue().getTableMap() != null) {
@@ -241,11 +241,11 @@ public class SimpleLoadBalancer implements TabletBalancer {
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count,
       Map<TableId,Map<TabletId,TabletStatistics>> donerTabletStats) {
 
-    if (count == 0) {
+    if (count <= 0) {
       return Collections.emptyList();
     }
 
-    List<TabletMigration> result = new ArrayList<>();
+    List<TabletMigration> result = new ArrayList<>(count);
     // Copy counts so we can update them as we propose migrations
     Map<TableId,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
     Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);

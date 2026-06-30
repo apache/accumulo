@@ -143,7 +143,8 @@ public abstract class GroupBalancer implements TabletBalancer {
 
     Function<TabletId,String> partitioner = getLoggingPartitioner();
 
-    List<ComparablePair<String,TabletId>> tabletsByGroup = new ArrayList<>();
+    List<ComparablePair<String,TabletId>> tabletsByGroup =
+        new ArrayList<>(params.unassignedTablets().size());
     for (Entry<TabletId,TabletServerId> entry : params.unassignedTablets().entrySet()) {
       TabletServerId last = entry.getValue();
       if (last != null) {
