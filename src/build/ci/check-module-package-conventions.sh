@@ -39,25 +39,6 @@ ALLOWED=(
   server/native/src/main/resources/Makefile
   server/native/src/main/resources/NOTICE
 
-  # TODO: these test resources should be moved into the correct package for the module
-  core/src/test/resources/accumulo.jceks
-  core/src/test/resources/empty.jceks
-  core/src/test/resources/site-cfg.jceks
-  core/src/test/resources/accumulo2.properties
-  core/src/test/resources/passwords.jceks
-  minicluster/src/test/resources/FooFilter.jar
-  server/tserver/src/test/resources/walog-from-15.walog
-  server/tserver/src/test/resources/walog-from-16.walog
-  server/tserver/src/test/resources/walog-from-14/550e8400-e29b-41d4-a716-446655440000
-  server/tserver/src/test/resources/walog-from-20.walog
-  test/src/main/resources/v2_import_test/README.md
-  test/src/main/resources/v2_import_test/data/A0000008.rf
-  test/src/main/resources/v2_import_test/data/A0000009.rf
-  test/src/main/resources/v2_import_test/data/A000000a.rf
-  test/src/main/resources/v2_import_test/data/A000000b.rf
-  test/src/main/resources/v2_import_test/data/distcp.txt
-  test/src/main/resources/v2_import_test/data/exportMetadata.zip
-
   # TODO: these minicluster classes should be moved into the correct package for the module
   minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloCluster.java
   minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControl.java
