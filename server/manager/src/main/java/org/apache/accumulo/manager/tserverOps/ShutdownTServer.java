@@ -75,7 +75,7 @@ public class ShutdownTServer extends AbstractFateOperation {
             ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, hostAndPort, env.getContext());
         TabletServerStatus status =
             client.getTabletServerStatus(TraceUtil.traceInfo(), env.getContext().rpcCreds());
-        if (status.getTableMap() != null && status.getTableMap().isEmpty()) {
+        if (status.tableMap != null && status.tableMap.isEmpty()) {
           log.info("tablet server hosts no tablets {}", server);
           client.halt(TraceUtil.traceInfo(), env.getContext().rpcCreds(),
               env.getServiceLock().getLockID().serialize());
@@ -83,7 +83,7 @@ public class ShutdownTServer extends AbstractFateOperation {
           return 0;
         } else {
           log.info("tablet server {} still has tablets for tables: {}", server,
-              (status.getTableMap() == null) ? "null" : status.getTableMap().keySet());
+              (status.tableMap == null) ? "null" : status.tableMap.keySet());
         }
       } catch (TTransportException ex) {
         // expected

@@ -796,25 +796,25 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
-        table.setMinors(new Compacting());
+        table.minors = new Compacting();
         tables.put(tableId, table);
       }
       long recs = tablet.getNumEntries();
-      table.setTablets(table.getTablets() + 1);
-      table.setOnlineTablets(table.getOnlineTablets() + 1);
-      table.setRecs(table.getRecs() + recs);
-      table.setQueryRate(table.getQueryRate() + tablet.queryRate());
-      table.setQueryByteRate(table.getQueryByteRate() + tablet.queryByteRate());
-      table.setIngestRate(table.getIngestRate() + tablet.ingestRate());
-      table.setIngestByteRate(table.getIngestByteRate() + tablet.ingestByteRate());
-      table.setScanRate(table.getScanRate() + tablet.scanRate());
+      table.tablets++;
+      table.onlineTablets++;
+      table.recs += recs;
+      table.queryRate += tablet.queryRate();
+      table.queryByteRate += tablet.queryByteRate();
+      table.ingestRate += tablet.ingestRate();
+      table.ingestByteRate += tablet.ingestByteRate();
+      table.scanRate += tablet.scanRate();
       long recsInMemory = tablet.getNumEntriesInMemory();
-      table.setRecsInMemory(table.getRecsInMemory() + recsInMemory);
+      table.recsInMemory += recsInMemory;
       if (tablet.isMinorCompactionRunning()) {
-        table.getMinors().setRunning(table.getMinors().getRunning() + 1);
+        table.minors.running++;
       }
       if (tablet.isMinorCompactionQueued()) {
-        table.getMinors().setQueued(table.getMinors().getQueued() + 1);
+        table.minors.queued++;
       }
     });
 
@@ -825,14 +825,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         tables.put(tableId.canonical(), table);
       }
 
-      if (table.getScans() == null) {
-        table.setScans(new Compacting());
+      if (table.scans == null) {
+        table.scans = new Compacting();
       }
 
-      table.getScans()
-          .setQueued(table.getScans().getQueued() + mapCounter.getInt(ScanRunState.QUEUED));
-      table.getScans()
-          .setRunning(table.getScans().getRunning() + mapCounter.getInt(ScanRunState.RUNNING));
+      table.scans.queued += mapCounter.getInt(ScanRunState.QUEUED);
+      table.scans.running += mapCounter.getInt(ScanRunState.RUNNING);
     });
 
     ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
@@ -850,24 +848,24 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         table = new TableInfo();
         tables.put(tableId, table);
       }
-      table.setTablets(table.getTablets() + 1);
+      table.tablets++;
     }
 
-    result.setLastContact(RelativeTime.currentTimeMillis());
-    result.setTableMap(tables);
-    result.setOsLoad(ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage());
-    result.setName(String.valueOf(getAdvertiseAddress()));
-    result.setHoldTime(resourceManager.holdTime());
-    result.setLookups(seekCount.sum());
-    result.setIndexCacheHits(resourceManager.getIndexCache().getStats().hitCount());
-    result.setIndexCacheRequest(resourceManager.getIndexCache().getStats().requestCount());
-    result.setDataCacheHits(resourceManager.getDataCache().getStats().hitCount());
-    result.setDataCacheRequest(resourceManager.getDataCache().getStats().requestCount());
-    result.setLogSorts(logSorter.getLogSorts());
-    result.setFlushs(flushCounter.get());
-    result.setSyncs(syncCounter.get());
-    result.setVersion(getVersion());
-    result.setResponseTime(System.currentTimeMillis() - start);
+    result.lastContact = RelativeTime.currentTimeMillis();
+    result.tableMap = tables;
+    result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+    result.name = String.valueOf(getAdvertiseAddress());
+    result.holdTime = resourceManager.holdTime();
+    result.lookups = seekCount.sum();
+    result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
+    result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
+    result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();
+    result.dataCacheRequest = resourceManager.getDataCache().getStats().requestCount();
+    result.logSorts = logSorter.getLogSorts();
+    result.flushs = flushCounter.get();
+    result.syncs = syncCounter.get();
+    result.version = getVersion();
+    result.responseTime = System.currentTimeMillis() - start;
     return result;
   }
 

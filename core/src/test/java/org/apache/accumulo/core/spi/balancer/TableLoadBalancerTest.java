@@ -69,7 +69,7 @@ public class TableLoadBalancerTest {
   private static TServerStatus status(Object... config) {
     org.apache.accumulo.core.manager.thrift.TabletServerStatus thriftStatus =
         new org.apache.accumulo.core.manager.thrift.TabletServerStatus();
-    thriftStatus.setTableMap(new HashMap<>());
+    thriftStatus.tableMap = new HashMap<>();
     String tablename = null;
     for (Object c : config) {
       if (c instanceof String) {
@@ -77,9 +77,9 @@ public class TableLoadBalancerTest {
       } else {
         TableInfo info = new TableInfo();
         int count = (Integer) c;
-        info.setOnlineTablets(count);
-        info.setTablets(count);
-        thriftStatus.getTableMap().put(tablename, info);
+        info.onlineTablets = count;
+        info.tablets = count;
+        thriftStatus.tableMap.put(tablename, info);
       }
     }
     return new TServerStatusImpl(thriftStatus);
@@ -94,9 +94,9 @@ public class TableLoadBalancerTest {
     for (int i = 0; i < tableInfo.getTableMap().get(tableId.canonical()).getOnlineTabletCount();
         i++) {
       TabletStats stats = new TabletStats();
-      stats.setExtent(
+      stats.extent =
           new KeyExtent(tableId, new Text(tserver.getHost() + String.format("%03d", i + 1)),
-              new Text(tserver.getHost() + String.format("%03d", i))).toThrift());
+              new Text(tserver.getHost() + String.format("%03d", i))).toThrift();
       result.add(new TabletStatisticsImpl(stats));
     }
     return result;

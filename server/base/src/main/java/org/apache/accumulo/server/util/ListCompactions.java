@@ -64,9 +64,9 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
       super();
       ecid = runningCompaction.getJob().getExternalCompactionId();
       addr = runningCompaction.getCompactor();
-      kind = runningCompaction.getJob().getKind();
+      kind = runningCompaction.getJob().kind;
       groupName = ResourceGroupId.of(runningCompaction.getGroupName());
-      KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+      KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().extent);
       ke = extent.obscured();
       tableId = extent.tableId().canonical();
       if (addDetail) {

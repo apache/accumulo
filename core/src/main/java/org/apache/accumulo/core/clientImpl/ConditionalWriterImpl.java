@@ -511,9 +511,9 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();
       sid.reserved = true;
-      sid.sessionID = tcs.getSessionId();
-      sid.lockId = tcs.getTserverLock();
-      sid.ttl = tcs.getTtl();
+      sid.sessionID = tcs.sessionId;
+      sid.lockId = tcs.tserverLock;
+      sid.ttl = tcs.ttl;
       sid.location = location;
       if (cachedSessionIDs.put(location, sid) != null) {
         throw new IllegalStateException();
@@ -601,13 +601,13 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       ArrayList<QCMutation> ignored = new ArrayList<>();
 
       for (TCMResult tcmResult : tresults) {
-        if (tcmResult.getStatus() == TCMStatus.IGNORED) {
-          CMK cmk = cmidToCm.get(tcmResult.getCmid());
+        if (tcmResult.status == TCMStatus.IGNORED) {
+          CMK cmk = cmidToCm.get(tcmResult.cmid);
           ignored.add(cmk.cm);
           extentsToInvalidate.add(cmk.ke);
         } else {
-          QCMutation qcm = cmidToCm.get(tcmResult.getCmid()).cm;
-          qcm.queueResult(new Result(fromThrift(tcmResult.getStatus()), qcm, location.toString()));
+          QCMutation qcm = cmidToCm.get(tcmResult.cmid).cm;
+          qcm.queueResult(new Result(fromThrift(tcmResult.status), qcm, location.toString()));
         }
       }
 

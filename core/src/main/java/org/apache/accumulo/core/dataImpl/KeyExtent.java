@@ -53,6 +53,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
@@ -115,9 +116,10 @@ public final class KeyExtent implements Comparable<KeyExtent> {
    * @param tke the KeyExtent in its Thrift object form
    */
   public static KeyExtent fromThrift(TKeyExtent tke) {
-    TableId tableId = TableId.of(new String(tke.getTable(), UTF_8));
-    Text endRow = tke.getEndRow() == null ? null : new Text(tke.getEndRow());
-    Text prevEndRow = tke.getPrevEndRow() == null ? null : new Text(tke.getPrevEndRow());
+    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tke.table), UTF_8));
+    Text endRow = tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow));
+    Text prevEndRow =
+        tke.prevEndRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.prevEndRow));
     return new KeyExtent(tableId, endRow, prevEndRow);
   }
 

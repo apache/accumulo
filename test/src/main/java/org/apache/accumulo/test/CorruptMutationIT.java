@@ -94,7 +94,7 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
 
         // Simulate data corruption in the serialized mutation
         TMutation badMutation = createTMutation("ghi", "z3");
-        badMutation.setEntries(-42);
+        badMutation.entries = -42;
 
         // Write some good and bad mutations to the session. The server side will see an error here,
         // however since this is a thrift oneway method no exception is expected here. This should

@@ -1113,9 +1113,9 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
         "Constraint class", "Violation code", "Violation Description"));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));
-    for (TConstraintViolationSummary cvs : cve.getViolationSummaries()) {
+    for (TConstraintViolationSummary cvs : cve.violationSummaries) {
       logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n",
-          cvs.getConstrainClass(), cvs.getViolationCode(), cvs.getViolationDescription()));
+          cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
     }
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));

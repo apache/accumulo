@@ -34,8 +34,8 @@ public class TEvent implements org.apache.thrift.TBase<TEvent, TEvent._Fields>, 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TEventStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TEventTupleSchemeFactory();
 
-  private @org.apache.thrift.annotation.Nullable java.lang.String level; // required
-  private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String level; // required
+  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

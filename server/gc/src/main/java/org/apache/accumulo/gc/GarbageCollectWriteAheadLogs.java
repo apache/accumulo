@@ -131,7 +131,7 @@ public class GarbageCollectWriteAheadLogs {
 
       Span span = TraceUtil.startSpan(this.getClass(), "getCandidates");
       try (Scope scope = span.makeCurrent()) {
-        status.getCurrentLog().setStarted(System.currentTimeMillis());
+        status.currentLog.started = System.currentTimeMillis();
 
         recoveryLogs = getSortedWALogs();
 
@@ -147,8 +147,8 @@ public class GarbageCollectWriteAheadLogs {
         fileScanStop = System.currentTimeMillis();
 
         log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
-            logsByServer.size(), (fileScanStop - status.getCurrentLog().getStarted()) / 1000.));
-        status.getCurrentLog().setCandidates(count);
+            logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
+        status.currentLog.candidates = count;
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;
@@ -212,9 +212,9 @@ public class GarbageCollectWriteAheadLogs {
     } catch (Exception e) {
       log.error("exception occurred while garbage collecting write ahead logs", e);
     } finally {
-      status.getCurrentLog().setFinished(System.currentTimeMillis());
-      status.setLastLog(status.getCurrentLog());
-      status.setCurrentLog(new GcCycleStats());
+      status.currentLog.finished = System.currentTimeMillis();
+      status.lastLog = status.currentLog;
+      status.currentLog = new GcCycleStats();
     }
   }
 
@@ -300,7 +300,7 @@ public class GarbageCollectWriteAheadLogs {
     } finally {
       deleteThreadPool.shutdownNow();
     }
-    status.getCurrentLog().setDeleted(status.getCurrentLog().getDeleted() + counter.get());
+    status.currentLog.deleted += counter.get();
     return counter.get();
   }
 

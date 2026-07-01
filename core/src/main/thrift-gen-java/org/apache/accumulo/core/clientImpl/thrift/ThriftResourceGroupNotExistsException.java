@@ -33,7 +33,7 @@ public class ThriftResourceGroupNotExistsException extends org.apache.thrift.TEx
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ThriftResourceGroupNotExistsExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ThriftResourceGroupNotExistsExceptionTupleSchemeFactory();
 
-  private @org.apache.thrift.annotation.Nullable java.lang.String resourceGroupName; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String resourceGroupName; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

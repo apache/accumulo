@@ -927,10 +927,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       if (ke.tableId().compareTo(text) == 0) {
         Tablet tablet = entry.getValue();
         TabletStats stats = tablet.getTabletStats();
-        stats.setExtent(ke.toThrift());
-        stats.setIngestRate(tablet.ingestRate());
-        stats.setQueryRate(tablet.queryRate());
-        stats.setNumEntries(tablet.getNumEntries());
+        stats.extent = ke.toThrift();
+        stats.ingestRate = tablet.ingestRate();
+        stats.queryRate = tablet.queryRate();
+        stats.numEntries = tablet.getNumEntries();
         result.add(stats);
       }
     }
