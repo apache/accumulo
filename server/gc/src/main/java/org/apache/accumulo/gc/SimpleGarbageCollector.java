@@ -157,6 +157,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     try {
       waitForUpgrade();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
@@ -191,6 +192,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
       Thread.sleep(delay);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.warn("{}", e.getMessage(), e);
       return;
     }
@@ -346,10 +348,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           log.debug("Sleeping for {} milliseconds", gcDelay);
           Thread.sleep(gcDelay);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.warn("{}", e.getMessage(), e);
           throw e;
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }

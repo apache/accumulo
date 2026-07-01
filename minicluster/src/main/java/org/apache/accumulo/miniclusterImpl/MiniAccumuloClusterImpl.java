@@ -550,6 +550,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               MiniAccumuloClusterImpl.this.terminate();
             }
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           } catch (Exception e) {
             log.error("Exception while attempting to stop the MiniAccumuloCluster.", e);
@@ -725,6 +726,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         zrw.putPersistentData(miniZDirPath, new byte[0], NodeExistsPolicy.SKIP);
         zrw.putPersistentData(miniZInstancePath, new byte[0], NodeExistsPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
       ServiceLockData sld =
@@ -999,6 +1003,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         miniLock.unlock();
       } catch (InterruptedException | KeeperException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error unlocking ServiceLock for MiniAccumuloClusterImpl", e);
       }
       miniLock = null;
@@ -1150,6 +1157,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           try {
             f.get();
           } catch (ExecutionException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             log.warn("{} did not fully stop after {} seconds", type, unit.toSeconds(timeout), e);
           }
           return true;

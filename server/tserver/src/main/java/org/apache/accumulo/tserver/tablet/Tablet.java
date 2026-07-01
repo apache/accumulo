@@ -639,6 +639,9 @@ public class Tablet extends TabletBase {
           .getData(Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -888,6 +891,7 @@ public class Tablet extends TabletBase {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error(e.toString());
         }
       }
@@ -960,6 +964,7 @@ public class Tablet extends TabletBase {
               runningScans.size());
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error("Interrupted waiting to completeClose for extent {}", extent, e);
         }
       }

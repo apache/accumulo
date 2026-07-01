@@ -230,6 +230,7 @@ public class MiniAccumuloRunner {
         log.error("IOException attempting to stop Accumulo.", e);
         return;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("InterruptedException attempting to stop Accumulo.", e);
         return;
       }

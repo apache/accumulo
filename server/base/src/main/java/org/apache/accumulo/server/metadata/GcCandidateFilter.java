@@ -16,20 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.server.metadata;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 
-public class UtilWaitThread {
-  private static final Logger log = LoggerFactory.getLogger(UtilWaitThread.class);
+public class GcCandidateFilter extends Filter {
 
-  public static void sleep(long millis) {
-    try {
-      Thread.sleep(millis);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      log.error("{}", e.getMessage(), e);
-    }
+  @Override
+  public boolean accept(Key k, Value v) {
+    return v.equals(SkewedKeyValue.NAME);
   }
+
 }

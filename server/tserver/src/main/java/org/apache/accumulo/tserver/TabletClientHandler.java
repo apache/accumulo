@@ -865,6 +865,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
       return future.get();
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw new TException(e);

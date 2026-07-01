@@ -93,6 +93,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for tablePropUtil update");
         }
         properties = client.tableOperations().getConfiguration(tableName);
@@ -106,6 +107,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for tablePropUtil update");
         }
         properties = client.tableOperations().getConfiguration(tableName);
@@ -146,6 +148,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for namespacePropUtil update");
         }
         properties = client.namespaceOperations().getConfiguration(namespace);
@@ -159,6 +162,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for namespacePropUtil update");
         }
         properties = client.namespaceOperations().getConfiguration(namespace);

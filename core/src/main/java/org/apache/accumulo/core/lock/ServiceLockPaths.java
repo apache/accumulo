@@ -497,6 +497,9 @@ public class ServiceLockPaths {
             try {
               future.get();
             } catch (InterruptedException | ExecutionException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new IllegalStateException(e);
             }
           }

@@ -98,6 +98,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
             } catch (TableNotFoundException e) {
               // expected
             } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException(e);
             }
           }));
@@ -153,6 +156,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           } catch (TableNotFoundException | TableOfflineException e) {
             // expected
           } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(e);
           }
         }));

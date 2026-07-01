@@ -177,6 +177,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
       }

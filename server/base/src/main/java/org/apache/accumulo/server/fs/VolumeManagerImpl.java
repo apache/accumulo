@@ -353,6 +353,9 @@ public class VolumeManagerImpl implements VolumeManager {
       try {
         future.get();
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IOException(e);
       }
     }

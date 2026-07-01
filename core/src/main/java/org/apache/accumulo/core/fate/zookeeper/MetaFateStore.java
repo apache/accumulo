@@ -132,6 +132,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     }
@@ -184,6 +187,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         return Optional.empty();
       }
     } catch (InterruptedException | KeeperException | AcceptableThriftTableOperationException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -461,6 +467,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
               "Deletion of ZK node fate data for {} was not able to be completed atomically... Retrying",
               fateId);
         } catch (InterruptedException | KeeperException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new IllegalStateException(e);
         }
       }
@@ -562,6 +571,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       return new FateData<>(TStatus.UNKNOWN, null, null, createEmptyRepoDeque(),
           createEmptyTxInfo());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -573,6 +585,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       return new FateData<>(TStatus.UNKNOWN, null, null, createEmptyRepoDeque(),
           createEmptyTxInfo());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -616,6 +631,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
       }
       return stream.filter(s -> statuses.contains(s.getStatus()));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -667,6 +685,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
         }
       });
     } catch (InterruptedException | AcceptableThriftTableOperationException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }

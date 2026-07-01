@@ -99,6 +99,7 @@ public class RetryableThriftCall<T> {
           try {
             this.retry.waitForNextAttempt(LOG, "making a thrift RPC");
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             LOG.error("Error waiting for next attempt: {}, retrying now.", e.getMessage(), e);
           }
         } else {

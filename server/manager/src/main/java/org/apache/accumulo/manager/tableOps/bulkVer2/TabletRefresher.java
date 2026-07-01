@@ -124,6 +124,9 @@ public class TabletRefresher {
         try {
           nonRefreshedExtents = future.get();
         } catch (InterruptedException | ExecutionException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new RuntimeException(e);
         }
         if (nonRefreshedExtents.isEmpty()) {
@@ -190,6 +193,7 @@ public class TabletRefresher {
           retry.waitForNextAttempt(log, logId + " waiting for " + refreshesNeeded.size()
               + " tservers to refresh their tablets metadata");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }

@@ -508,6 +508,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         wait();
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
   }
@@ -1070,6 +1071,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           try {
             cancelSession();
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
           }
         }

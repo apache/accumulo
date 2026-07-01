@@ -143,7 +143,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     // Converting the bytes to approximate number of characters for batch size.
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
-    List<GcCandidate> candidatesBatch = new ArrayList<>();
+    List<GcCandidate> candidatesBatch = new ArrayList<>(256);
     batchCount.incrementAndGet();
 
     while (candidates.hasNext()) {
@@ -380,6 +380,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
       }
     } catch (InterruptedException e1) {
+      Thread.currentThread().interrupt();
       log.error("{}", e1.getMessage(), e1);
     }
 

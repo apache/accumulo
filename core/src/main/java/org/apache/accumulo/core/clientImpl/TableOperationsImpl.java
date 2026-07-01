@@ -617,7 +617,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException(excep);
         }
       }
-
     }
     startExecutor.shutdown();
     waitExecutor.shutdown();
@@ -643,6 +642,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           try {
             retry.waitForNextAttempt(log, "Find tablet in " + tableId + " containing " + split);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
           }
           tablet = tabLocator.findTablet(context, split, false, LocationNeed.NOT_REQUIRED);
@@ -1094,6 +1094,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               + " because of concurrent modification");
           retry.waitForNextAttempt(log, "modify table properties for " + tableName);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {
@@ -2007,6 +2008,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
                   rangeList.size()));
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
         }
 
