@@ -65,7 +65,7 @@ import com.google.auto.service.AutoService;
 public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditor.class);
-  private NullWatcher nullWatcher;
+  NullWatcher nullWatcher;
 
   /**
    * No-op constructor - provided so ServiceLoader autoload does not consume resources.
@@ -81,7 +81,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   @Override
   public String description() {
-    return "Emergency tool to modify properties stored in ZooKeeper without a cluster."
+    return "[DEPRECATED - use 'zk props'] Emergency tool to modify properties stored in ZooKeeper without a cluster."
         + " Prefer using the shell if it is available";
   }
 
@@ -92,6 +92,8 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   @Override
   public void execute(JCommander cl, EditorOpts opts) throws Exception {
+    LOG.warn("'zk prop-editor' is deprecated, use 'zk props' instead");
+
     nullWatcher = new NullWatcher(new ReadyMonitor(ZooPropEditor.class.getSimpleName(), 20_000L));
 
     var context = getServerContext();
@@ -114,8 +116,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     }
   }
 
-  private void setProperty(final ServerContext context, final PropStoreKey propKey,
-      final EditorOpts opts) {
+  void setProperty(final ServerContext context, final PropStoreKey propKey, final EditorOpts opts) {
     LOG.trace("set {}", propKey);
 
     if (!opts.setOpt.contains("=")) {
@@ -145,7 +146,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     }
   }
 
-  private void deleteProperty(final ServerContext context, final PropStoreKey propKey,
+  void deleteProperty(final ServerContext context, final PropStoreKey propKey,
       VersionedProperties versionedProperties, final EditorOpts opts) {
     LOG.trace("delete {} - {}", propKey, opts.deleteOpt);
     String p = opts.deleteOpt.trim();
@@ -163,7 +164,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     LOG.info("{}: deleted {}", targetName, p);
   }
 
-  private void printProperties(final ServerContext context, final PropStoreKey propKey,
+  void printProperties(final ServerContext context, final PropStoreKey propKey,
       final VersionedProperties props) {
     LOG.trace("print {}", propKey);
 
@@ -206,7 +207,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     }
   }
 
-  private VersionedProperties readPropNode(final PropStoreKey propKey, final ZooReader zooReader) {
+  VersionedProperties readPropNode(final PropStoreKey propKey, final ZooReader zooReader) {
     try {
       return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
     } catch (IOException | KeeperException | InterruptedException ex) {
@@ -214,8 +215,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     }
   }
 
-  private PropStoreKey getPropKey(final ServerContext context,
-      final ZooPropEditor.EditorOpts opts) {
+  PropStoreKey getPropKey(final ServerContext context, final ZooPropEditor.EditorOpts opts) {
 
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
@@ -262,7 +262,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
             () -> new IllegalArgumentException("Could not find namespace " + opts.namespaceOpt));
   }
 
-  private String getDisplayName(final PropStoreKey propStoreKey, final ServerContext context) {
+  String getDisplayName(final PropStoreKey propStoreKey, final ServerContext context) {
 
     if (propStoreKey instanceof TablePropKey) {
       return context.createTableIdToQualifiedNameMap()
@@ -303,7 +303,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     public String tableIdOpt = "";
     @Parameter(names = {"-r", "--resource-group"},
         description = "resource group name to display/set/delete properties for")
-    private String resourceGroupOpt = "";
+    public String resourceGroupOpt = "";
 
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {
@@ -332,7 +332,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     }
   }
 
-  private static class NullWatcher extends PropStoreWatcher {
+  static class NullWatcher extends PropStoreWatcher {
     public NullWatcher(ReadyMonitor zkReadyMonitor) {
       super(zkReadyMonitor);
     }
