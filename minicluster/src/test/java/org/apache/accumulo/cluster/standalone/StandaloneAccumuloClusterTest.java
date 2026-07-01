@@ -20,6 +20,8 @@ package org.apache.accumulo.cluster.standalone;
 
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.minicluster.cluster.standalone.StandaloneAccumuloCluster;
+import org.apache.accumulo.minicluster.cluster.standalone.StandaloneClusterControl;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 

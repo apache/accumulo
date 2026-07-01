@@ -20,6 +20,7 @@ package org.apache.accumulo.cluster.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.apache.accumulo.minicluster.cluster.standalone.StandaloneClusterControl;
 import org.junit.jupiter.api.Test;
 
 public class StandaloneClusterControlTest {

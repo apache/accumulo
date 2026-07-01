@@ -21,7 +21,7 @@ package org.apache.accumulo.test.harness;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.minicluster.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
