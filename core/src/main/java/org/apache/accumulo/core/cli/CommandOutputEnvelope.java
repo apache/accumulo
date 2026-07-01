@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -37,55 +37,79 @@ import com.google.gson.Gson;
  *   "command": "accumulo admin fate --summary",
  *   "version": "1",
  *   "reportTime": "2026-06-04T12:00:00Z",
- *   "status": "OK",
- *   "message": null,
- *   "data": { ...command-specific payload... }
+ *   "status": "OK"
+ *   },
+ *   "output": { ... command-specific payload... }
  * }
  * </pre>
  *
  * <p>
- * The {@link version} field is a stability contract. When a breaking change is made to the envelope
- * structure, the version will be incremented. Scripts should check this field and handle the
- * version they were written against.
+ * The {@link CommandStatus#version} field is a stability contract. When a breaking change is made
+ * to the envelope structure, the version will be incremented. Scripts should check this field and
+ * handle the version they were written against.
  *
  */
 public class CommandOutputEnvelope {
 
   /**
    * Current envelop schema version. Increment this if a breaking structural change is made to the
-   * envelope fields (not to the {@link data} field, data changes command specific).
+   * envelope fields (not to the {@code output} field, data changes command specific).
    */
   public static final String VERSION = "1.0";
-  private static final DateTimeFormatter ISO_FMT =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+  private static final DateTimeFormatter ISO_FMT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
   private static final Gson PRETTY_GSON =
       new Gson().newBuilder().setPrettyPrinting().disableJdkUnsafe().create();
 
-  private String command;
-  private String version;
-  private String reportTime;
-  private String status;
-  private String message;
-  private Object data;
+  public static class CommandStatus {
+    private String command;
+    private String version;
+    private String reportTime;
+    private String statusMessage;
+
+    @SuppressWarnings("unused")
+    private CommandStatus() {}
+
+    private CommandStatus(String command, String statusMessage) {
+      this.command = command;
+      this.version = VERSION;
+      this.reportTime = ISO_FMT.format(ZonedDateTime.now(ZoneId.systemDefault()));
+      this.statusMessage = statusMessage;
+    }
+
+    public String getCommand() {
+      return command;
+    }
+
+    public String getVersion() {
+      return version;
+    }
+
+    public String getReportTime() {
+      return reportTime;
+    }
+
+    public String getStatusMessage() {
+      return statusMessage;
+    }
+  }
+
+  private CommandStatus status;
+  private Object output;
 
   @SuppressWarnings("unused")
   private CommandOutputEnvelope() {}
 
-  private CommandOutputEnvelope(String command, String status, String message, Object data) {
-    this.command = command;
-    this.version = VERSION;
-    this.reportTime = ISO_FMT.format(ZonedDateTime.now(ZoneOffset.UTC));
-    this.status = status;
-    this.message = message;
-    this.data = data;
+  private CommandOutputEnvelope(String command, String statusMessage, Object output) {
+    this.status = new CommandStatus(command, statusMessage);
+    this.output = output;
   }
 
   public static CommandOutputEnvelope of(String command, Object data) {
-    return new CommandOutputEnvelope(command, "OK", null, data);
+    return new CommandOutputEnvelope(command, "OK", data);
   }
 
   public static CommandOutputEnvelope error(String command, String message) {
-    return new CommandOutputEnvelope(command, "ERROR", message, null);
+    return new CommandOutputEnvelope(command, "ERROR" + message, null);
   }
 
   public String toJson() {
@@ -96,27 +120,11 @@ public class CommandOutputEnvelope {
     return PRETTY_GSON.fromJson(json, CommandOutputEnvelope.class);
   }
 
-  public String getCommand() {
-    return command;
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
-  public String getReportTime() {
-    return reportTime;
-  }
-
-  public String getStatus() {
+  public CommandStatus getStatus() {
     return status;
   }
 
-  public String getMessage() {
-    return message;
-  }
-
-  public Object getData() {
-    return data;
+  public Object getOutput() {
+    return output;
   }
 }

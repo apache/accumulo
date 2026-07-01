@@ -50,6 +50,11 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
     return context;
   }
 
+  protected String getInvokeCommand() {
+    String group = commandGroup().key();
+    return "accumulo" + (group.isBlank() ? "" : " " + group) + " " + keyword();
+  }
+
   @Override
   public void doExecute(JCommander cl, OPTS options) throws Exception {
     // Login as the server on secure HDFS
@@ -61,9 +66,8 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
       execute(cl, options);
     } catch (Exception e) {
       if (options.json) {
-        String commandName = "accumulo"
-            + (commandGroup().key().isBlank() ? "" : " " + commandGroup().key()) + " " + keyword();
-        System.out.println(CommandOutputEnvelope.error(commandName, e.getMessage()).toJson());
+        System.out
+            .println(CommandOutputEnvelope.error(getInvokeCommand(), e.getMessage()).toJson());
       }
       throw e;
     }

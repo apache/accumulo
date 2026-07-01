@@ -380,8 +380,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     // gather statistics
     transactions.getTransactions().forEach(report::gatherTxnStatus);
     if (cmd.json) {
-      printLines(
-          Collections.singletonList(report.toEnvelopedJson("accumulo admin fate --summary")));
+      printLines(Collections.singletonList(report.toEnvelopedJson(getInvokeCommand())));
     } else {
       printLines(report.formatLines());
     }

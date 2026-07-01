@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -999,14 +998,14 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
   private FateSummaryReport parseFateSummaryFromEnvelope(String json) {
     CommandOutputEnvelope envelope = CommandOutputEnvelope.fromJson(json);
     assertNotNull(envelope);
-    assertEquals(CommandOutputEnvelope.VERSION, envelope.getVersion());
-    assertEquals("OK", envelope.getStatus());
-    assertNull(envelope.getMessage());
-    assertNotNull(envelope.getReportTime());
-    assertNotNull(envelope.getCommand());
-    assertTrue(envelope.getCommand().contains("fate"));
+    assertNotNull(envelope.getStatus());
+    assertEquals(CommandOutputEnvelope.VERSION, envelope.getStatus().getVersion());
+    assertEquals("OK", envelope.getStatus().getStatusMessage());
+    assertNotNull(envelope.getStatus().getReportTime());
+    assertNotNull(envelope.getStatus().getCommand());
+    assertTrue(envelope.getStatus().getCommand().contains("fate"));
     Gson gson = new GsonBuilder().disableJdkUnsafe().create();
-    String dataJson = gson.toJson(envelope.getData());
+    String dataJson = gson.toJson(envelope.getOutput());
     return FateSummaryReport.fromJson(dataJson);
   }
 }

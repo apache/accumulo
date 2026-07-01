@@ -103,7 +103,7 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
     ServiceStatusReport report = new ServiceStatusReport(services, options.showHosts);
 
     if (options.json) {
-      System.out.println(report.toEnvelopedJson("accumulo admin service-status"));
+      System.out.println(report.toEnvelopedJson(getInvokeCommand()));
     } else {
       report.formatLines().forEach(System.out::println);
     }
