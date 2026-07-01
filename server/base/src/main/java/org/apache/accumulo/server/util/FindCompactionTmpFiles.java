@@ -111,6 +111,9 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
           try {
             future.get();
           } catch (InterruptedException | ExecutionException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException("Error getting list of tmp files", e);
           }
         }
@@ -236,6 +239,7 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
       delSvc.awaitTermination(10, TimeUnit.MINUTES);
       return stats;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
   }

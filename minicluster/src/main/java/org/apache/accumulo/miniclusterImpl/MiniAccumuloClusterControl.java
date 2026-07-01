@@ -154,6 +154,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               ResourceGroupPropKey.of(ResourceGroupId.of(rg))
                   .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
             } catch (KeeperException | InterruptedException e1) {
+              if (e1 instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new IllegalStateException(
                   "Unable to create resource group configuration node for " + rg);
             }
@@ -215,6 +218,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               ResourceGroupPropKey.of(ResourceGroupId.of(rg))
                   .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
             } catch (KeeperException | InterruptedException e1) {
+              if (e1 instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new IllegalStateException(
                   "Unable to create resource group configuration node for " + rg);
             }
@@ -242,6 +248,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               ResourceGroupPropKey.of(ResourceGroupId.of(rg))
                   .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
             } catch (KeeperException | InterruptedException e1) {
+              if (e1 instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new IllegalStateException(
                   "Unable to create resource group configuration node for " + rg);
             }
