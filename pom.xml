@@ -143,7 +143,7 @@ under the License.
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
-    <javaVersion>17</javaVersion>
+    <javaVersion>21</javaVersion>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
