@@ -310,7 +310,7 @@ public class FileManager {
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), null)
             .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)
             .withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);

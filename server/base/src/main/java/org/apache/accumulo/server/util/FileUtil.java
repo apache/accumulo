@@ -48,6 +48,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -150,7 +151,7 @@ public class FileUtil {
         for (String file : inFiles) {
           ns = context.getVolumeManager().getFileSystemByPath(new Path(file));
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService(), null)
               .withTableConfiguration(tableConf).build();
           iters.add(reader);
         }
@@ -434,14 +435,15 @@ public class FileUtil {
       FileSKVIterator reader = null;
       Path path = new Path(file);
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+      FileStatus status = ns.getFileStatus(path);
       try {
         if (useIndex) {
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
               .withTableConfiguration(tableConf).build();
         } else {
           reader = FileOperations.getInstance().newScanReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
               .withTableConfiguration(tableConf)
               .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build();
         }
@@ -468,11 +470,11 @@ public class FileUtil {
 
       if (useIndex) {
         readers.add(FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
             .withTableConfiguration(tableConf).build());
       } else {
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
             .withTableConfiguration(tableConf)
             .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build());
       }
@@ -494,7 +496,7 @@ public class FileUtil {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapfile.getPath());
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(mapfile.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(mapfile.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService(), null)
             .withTableConfiguration(tableConf).build();
 
         Key firstKey = reader.getFirstKey();
@@ -532,7 +534,7 @@ public class FileUtil {
     for (TabletFile file : mapFiles) {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
+          .forFile(file.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService(), null)
           .withTableConfiguration(tableConf).seekToBeginning().build();
 
       try {

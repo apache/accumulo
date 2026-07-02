@@ -473,7 +473,7 @@ public class Upgrader9to10 implements Upgrader {
         var tableConf = context.getTableConfiguration(RootTable.ID);
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), NoCryptoServiceFactory.NONE)
+            .forFile(path.toString(), ns, ns.getConf(), NoCryptoServiceFactory.NONE, null)
             .withTableConfiguration(tableConf).seekToBeginning().build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());

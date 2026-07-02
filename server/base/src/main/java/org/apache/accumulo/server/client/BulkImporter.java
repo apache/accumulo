@@ -65,6 +65,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -126,6 +127,8 @@ public class BulkImporter {
     final Map<Path,List<KeyExtent>> completeFailures =
         Collections.synchronizedSortedMap(new TreeMap<>());
 
+    final Map<Path,FileStatus> fileStatuses = new HashMap<>();
+
     ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
@@ -143,8 +146,10 @@ public class BulkImporter {
         Runnable getAssignments = () -> {
           List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
           try {
-            tabletsToAssignMapFileTo =
-                findOverlappingTablets(context, fs, locator, mapFile, tableConf.getCryptoService());
+            FileStatus status = fs.getFileStatus(mapFile);
+            fileStatuses.put(mapFile, status);
+            tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile,
+                tableConf.getCryptoService(), status);
           } catch (Exception ex) {
             log.warn("Unable to find tablets that overlap file " + mapFile, ex);
           }
@@ -173,7 +178,7 @@ public class BulkImporter {
 
       assignmentStats.attemptingAssignments(assignments);
       Map<Path,List<KeyExtent>> assignmentFailures =
-          assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads);
+          assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads, fileStatuses);
       assignmentStats.assignmentsFailed(assignmentFailures);
 
       Map<Path,Integer> failureCount = new TreeMap<>();
@@ -212,8 +217,9 @@ public class BulkImporter {
 
             timer.start(Timers.QUERY_METADATA);
             try {
-              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator,
-                  entry.getKey(), ke, tableConf.getCryptoService()));
+              Path p = entry.getKey();
+              tabletsToAssignMapFileTo.addAll(findOverlappingTablets(context, fs, locator, p, ke,
+                  tableConf.getCryptoService(), fileStatuses.get(p)));
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
@@ -228,7 +234,7 @@ public class BulkImporter {
 
         assignmentStats.attemptingAssignments(assignments);
         Map<Path,List<KeyExtent>> assignmentFailures2 =
-            assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads);
+            assignMapFiles(fs, assignments, paths, numAssignThreads, numThreads, fileStatuses);
         assignmentStats.assignmentsFailed(assignmentFailures2);
 
         // merge assignmentFailures2 into assignmentFailures
@@ -347,15 +353,21 @@ public class BulkImporter {
   }
 
   private Map<Path,List<AssignmentInfo>> estimateSizes(final VolumeManager vm,
-      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads) {
+      Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads,
+      Map<Path,FileStatus> statuses) {
 
     long t1 = System.currentTimeMillis();
     final Map<Path,Long> mapFileSizes = new TreeMap<>();
 
     try {
       for (Path path : paths) {
-        FileSystem fs = vm.getFileSystemByPath(path);
-        mapFileSizes.put(path, fs.getContentSummary(path).getLength());
+        FileStatus status = statuses.get(path);
+        if (status == null) {
+          FileSystem fs = vm.getFileSystemByPath(path);
+          mapFileSizes.put(path, fs.getContentSummary(path).getLength());
+        } else {
+          mapFileSizes.put(path, status.getLen());
+        }
       }
     } catch (IOException e) {
       log.error("Failed to get map files in for {}: {}", paths, e.getMessage(), e);
@@ -386,9 +398,9 @@ public class BulkImporter {
           Path mapFile = entry.getKey();
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapFile);
 
-          estimatedSizes = BulkImport.estimateSizes(context.getConfiguration(), mapFile,
-              mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), ns, null,
-              tableConf.getCryptoService());
+          estimatedSizes =
+              BulkImport.estimateSizes(context.getConfiguration(), mapFile, statuses.get(mapFile),
+                  extentsOf(entry.getValue()), ns, null, tableConf.getCryptoService());
         } catch (IOException e) {
           log.warn("Failed to estimate map file sizes {}", e.getMessage());
         }
@@ -447,10 +459,10 @@ public class BulkImporter {
 
   private Map<Path,List<KeyExtent>> assignMapFiles(VolumeManager fs,
       Map<Path,List<TabletLocation>> assignments, Collection<Path> paths, int numThreads,
-      int numMapThreads) {
+      int numMapThreads, Map<Path,FileStatus> statuses) {
     timer.start(Timers.EXAMINE_MAP_FILES);
     Map<Path,List<AssignmentInfo>> assignInfo =
-        estimateSizes(fs, assignments, paths, numMapThreads);
+        estimateSizes(fs, assignments, paths, numMapThreads, statuses);
     timer.stop(Timers.EXAMINE_MAP_FILES);
 
     Map<Path,List<KeyExtent>> ret;
@@ -623,15 +635,16 @@ public class BulkImporter {
   }
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, CryptoService cs) throws Exception {
-    return findOverlappingTablets(context, fs, locator, file, null, null, cs);
+      TabletLocator locator, Path file, CryptoService cs, FileStatus status) throws Exception {
+    return findOverlappingTablets(context, fs, locator, file, null, null, cs, status);
   }
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, KeyExtent failed, CryptoService cs) throws Exception {
+      TabletLocator locator, Path file, KeyExtent failed, CryptoService cs, FileStatus status)
+      throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
-    return findOverlappingTablets(context, fs, locator, file, start, failed.endRow(), cs);
+    return findOverlappingTablets(context, fs, locator, file, start, failed.endRow(), cs, status);
   }
 
   protected static Text getStartRowForExtent(KeyExtent extent) {
@@ -648,16 +661,16 @@ public class BulkImporter {
   static final byte[] byte0 = {0};
 
   public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager vm,
-      TabletLocator locator, Path file, Text startRow, Text endRow, CryptoService cs)
-      throws Exception {
+      TabletLocator locator, Path file, Text startRow, Text endRow, CryptoService cs,
+      FileStatus status) throws Exception {
     List<TabletLocation> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getFileSystemByPath(file);
-    try (FileSKVIterator reader =
-        FileOperations.getInstance().newReaderBuilder().forFile(filename, fs, fs.getConf(), cs)
-            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
+    try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
+        .forFile(filename, fs, fs.getConf(), cs, status)
+        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
       Text row = startRow;
       if (row == null) {
         row = new Text();

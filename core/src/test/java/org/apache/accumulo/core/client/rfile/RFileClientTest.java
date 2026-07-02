@@ -822,7 +822,7 @@ public class RFileClientTest {
 
   private Reader getReader(LocalFileSystem localFs, String testFile) throws IOException {
     return (Reader) FileOperations.getInstance().newReaderBuilder()
-        .forFile(testFile, localFs, localFs.getConf(), NoCryptoServiceFactory.NONE)
+        .forFile(testFile, localFs, localFs.getConf(), NoCryptoServiceFactory.NONE, null)
         .withTableConfiguration(DefaultConfiguration.getInstance()).build();
   }
 

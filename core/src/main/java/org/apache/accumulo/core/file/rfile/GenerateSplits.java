@@ -304,7 +304,7 @@ public class GenerateSplits implements KeywordExecutable {
     try {
       for (Path file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
+            .forFile(file.toString(), fs, hadoopConf, cs, null).withTableConfiguration(accumuloConf)
             .build();
         readers.add(reader);
         fileReaders.add(reader);
@@ -333,7 +333,7 @@ public class GenerateSplits implements KeywordExecutable {
     try {
       for (Path file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
+            .forFile(file.toString(), fs, hadoopConf, cs, null).withTableConfiguration(accumuloConf)
             .overRange(new Range(), Set.of(), false).build();
         readers.add(reader);
         fileReaders.add(reader);
@@ -367,7 +367,7 @@ public class GenerateSplits implements KeywordExecutable {
     try {
       for (Path file : files) {
         FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(file.toString(), fs, hadoopConf, cs).withTableConfiguration(accumuloConf)
+            .forFile(file.toString(), fs, hadoopConf, cs, null).withTableConfiguration(accumuloConf)
             .overRange(new Range(), Set.of(), false).build();
         readers.add(reader);
         fileReaders.add(reader);

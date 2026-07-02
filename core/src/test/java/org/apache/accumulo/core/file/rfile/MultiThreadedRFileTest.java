@@ -185,7 +185,7 @@ public class MultiThreadedRFileTest {
       AccumuloConfiguration defaultConf = DefaultConfiguration.getInstance();
 
       // the caches used to obfuscate the multithreaded issues
-      CachableBuilder b = new CachableBuilder().fsPath(fs, path).conf(conf)
+      CachableBuilder b = new CachableBuilder().fsPath(fs, path, null).conf(conf)
           .cryptoService(CryptoFactoryLoader.getServiceForServer(defaultConf));
       reader = new RFile.Reader(new CachableBlockFile.Reader(b));
       iter = new ColumnFamilySkippingIterator(reader);

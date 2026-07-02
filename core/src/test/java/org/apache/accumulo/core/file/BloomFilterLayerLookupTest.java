@@ -99,7 +99,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
 
     t1 = System.currentTimeMillis();
     FileSKVIterator bmfr = FileOperations.getInstance().newReaderBuilder()
-        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE).withTableConfiguration(acuconf)
+        .forFile(fname, fs, conf, NoCryptoServiceFactory.NONE, null).withTableConfiguration(acuconf)
         .build();
     t2 = System.currentTimeMillis();
     log.debug("Opened {} in {}", fname, (t2 - t1));

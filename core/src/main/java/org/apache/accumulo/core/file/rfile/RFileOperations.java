@@ -62,7 +62,8 @@ public class RFileOperations extends FileOperations {
 
   private static RFile.Reader getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
-        .fsPath(options.getFileSystem(), new Path(options.getFilename()), options.dropCacheBehind)
+        .fsPath(options.getFileSystem(), new Path(options.getFilename()), options.dropCacheBehind,
+            options.status)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
         .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
         .cryptoService(options.getCryptoService());
