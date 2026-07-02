@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.minicluster.cluster.standalone;
+package org.apache.accumulo.server.cluster.standalone;
 
 import static java.util.Objects.requireNonNull;
 
@@ -31,11 +31,9 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.manager.state.SetGoalState;
-import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.cluster.ClusterControl;
-import org.apache.accumulo.minicluster.cluster.RemoteShell;
-import org.apache.accumulo.minicluster.cluster.RemoteShellOptions;
+import org.apache.accumulo.server.cluster.ClusterControl;
+import org.apache.accumulo.server.cluster.RemoteShell;
+import org.apache.accumulo.server.cluster.RemoteShellOptions;
 import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 import org.slf4j.Logger;

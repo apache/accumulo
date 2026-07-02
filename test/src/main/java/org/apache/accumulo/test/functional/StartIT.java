@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.time.Duration;
 
-import org.apache.accumulo.minicluster.cluster.ClusterControl;
+import org.apache.accumulo.server.cluster.ClusterControl;
 import org.apache.accumulo.start.TestMain;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;

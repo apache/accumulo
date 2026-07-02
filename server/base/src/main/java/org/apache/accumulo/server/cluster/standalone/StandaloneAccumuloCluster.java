@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.minicluster.cluster.standalone;
+package org.apache.accumulo.server.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -37,10 +37,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.cluster.AccumuloCluster;
-import org.apache.accumulo.minicluster.cluster.ClusterUser;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cluster.AccumuloCluster;
+import org.apache.accumulo.server.cluster.ClusterUser;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;

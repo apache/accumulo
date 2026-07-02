@@ -99,7 +99,7 @@ import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.cluster.AccumuloCluster;
+import org.apache.accumulo.server.cluster.AccumuloCluster;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;

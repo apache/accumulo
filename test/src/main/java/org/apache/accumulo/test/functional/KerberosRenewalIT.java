@@ -26,7 +26,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.minicluster.cluster.ClusterUser;
+import org.apache.accumulo.server.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
