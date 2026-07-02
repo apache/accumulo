@@ -964,6 +964,7 @@ public class Tablet extends TabletBase {
               runningScans.size());
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error("Interrupted waiting to completeClose for extent {}", extent, e);
         }
       }

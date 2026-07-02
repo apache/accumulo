@@ -480,6 +480,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
       key.createZNode(context.getZooSession().asReaderWriter());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       Manager.log.error("Problem creating resource group config node in zookeeper", e);
       throw new TException(e.getMessage());
     }
