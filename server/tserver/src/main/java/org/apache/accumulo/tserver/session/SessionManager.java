@@ -131,6 +131,7 @@ public class SessionManager {
           try {
             session.wait(1000);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException();
           }
         }

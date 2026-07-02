@@ -16,19 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness.conf;
+package org.apache.accumulo.test.harness;
 
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.harness.AccumuloClusterHarness.ClusterType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.hadoop.conf.Configuration;
 
 /**
- * Base functionality that must be provided as configuration to the test
+ * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml
+ * file used by the MiniAccumuloCluster
  */
-public interface AccumuloClusterConfiguration {
+@FunctionalInterface
+public interface MiniClusterConfigurationCallback {
 
-  ClusterType getClusterType();
+  class NoCallback implements MiniClusterConfigurationCallback {
 
-  String getAdminPrincipal();
+    private NoCallback() {}
 
-  AuthenticationToken getAdminToken();
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      return;
+    }
+  }
+
+  MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
+
+  void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
+
 }

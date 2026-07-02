@@ -38,16 +38,12 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionStatusUpdateStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionStatusUpdateTupleSchemeFactory();
 
-  /**
-   * 
-   * @see TCompactionState
-   */
-  public @org.apache.thrift.annotation.Nullable TCompactionState state; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String message; // required
-  public long entriesToBeCompacted; // required
-  public long entriesRead; // required
-  public long entriesWritten; // required
-  public long compactionAgeNanos; // required
+  private @org.apache.thrift.annotation.Nullable TCompactionState state; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String message; // required
+  private long entriesToBeCompacted; // required
+  private long entriesRead; // required
+  private long entriesWritten; // required
+  private long compactionAgeNanos; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

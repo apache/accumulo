@@ -176,6 +176,7 @@ public class CommitCompaction extends AbstractFateOperation {
 
         retry.waitForNextAttempt(LOG, "Failed to commit " + ecid + " for tablet " + getExtent());
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }

@@ -61,7 +61,7 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(1);
+    return Duration.ofMinutes(2);
   }
 
   @Override

@@ -400,7 +400,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               "Target namespace does not exist");
         default:
           String tableInfo = context.getPrintableTableInfoFromName(tableOrNamespaceName);
-          throw new AccumuloSecurityException(e.user, e.code, tableInfo, e);
+          throw new AccumuloSecurityException(e.getUser(), e.getCode(), tableInfo, e);
       }
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
@@ -418,7 +418,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         case BULK_CONCURRENT_MERGE:
           throw new AccumuloBulkMergeException(e);
         default:
-          throw new AccumuloException(e.description, e);
+          throw new AccumuloException(e.getDescription(), e);
       }
     } catch (Exception e) {
       throw new AccumuloException(e.getMessage(), e);
@@ -617,7 +617,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
           throw new AccumuloException(excep);
         }
       }
-
     }
     startExecutor.shutdown();
     waitExecutor.shutdown();
@@ -643,6 +642,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           try {
             retry.waitForNextAttempt(log, "Find tablet in " + tableId + " containing " + split);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
           }
           tablet = tabLocator.findTablet(context, split, false, LocationNeed.NOT_REQUIRED);
@@ -1017,12 +1017,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
         throw new TableNotFoundException(tableId.canonical(), null, e.getMessage(), e);
       }
       log.debug("flush security exception on table id {}", tableId);
-      throw new AccumuloSecurityException(e.user, e.code, e);
+      throw new AccumuloSecurityException(e.getUser(), e.getCode(), e);
     } catch (ThriftTableOperationException e) {
       if (requireNonNull(e.getType()) == TableOperationExceptionType.NOTFOUND) {
         throw new TableNotFoundException(e);
       }
-      throw new AccumuloException(e.description, e);
+      throw new AccumuloException(e.getDescription(), e);
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
@@ -1094,6 +1094,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               + " because of concurrent modification");
           retry.waitForNextAttempt(log, "modify table properties for " + tableName);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {
@@ -1592,7 +1593,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           case NAMESPACE_NOTFOUND:
             throw new TableNotFoundException(e.getTableName(), new NamespaceNotFoundException(e));
           default:
-            throw new AccumuloException(e.description, e);
+            throw new AccumuloException(e.getDescription(), e);
         }
       } catch (ThriftSecurityException e) {
         throw new AccumuloSecurityException(e.getUser(), e.getCode());
@@ -2007,6 +2008,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
                   rangeList.size()));
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
         }
 
@@ -2069,8 +2071,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         TSummaries ret = ThriftClientTypes.TABLET_SERVER.execute(context, client -> {
           TSummaries tsr =
               client.startGetSummaries(TraceUtil.traceInfo(), context.rpcCreds(), request);
-          while (!tsr.finished) {
-            tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
+          while (!tsr.isFinished()) {
+            tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.getSessionId());
           }
           return tsr;
         });
@@ -2265,7 +2267,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public String getNamespace(String table) {
-    return TableNameUtil.qualify(table).getFirst();
+    return TableNameUtil.qualify(table).namespaceName();
   }
 
 }

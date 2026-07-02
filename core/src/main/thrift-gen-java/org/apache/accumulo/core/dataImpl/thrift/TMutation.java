@@ -37,11 +37,11 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TMutationStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TMutationTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer row; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer data; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> values; // required
-  public int entries; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> sources; // optional
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer row; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer data; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> values; // required
+  private int entries; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> sources; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

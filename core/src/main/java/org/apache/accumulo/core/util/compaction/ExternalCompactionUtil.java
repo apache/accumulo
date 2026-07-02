@@ -250,6 +250,7 @@ public class ExternalCompactionUtil {
       }
       return failures;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       // If this thread is interrupted, cancel all remaining tasks
       var futureIter = rcFutures.iterator();
       while (futureIter.hasNext()) {
@@ -283,6 +284,9 @@ public class ExternalCompactionUtil {
           runningIds.add(ceid);
         }
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     });

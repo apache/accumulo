@@ -865,6 +865,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
       return future.get();
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw new TException(e);
@@ -924,10 +927,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       if (ke.tableId().compareTo(text) == 0) {
         Tablet tablet = entry.getValue();
         TabletStats stats = tablet.getTabletStats();
-        stats.extent = ke.toThrift();
-        stats.ingestRate = tablet.ingestRate();
-        stats.queryRate = tablet.queryRate();
-        stats.numEntries = tablet.getNumEntries();
+        stats.setExtent(ke.toThrift());
+        stats.setIngestRate(tablet.ingestRate());
+        stats.setQueryRate(tablet.queryRate());
+        stats.setNumEntries(tablet.getNumEntries());
         result.add(stats);
       }
     }

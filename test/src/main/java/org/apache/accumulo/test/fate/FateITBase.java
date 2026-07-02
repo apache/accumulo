@@ -59,9 +59,9 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -802,6 +802,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       // wait for the signal to exit the method
       finishCall.await();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.debug("InterruptedException occurred inCall.");
       interruptedException.set(e);
       throw e;

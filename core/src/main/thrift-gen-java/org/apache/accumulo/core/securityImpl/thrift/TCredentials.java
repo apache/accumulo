@@ -36,10 +36,10 @@ public class TCredentials implements org.apache.thrift.TBase<TCredentials, TCred
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCredentialsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCredentialsTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String tokenClassName; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer token; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String instanceId; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String tokenClassName; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer token; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String instanceId; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

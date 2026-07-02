@@ -37,11 +37,11 @@ public class TAuthenticationTokenIdentifier implements org.apache.thrift.TBase<T
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TAuthenticationTokenIdentifierStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TAuthenticationTokenIdentifierTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
-  public int keyId; // optional
-  public long issueDate; // optional
-  public long expirationDate; // optional
-  public @org.apache.thrift.annotation.Nullable java.lang.String instanceId; // optional
+  private @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
+  private int keyId; // optional
+  private long issueDate; // optional
+  private long expirationDate; // optional
+  private @org.apache.thrift.annotation.Nullable java.lang.String instanceId; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

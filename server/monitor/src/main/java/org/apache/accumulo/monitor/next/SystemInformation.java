@@ -889,7 +889,9 @@ public class SystemInformation {
 
     if (!qm.isEmpty()) {
       // Create a ServersView object from the MetricResponse for each queue
-      return TableDataFactory.forColumns(qm.keySet(), qm, cols);
+      TableData tableData = TableDataFactory.forColumns(qm.keySet(), qm, cols);
+      tableData.data().forEach(row -> row.put(TableDataFactory.LINK_RG_COL_KEY, ""));
+      return tableData;
     }
     return TableDataFactory.forColumns(Set.of(), Map.of(), cols);
   }
@@ -905,7 +907,7 @@ public class SystemInformation {
     captureRecoveriesInProgress(server, response);
     FMetric flatbuffer = new FMetric();
     FTag tag = new FTag();
-    switch (response.serverType) {
+    switch (response.getServerType()) {
       case COMPACTOR:
         compactors
             .computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
@@ -1084,13 +1086,13 @@ public class SystemInformation {
         }
         break;
       default:
-        LOG.error("Unhandled server type in fetch metric response: {}", response.serverType);
+        LOG.error("Unhandled server type in fetch metric response: {}", response.getServerType());
         break;
     }
   }
 
   public void processExternalCompaction(TExternalCompaction tec) {
-    var tableId = KeyExtent.fromThrift(tec.getJob().extent).tableId();
+    var tableId = KeyExtent.fromThrift(tec.getJob().getExtent()).tableId();
     runningCompactionsPerTable.computeIfAbsent(tableId, t -> new LongAdder()).increment();
     runningCompactionsPerGroup.computeIfAbsent(tec.getGroupName(), t -> new LongAdder())
         .increment();
@@ -1345,7 +1347,7 @@ public class SystemInformation {
       ServerId sid = e.getKey();
       MetricResponse mr = e.getValue();
       if (mr != null) {
-        List<ByteBuffer> metrics = mr.metrics;
+        List<ByteBuffer> metrics = mr.getMetrics();
         if (sid.getType() == ServerId.Type.SCAN_SERVER
             || sid.getType() == ServerId.Type.TABLET_SERVER) {
           for (ByteBuffer binary : metrics) {
@@ -1637,6 +1639,16 @@ public class SystemInformation {
       return view.get();
     }
     return null;
+  }
+
+  public MetricResponse getServerMetricResponse(ServerId.Type type, String resourceGroup,
+      String serverAddress) {
+    HostAndPort address = HostAndPort.fromString(serverAddress);
+    if (!address.hasPort()) {
+      throw new IllegalArgumentException("Server address must be host:port");
+    }
+    return allMetrics.getIfPresent(new ServerId(type, ResourceGroupId.of(resourceGroup),
+        address.getHost(), address.getPort()));
   }
 
   public static Number getMetricValue(FMetric metric) {

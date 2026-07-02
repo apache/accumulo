@@ -84,7 +84,7 @@ public class ZombieTServer {
       synchronized (this) {
         if (statusCount++ < 1) {
           TabletServerStatus result = new TabletServerStatus();
-          result.tableMap = new HashMap<>();
+          result.setTableMap(new HashMap<>());
           return result;
         }
       }

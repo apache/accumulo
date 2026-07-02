@@ -210,6 +210,9 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     try {
       return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
     } catch (IOException | KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
   }
