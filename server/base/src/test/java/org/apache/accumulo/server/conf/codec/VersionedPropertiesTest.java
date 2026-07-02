@@ -100,10 +100,26 @@ public class VersionedPropertiesTest {
 
     assertEquals("v1", vProps.asMap().get("k1"));
     assertEquals(1, vProps.asMap().size());
+    var created = vProps.getMetadata().get("k1").created();
+    var modified = vProps.getMetadata().get("k1").modified();
+    assertEquals(created, modified);
 
     vProps = vProps.addOrUpdate("k1", "v1-2");
 
     assertEquals("v1-2", vProps.asMap().get("k1"));
+    assertEquals(created, vProps.getMetadata().get("k1").created());
+    assertTrue(vProps.getMetadata().get("k1").modified().compareTo(modified) >= 0);
+  }
+
+  @Test
+  public void updateSinglePropWithSameValuePreservesMetadata() {
+    VersionedProperties vProps = new VersionedProperties();
+    vProps = vProps.addOrUpdate("k1", "v1");
+    var metadata = vProps.getMetadata().get("k1");
+
+    VersionedProperties updated = vProps.addOrUpdate("k1", "v1");
+
+    assertEquals(metadata, updated.getMetadata().get("k1"));
   }
 
   @Test
@@ -128,6 +144,9 @@ public class VersionedPropertiesTest {
     assertEquals(3, updated.asMap().size());
 
     assertEquals("v1-1", updated.asMap().get("k1"));
+    assertEquals(vProps.getMetadata().get("k1").created(),
+        updated.getMetadata().get("k1").created());
+    assertNotNull(updated.getMetadata().get("k3"));
 
   }
 
@@ -148,7 +167,20 @@ public class VersionedPropertiesTest {
 
     assertEquals(1, vProps2.asMap().size());
     assertNull(vProps2.asMap().get("k1"));
+    assertNull(vProps2.getMetadata().get("k1"));
     assertEquals("v2", vProps2.asMap().get("k2"));
+  }
+
+  @Test
+  public void replacePropsPreservesMetadataForUnchangedProps() {
+    VersionedProperties vProps = new VersionedProperties(Map.of("k1", "v1", "k2", "v2"));
+    var k1Metadata = vProps.getMetadata().get("k1");
+
+    VersionedProperties updated = vProps.replaceAll(Map.of("k1", "v1", "k3", "v3"));
+
+    assertEquals(k1Metadata, updated.getMetadata().get("k1"));
+    assertNull(updated.getMetadata().get("k2"));
+    assertNotNull(updated.getMetadata().get("k3"));
   }
 
   @Test

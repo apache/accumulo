@@ -19,11 +19,15 @@
 package org.apache.accumulo.server.conf.codec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -53,6 +57,7 @@ public class VersionedPropGzipCodecTest {
     assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
         "timestamp should be now or earlier");
     assertEquals(vProps.asMap(), decodedProps.asMap());
+    assertEquals(vProps.getMetadata(), decodedProps.getMetadata());
   }
 
   @Test
@@ -71,6 +76,7 @@ public class VersionedPropGzipCodecTest {
     assertTrue(vProps.getTimestamp().compareTo(Instant.now()) <= 0,
         "timestamp should be now or earlier");
     assertEquals(vProps.asMap(), decodedProps.asMap());
+    assertEquals(vProps.getMetadata(), decodedProps.getMetadata());
   }
 
   /**
@@ -105,6 +111,20 @@ public class VersionedPropGzipCodecTest {
   }
 
   @Test
+  public void decodesPayloadWithoutPropertyMetadata() throws IOException {
+    VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
+    Instant timestamp = Instant.now();
+    byte[] encodedBytes = gzipBytesWithoutPropertyMetadata(timestamp, Map.of("k1", "v1"));
+
+    VersionedProperties decodedProps = codec.fromBytes(0, encodedBytes);
+
+    assertEquals(Map.of("k1", "v1"), decodedProps.asMap());
+    assertNotNull(decodedProps.getMetadata().get("k1"));
+    assertEquals(timestamp, decodedProps.getMetadata().get("k1").created());
+    assertEquals(timestamp, decodedProps.getMetadata().get("k1").modified());
+  }
+
+  @Test
   public void roundTrip2() throws IOException {
 
     int aVersion = 13;
@@ -120,5 +140,25 @@ public class VersionedPropGzipCodecTest {
 
     assertEquals(vProps.asMap(), decodedProps.asMap());
 
+  }
+
+  // Write the pre-metadata payload shape so old ZooKeeper data stays readable.
+  private static byte[] gzipBytesWithoutPropertyMetadata(Instant timestamp,
+      Map<String,String> props) throws IOException {
+    try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(bos)) {
+      EncodingOptions.V1_0(true).encode(dos);
+      dos.writeUTF(VersionedProperties.TIMESTAMP_FORMATTER.format(timestamp));
+      try (GZIPOutputStream gzipOut = new GZIPOutputStream(bos);
+          DataOutputStream zdos = new DataOutputStream(gzipOut)) {
+        zdos.writeInt(props.size());
+        for (var entry : props.entrySet()) {
+          zdos.writeUTF(entry.getKey());
+          zdos.writeUTF(entry.getValue());
+        }
+        gzipOut.finish();
+      }
+      return bos.toByteArray();
+    }
   }
 }

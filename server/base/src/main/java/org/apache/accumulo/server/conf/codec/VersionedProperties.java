@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -55,6 +56,15 @@ public class VersionedProperties {
   private final long dataVersion;
   private final Instant timestamp;
   private final Map<String,String> props;
+  private final Map<String,PropertyMetadata> metadata;
+
+  public record PropertyMetadata(Instant created, Instant modified) {
+
+    public PropertyMetadata {
+      requireNonNull(created, "A created timestamp must be supplied");
+      requireNonNull(modified, "A modified timestamp must be supplied");
+    }
+  }
 
   /**
    * Instantiate an initial instance with default version info and empty map.
@@ -70,7 +80,7 @@ public class VersionedProperties {
    *        have been previously validated (if required)
    */
   public VersionedProperties(Map<String,String> props) {
-    this(INIT_VERSION, Instant.now(), props);
+    this(INIT_VERSION, Instant.now(), props, null);
   }
 
   /**
@@ -83,10 +93,41 @@ public class VersionedProperties {
    */
   public VersionedProperties(final long zkDataVersion, final Instant timestamp,
       final Map<String,String> props) {
+    this(zkDataVersion, timestamp, props, null);
+  }
+
+  /**
+   * Instantiate an instance with the provided properties and metadata.
+   *
+   * @param zkDataVersion the ZooKeeper node data version.
+   * @param timestamp timestamp of this version.
+   * @param props optional map of property key, value pairs.
+   * @param metadata optional map of metadata for property keys.
+   */
+  public VersionedProperties(final long zkDataVersion, final Instant timestamp,
+      final Map<String,String> props, final Map<String,PropertyMetadata> metadata) {
     // convert the signed integer ZK version to an unsigned value stored in a long.
     this.dataVersion = zkDataVersion & 0xffffffffL;
     this.timestamp = requireNonNull(timestamp, "A timestamp must be supplied");
     this.props = props == null ? Map.of() : Map.copyOf(props);
+    this.metadata = initMetadata(this.props, metadata, timestamp);
+  }
+
+  /**
+   * Initialize the metadata map for the given properties.
+   */
+  private static Map<String,PropertyMetadata> initMetadata(Map<String,String> props,
+      Map<String,PropertyMetadata> metadata, Instant timestamp) {
+    if (props.isEmpty()) {
+      return Map.of();
+    }
+
+    var propMetadata = new HashMap<String,PropertyMetadata>();
+    for (String key : props.keySet()) {
+      propMetadata.put(key, metadata == null ? new PropertyMetadata(timestamp, timestamp)
+          : metadata.getOrDefault(key, new PropertyMetadata(timestamp, timestamp)));
+    }
+    return Map.copyOf(propMetadata);
   }
 
   /**
@@ -127,6 +168,13 @@ public class VersionedProperties {
   }
 
   /**
+   * Get an unmodifiable map with metadata for each property key.
+   */
+  public @NonNull Map<String,PropertyMetadata> getMetadata() {
+    return metadata;
+  }
+
+  /**
    * The timestamp formatted as an ISO 8601 string with format of
    * {@code YYYY-MM-DDTHH:mm:ss.SSSSSSZ}
    *
@@ -151,9 +199,7 @@ public class VersionedProperties {
    * @return A new instance of this class with the property added or updated.
    */
   public VersionedProperties addOrUpdate(final String key, final String value) {
-    var updated = new HashMap<>(props);
-    updated.put(key, value);
-    return new VersionedProperties(dataVersion, Instant.now(), updated);
+    return addOrUpdate(Map.of(key, value));
   }
 
   /**
@@ -168,9 +214,20 @@ public class VersionedProperties {
    * @return A new instance of this class with the properties added or updated.
    */
   public VersionedProperties addOrUpdate(final Map<String,String> updates) {
+    Instant now = Instant.now();
     var updated = new HashMap<>(props);
+    var updatedMetadata = new HashMap<>(metadata);
+    updates.forEach((key, value) -> {
+      PropertyMetadata existing = metadata.get(key);
+      if (existing == null) {
+        updatedMetadata.put(key, new PropertyMetadata(now, now));
+      } else {
+        updatedMetadata.put(key, new PropertyMetadata(existing.created(),
+            value.equals(props.get(key)) ? existing.modified() : now));
+      }
+    });
     updated.putAll(updates);
-    return new VersionedProperties(dataVersion, Instant.now(), updated);
+    return new VersionedProperties(dataVersion, now, updated, updatedMetadata);
   }
 
   /**
@@ -181,8 +238,19 @@ public class VersionedProperties {
    * @return A new instance of this class with the replaced properties.
    */
   public VersionedProperties replaceAll(final Map<String,String> updates) {
-    // Constructor will copy the map to a new map already
-    return new VersionedProperties(dataVersion, Instant.now(), updates);
+    Instant now = Instant.now();
+    var updatedMetadata = new HashMap<String,PropertyMetadata>();
+    updates.forEach((key, value) -> {
+      PropertyMetadata existing = metadata.get(key);
+      if (existing == null) {
+        updatedMetadata.put(key, new PropertyMetadata(now, now));
+      } else {
+        updatedMetadata.put(key, new PropertyMetadata(existing.created(),
+            value.equals(props.get(key)) ? existing.modified() : now));
+      }
+    });
+    // Constructor will copy the maps already
+    return new VersionedProperties(dataVersion, now, updates, updatedMetadata);
   }
 
   /**
@@ -197,9 +265,12 @@ public class VersionedProperties {
    * @return A new instance of this class.
    */
   public VersionedProperties remove(Collection<String> keys) {
+    Instant now = Instant.now();
     var updated = new HashMap<>(props);
     updated.keySet().removeAll(keys);
-    return new VersionedProperties(dataVersion, Instant.now(), updated);
+    var updatedMetadata = new HashMap<>(metadata);
+    updatedMetadata.keySet().removeAll(keys);
+    return new VersionedProperties(dataVersion, now, updated, updatedMetadata);
   }
 
   /**
@@ -218,14 +289,14 @@ public class VersionedProperties {
         .append(prettyPrint ? "\n" : ", ");
 
     Map<String,String> sorted = new TreeMap<>(props);
-    sorted.forEach((k, v) -> {
+    for (Entry<String,String> e : sorted.entrySet()) {
       if (prettyPrint) {
         // indent if pretty
         sb.append("  ");
       }
-      sb.append(k).append("=").append(v);
+      sb.append(e.getKey()).append("=").append(e.getValue());
       sb.append(prettyPrint ? "\n" : ", ");
-    });
+    }
     return sb.toString();
   }
 

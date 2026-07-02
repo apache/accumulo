@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.accumulo.server.conf.codec.VersionedProperties.PropertyMetadata;
+
 /**
  * Initial property encoding that (optionally) uses gzip to compress the property map. The encoding
  * version supported is EncodingVersion.V1_0.
@@ -53,6 +55,7 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
           DataOutputStream zdos = new DataOutputStream(gzipOut)) {
 
         writeMapAsUTF(zdos, props);
+        writeMetadataAsUTF(zdos, vProps.getMetadata());
 
         // finalize compression
         gzipOut.flush();
@@ -61,6 +64,7 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
     } else {
       try (DataOutputStream dos = new DataOutputStream(out)) {
         writeMapAsUTF(dos, props);
+        writeMetadataAsUTF(dos, vProps.getMetadata());
       }
     }
 
@@ -72,21 +76,24 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
   }
 
   @Override
-  Map<String,String> decodePayload(final InputStream inStream, final EncodingOptions encodingOpts)
-      throws IOException {
+  VersionedPropCodec.Payload decodePayload(final InputStream inStream,
+      final EncodingOptions encodingOpts) throws IOException {
     // read the property map keys, values
     Map<String,String> aMap;
+    Map<String,PropertyMetadata> metadata;
     if (encodingOpts.isCompressed()) {
       // Read and uncompress an input stream compressed with GZip
       try (GZIPInputStream gzipIn = new GZIPInputStream(inStream);
           DataInputStream zdis = new DataInputStream(gzipIn)) {
         aMap = readMapAsUTF(zdis);
+        metadata = readMetadataAsUTF(zdis);
       }
     } else {
       try (DataInputStream dis = new DataInputStream(inStream)) {
         aMap = readMapAsUTF(dis);
+        metadata = readMetadataAsUTF(dis);
       }
     }
-    return aMap;
+    return new Payload(aMap, metadata);
   }
 }

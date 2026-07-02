@@ -332,6 +332,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     Map<String,String> props = new HashMap<>();
+    int metadataLines = 0;
     try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       while (scanner.hasNext()) {
         String line = scanner.nextLine();
@@ -340,10 +341,13 @@ public class ZooInfoViewerTest {
           String trimmed = line.trim();
           String[] kv = trimmed.split("=");
           props.put(kv[0], kv[1]);
+        } else if (line.trim().startsWith("created:")) {
+          metadataLines++;
         }
       }
     }
     assertEquals(Map.of("s1", "sv1", "s2", "sv2", "n1", "nv1", "t1", "tv1"), props);
+    assertEquals(6, metadataLines);
   }
 
   @SuppressFBWarnings(value = {"CRLF_INJECTION_LOGS", "PATH_TRAVERSAL_IN"},

@@ -465,7 +465,14 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
           writer.println("-- none --");
         } else {
           TreeMap<String,String> sorted = new TreeMap<>(pMap);
-          sorted.forEach((name, value) -> writer.printf("%s%s=%s\n", INDENT, name, value));
+          sorted.forEach((name, value) -> {
+            var metadata = p.getMetadata().get(name);
+            writer.printf("%s%s=%s\n", INDENT, name, value);
+            writer.printf("%s%screated:  %s\n", INDENT, INDENT,
+                tsFormat.format(metadata.created()));
+            writer.printf("%s%smodified: %s\n", INDENT, INDENT,
+                tsFormat.format(metadata.modified()));
+          });
         }
         writer.println();
       }

@@ -45,6 +45,8 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.accumulo.server.conf.codec.VersionedProperties.PropertyMetadata;
+
 /**
  * EXPERIMENTAL - demonstrates using an alternate encoding scheme. The sample is completely
  * functional, however, certain elements such as password / key handling may not be suitable for
@@ -116,6 +118,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
           DataOutputStream dos = new DataOutputStream(gzipOut)) {
 
         writeMapAsUTF(dos, props);
+        writeMetadataAsUTF(dos, vProps.getMetadata());
 
         // finalize the compression.
         gzipOut.flush();
@@ -128,6 +131,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
       try (ByteArrayOutputStream ba = new ByteArrayOutputStream();
           DataOutputStream dos = new DataOutputStream(ba)) {
         writeMapAsUTF(dos, props);
+        writeMetadataAsUTF(dos, vProps.getMetadata());
         bytes = ba.toByteArray();
       }
     }
@@ -156,8 +160,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
    * @throws IOException if an error occurs reading from the input stream.
    */
   @Override
-  Map<String,String> decodePayload(InputStream inStream, EncodingOptions encodingOpts)
-      throws IOException {
+  Payload decodePayload(InputStream inStream, EncodingOptions encodingOpts) throws IOException {
 
     Cipher cipher;
 
@@ -186,13 +189,17 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
         try (CipherInputStream cis = new CipherInputStream(inStream, cipher);
             GZIPInputStream gzipIn = new GZIPInputStream(cis);
             DataInputStream cdis = new DataInputStream(gzipIn)) {
-          return readMapAsUTF(cdis);
+          Map<String,String> props = readMapAsUTF(cdis);
+          Map<String,PropertyMetadata> metadata = readMetadataAsUTF(cdis);
+          return new Payload(props, metadata);
         }
       } else {
         // read the property map keys, values.
         try (CipherInputStream cis = new CipherInputStream(inStream, cipher);
             DataInputStream cdis = new DataInputStream(cis)) {
-          return readMapAsUTF(cdis);
+          Map<String,String> props = readMapAsUTF(cdis);
+          Map<String,PropertyMetadata> metadata = readMetadataAsUTF(cdis);
+          return new Payload(props, metadata);
         }
       }
     }

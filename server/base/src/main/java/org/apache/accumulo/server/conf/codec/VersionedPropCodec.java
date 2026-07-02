@@ -24,6 +24,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -31,7 +32,9 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.accumulo.server.conf.codec.VersionedProperties.PropertyMetadata;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
@@ -132,9 +135,9 @@ public abstract class VersionedPropCodec {
 
       var timestamp = TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
 
-      Map<String,String> props = decodePayload(bis, encodingOpts);
+      Payload props = decodePayload(bis, encodingOpts);
 
-      return new VersionedProperties(version, timestamp, props);
+      return new VersionedProperties(version, timestamp, props.properties(), props.metadata());
     } catch (NullPointerException | DateTimeParseException ex) {
       throw new IllegalArgumentException("Invalid data cannot decode byte array", ex);
     }
@@ -185,16 +188,18 @@ public abstract class VersionedPropCodec {
   }
 
   /**
-   * Decode the payload and any optional encoding specific metadata and return a map of the property
-   * name, value pairs.
+   * Decode the payload and any optional encoding specific metadata.
    *
    * @param inStream an input stream
    * @param encodingOpts the general encoding options.
-   * @return a map of properties name, value pairs.
+   * @return the decoded payload
    * @throws IOException if an exception occurs reading from the input stream.
    */
-  abstract Map<String,String> decodePayload(final InputStream inStream,
-      final EncodingOptions encodingOpts) throws IOException;
+  abstract Payload decodePayload(final InputStream inStream, final EncodingOptions encodingOpts)
+      throws IOException;
+
+  record Payload(Map<String,String> properties, Map<String,PropertyMetadata> metadata) {
+  }
 
   /**
    * Read the property map from a data input stream as UTF strings. The input stream should be
@@ -242,6 +247,51 @@ public abstract class VersionedPropCodec {
     for (Map.Entry<String,String> e : aMap.entrySet()) {
       dos.writeUTF(e.getKey());
       dos.writeUTF(e.getValue());
+    }
+    dos.flush();
+  }
+
+  /**
+   * Read optional property metadata written after the property map.
+   *
+   * @return the property metadata map, or an empty map when absent.
+   */
+  Map<String,PropertyMetadata> readMetadataAsUTF(DataInputStream dis) throws IOException {
+    if (dis.available() == 0) {
+      return Map.of();
+    }
+
+    int items;
+    try {
+      items = dis.readInt();
+    } catch (EOFException e) {
+      return Map.of();
+    }
+
+    Map<String,PropertyMetadata> metadata = new HashMap<>(items);
+    for (int i = 0; i < items; i++) {
+      String key = dis.readUTF();
+      Instant created = TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
+      Instant modified = TIMESTAMP_FORMATTER.parse(dis.readUTF(), Instant::from);
+      metadata.put(key, new PropertyMetadata(created, modified));
+    }
+    return metadata;
+  }
+
+  /**
+   * Write the property metadata to the data output stream.
+   *
+   * @param dos a data output stream
+   * @param metadata the property metadata map.
+   */
+  void writeMetadataAsUTF(final DataOutputStream dos, final Map<String,PropertyMetadata> metadata)
+      throws IOException {
+    dos.writeInt(metadata.size());
+
+    for (Entry<String,PropertyMetadata> e : metadata.entrySet()) {
+      dos.writeUTF(e.getKey());
+      dos.writeUTF(TIMESTAMP_FORMATTER.format(e.getValue().created()));
+      dos.writeUTF(TIMESTAMP_FORMATTER.format(e.getValue().modified()));
     }
     dos.flush();
   }
