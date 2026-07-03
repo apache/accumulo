@@ -76,10 +76,12 @@ done
 # For all generated thrift code, get rid of all warnings and add the LICENSE header
 
 # add dummy method to suppress "unnecessary suppress warnings" for classes which don't have any unused variables
-# this only affects classes, enums aren't affected
+# this only affects classes, enums aren't affected; also avoid thrift bug that makes a redundant copy when resizing the array
 #shellcheck disable=SC1004
-find "$BUILD_DIR/gen-java" -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i -e 's/^[}]$/  private static void unusedMethod() {}\
-}/'
+find "$BUILD_DIR/gen-java" -name '*.java' -exec grep -Zl '^public class ' {} + | xargs -0 sed -i \
+  -e 's/^[}]$/  private static void unusedMethod() {}\
+}/' \
+  -e 's/^\([[:space:]]*\)set[A-Z][A-Za-z]*(org[.]apache[.]thrift[.]TBaseHelper[.]rightSize(\([^)]*\)));$/\1this.\2 = org.apache.thrift.TBaseHelper.rightSize(\2);/g'
 
 for lang in "${LANGUAGES_TO_GENERATE[@]}"; do
   case $lang in
