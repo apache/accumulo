@@ -306,6 +306,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_ASSISTANT_LOCK,
           new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -315,6 +318,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZSHUTTING_DOWN_TSERVERS,
           new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -324,6 +330,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZCOMPACTIONS,
           new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -485,6 +494,9 @@ public class Upgrader11to12 implements Upgrader {
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
       }
     } catch (KeeperException | InterruptedException e1) {
+      if (e1 instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e1);
     }
   }
@@ -599,6 +611,9 @@ public class Upgrader11to12 implements Upgrader {
           }
         }
       } catch (InterruptedException | KeeperException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     }
@@ -771,6 +786,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().recursiveDelete(ZTRACERS,
           ZooUtil.NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error removing ZTRACERS node", e);
     }
   }
@@ -873,6 +891,9 @@ public class Upgrader11to12 implements Upgrader {
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error upgrading file references in root tablet", e);
     }
   }
@@ -900,6 +921,9 @@ public class Upgrader11to12 implements Upgrader {
         zrw.delete(namespaceNamePath);
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating namespace mappings", e);
     }
   }
@@ -934,6 +958,9 @@ public class Upgrader11to12 implements Upgrader {
     try {
       ResourceGroupPropKey.DEFAULT.createZNode(context.getZooSession().asReaderWriter());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating default resource group config node", e);
     }
   }

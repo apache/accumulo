@@ -76,6 +76,9 @@ public class MetaFateIT extends FateITBase {
     try {
       return getTxStatus(sctx.getZooSession(), fateId);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }

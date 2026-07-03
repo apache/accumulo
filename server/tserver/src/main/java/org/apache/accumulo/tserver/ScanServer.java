@@ -422,6 +422,7 @@ public class ScanServer extends AbstractServer
             sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
         updateAllowedTables(false);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }
