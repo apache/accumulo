@@ -126,8 +126,8 @@ public class Gatherer {
       CryptoService cryptoService) {
     this.ctx = context;
     this.tableId = TableId.of(request.getTableId());
-    this.startRow = new Text(request.getBounds().getStartRow());
-    this.endRow = new Text(request.getBounds().getEndRow());
+    this.startRow = TextUtil.fromNullableBytes(request.getBounds().getStartRow());
+    this.endRow = TextUtil.fromNullableBytes(request.getBounds().getEndRow());
     this.clipRange = new Range(startRow, false, endRow, true);
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
@@ -435,8 +435,8 @@ public class Gatherer {
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
     Function<TRowRange,RowRange> fromThrift = tRowRange -> {
-      Text lowerBound = new Text(tRowRange.getStartRow());
-      Text upperBound = new Text(tRowRange.getEndRow());
+      Text lowerBound = TextUtil.fromNullableBytes(tRowRange.getStartRow());
+      Text upperBound = TextUtil.fromNullableBytes(tRowRange.getEndRow());
       return RowRange.range(lowerBound, false, upperBound, true);
     };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
