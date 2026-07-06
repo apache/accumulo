@@ -190,7 +190,10 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
-    return new ServerAddress(new TThreadedSelectorServer(options), address);
+    final TThreadedSelectorServer server = new TThreadedSelectorServer(options);
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
+    return new ServerAddress(server, address);
   }
 
   /**
@@ -495,6 +498,7 @@ public class TServerUtils {
     final TThreadPoolServer server =
         createTThreadPoolServer(transport, processor, ugiTransportFactory, protocolFactory, pool);
 
+    server.setServerEventHandler(new ThriftServerEventHandler());
     return new ServerAddress(server, address);
   }
 
