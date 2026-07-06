@@ -407,9 +407,11 @@ public class TServerUtils {
 
     ThreadPoolExecutor pool =
         createSelfResizingThreadPool(numThreads, threadTimeOut, conf, timeBetweenThreadChecks);
+    TThreadPoolServer server = createTThreadPoolServer(transport, processor,
+        ThriftUtil.transportFactory(), protocolFactory, pool);
+    server.setServerEventHandler(new ThriftServerEventHandler());
 
-    return new ServerAddress(createTThreadPoolServer(transport, processor,
-        ThriftUtil.transportFactory(), protocolFactory, pool), address);
+    return new ServerAddress(server, address);
   }
 
   private static ServerAddress createSaslThreadPoolServer(HostAndPort address, TProcessor processor,
