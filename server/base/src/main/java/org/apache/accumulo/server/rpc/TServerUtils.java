@@ -228,7 +228,10 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
-    return new ServerAddress(new CustomNonBlockingServer(options), address);
+    CustomNonBlockingServer server = new CustomNonBlockingServer(options);
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
+    return new ServerAddress(server, address);
   }
 
   /**
@@ -298,6 +301,8 @@ public class TServerUtils {
       log.info("Blocking Server bound on {}", address);
     }
 
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
     return new ServerAddress(server, address);
 
   }
@@ -320,7 +325,11 @@ public class TServerUtils {
     if (service != null) {
       options.executorService(service);
     }
-    return new TThreadPoolServer(options);
+
+    final TThreadPoolServer server = new TThreadPoolServer(options);
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
+    return server;
   }
 
   /**
