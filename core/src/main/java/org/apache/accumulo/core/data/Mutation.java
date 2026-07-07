@@ -1454,7 +1454,7 @@ public class Mutation implements Writable {
 
     if ((first & 0x02) == 0x02) {
       int numMutations = WritableUtils.readVInt(in);
-      this.replicationSources = new HashSet<>();
+      this.replicationSources = new HashSet<>(numMutations, 1.0f);
       for (int i = 0; i < numMutations; i++) {
         replicationSources.add(WritableUtils.readString(in));
       }
