@@ -373,7 +373,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   private static Map<String,Long> getFileLenMap(List<FileStatus> statuses) {
-    HashMap<String,Long> fileLens = new HashMap<>();
+    HashMap<String,Long> fileLens = new HashMap<>(statuses.size(), 1.0f);
     for (FileStatus status : statuses) {
       fileLens.put(status.getPath().getName(), status.getLen());
     }
@@ -385,7 +385,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       List<FileStatus> statuses) {
     Map<String,Long> fileLens = getFileLenMap(statuses);
 
-    Map<String,Long> absFileLens = new HashMap<>();
+    Map<String,Long> absFileLens = new HashMap<>(fileLens.size(), 1.0f);
     fileLens.forEach((k, v) -> absFileLens.put(pathToCacheId(new Path(dir, k)), v));
 
     Cache<String,Long> fileLenCache =
@@ -548,7 +548,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     // trips to the namenode
     Cache<String,Long> fileLensCache = getPopulatedFileLenCache(context, dirPath, files);
 
-    List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
+    List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>(files.size());
 
     CryptoService cs = CryptoFactoryLoader.getServiceForClientWithTable(
         context.instanceOperations().getSystemConfiguration(), tableProps, tableId);
@@ -564,7 +564,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           checkTabletCount(maxTablets, extents.size(), file.toString());
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), file,
               fileStatus.getLen(), extents, fs, fileLensCache, cs);
-          Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
+          Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>(extents.size(), 1.0f);
           for (KeyExtent ke : extents) {
             pathLocations.put(ke, new Bulk.FileInfo(file.getPath(), estSizes.getOrDefault(ke, 0L)));
           }

@@ -464,7 +464,7 @@ public class ServiceLockPaths {
           // thread.
           Executor executor = servers.size() > 64 ? fetchExectuor : MoreExecutors.directExecutor();
 
-          List<Future<?>> futures = new ArrayList<>();
+          List<Future<?>> futures = new ArrayList<>(servers.size());
 
           for (final String server : servers) {
             if (addressPredicate.test(server)) {

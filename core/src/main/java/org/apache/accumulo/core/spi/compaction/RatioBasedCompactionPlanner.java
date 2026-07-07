@@ -493,7 +493,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     int batches = sortedFiles.size() / maxFilesToCompact - 1;
 
     if (batches > 0) {
-      ArrayList<Collection<CompactableFile>> jobs = new ArrayList<>();
+      ArrayList<Collection<CompactableFile>> jobs = new ArrayList<>(batches);
       for (int i = 0; i < batches; i++) {
         jobs.add(sortedFiles.subList(i * maxFilesToCompact, (i + 1) * maxFilesToCompact));
       }

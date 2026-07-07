@@ -144,9 +144,9 @@ public class ThriftTransportPool {
 
   public Pair<String,TTransport> getAnyCachedTransport(ThriftClientTypes<?> type) {
 
-    final List<ThriftTransportKey> serversSet = new ArrayList<>();
-
-    for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
+    var keys = connectionPool.getThriftTransportKeys();
+    final List<ThriftTransportKey> serversSet = new ArrayList<>(keys.size());
+    for (ThriftTransportKey ttk : keys) {
       if (ttk.getType().equals(type)) {
         serversSet.add(ttk);
       }

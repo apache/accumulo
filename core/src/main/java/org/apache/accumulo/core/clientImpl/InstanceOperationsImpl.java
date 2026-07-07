@@ -240,28 +240,30 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
-    Set<String> results = new HashSet<>();
-    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(t -> results.add(t.getServer()));
+    var compactors = context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY,
+        AddressSelector.all(), true);
+    Set<String> results = new HashSet<>(compactors.size(), 1.0f);
+    compactors.forEach(t -> results.add(t.getServer()));
     return results;
   }
 
   @Override
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
-    Set<String> results = new HashSet<>();
-    context.getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(t -> results.add(t.getServer()));
+    var sservers = context.getServerPaths().getScanServer(ResourceGroupPredicate.ANY,
+        AddressSelector.all(), true);
+    Set<String> results = new HashSet<>(sservers.size(), 1.f);
+    sservers.forEach(t -> results.add(t.getServer()));
     return results;
   }
 
   @Override
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
-    List<String> results = new ArrayList<>();
-    context.getServerPaths()
-        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(t -> results.add(t.getServer()));
+    var tserverLocks = context.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
+        AddressSelector.all(), true);
+    List<String> results = new ArrayList<>(tserverLocks.size());
+    tserverLocks.forEach(t -> results.add(t.getServer()));
     return results;
   }
 
@@ -556,18 +558,22 @@ public class InstanceOperationsImpl implements InstanceOperations {
   private Set<ServerId> getServers(ServerId.Type type,
       Predicate<ResourceGroupId> resourceGroupPredicate, AddressSelector addressSelector) {
 
-    final Set<ServerId> results = new HashSet<>();
+    final Set<ServerId> results;
 
     switch (type) {
       case COMPACTOR:
-        context.getServerPaths().getCompactor(resourceGroupPredicate::test, addressSelector, true)
-            .forEach(c -> results.add(createServerId(type, c)));
+        var compactors = context.getServerPaths().getCompactor(resourceGroupPredicate::test,
+            addressSelector, true);
+        results = new HashSet<>(compactors.size(), 1.0f);
+        compactors.forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
+        results = new HashSet<>();
         context.getServerPaths().getAssistantManagers(addressSelector, true)
             .forEach(s -> results.add(createServerId(type, s)));
         break;
       case MONITOR:
+        results = new HashSet<>();
         ServiceLockPath mon = context.getServerPaths().getMonitor(true);
         if (mon != null) {
           Optional<ServiceLockData> sld = context.getZooCache().getLockData(mon);
@@ -582,6 +588,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
         break;
       case GARBAGE_COLLECTOR:
+        results = new HashSet<>();
         ServiceLockPath gc = context.getServerPaths().getGarbageCollector(true);
         if (gc != null) {
           Optional<ServiceLockData> sld = context.getZooCache().getLockData(gc);
@@ -596,15 +603,19 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
         break;
       case SCAN_SERVER:
-        context.getServerPaths().getScanServer(resourceGroupPredicate::test, addressSelector, true)
-            .forEach(s -> results.add(createServerId(type, s)));
+        var sservers = context.getServerPaths().getScanServer(resourceGroupPredicate::test,
+            addressSelector, true);
+        results = new HashSet<>(sservers.size(), 1.0f);
+        sservers.forEach(s -> results.add(createServerId(type, s)));
         break;
       case TABLET_SERVER:
-        context.getServerPaths()
-            .getTabletServer(resourceGroupPredicate::test, addressSelector, true)
-            .forEach(t -> results.add(createServerId(type, t)));
+        var tservers = context.getServerPaths().getTabletServer(resourceGroupPredicate::test,
+            addressSelector, true);
+        results = new HashSet<>(tservers.size(), 1.0f);
+        tservers.forEach(t -> results.add(createServerId(type, t)));
         break;
       default:
+        results = new HashSet<>();
         break;
     }
 
