@@ -244,6 +244,9 @@ public class ExternalCompactionUtil {
           results.add(new RunningCompaction(job, compactorAddress, rcf.getQueue()));
         }
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e);
       }
     });
@@ -274,6 +277,9 @@ public class ExternalCompactionUtil {
           runningIds.add(ceid);
         }
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e);
       }
     });

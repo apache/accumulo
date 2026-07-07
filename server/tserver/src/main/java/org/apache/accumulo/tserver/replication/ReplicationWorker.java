@@ -73,6 +73,9 @@ public class ReplicationWorker implements Runnable {
 
       workQueue.startProcessing(new ReplicationProcessor(server.getContext()), executor);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }

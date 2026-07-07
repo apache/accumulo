@@ -123,6 +123,7 @@ public class ReplicationDriver implements Runnable {
       try {
         Thread.sleep(sleepMillis);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("Interrupted while sleeping", e);
       }
     }

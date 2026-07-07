@@ -227,7 +227,9 @@ public class BatchWriterIterator extends WrappingIterator {
           if (sleepAfterFirstWrite > 0) {
             try {
               Thread.sleep(sleepAfterFirstWrite);
-            } catch (InterruptedException ignored) {}
+            } catch (InterruptedException ignored) {
+              Thread.currentThread().interrupt();
+            }
           }
           firstWrite = false;
         }

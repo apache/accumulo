@@ -156,6 +156,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         resultsQueue.put(entries);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) {
           log.debug("Failed to add Batch Scan result", e);
         } else {
@@ -215,6 +216,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
@@ -288,6 +290,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
 
@@ -303,7 +306,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       binnedRanges2.put(entry.getKey(), tabletMap);
       for (Entry<KeyExtent,List<Range>> tabletRanges : entry.getValue().entrySet()) {
         Range tabletRange = tabletRanges.getKey().toDataRange();
-        List<Range> clippedRanges = new ArrayList<>();
+        List<Range> clippedRanges = new ArrayList<>(tabletRanges.getValue().size());
         tabletMap.put(tabletRanges.getKey(), clippedRanges);
         for (Range range : tabletRanges.getValue()) {
           clippedRanges.add(tabletRange.clip(range));
@@ -339,7 +342,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     failSleepTime = Math.min(5000, failSleepTime * 2);
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-    List<Range> allRanges = new ArrayList<>();
+    List<Range> allRanges = new ArrayList<>(failures.values().stream().mapToInt(List::size).sum());
 
     for (List<Range> ranges : failures.values()) {
       allRanges.addAll(ranges);
@@ -491,6 +494,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               try {
                 resultsQueue.put(LAST_BATCH);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 fatalException = e;
                 if (!resultsQueue.offer(LAST_BATCH)) {
                   log.debug("Could not add to result queue after seeing fatalException",
@@ -562,7 +566,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     List<String> locations = new ArrayList<>(binnedRanges.keySet());
     Collections.shuffle(locations);
 
-    List<QueryTask> queryTasks = new ArrayList<>();
+    List<QueryTask> queryTasks = new ArrayList<>(locations.size());
 
     for (final String tsLocation : locations) {
 
@@ -828,7 +832,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // copy requested to unscanned map. we will remove ranges as they are scanned in trackScanning()
     for (Entry<KeyExtent,List<Range>> entry : requested.entrySet()) {
-      ArrayList<Range> ranges = new ArrayList<>();
+      ArrayList<Range> ranges = new ArrayList<>(entry.getValue().size());
       for (Range range : entry.getValue()) {
         ranges.add(new Range(range));
       }

@@ -182,6 +182,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         try {
           retry.waitForNextAttempt(log, String.format("bulk import to %s(%s)", tableName, tableId));
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
         log.info(ae.getMessage() + ". Retrying bulk import to " + tableName);

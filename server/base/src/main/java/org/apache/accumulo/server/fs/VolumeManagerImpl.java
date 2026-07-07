@@ -322,7 +322,7 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       String transactionId) throws IOException {
-    List<Future<Void>> results = new ArrayList<>();
+    List<Future<Void>> results = new ArrayList<>(oldToNewPathMap.size());
     ExecutorService workerPool = ThreadPools.getServerThreadPools().getPoolBuilder(poolName)
         .numCoreThreads(poolSize).build();
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
@@ -355,6 +355,9 @@ public class VolumeManagerImpl implements VolumeManager {
         future.get();
       }
     } catch (InterruptedException | ExecutionException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IOException(e);
     }
   }

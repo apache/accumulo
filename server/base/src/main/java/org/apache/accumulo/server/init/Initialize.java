@@ -246,6 +246,9 @@ public class Initialize implements KeywordExecutable {
     try {
       return zoo.exists("/");
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       return false;
     }
   }

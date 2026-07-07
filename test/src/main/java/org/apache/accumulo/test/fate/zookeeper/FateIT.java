@@ -570,6 +570,7 @@ public class FateIT {
       // wait for the signal to exit the method
       finishCall.await();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.debug("InterruptedException occurred inCall.");
       interruptedException.set(e);
       throw e;

@@ -87,6 +87,7 @@ public class AuthenticationTokenKeyManager implements Runnable {
       try {
         Thread.sleep(5000);
       } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
         log.debug("Interrupted waiting for next update", ie);
       }
     }
@@ -119,6 +120,9 @@ public class AuthenticationTokenKeyManager implements Runnable {
         }
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Failed to fetch existing AuthenticationKeys from ZooKeeper");
     }
   }
@@ -161,6 +165,9 @@ public class AuthenticationTokenKeyManager implements Runnable {
       try {
         keyDistributor.advertise(newKey);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Failed to advertise AuthenticationKey in ZooKeeper. Exiting.", e);
         throw new RuntimeException(e);
       }

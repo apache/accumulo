@@ -87,6 +87,9 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
       replServiceAddr = new String(reader.getData(manager.getZooKeeperRoot()
           + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.getHostPort()), UTF_8);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("Could not fetch replication service port for tserver", e);
       throw new ReplicationCoordinatorException(
           ReplicationCoordinatorErrorCode.SERVICE_CONFIGURATION_UNAVAILABLE,

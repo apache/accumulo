@@ -298,6 +298,7 @@ public class ThriftScanner {
         retry.waitForNextAttempt(log, String.format(
             "For tableId %s scan server selector is waiting for '%s'", tableId, description));
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
 
@@ -550,6 +551,7 @@ public class ThriftScanner {
 
       return results;
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       TraceUtil.setException(parent, ex, true);
       throw new AccumuloException(ex);
     } finally {

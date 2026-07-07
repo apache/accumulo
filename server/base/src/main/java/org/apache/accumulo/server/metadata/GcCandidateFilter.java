@@ -16,39 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.util;
+package org.apache.accumulo.server.metadata;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.TreeSet;
+public class GcCandidateFilter extends Filter {
 
-public class ByteArraySet extends TreeSet<byte[]> {
-
-  private static final long serialVersionUID = 1L;
-
-  public ByteArraySet() {
-    super(new ByteArrayComparator());
-  }
-
-  public ByteArraySet(Collection<? extends byte[]> c) {
-    this();
-    addAll(c);
-  }
-
-  public static ByteArraySet fromStrings(Collection<String> c) {
-    List<byte[]> lst = new ArrayList<>(c.size());
-    for (String s : c) {
-      lst.add(s.getBytes(UTF_8));
-    }
-    return new ByteArraySet(lst);
-  }
-
-  public static ByteArraySet fromStrings(String... c) {
-    return ByteArraySet.fromStrings(Arrays.asList(c));
+  @Override
+  public boolean accept(Key k, Value v) {
+    return v.equals(SkewedKeyValue.NAME);
   }
 
 }

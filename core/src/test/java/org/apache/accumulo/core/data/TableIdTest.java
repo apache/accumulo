@@ -116,6 +116,7 @@ public class TableIdTest extends WithTestNames {
     try {
       Thread.sleep(100);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       fail("Thread interrupted while waiting for GC");
     }
   }

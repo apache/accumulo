@@ -395,6 +395,7 @@ public class ScanServer extends AbstractServer
     try {
       waitForUpgrade();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
@@ -438,6 +439,7 @@ public class ScanServer extends AbstractServer
               && tabletMetadataCache.estimatedSize() == 0);
           updateAllowedTables(false);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           LOG.info("Interrupt Exception received, shutting down");
           gracefulShutdown(getContext().rpcCreds());
         }
@@ -742,6 +744,7 @@ public class ScanServer extends AbstractServer
       // file from the metadata table or the reservedFiles map
       influxFiles.addAll(allFiles.keySet());
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     } finally {
       reservationsWriteLock.unlock();

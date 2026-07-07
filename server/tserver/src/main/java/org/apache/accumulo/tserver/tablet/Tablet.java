@@ -719,6 +719,9 @@ public class Tablet extends TabletBase {
       String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -769,6 +772,9 @@ public class Tablet extends TabletBase {
 
       return new Pair<>(compactID, overlappingConfig);
     } catch (InterruptedException | DecoderException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting compaction ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -1024,6 +1030,7 @@ public class Tablet extends TabletBase {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error(e.toString());
         }
       }
@@ -1093,6 +1100,7 @@ public class Tablet extends TabletBase {
             runningScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("Interrupted waiting to completeClose for extent {}", extent, e);
       }
     }
@@ -1819,7 +1827,7 @@ public class Tablet extends TabletBase {
   public void importMapFiles(long tid, Map<TabletFile,MapFileInfo> fileMap, boolean setTime)
       throws IOException {
     Map<TabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
-    List<String> files = new ArrayList<>();
+    List<String> files = new ArrayList<>(fileMap.size());
 
     for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
@@ -1891,7 +1899,8 @@ public class Tablet extends TabletBase {
 
       synchronized (this) {
         // only mark the bulk import a success if no exception was thrown
-        bulkImported.computeIfAbsent(tid, k -> new ArrayList<>()).addAll(fileMap.keySet());
+        bulkImported.computeIfAbsent(tid, k -> new ArrayList<>(fileMap.size()))
+            .addAll(fileMap.keySet());
       }
 
       if (isSplitPossible()) {
@@ -1996,8 +2005,8 @@ public class Tablet extends TabletBase {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<String> unusedLogs = new HashSet<>();
 
-    ArrayList<String> otherLogsCopy = new ArrayList<>();
-    ArrayList<String> currentLogsCopy = new ArrayList<>();
+    ArrayList<String> otherLogsCopy = new ArrayList<>(otherLogs.size());
+    ArrayList<String> currentLogsCopy = new ArrayList<>(currentLogs.size());
 
     synchronized (this) {
       if (removingLogs) {

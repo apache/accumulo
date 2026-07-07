@@ -542,6 +542,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           } catch (IOException e) {
             log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
         }));
@@ -719,6 +720,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
                   (rc, path, ctx, name) -> log.warn("{}", path));
               log.warn("******* END ZK DUMP ************");
             } catch (KeeperException | InterruptedException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               log.error("Error dumping zk", e);
             }
           }

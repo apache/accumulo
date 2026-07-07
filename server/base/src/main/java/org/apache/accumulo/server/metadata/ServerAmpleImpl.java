@@ -36,6 +36,7 @@ import java.util.stream.StreamSupport;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -60,7 +61,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -257,6 +257,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         jsonBytes =
             zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e);
       }
       return new RootGcCandidates(new String(jsonBytes, UTF_8)).sortedStream().iterator();
@@ -270,7 +273,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new RuntimeException(e);
       }
       scanner.setRange(range);
-      return scanner.stream().filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
+      scanner.addScanIterator(new IteratorSetting(25, "gcCandidate", GcCandidateFilter.class));
+      return scanner.stream()
           .map(
               entry -> new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
                   entry.getKey().getTimestamp()))

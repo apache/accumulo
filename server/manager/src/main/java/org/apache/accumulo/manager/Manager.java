@@ -810,7 +810,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         } catch (KeeperException e) {
           log.error("Exception trying to delete empty scan server ZNodes, will retry", e);
         } catch (InterruptedException e) {
-          Thread.interrupted();
           log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
         } finally {
           // sleep for 5 mins
@@ -1250,6 +1249,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                   tserverHaltRpcAttempts.remove(server);
                   badServers.remove(server);
                 } catch (KeeperException | InterruptedException e) {
+                  if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                  }
                   log.error("Failed to delete zlock for server {}", server, e);
                 }
               } else {
@@ -1280,6 +1282,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       tp.awaitTermination(Math.max(10000, rpcTimeout / 3), MILLISECONDS);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.debug("Interrupted while fetching status");
     }
 
@@ -1344,6 +1347,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK), clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception getting manager lock", e);
     }
 
@@ -1390,6 +1396,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         }
       });
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
@@ -1433,6 +1442,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         upgradeMetadataFuture.get();
       }
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
 
@@ -1454,6 +1466,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
@@ -1470,6 +1485,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         keyDistributor.initialize();
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
       authenticationTokenKeyManagerThread = Threads
@@ -1493,6 +1511,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       managerLock.replaceLockData(address.getBytes(UTF_8));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
@@ -1511,6 +1532,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           replServer.set(setupReplication());
         }
       } catch (UnknownHostException | KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error occurred starting replication services. ", e);
       }
     }, 0, 5000, MILLISECONDS);
@@ -1530,6 +1554,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
       }
@@ -1551,6 +1576,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         replicationWorkThread.join(remaining(deadline));
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException("Exception stopping replication workers", e);
     }
     var nullableReplServer = replServer.get();
@@ -1566,6 +1592,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           authenticationTokenKeyManagerThread.join(remaining(deadline));
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Exception waiting on delegation-token key manager", e);
       }
     }
@@ -1576,6 +1603,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         watcher.join(remaining(deadline));
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
@@ -1595,6 +1623,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       org.apache.accumulo.server.replication.ZooKeeperInitialization
           .ensureZooKeeperInitialized(zReaderWriter, zroot);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
     }
   }
@@ -1921,6 +1952,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.debug(e.toString(), e);
         }
       } while (displayUnassigned() > 0 || !migrations.isEmpty()

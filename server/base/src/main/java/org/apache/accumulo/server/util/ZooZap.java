@@ -172,6 +172,9 @@ public class ZooZap implements KeywordExecutable {
       try {
         removeSingletonLock(zoo, managerLockPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting manager lock", e);
       }
     }
@@ -182,6 +185,9 @@ public class ZooZap implements KeywordExecutable {
         ServiceLock.deleteLock(zoo, gcLockPath, ServerServices.Service.GC_CLIENT, hostPortPredicate,
             m -> message(m, opts), opts.dryRun);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting gc lock", e);
       }
     }
@@ -191,6 +197,9 @@ public class ZooZap implements KeywordExecutable {
       try {
         removeSingletonLock(zoo, monitorLockPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting monitor lock", e);
       }
     }
@@ -212,6 +221,9 @@ public class ZooZap implements KeywordExecutable {
               opts.dryRun);
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting tserver locks", e);
       }
     }
@@ -230,6 +242,9 @@ public class ZooZap implements KeywordExecutable {
       try {
         removeSingletonLock(zoo, coordinatorPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting coordinator from zookeeper", e);
       }
     }
@@ -240,6 +255,9 @@ public class ZooZap implements KeywordExecutable {
         removeCompactorGroupedLocks(zoo, compactorsBasepath, groupPredicate, hostPortPredicate,
             opts);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting compactors from zookeeper", e);
       }
 
@@ -254,6 +272,9 @@ public class ZooZap implements KeywordExecutable {
           removeScanServerGroupLocks(zoo, sserversPath, hostPortPredicate, groupPredicate, opts);
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting scan server locks", e);
       }
     }
