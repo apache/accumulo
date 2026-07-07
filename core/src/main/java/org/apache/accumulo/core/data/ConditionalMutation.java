@@ -60,7 +60,6 @@ public class ConditionalMutation extends Mutation {
   }
 
   public ConditionalMutation(ByteSequence row, Condition... conditions) {
-    // TODO add ByteSequence methods to mutations
     super(row.toArray());
     init(conditions);
   }
