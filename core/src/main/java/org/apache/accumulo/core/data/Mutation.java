@@ -265,7 +265,7 @@ public class Mutation implements Writable {
     }
     rowLen = row.length();
 
-    init(rowBytes, rowOffset, rowLen,  true);
+    init(rowBytes, rowOffset, rowLen, true);
   }
 
   /**
