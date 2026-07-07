@@ -40,7 +40,7 @@ public class ByteArraySet extends TreeSet<byte[]> {
   }
 
   public static ByteArraySet fromStrings(Collection<String> c) {
-    List<byte[]> lst = new ArrayList<>();
+    List<byte[]> lst = new ArrayList<>(c.size());
     for (String s : c) {
       lst.add(s.getBytes(UTF_8));
     }

@@ -229,7 +229,6 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   @Deprecated(since = "4.0.0")
   public List<String> getManagerLocations() {
-
     Set<ServerId> managers = getServers(ServerId.Type.MANAGER);
     if (managers == null || managers.isEmpty()) {
       return List.of();
@@ -301,8 +300,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     try {
       rpcClient = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
 
-      List<ActiveScan> as = new ArrayList<>();
-      for (var activeScan : rpcClient.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
+      final var scans = rpcClient.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds());
+      List<ActiveScan> as = new ArrayList<>(scans.size());
+      for (var activeScan : scans) {
         try {
           as.add(new ActiveScanImpl(context, activeScan, server));
         } catch (TableNotFoundException e) {
@@ -414,13 +414,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
     }
 
     try {
-      List<Future<List<T>>> futures = new ArrayList<>();
-
+      List<Future<List<T>>> futures = new ArrayList<>(servers.size());
       for (ServerId server : servers) {
         futures.add(executorService.submit(() -> serverQuery.execute(server)));
       }
 
-      List<T> ret = new ArrayList<>();
+      List<T> ret = new ArrayList<>(futures.size());
       for (Future<List<T>> future : futures) {
         try {
           ret.addAll(future.get());

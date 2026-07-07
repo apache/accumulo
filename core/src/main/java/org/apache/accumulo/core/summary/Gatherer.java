@@ -361,7 +361,7 @@ public class Gatherer {
         Map<String,Map<StoredTabletFile,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
 
-        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
+        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>(filesGBL.size() + 1);
         if (previousWork != null) {
           futures.add(CompletableFuture
               .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
@@ -440,7 +440,7 @@ public class Gatherer {
       Text upperBound = ByteBufferUtil.toText(tRowRange.bufferForEndRow());
       return RowRange.range(lowerBound, false, upperBound, true);
     };
-    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>(files.size());
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
         List<RowRange> rrl = entry.getValue().stream().map(fromThrift).collect(Collectors.toList());
@@ -512,7 +512,7 @@ public class Gatherer {
     // have each tablet server process ~100K files
     int numRequest = Math.max(numFiles / 100_000, 1);
 
-    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>(numRequest);
 
     AtomicBoolean cancelFlag = new AtomicBoolean(false);
 

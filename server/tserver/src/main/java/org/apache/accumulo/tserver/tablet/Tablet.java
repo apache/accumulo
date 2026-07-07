@@ -1253,8 +1253,8 @@ public class Tablet extends TabletBase {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<LogEntry> unusedLogs = new HashSet<>();
 
-    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>();
-    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>(otherLogs.size());
+    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>(currentLogs.size());
 
     synchronized (this) {
       if (removingLogs) {
