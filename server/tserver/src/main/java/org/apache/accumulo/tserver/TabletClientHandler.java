@@ -1020,7 +1020,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 
-          Set<KeyExtent> all = new HashSet<>();
+          Set<KeyExtent> all = new HashSet<>(
+              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
+              1.0f);
           all.addAll(unopenedOverlapping);
           all.addAll(openingOverlapping);
           all.addAll(onlineOverlapping);

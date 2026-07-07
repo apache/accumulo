@@ -1416,7 +1416,7 @@ public class RFile {
      * @see LocalityGroupUtil#seek(FileSKVIterator, Range, String, Map)
      */
     public Map<String,ArrayList<ByteSequence>> getLocalityGroupCF() {
-      Map<String,ArrayList<ByteSequence>> cf = new HashMap<>();
+      Map<String,ArrayList<ByteSequence>> cf = new HashMap<>(localityGroups.size(), 1.0f);
 
       for (LocalityGroupMetadata lcg : localityGroups) {
         ArrayList<ByteSequence> setCF;
