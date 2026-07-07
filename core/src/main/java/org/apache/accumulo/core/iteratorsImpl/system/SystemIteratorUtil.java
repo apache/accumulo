@@ -53,7 +53,7 @@ public class SystemIteratorUtil {
   }
 
   public static IteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
-    ArrayList<TIteratorSetting> tisList = new ArrayList<>();
+    ArrayList<TIteratorSetting> tisList = new ArrayList<>(iterators.size());
 
     for (IteratorSetting iteratorSetting : iterators) {
       tisList.add(toTIteratorSetting(iteratorSetting));
@@ -63,7 +63,7 @@ public class SystemIteratorUtil {
   }
 
   public static List<IteratorSetting> toIteratorSettings(IteratorConfig ic) {
-    List<IteratorSetting> ret = new ArrayList<>();
+    List<IteratorSetting> ret = new ArrayList<>(ic.getIterators().size());
     for (TIteratorSetting tIteratorSetting : ic.getIterators()) {
       ret.add(toIteratorSetting(tIteratorSetting));
     }

@@ -230,9 +230,10 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public List<String> getTabletServers() {
     ZooCache cache = context.getZooCache();
-    String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    List<String> results = new ArrayList<>();
-    for (String candidate : cache.getChildren(path)) {
+    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    final List<String> candidates = cache.getChildren(path);
+    final List<String> results = new ArrayList<>(candidates.size());
+    for (String candidate : candidates) {
       var children = cache.getChildren(path + "/" + candidate);
       if (children != null && !children.isEmpty()) {
         var copy = new ArrayList<>(children);
@@ -254,8 +255,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     try {
       client = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
 
-      List<ActiveScan> as = new ArrayList<>();
-      for (var activeScan : client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
+      final var scans = client.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds());
+      List<ActiveScan> as = new ArrayList<>(scans.size());
+      for (var activeScan : scans) {
         try {
           as.add(new ActiveScanImpl(context, activeScan));
         } catch (TableNotFoundException e) {
@@ -327,7 +329,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     var executorService = context.threadPools().getPoolBuilder(INSTANCE_OPS_COMPACTIONS_FINDER_POOL)
         .numCoreThreads(numThreads).build();
     try {
-      List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
+      List<Future<List<ActiveCompaction>>> futures = new ArrayList<>(tservers.size());
 
       for (String tserver : tservers) {
         futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
@@ -345,7 +347,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
       });
 
-      List<ActiveCompaction> ret = new ArrayList<>();
+      List<ActiveCompaction> ret = new ArrayList<>(futures.size());
       for (Future<List<ActiveCompaction>> future : futures) {
         try {
           ret.addAll(future.get());
