@@ -219,7 +219,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getCf() {
-    setCf(org.apache.thrift.TBaseHelper.rightSize(cf));
+    this.cf = org.apache.thrift.TBaseHelper.rightSize(cf);
     return cf == null ? null : cf.array();
   }
 
@@ -253,7 +253,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getCq() {
-    setCq(org.apache.thrift.TBaseHelper.rightSize(cq));
+    this.cq = org.apache.thrift.TBaseHelper.rightSize(cq);
     return cq == null ? null : cq.array();
   }
 
@@ -287,7 +287,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getCv() {
-    setCv(org.apache.thrift.TBaseHelper.rightSize(cv));
+    this.cv = org.apache.thrift.TBaseHelper.rightSize(cv);
     return cv == null ? null : cv.array();
   }
 
@@ -367,7 +367,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getVal() {
-    setVal(org.apache.thrift.TBaseHelper.rightSize(val));
+    this.val = org.apache.thrift.TBaseHelper.rightSize(val);
     return val == null ? null : val.array();
   }
 
@@ -401,7 +401,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getIterators() {
-    setIterators(org.apache.thrift.TBaseHelper.rightSize(iterators));
+    this.iterators = org.apache.thrift.TBaseHelper.rightSize(iterators);
     return iterators == null ? null : iterators.array();
   }
 
