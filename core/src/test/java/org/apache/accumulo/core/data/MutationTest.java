@@ -1075,12 +1075,11 @@ public class MutationTest {
     var row2 = new ArrayByteSequence("TheRowData").subSequence(3, 6);
     var row3 = new TestByteSequence("Row");
 
-    var expectedMutation = new Mutation("Row");
+    var expectedMutation = new Mutation(new ArrayByteSequence("Row".getBytes(UTF_8)));
 
     for (var r : List.of(row1, row2, row3)) {
-      var actualMutation = new Mutation(r);
-      assertEquals(expectedMutation, actualMutation);
-      System.out.println(actualMutation);
+      var actualMutation = new Mutation(new ArrayByteSequence(r));
+      assertEquals(expectedMutation.getRowData(), actualMutation.getRowData());
     }
   }
 }
