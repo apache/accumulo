@@ -1054,32 +1054,4 @@ public class MutationTest {
 
     assertThrows(NullPointerException.class, () -> m.at().keyColumns(k).put(v));
   }
-
-  private static class TestByteSequence extends ArrayByteSequence {
-
-    private static final long serialVersionUID = 1234L;
-
-    public TestByteSequence(String s) {
-      super(s);
-    }
-
-    @Override
-    public boolean isBackedByArray() {
-      return false;
-    }
-  }
-
-  @Test
-  public void testByteSequenceConstructor() {
-    var row1 = new ArrayByteSequence("Row");
-    var row2 = new ArrayByteSequence("TheRowData").subSequence(3, 6);
-    var row3 = new TestByteSequence("Row");
-
-    var expectedMutation = new Mutation(new ArrayByteSequence("Row".getBytes(UTF_8)));
-
-    for (var r : List.of(row1, row2, row3)) {
-      var actualMutation = new Mutation(new ArrayByteSequence(r));
-      assertEquals(expectedMutation.getRowData(), actualMutation.getRowData());
-    }
-  }
 }

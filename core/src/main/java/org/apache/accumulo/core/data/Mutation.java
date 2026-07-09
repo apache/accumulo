@@ -231,14 +231,6 @@ public class Mutation implements Writable {
   public Mutation() {}
 
   /**
-   * Creates a mutation with the specified row
-   */
-  public Mutation(ByteSequence row) {
-    this(row.isBackedByArray() ? row.getBackingArray() : row.toArray(),
-        row.isBackedByArray() ? row.offset() : 0, row.length());
-  }
-
-  /**
    * Creates a new mutation from a Thrift mutation.
    *
    * @param tmutation Thrift mutation
@@ -277,16 +269,6 @@ public class Mutation implements Writable {
    */
   public byte[] getRow() {
     return row;
-  }
-
-  /**
-   * Returns the row ID as a byte sequence. This method returns a pointer to the key's internal data
-   * and does not copy it.
-   *
-   * @return ByteSequence that points to the internal key row ID data
-   */
-  public ByteSequence getRowData() {
-    return new ArrayByteSequence(row);
   }
 
   private void fill(byte[] b) {
