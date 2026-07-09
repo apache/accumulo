@@ -116,7 +116,7 @@ public abstract class TabletLocator {
   private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
   private static final HashMap<LocatorKey,OfflineTabletLocatorImpl> offlineLocators =
       new HashMap<>();
-  private static boolean enabled = true;
+  private static volatile boolean enabled = true;
 
   public static synchronized void clearLocators() {
     for (TabletLocator locator : locators.values()) {
@@ -131,8 +131,8 @@ public abstract class TabletLocator {
   }
 
   static synchronized void disable() {
-    clearLocators();
     enabled = false;
+    clearLocators();
   }
 
   static synchronized void enable() {

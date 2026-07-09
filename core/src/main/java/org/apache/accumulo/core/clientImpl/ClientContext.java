@@ -631,51 +631,63 @@ public class ClientContext implements AccumuloClient {
   }
 
   public TableId getTableId(String tableName) throws TableNotFoundException {
+    ensureOpen();
     return tableZooHelper().getTableId(tableName);
   }
 
   public TableId _getTableIdDetectNamespaceNotFound(String tableName)
       throws NamespaceNotFoundException, TableNotFoundException {
+    ensureOpen();
     return tableZooHelper()._getTableIdDetectNamespaceNotFound(tableName);
   }
 
   public String getTableName(TableId tableId) throws TableNotFoundException {
+    ensureOpen();
     return tableZooHelper().getTableName(tableId);
   }
 
   public Map<String,TableId> getTableNameToIdMap() {
+    ensureOpen();
     return tableZooHelper().getTableMap().getNameToIdMap();
   }
 
   public Map<TableId,String> getTableIdToNameMap() {
+    ensureOpen();
     return tableZooHelper().getTableMap().getIdtoNameMap();
   }
 
   public boolean tableNodeExists(TableId tableId) {
+    ensureOpen();
     return tableZooHelper().tableNodeExists(tableId);
   }
 
   public void clearTableListCache() {
+    ensureOpen();
     tableZooHelper().clearTableListCache();
   }
 
   public String getPrintableTableInfoFromId(TableId tableId) {
+    ensureOpen();
     return tableZooHelper().getPrintableTableInfoFromId(tableId);
   }
 
   public String getPrintableTableInfoFromName(String tableName) {
+    ensureOpen();
     return tableZooHelper().getPrintableTableInfoFromName(tableName);
   }
 
   public TableState getTableState(TableId tableId) {
+    ensureOpen();
     return tableZooHelper().getTableState(tableId, false);
   }
 
   public TableState getTableState(TableId tableId, boolean clearCachedState) {
+    ensureOpen();
     return tableZooHelper().getTableState(tableId, clearCachedState);
   }
 
   public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
+    ensureOpen();
     return tableZooHelper().getNamespaceId(tableId);
   }
 
