@@ -509,7 +509,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<KeyExtent,List<SplitMergeability>> tabletSplits = splitsToTablets.newSplits;
       Map<KeyExtent,TabletMergeability> existingSplits = splitsToTablets.existingSplits;
 
-      List<CompletableFuture<Void>> futures = new ArrayList<>();
+      List<CompletableFuture<Void>> futures = new ArrayList<>(existingSplits.size());
 
       // Handle existing updates
       if (!existingSplits.isEmpty()) {
@@ -881,7 +881,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
-    compact(tableName, start, end, new ArrayList<>(), flush, wait);
+    compact(tableName, start, end, List.of(), flush, wait);
   }
 
   @Override
@@ -1616,7 +1616,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }
 
-    List<DiskUsage> finalUsages = new ArrayList<>();
+    List<DiskUsage> finalUsages = new ArrayList<>(diskUsages.size());
     for (TDiskUsage diskUsage : diskUsages) {
       finalUsages.add(new DiskUsage(new TreeSet<>(diskUsage.getTables()), diskUsage.getUsage()));
     }

@@ -695,7 +695,7 @@ public class ScanServer extends AbstractServer
       }
     }
 
-    Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>();
+    Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>(extents.size());
 
     tabletsMetadata.forEach((extent, tm) -> {
       tm.getFiles().forEach(file -> allFiles.put(file, extent));
@@ -856,7 +856,7 @@ public class ScanServer extends AbstractServer
     }
 
     // Convert failures
-    Map<TKeyExtent,List<TRange>> failures = new HashMap<>();
+    Map<TKeyExtent,List<TRange>> failures = new HashMap<>(failedReservations.size(), 1.0f);
     failedReservations.forEach(extent -> {
       failures.put(extent.toThrift(), extents.get(extent));
     });
@@ -1134,7 +1134,7 @@ public class ScanServer extends AbstractServer
       throw new TException("Scan Server batch must include at least one extent");
     }
 
-    final Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    final Map<KeyExtent,List<TRange>> batch = new HashMap<>(tbatch.size(), 1.0f);
 
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
@@ -1150,8 +1150,9 @@ public class ScanServer extends AbstractServer
 
     try (ScanReservation reservation = reserveFilesInstrumented(batch)) {
 
-      HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
-      reservation.getTabletMetadataExtents().forEach(extent -> {
+      var extents = reservation.getTabletMetadataExtents();
+      HashMap<KeyExtent,TabletBase> tablets = new HashMap<>(extents.size(), 1.0f);
+      extents.forEach(extent -> {
         try {
           tablets.put(extent, reservation.newTablet(this, extent));
         } catch (IOException e) {

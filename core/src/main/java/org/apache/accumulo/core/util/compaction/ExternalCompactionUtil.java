@@ -215,11 +215,12 @@ public class ExternalCompactionUtil {
       ExecutorService executor, Consumer<TExternalCompaction> consumer)
       throws InterruptedException {
 
-    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>();
     final List<ServerId> failures = new ArrayList<>();
+    final Set<ServerId> compactors =
+        context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>(compactors.size());
 
     try {
-      Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
       compactors.forEach(s -> {
         final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
         Future<TExternalCompaction> future =

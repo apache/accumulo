@@ -786,7 +786,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
 
       var results = tabletsMutator.process();
-      List<TKeyExtent> updated = new ArrayList<>();
+      List<TKeyExtent> updated = new ArrayList<>(results.size());
       results.forEach((key, result) -> {
         if (result.getStatus() == Status.ACCEPTED) {
           updated.add(result.getExtent().toThrift());
