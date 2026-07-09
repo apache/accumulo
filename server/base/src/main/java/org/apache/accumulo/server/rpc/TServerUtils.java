@@ -51,6 +51,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.server.THsHaServer;
+import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
@@ -210,7 +212,7 @@ public class TServerUtils {
         .clientTimeout(0).maxFrameSize(Ints.saturatedCast(maxMessageSize));
 
     final TNonblockingServerSocket transport = new TNonblockingServerSocket(args);
-    final CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
+    final THsHaServer server = new THsHaServer();
 
     options.protocolFactory(protocolFactory);
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
@@ -227,9 +229,6 @@ public class TServerUtils {
     if (address.getPort() == 0) {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
-
-    CustomNonBlockingServer server = new CustomNonBlockingServer(options);
-    server.setServerEventHandler(new ThriftServerEventHandler());
 
     return new ServerAddress(server, address);
   }

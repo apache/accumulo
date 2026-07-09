@@ -27,10 +27,12 @@ import org.apache.thrift.transport.TTransport;
 
 public class ThriftServerEventHandler implements TServerEventHandler {
 
+  private static final ThriftServerContext context = new ThriftServerContext();
+
   public static class ThriftServerContext implements ServerContext {
 
     @Override
-    public <T> T unwrap(Class<T> iface) {
+    public <T> T unwrap(Class<T> iface) throws UnsupportedOperationException {
       return null;
     }
 
@@ -44,6 +46,9 @@ public class ThriftServerEventHandler implements TServerEventHandler {
       TServerUtils.clientAddress.set(remoteAddress.toString());
     }
 
+    public void clear() {
+      TServerUtils.clientAddress.set("");
+    }
   }
 
   @Override
@@ -51,12 +56,12 @@ public class ThriftServerEventHandler implements TServerEventHandler {
 
   @Override
   public ServerContext createContext(TProtocol input, TProtocol output) {
-    return new ThriftServerContext();
+    return context;
   }
 
   @Override
   public void deleteContext(ServerContext serverContext, TProtocol input, TProtocol output) {
-    TServerUtils.clientAddress.set("");
+    context.clear();
   }
 
   @Override
