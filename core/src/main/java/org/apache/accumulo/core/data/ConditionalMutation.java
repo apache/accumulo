@@ -60,7 +60,7 @@ public class ConditionalMutation extends Mutation {
   }
 
   public ConditionalMutation(ByteSequence row, Condition... conditions) {
-    super(row.toArray());
+    super(row);
     init(conditions);
   }
 
