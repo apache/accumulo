@@ -134,24 +134,6 @@ public class Mutation implements Writable {
     }
   }
 
-  static byte[] copyIfNeeded(byte[] ba, int off, int len, boolean copyData) {
-    if (len == 0) {
-      return EMPTY_BYTES;
-    }
-
-    if (!copyData && ba.length == len && off == 0) {
-      return ba;
-    }
-
-    byte[] copy = new byte[len];
-    System.arraycopy(ba, off, copy, 0, len);
-    return copy;
-  }
-
-  private final void init(byte[] r, int rOff, int rLen, boolean copy) {
-    row = copyIfNeeded(r, rOff, rLen, copy);
-  }
-
   /**
    * Creates a new mutation. A defensive copy is made.
    *
@@ -249,23 +231,11 @@ public class Mutation implements Writable {
   public Mutation() {}
 
   /**
-   * Creates a mutation with the specified row, This constructor creates a copy of the fields.
+   * Creates a mutation with the specified row
    */
   public Mutation(ByteSequence row) {
-    byte[] rowBytes;
-    int rowOffset;
-    int rowLen;
-
-    if (row.isBackedByArray()) {
-      rowBytes = row.getBackingArray();
-      rowOffset = row.offset();
-    } else {
-      rowBytes = row.toArray();
-      rowOffset = 0;
-    }
-    rowLen = row.length();
-
-    init(rowBytes, rowOffset, rowLen, true);
+    this(row.isBackedByArray() ? row.getBackingArray() : row.toArray(),
+        row.isBackedByArray() ? row.offset() : 0, row.length());
   }
 
   /**
