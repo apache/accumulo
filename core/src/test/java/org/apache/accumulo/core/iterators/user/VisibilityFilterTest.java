@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -236,7 +237,7 @@ public class VisibilityFilterTest {
 
   @Test
   public void testCommaSeparatedAuthorizations() throws IOException {
-    Map<String,String> options = Map.of("numAuths", "1", "auth_0", "x,def,y");
+    Map<String,String> options = Collections.singletonMap("auths", "x,def,y");
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, options, GOOD, GOOD, GOOD_VIS, 1);
@@ -251,7 +252,7 @@ public class VisibilityFilterTest {
   @Test
   public void testSerializedAuthorizations() throws IOException {
     Map<String,String> options =
-        Map.of("numAuths", "1", "auth_0", new Authorizations("x", "def", "y").serialize());
+        Collections.singletonMap("auths", new Authorizations("x", "def", "y").serialize());
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, options, GOOD, GOOD, GOOD_VIS, 1);
@@ -273,7 +274,7 @@ public class VisibilityFilterTest {
     Map<String,String> opts = is.getOptions();
     assertEquals("false", opts.get("filterInvalid"));
     assertEquals("true", opts.get("negate"));
-    assertEquals(new Authorizations("abc", "def").serialize(), opts.get("auth_0"));
+    assertEquals(new Authorizations("abc", "def").serialize(), opts.get("auths"));
   }
 
   @Test
@@ -287,6 +288,13 @@ public class VisibilityFilterTest {
     Filter copyFilter = (Filter) filter.deepCopy(null);
     Key k = new Key("row", "cf", "cq", "abc");
     assertTrue(copyFilter.accept(k, new Value()));
+  }
+
+  @Test
+  public void testAuthorizationSerialization() {
+    String auth = new Authorizations("abc", "def").serialize();
+    System.out.println(auth);
+
   }
 
 }

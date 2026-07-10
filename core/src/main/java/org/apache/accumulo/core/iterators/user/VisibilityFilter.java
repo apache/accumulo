@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -42,21 +41,20 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * A SortedKeyValueIterator that filters based on ColumnVisibility.
  */
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
+  private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
+  private static final BytesAccess.BytesEvaluator EMPTY_EVALUATOR =
+      BytesAccess.newEvaluator(Authorizations.EMPTY);
+
   private BytesAccess.BytesEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
   private final ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
-  private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
-
-  private static final String NUM_AUTHS = "numAuths";
-  private static final String AUTH_PREFIX = "auth_";
+  private static final String AUTHS = "auths";
   private static final String FILTER_INVALID_ONLY = "filterInvalid";
 
   private boolean filterInvalid;
@@ -69,26 +67,30 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
     this.filterInvalid = Boolean.parseBoolean(options.get(FILTER_INVALID_ONLY));
 
     if (!filterInvalid) {
-      String numAuthsParameter = options.get(NUM_AUTHS);
-      Objects.requireNonNull(numAuthsParameter, "NUM_AUTHS option not set.");
-      int numAuths = Integer.parseInt(numAuthsParameter);
-      Preconditions.checkArgument(numAuths >= 0, NUM_AUTHS + " must be a positive integer");
-
-      Collection<Authorizations> authSet = new ArrayList<>();
-      if (numAuths == 0) {
-        authSet.add(new Authorizations());
+      String auths = options.get(AUTHS);
+      if (auths == null || auths.isEmpty()) {
+        this.accessEvaluator = EMPTY_EVALUATOR;
+      } else if (!auths.contains(Authorizations.HEADER)) {
+        this.accessEvaluator = BytesAccess.newEvaluator(new Authorizations(auths.getBytes(UTF_8)));
       } else {
-        for (int idx = 0; idx < numAuths; idx++) {
-          String auths = options.get(AUTH_PREFIX + idx);
-          Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations()
-              : new Authorizations(auths.getBytes(UTF_8));
-          authSet.add(authObj);
+        String[] authParts = auths.split(Authorizations.HEADER);
+        if (authParts.length == 0) {
+          this.accessEvaluator = EMPTY_EVALUATOR;
+        } else {
+          Collection<Authorizations> authSet = new ArrayList<>();
+          for (int i = 0; i < authParts.length; i++) {
+            String part = authParts[i];
+            if (part.isEmpty()) {
+              continue;
+            } else {
+              // split removes the HEADER, need to add it back
+              String serializedAuthString = Authorizations.HEADER + authParts[i];
+              authSet.add(new Authorizations(serializedAuthString.getBytes(UTF_8)));
+            }
+          }
+          this.accessEvaluator = BytesAccess.newEvaluator(authSet);
         }
-        String auths = options.get(AUTH_PREFIX + numAuths);
-        Preconditions.checkArgument(auths == null,
-            "NUM_AUTHS is set incorrectly, should be at least: " + NUM_AUTHS + " = " + 1);
       }
-      this.accessEvaluator = BytesAccess.newEvaluator(authSet);
     }
     this.cache = new LRUMap<>(1000);
   }
@@ -153,29 +155,28 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
     IteratorOptions io = super.describeOptions();
     io.setName("visibilityFilter");
     io.setDescription("The VisibilityFilter allows you to filter for key/value"
-        + " pairs by a set of authorizations or filter invalid labels from corrupt files.");
+        + " pairs by a set(s) of authorizations or filter invalid labels from corrupt files.");
     io.addNamedOption(FILTER_INVALID_ONLY,
         "if 'true', the iterator is instructed to ignore the authorizations and"
             + " only filter invalid visibility labels (default: false)");
-    io.addNamedOption(NUM_AUTHS,
-        "The number of serialized authorizations to filter against (default 0)");
-    io.addUnnamedOption(AUTH_PREFIX
-        + "N, where the value is a serialized set of authorizations. N must be between zero and NUM_AUTHS.");
+    io.addNamedOption(AUTHS, "The set of Authorizations to use when filtering (default: empty"
+        + " string, accepts only entries visible by all). The value can"
+        + " either be of the older form (\"auth1,auth2\") which only supports"
+        + " a single Authorizations object, or the newer form which uses " + Authorizations.HEADER
+        + " in the serialization. The latter case supports one or more Authorizations (\""
+        + Authorizations.HEADER + " auth1,auth2\") or (\"" + Authorizations.HEADER + "auth1,auth2"
+        + Authorizations.HEADER + "auth2,auth3\")");
     return io;
   }
 
   public static void setAuthorizations(IteratorSetting setting, Authorizations auths) {
-    setting.addOption(NUM_AUTHS, "1");
-    setting.addOption(AUTH_PREFIX + 0, auths.serialize());
+    setting.addOption(AUTHS, auths.serialize());
   }
 
   public static void setAuthorizations(IteratorSetting setting, Collection<Authorizations> auths) {
-    setting.addOption(NUM_AUTHS, Integer.toString(auths.size()));
-    int idx = 0;
-    for (Authorizations auth : auths) {
-      setting.addOption(AUTH_PREFIX + idx, auth.serialize());
-      idx++;
-    }
+    StringBuilder builder = new StringBuilder();
+    auths.forEach(a -> builder.append(a.serialize()));
+    setting.addOption(AUTHS, builder.toString());
   }
 
   public static void filterInvalidLabelsOnly(IteratorSetting setting, boolean featureEnabled) {
