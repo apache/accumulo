@@ -196,9 +196,8 @@ public class SummaryReader {
       CompositeCache compositeCache =
           new CompositeCache(BlockCacheUtil.instrument(CacheType.SUMMARY, summaryCache),
               BlockCacheUtil.instrument(CacheType.INDEX, indexCache));
-      CachableBuilder cb = new CachableBuilder().fsPath(fs, file, null).conf(conf)
-          .fileLen(fileLenCache).cacheProvider(new BasicCacheProvider(compositeCache, null))
-          .cryptoService(cryptoService);
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, file).conf(conf).fileLen(fileLenCache)
+          .cacheProvider(new BasicCacheProvider(compositeCache, null)).cryptoService(cryptoService);
       bcReader = new CachableBlockFile.Reader(cb);
       return load(bcReader, summarySelector, factory);
     } catch (FileNotFoundException fne) {

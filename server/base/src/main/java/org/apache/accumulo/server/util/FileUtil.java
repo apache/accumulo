@@ -151,7 +151,7 @@ public class FileUtil {
         for (String file : inFiles) {
           ns = context.getVolumeManager().getFileSystemByPath(new Path(file));
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService(), null)
+              .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf).build();
           iters.add(reader);
         }
@@ -496,7 +496,7 @@ public class FileUtil {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapfile.getPath());
       try {
         reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(mapfile.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService(), null)
+            .forFile(mapfile.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build();
 
         Key firstKey = reader.getFirstKey();
@@ -534,7 +534,7 @@ public class FileUtil {
     for (TabletFile file : mapFiles) {
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService(), null)
+          .forFile(file.getPathStr(), ns, ns.getConf(), tableConf.getCryptoService())
           .withTableConfiguration(tableConf).seekToBeginning().build();
 
       try {

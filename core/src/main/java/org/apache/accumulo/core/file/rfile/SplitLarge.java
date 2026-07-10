@@ -80,8 +80,7 @@ public class SplitLarge implements KeywordExecutable {
       AccumuloConfiguration aconf = opts.getSiteConfiguration();
       CryptoService cs = CryptoFactoryLoader.getServiceForServer(aconf);
       Path path = new Path(file);
-      CachableBuilder cb =
-          new CachableBuilder().fsPath(fs, path, null).conf(conf).cryptoService(cs);
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
       try (Reader iter = new RFile.Reader(cb)) {
 
         if (!file.endsWith(".rf")) {

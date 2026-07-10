@@ -120,7 +120,7 @@ public class CompactableUtils {
     for (StoredTabletFile file : allFiles) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       try (FileSKVIterator openReader =
-          fileFactory.newReaderBuilder().forFile(file.getPathStr(), ns, ns.getConf(), cs, null)
+          fileFactory.newReaderBuilder().forFile(file.getPathStr(), ns, ns.getConf(), cs)
               .withTableConfiguration(tableConf).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
@@ -372,7 +372,7 @@ public class CompactableUtils {
           FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
           var tableConf = tablet.getTableConfiguration();
           var fiter = fileFactory.newReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), null)
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
               .withTableConfiguration(tableConf).seekToBeginning().build();
           return Optional.ofNullable(fiter.getSample(new SamplerConfigurationImpl(sc)));
         } catch (IOException e) {

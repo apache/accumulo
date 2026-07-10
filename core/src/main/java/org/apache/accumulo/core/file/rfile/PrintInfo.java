@@ -197,8 +197,7 @@ public class PrintInfo implements KeywordExecutable {
 
       CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
           siteConfig.getAllCryptoProperties());
-      CachableBuilder cb =
-          new CachableBuilder().fsPath(fs, path, null).conf(conf).cryptoService(cs);
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
       Reader iter = new RFile.Reader(cb);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

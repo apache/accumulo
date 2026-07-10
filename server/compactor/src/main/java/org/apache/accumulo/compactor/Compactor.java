@@ -711,9 +711,9 @@ public class Compactor extends AbstractServer
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem fs = getContext().getVolumeManager().getFileSystemByPath(file.getPath());
 
-    try (FileSKVIterator reader = fileFactory.newReaderBuilder()
-        .forFile(file.getPathStr(), fs, fs.getConf(), cryptoService, null)
-        .withTableConfiguration(tableConf).dropCachesBehind().build()) {
+    try (FileSKVIterator reader =
+        fileFactory.newReaderBuilder().forFile(file.getPathStr(), fs, fs.getConf(), cryptoService)
+            .withTableConfiguration(tableConf).dropCachesBehind().build()) {
       return reader.estimateOverlappingEntries(extent);
     } catch (IOException ioe) {
       throw new UncheckedIOException(ioe);

@@ -602,7 +602,7 @@ public class InMemoryMap {
 
         TableConfiguration tableConf = context.getTableConfiguration(tableId);
         reader = new RFileOperations().newReaderBuilder()
-            .forFile(memDumpFile, fs, conf, tableConf.getCryptoService(), null)
+            .forFile(memDumpFile, fs, conf, tableConf.getCryptoService())
             .withTableConfiguration(tableConf).seekToBeginning().build();
         if (iflag != null) {
           reader.setInterruptFlag(iflag);

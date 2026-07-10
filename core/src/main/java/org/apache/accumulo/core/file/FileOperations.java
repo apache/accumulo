@@ -446,6 +446,12 @@ public abstract class FileOperations {
     private boolean seekToBeginning = false;
 
     public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+        CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
+
+    public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
         CryptoService cs, FileStatus status) {
       filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
       return this;
@@ -514,6 +520,12 @@ public abstract class FileOperations {
     private Cache<String,Long> fileLenCache = null;
 
     public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
+        Configuration fsConf, CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
+
+    public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
         Configuration fsConf, CryptoService cs, FileStatus status) {
       filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
       return this;
@@ -544,6 +556,12 @@ public abstract class FileOperations {
     private Range range;
     private Set<ByteSequence> columnFamilies;
     private boolean inclusive;
+
+    public ScanReaderTableConfiguration forFile(String filename, FileSystem fs,
+        Configuration fsConf, CryptoService cs) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
 
     public ScanReaderTableConfiguration forFile(String filename, FileSystem fs,
         Configuration fsConf, CryptoService cs, FileStatus status) {

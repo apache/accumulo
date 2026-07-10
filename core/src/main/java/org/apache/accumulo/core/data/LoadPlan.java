@@ -544,7 +544,7 @@ public class LoadPlan {
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, properties);
     var tableConf = SiteConfiguration.empty().withOverrides(properties).build();
     try (var reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(file.toString(), fs, conf, cs, null).withTableConfiguration(tableConf).build();) {
+        .forFile(file.toString(), fs, conf, cs).withTableConfiguration(tableConf).build();) {
       var firstRow = reader.getFirstKey().getRow();
       var lastRow = reader.getLastKey().getRow();
       return LoadPlan.builder().loadFileTo(path.getName(), RangeType.FILE, firstRow, lastRow)

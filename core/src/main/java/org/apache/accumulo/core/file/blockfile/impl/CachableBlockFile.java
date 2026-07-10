@@ -90,6 +90,10 @@ public class CachableBlockFile {
       return this;
     }
 
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile) {
+      return fsPath(fs, dataFile, false, null);
+    }
+
     public CachableBuilder fsPath(FileSystem fs, Path dataFile, FileStatus status) {
       return fsPath(fs, dataFile, false, status);
     }
