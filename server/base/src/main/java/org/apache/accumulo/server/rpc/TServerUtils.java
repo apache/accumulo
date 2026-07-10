@@ -76,8 +76,7 @@ public class TServerUtils {
   private static final Logger log = LoggerFactory.getLogger(TServerUtils.class);
 
   /**
-   * Static instance, passed to {@link ClientInfoProcessorFactory}, which will contain the client
-   * address of any incoming RPC.
+   * Static instance, which will contain the client address of any incoming RPC.
    */
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<>();
 
@@ -322,7 +321,6 @@ public class TServerUtils {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(protocolFactory);
     options.transportFactory(transportFactory);
-    options.processorFactory(new ClientInfoProcessorFactory(clientAddress, processor));
     if (service != null) {
       options.executorService(service);
     }

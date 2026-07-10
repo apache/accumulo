@@ -32,8 +32,8 @@ public class ThriftServerEventHandler implements TServerEventHandler {
   public static class ThriftServerContext implements ServerContext {
 
     @Override
-    public <T> T unwrap(Class<T> iface) throws UnsupportedOperationException {
-      return null;
+    public <T> T unwrap(Class<T> iface) {
+      throw new UnsupportedOperationException("This method has not been implemented");
     }
 
     @Override
