@@ -626,7 +626,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     Set<TServerInstance> tserverInstances = manager.onlineTabletServers();
-    List<String> servers = new ArrayList<>();
+    List<String> servers = new ArrayList<>(tserverInstances.size());
     for (TServerInstance tserverInstance : tserverInstances) {
       servers.add(tserverInstance.getHostPort());
     }
