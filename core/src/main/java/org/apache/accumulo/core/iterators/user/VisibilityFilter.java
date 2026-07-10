@@ -163,8 +163,9 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         + " string, accepts only entries visible by all). The value can"
         + " either be of the older form (\"auth1,auth2\") which only supports"
         + " a single Authorizations object, or the newer form which uses " + Authorizations.HEADER
-        + " in the serialization. The latter case supports one or more Authorizations (\""
-        + Authorizations.HEADER + " auth1,auth2\") or (\"" + Authorizations.HEADER + "auth1,auth2"
+        + " concatenated with Base64 encoded comma-separated authorization tokens."
+        + "The latter case supports one or more Authorizations (\"" + Authorizations.HEADER
+        + "Base64(auth1,auth2)\") or (\"" + Authorizations.HEADER + "Base64(auth1,auth2)"
         + Authorizations.HEADER + "auth2,auth3\")");
     return io;
   }
