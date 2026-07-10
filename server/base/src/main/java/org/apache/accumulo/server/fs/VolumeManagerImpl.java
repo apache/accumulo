@@ -92,7 +92,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
-  private final Map<FileSystem,Volume> bulkDeleteFileSystems;
+  private final Set<Volume> bulkDeleteVolumes;
   private final VolumeChooser chooser;
   private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
@@ -103,7 +103,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // We may have multiple directories used in a single FileSystem (e.g. testing)
     this.volumesByFileSystemUri = invertVolumesByFileSystem(volumesByName);
 
-    this.bulkDeleteFileSystems = new HashMap<>();
+    this.bulkDeleteVolumes = new HashSet<>();
     for (Volume v : volumes.values()) {
       FileSystem fs = v.getFileSystem();
       String base = v.getBasePath().isBlank() ? "/" : v.getBasePath();
@@ -116,7 +116,7 @@ public class VolumeManagerImpl implements VolumeManager {
             // The S3A FileSystem implementation has a default of 250 and
             // is configured by the property `fs.s3a.bulk.delete.page.size`.
             if (bulk.pageSize() > 1) {
-              this.bulkDeleteFileSystems.put(fs, v);
+              this.bulkDeleteVolumes.add(v);
             }
           }
         }
@@ -271,9 +271,8 @@ public class VolumeManagerImpl implements VolumeManager {
     final List<Future<Void>> futures = new LinkedList<>();
 
     for (Path p : paths) {
-      FileSystem fs = getFileSystemByPath(p);
-      Volume v = this.bulkDeleteFileSystems.get(fs);
-      if (v != null) {
+      Volume v = getVolumeForPath(p);
+      if (v != null && this.bulkDeleteVolumes.contains(v)) {
         pathsSupportingBulkDelete.computeIfAbsent(v, (k) -> new ArrayList<Path>()).add(p);
       } else {
         pathsNotSupportingBulkDelete.add(p);
@@ -415,6 +414,31 @@ public class VolumeManagerImpl implements VolumeManager {
     } else {
       log.debug("Could not determine volume for Path: {}", path);
       return desiredFs;
+    }
+  }
+
+  private Volume getVolumeForPath(Path path) {
+    FileSystem desiredFs;
+    try {
+      Configuration volumeConfig = hadoopConf;
+      for (String vol : volumesByName.keySet()) {
+        if (path.toString().startsWith(vol)) {
+          volumeConfig = getVolumeManagerConfiguration(conf, hadoopConf, vol);
+          break;
+        }
+      }
+      desiredFs = requireNonNull(path).getFileSystem(volumeConfig);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
+    }
+    URI desiredFsUri = desiredFs.getUri();
+    Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
+    if (candidateVolumes != null) {
+      return candidateVolumes.stream().filter(volume -> volume.containsPath(path)).findFirst()
+          .orElse(null);
+    } else {
+      log.debug("Could not determine volume for Path: {}", path);
+      return null;
     }
   }
 
