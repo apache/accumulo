@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFile.ScannerFSOptions;
@@ -30,6 +33,7 @@ import org.apache.accumulo.core.client.rfile.RFile.ScannerOptions;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -56,8 +60,29 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
       if (sources == null) {
         sources = new RFileSource[paths.length];
         for (int i = 0; i < paths.length; i++) {
-          sources[i] = new RFileSource(getFileSystem(paths[i]).open(paths[i]),
-              getFileSystem(paths[i]).getFileStatus(paths[i]).getLen());
+          FileSystem fs = getFileSystem(paths[i]);
+          FileStatus status = fs.getFileStatus(paths[i]);
+          CompletableFuture<FSDataInputStream> future =
+              fs.openFile(paths[i]).withFileStatus(status).build();
+          while (!future.isDone()) {
+            try {
+              Thread.sleep(10);
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IOException("Interrupted while opening file: " + paths[i], e);
+            }
+          }
+          try {
+            FSDataInputStream is = future.get();
+            sources[i] = new RFileSource(is, status.getLen());
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while opening file: " + paths[i], e);
+          } catch (CancellationException e) {
+            throw new IOException("Cancelled while opening file: " + paths[i], e);
+          } catch (ExecutionException e) {
+            throw new IOException("Error trying to open file: " + paths[i], e);
+          }
         }
       } else {
         for (int i = 0; i < sources.length; i++) {

@@ -72,7 +72,11 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected long getFileSize(FileOptions options) throws IOException {
-    return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
+    if (options.status == null) {
+      return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
+    } else {
+      return options.status.getLen();
+    }
   }
 
   @Override
