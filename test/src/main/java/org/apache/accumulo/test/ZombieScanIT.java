@@ -135,6 +135,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
         semaphore.acquire(6);
         return ht;
       } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException(ie);
       }
     }

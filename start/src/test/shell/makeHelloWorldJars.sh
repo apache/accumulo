@@ -22,14 +22,14 @@ if [ -z "$JAVA_HOME" ]; then
   echo "JAVA_HOME is not set. Java is required to proceed"
   exit 1
 fi
-mkdir -p target/generated-sources/HelloWorld/test
-sed "s/%%/Hello World\!/" <src/test/java/test/HelloWorldTemplate >target/generated-sources/HelloWorld/test/HelloWorld.java
-"$JAVA_HOME"/bin/javac target/generated-sources/HelloWorld/test/HelloWorld.java -d target/generated-sources/HelloWorld
-"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld test/HelloWorld.class
-rm -r target/generated-sources/HelloWorld/test
+mkdir -p target/generated-sources/HelloWorld/org/apache/accumulo/start/test
+sed "s/%%/Hello World\!/" <src/test/java/org/apache/accumulo/start/test/HelloWorldTemplate >target/generated-sources/HelloWorld/org/apache/accumulo/start/test/HelloWorld.java
+"$JAVA_HOME"/bin/javac target/generated-sources/HelloWorld/org/apache/accumulo/start/test/HelloWorld.java -d target/generated-sources/HelloWorld
+"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld.jar -C target/generated-sources/HelloWorld org/apache/accumulo/start/test/HelloWorld.class
+rm -r target/generated-sources/HelloWorld/org
 
-mkdir -p target/generated-sources/HalloWelt/test
-sed "s/%%/Hallo Welt/" <src/test/java/test/HelloWorldTemplate >target/generated-sources/HalloWelt/test/HelloWorld.java
-"$JAVA_HOME"/bin/javac target/generated-sources/HalloWelt/test/HelloWorld.java -d target/generated-sources/HalloWelt
-"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt test/HelloWorld.class
-rm -r target/generated-sources/HalloWelt/test
+mkdir -p target/generated-sources/HalloWelt/org/apache/accumulo/start/test
+sed "s/%%/Hallo Welt/" <src/test/java/org/apache/accumulo/start/test/HelloWorldTemplate >target/generated-sources/HalloWelt/org/apache/accumulo/start/test/HelloWorld.java
+"$JAVA_HOME"/bin/javac target/generated-sources/HalloWelt/org/apache/accumulo/start/test/HelloWorld.java -d target/generated-sources/HalloWelt
+"$JAVA_HOME"/bin/jar -cf target/test-classes/HelloWorld2.jar -C target/generated-sources/HalloWelt org/apache/accumulo/start/test/HelloWorld.class
+rm -r target/generated-sources/HalloWelt/org

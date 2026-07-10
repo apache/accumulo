@@ -458,7 +458,7 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public void bulkRename(Map<Path,Path> oldToNewPathMap, ExecutorService workerPool, FateId fateId)
       throws IOException {
-    List<Future<Void>> results = new ArrayList<>();
+    List<Future<Void>> results = new ArrayList<>(oldToNewPathMap.size());
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {
@@ -487,6 +487,9 @@ public class VolumeManagerImpl implements VolumeManager {
       try {
         future.get();
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IOException(e);
       }
     }

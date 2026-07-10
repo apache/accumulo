@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -62,13 +61,13 @@ public class RenameTable extends AbstractFateOperation {
 
   @Override
   public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
-    Pair<String,String> qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
+    var qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
     // the namespace name was already checked before starting the fate operation
-    String newSimpleTableName = TableNameUtil.qualify(newTableName).getSecond();
+    String newSimpleTableName = TableNameUtil.qualify(newTableName).tableName();
     var context = env.getContext();
 
     try {
-      context.getTableMapping(namespaceId).rename(tableId, qualifiedOldTableName.getSecond(),
+      context.getTableMapping(namespaceId).rename(tableId, qualifiedOldTableName.tableName(),
           newSimpleTableName);
 
       context.clearTableListCache();

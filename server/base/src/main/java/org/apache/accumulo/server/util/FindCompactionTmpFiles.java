@@ -112,6 +112,9 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
           try {
             future.get();
           } catch (InterruptedException | ExecutionException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException("Error getting list of tmp files", e);
           }
         }

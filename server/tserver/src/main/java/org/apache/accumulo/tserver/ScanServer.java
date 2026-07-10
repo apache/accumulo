@@ -364,6 +364,7 @@ public class ScanServer extends AbstractServer
     try {
       waitForUpgrade();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
@@ -421,6 +422,7 @@ public class ScanServer extends AbstractServer
             sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
         updateAllowedTables(false);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }
@@ -693,7 +695,7 @@ public class ScanServer extends AbstractServer
       }
     }
 
-    Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>();
+    Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>(extents.size());
 
     tabletsMetadata.forEach((extent, tm) -> {
       tm.getFiles().forEach(file -> allFiles.put(file, extent));
@@ -730,6 +732,7 @@ public class ScanServer extends AbstractServer
       // file from the metadata table or the reservedFiles map
       influxFiles.addAll(allFiles.keySet());
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     } finally {
       reservationsWriteLock.unlock();
@@ -853,7 +856,7 @@ public class ScanServer extends AbstractServer
     }
 
     // Convert failures
-    Map<TKeyExtent,List<TRange>> failures = new HashMap<>();
+    Map<TKeyExtent,List<TRange>> failures = new HashMap<>(failedReservations.size(), 1.0f);
     failedReservations.forEach(extent -> {
       failures.put(extent.toThrift(), extents.get(extent));
     });
@@ -1131,7 +1134,7 @@ public class ScanServer extends AbstractServer
       throw new TException("Scan Server batch must include at least one extent");
     }
 
-    final Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    final Map<KeyExtent,List<TRange>> batch = new HashMap<>(tbatch.size(), 1.0f);
 
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
@@ -1147,8 +1150,9 @@ public class ScanServer extends AbstractServer
 
     try (ScanReservation reservation = reserveFilesInstrumented(batch)) {
 
-      HashMap<KeyExtent,TabletBase> tablets = new HashMap<>();
-      reservation.getTabletMetadataExtents().forEach(extent -> {
+      var extents = reservation.getTabletMetadataExtents();
+      HashMap<KeyExtent,TabletBase> tablets = new HashMap<>(extents.size(), 1.0f);
+      extents.forEach(extent -> {
         try {
           tablets.put(extent, reservation.newTablet(this, extent));
         } catch (IOException e) {

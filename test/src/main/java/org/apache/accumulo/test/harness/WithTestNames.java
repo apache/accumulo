@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package test;
+package org.apache.accumulo.test.harness;
 
-public class TestObject implements Test {
-    
-    int i = 0;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-    @Override
-    public String hello() {
-        return "Hello from testX";
-    }
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-    @Override
-    public int add() {
-        i += 1;
-        return i;
-    }
+  private String testName;
+
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().orElseThrow().getName();
+  }
+
+  public String testName() {
+    return testName;
+  }
 
 }

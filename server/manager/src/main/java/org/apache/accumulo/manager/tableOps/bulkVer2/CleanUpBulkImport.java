@@ -132,6 +132,7 @@ public class CleanUpBulkImport extends AbstractBulkFateOperation {
                 String.format("%s tableId:%s conditional mutations to delete load markers failed.",
                     fateId, tableId));
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
           }
         } else {

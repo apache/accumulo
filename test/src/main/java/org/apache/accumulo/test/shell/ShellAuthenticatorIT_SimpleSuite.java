@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.TimeZone;
 
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.shell.MockShell.TestShell;
 import org.apache.accumulo.test.shell.ShellIT.StringInputStream;
 import org.apache.accumulo.test.shell.ShellIT.TestOutputStream;

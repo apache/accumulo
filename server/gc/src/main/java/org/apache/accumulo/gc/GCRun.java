@@ -143,7 +143,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     // Converting the bytes to approximate number of characters for batch size.
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
-    List<GcCandidate> candidatesBatch = new ArrayList<>();
+    List<GcCandidate> candidatesBatch = new ArrayList<>(256);
     batchCount.incrementAndGet();
 
     while (candidates.hasNext()) {
@@ -234,8 +234,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     while (retries <= 10) {
       try {
         zr.sync(Constants.ZTABLES);
-        final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(Constants.ZTABLES)) {
+        var tables = zr.getChildren(Constants.ZTABLES);
+        final Map<TableId,TableState> tids = new HashMap<>(tables.size(), 1.0f);
+        for (String table : tables) {
           TableId tableId = TableId.of(table);
           TableState tableState = null;
           String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
@@ -380,6 +381,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
       }
     } catch (InterruptedException e1) {
+      Thread.currentThread().interrupt();
       log.error("{}", e1.getMessage(), e1);
     }
 
@@ -555,8 +557,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     } else if (level == DataLevel.METADATA) {
       return Set.of(SystemTables.METADATA.tableId());
     } else if (level == DataLevel.USER) {
-      Set<TableId> tableIds = new HashSet<>();
-      getTableIDs().forEach((k, v) -> {
+      var tids = getTableIDs();
+      Set<TableId> tableIds = new HashSet<>(tids.size(), 1.0f);
+      tids.forEach((k, v) -> {
         if (v == TableState.ONLINE || v == TableState.OFFLINE) {
           // Don't return tables that are NEW, DELETING, or in an
           // UNKNOWN state.
