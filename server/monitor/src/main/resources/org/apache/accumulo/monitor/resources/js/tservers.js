@@ -32,11 +32,9 @@ function refreshTServersBanner() {
     if (getComponentStatus(statusData, 'MANAGER') === 'ERROR') {
       $('#tserversManagerBanner').show();
       $(htmlBanner).hide();
-      $('#tservers_wrapper').hide();
       $('#recovery-caption').hide();
     } else {
       $('#tserversManagerBanner').hide();
-      $('#tservers_wrapper').show();
     }
   });
 }

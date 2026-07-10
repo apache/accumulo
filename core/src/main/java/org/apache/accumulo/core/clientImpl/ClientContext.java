@@ -599,14 +599,14 @@ public class ClientContext implements AccumuloClient {
    */
   public synchronized TableId getTableId(String tableName) throws TableNotFoundException {
     ensureOpen();
-    Pair<String,String> qualified = TableNameUtil.qualify(tableName);
+    var qualified = TableNameUtil.qualify(tableName);
     NamespaceId nid;
     try {
-      nid = getNamespaceId(qualified.getFirst());
+      nid = getNamespaceId(qualified.namespaceName());
     } catch (NamespaceNotFoundException e) {
       throw new TableNotFoundException(tableName, e);
     }
-    TableId tid = getTableMapping(nid).getNameToIdMap().get(qualified.getSecond());
+    TableId tid = getTableMapping(nid).getNameToIdMap().get(qualified.tableName());
     if (tid == null) {
       throw new TableNotFoundException(null, tableName,
           "No entry for this table found in the given namespace mapping");
@@ -1327,12 +1327,11 @@ public class ClientContext implements AccumuloClient {
   }
 
   private static Set<String> createPersistentWatcherPaths() {
-    return Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
-        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
-        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
-        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS,
-        Constants.ZMANAGER_ASSIGNMENTS);
+    return Set.of(Constants.ZCOMPACTORS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK,
+        Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK, Constants.ZNAMESPACES, Constants.ZRECOVERY,
+        Constants.ZSSERVERS, Constants.ZTABLES, Constants.ZTSERVERS, Constants.ZUSERS,
+        RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK, Constants.ZMANAGER_ASSISTANT_LOCK,
+        Constants.ZRESOURCEGROUPS, Constants.ZMANAGER_ASSIGNMENTS);
   }
 
 }

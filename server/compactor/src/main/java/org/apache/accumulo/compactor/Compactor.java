@@ -492,7 +492,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, message, why,
+                job.getExternalCompactionId(), job.getExtent(), message, why,
                 getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
@@ -516,8 +516,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
-                getAdvertiseAddress().toString());
+                job.getExternalCompactionId(), job.getExtent(), stats,
+                getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -812,6 +812,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
     this.getContext().setServiceLock(compactorLock);
@@ -1041,6 +1044,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }

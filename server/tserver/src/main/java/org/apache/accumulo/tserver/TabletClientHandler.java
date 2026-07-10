@@ -584,6 +584,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       final Tablet tablet = server.getOnlineTablet(entry.getKey());
 
       if (tablet == null || tablet.isClosed()) {
+        results.ensureCapacity(results.size() + entry.getValue().size());
         for (ServerConditionalMutation scm : entry.getValue()) {
           results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
         }
@@ -607,6 +608,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           // clear anything added while checking conditions.
           resultsSubList.clear();
 
+          results.ensureCapacity(results.size() + entry.getValue().size());
           for (ServerConditionalMutation scm : entry.getValue()) {
             results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           }
@@ -865,6 +867,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
       return future.get();
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw new TException(e);
@@ -924,10 +929,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       if (ke.tableId().compareTo(text) == 0) {
         Tablet tablet = entry.getValue();
         TabletStats stats = tablet.getTabletStats();
-        stats.extent = ke.toThrift();
-        stats.ingestRate = tablet.ingestRate();
-        stats.queryRate = tablet.queryRate();
-        stats.numEntries = tablet.getNumEntries();
+        stats.setExtent(ke.toThrift());
+        stats.setIngestRate(tablet.ingestRate());
+        stats.setQueryRate(tablet.queryRate());
+        stats.setNumEntries(tablet.getNumEntries());
         result.add(stats);
       }
     }
@@ -1017,7 +1022,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 
-          Set<KeyExtent> all = new HashSet<>();
+          Set<KeyExtent> all = new HashSet<>(
+              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
+              1.0f);
           all.addAll(unopenedOverlapping);
           all.addAll(openingOverlapping);
           all.addAll(onlineOverlapping);
@@ -1196,11 +1203,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     // handle that more expensive case if needed.
     var tabletsSnapshot = server.getOnlineTablets();
 
-    Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>();
+    Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>(refreshes.size(), 1.0f);
 
     // Created this as synchronized list because it's passed to a lambda that could possibly run in
     // another thread.
-    List<TKeyExtent> unableToRefresh = Collections.synchronizedList(new ArrayList<>());
+    List<TKeyExtent> unableToRefresh =
+        Collections.synchronizedList(new ArrayList<>(refreshes.size()));
 
     for (var tkextent : refreshes) {
       var extent = KeyExtent.fromThrift(tkextent);
@@ -1249,7 +1257,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     var tabletsSnapshot = server.getOnlineTablets();
 
-    Map<TKeyExtent,Long> timestamps = new HashMap<>();
+    Map<TKeyExtent,Long> timestamps = new HashMap<>(extents.size(), 1.0f);
 
     for (var textent : extents) {
       var extent = KeyExtent.fromThrift(textent);

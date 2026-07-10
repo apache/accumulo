@@ -53,9 +53,9 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -100,6 +100,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
         try {
           Thread.sleep(SLEEP_TIME);
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException("Interrupted during sleep", ex);
         }
       }

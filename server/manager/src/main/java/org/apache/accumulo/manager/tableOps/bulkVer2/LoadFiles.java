@@ -165,7 +165,7 @@ class LoadFiles extends AbstractBulkFateOperation {
 
     void load(List<TabletMetadata> tablets, Files files) {
 
-      Map<ReferencedTabletFile,Bulk.FileInfo> toLoad = new HashMap<>();
+      Map<ReferencedTabletFile,Bulk.FileInfo> toLoad = new HashMap<>(files.getSize(), 1.0f);
       for (var fileInfo : files) {
         toLoad.put(new ReferencedTabletFile(new Path(bulkDir, fileInfo.getFileName())), fileInfo);
       }
@@ -223,7 +223,7 @@ class LoadFiles extends AbstractBulkFateOperation {
           continue;
         }
 
-        Map<ReferencedTabletFile,DataFileValue> filesToLoad = new HashMap<>();
+        Map<ReferencedTabletFile,DataFileValue> filesToLoad = new HashMap<>(toLoad.size(), 1.0f);
 
         var tabletTime = TabletTime.getInstance(tablet.getTime());
 
@@ -283,10 +283,7 @@ class LoadFiles extends AbstractBulkFateOperation {
 
     private Map<KeyExtent,Long> allocateTimestamps(List<TabletMetadata> tablets, int numStamps) {
 
-      Map<HostAndPort,List<TKeyExtent>> serversToAsk = new HashMap<>();
-
-      Map<KeyExtent,Long> allTimestamps = new HashMap<>();
-
+      Map<HostAndPort,List<TKeyExtent>> serversToAsk = new HashMap<>(tablets.size());
       for (var tablet : tablets) {
         if (tablet.getLocation() != null && tablet.getLocation().getType() == CURRENT) {
           var location = tablet.getLocation().getHostAndPort();
@@ -295,6 +292,7 @@ class LoadFiles extends AbstractBulkFateOperation {
         }
       }
 
+      Map<KeyExtent,Long> allTimestamps = new HashMap<>(serversToAsk.size());
       for (var entry : serversToAsk.entrySet()) {
         HostAndPort server = entry.getKey();
         List<TKeyExtent> extents = entry.getValue();
@@ -326,7 +324,7 @@ class LoadFiles extends AbstractBulkFateOperation {
         log.trace("{} allocate timestamps request to {} returned {} timestamps", fateId, server,
             timestamps.size());
 
-        var converted = new HashMap<KeyExtent,Long>();
+        var converted = new HashMap<KeyExtent,Long>(timestamps.size(), 1.0f);
         timestamps.forEach((k, v) -> converted.put(KeyExtent.fromThrift(k), v));
         return converted;
       } catch (TException ex) {

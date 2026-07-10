@@ -52,16 +52,9 @@ function getReplaying() {
   return getStoredView(RECOVERY).serversRecoveringTablets;
 }
 
-function showOrHide(divElement, dataArray) {
-  if (dataArray.length == 0) {
-    $(divElement).hide();
-  } else {
-    $(divElement).show();
-  }
-}
-
 function refresh() {
-  $.when(getRecoveryInformation()).then(function () {
+  $.when(getRecoveryInformation(), getTables()).then(function () {
+    computeTableMap();
     ajaxReloadTable(overviewDataTable);
     ajaxReloadTable(tabletDataTable);
     ajaxReloadTable(sortingDataTable);
@@ -82,10 +75,6 @@ function refresh() {
     ajaxReloadTable(sortingDataTable);
     ajaxReloadTable(replayingDataTable);
   });
-  showOrHide(overviewTableDivElement, getOverview());
-  showOrHide(tabletRecoveryDivElement, getTablets());
-  showOrHide(sortingServersDivElement, getSorting());
-  showOrHide(replayingServersDivElement, getReplaying());
 }
 
 $(function () {
@@ -141,7 +130,8 @@ $(function () {
       defaultContent: '&mdash;'
     }],
     "columns": [{
-        "data": "tableId"
+        "data": "tableId",
+        "render": renderTableLink
       },
       {
         "data": "tabletId"
@@ -164,9 +154,19 @@ $(function () {
     "stateSave": true,
     "colReorder": true,
     "columnDefs": [{
-      targets: '_all',
-      defaultContent: '&mdash;'
-    }],
+        targets: '_all',
+        defaultContent: '&mdash;'
+      },
+      {
+        "targets": 0,
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            return renderServerMetricsLink(row.type, row.resourceGroup, data);
+          }
+          return data;
+        }
+      }
+    ],
     "columns": [{
         "data": "server"
       },

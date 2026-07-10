@@ -164,6 +164,9 @@ public class UpgradeUtil implements KeywordExecutable {
     try {
       zoo.delete(ZPREPARE_FOR_UPGRADE);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(
           "Error deleting " + ZPREPARE_FOR_UPGRADE + " node in zookeeper", e);
     }
@@ -187,6 +190,9 @@ public class UpgradeUtil implements KeywordExecutable {
             + " retry this operation.");
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error checking for existing FATE transactions", e);
     }
 
@@ -195,6 +201,9 @@ public class UpgradeUtil implements KeywordExecutable {
     try {
       zoo.putPersistentData(ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating " + ZPREPARE_FOR_UPGRADE
           + " node in zookeeper. Check for any issues and retry.", e);
     }
@@ -248,6 +257,9 @@ public class UpgradeUtil implements KeywordExecutable {
         }
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(Constants.ZUPGRADE_PROGRESS + " node exists"
           + " in ZooKeeper implying the 'start' command is being re-run. Deleting"
           + " this node has failed. Delete it manually before retrying.", e);
@@ -258,6 +270,9 @@ public class UpgradeUtil implements KeywordExecutable {
     try {
       prepareNodeExists = zr.exists(prepUpgradePath);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error checking for existence of node: " + prepUpgradePath,
           e);
     }
@@ -289,6 +304,9 @@ public class UpgradeUtil implements KeywordExecutable {
               + " have been removed you can retry this operation.");
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error checking for existing FATE transactions", e);
       }
       LOG.info("No FATE transactions found");
@@ -307,6 +325,9 @@ public class UpgradeUtil implements KeywordExecutable {
             ZooUtil.recursiveDelete(zs, topLevelServerPath + "/" + child, NodeMissingPolicy.SKIP);
           }
         } catch (KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new IllegalStateException(
               "Error deleting server locks under node: " + topLevelServerPath, e);
         }
@@ -317,6 +338,9 @@ public class UpgradeUtil implements KeywordExecutable {
       validateCompactionServiceConfiguration(context);
       LOG.info("Validated compaction service configuration");
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Error validating compaction service configuration", e);
       throw new IllegalStateException("Error validating compaction service configuration", e);
     }
@@ -335,6 +359,9 @@ public class UpgradeUtil implements KeywordExecutable {
     try {
       ZooUtil.recursiveDelete(zs, prepUpgradePath, NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.warn(
           "Error deleting {} from ZooKeeper. Instance ready for "
               + "upgrade, but servers will not start while this node exists. Delete it manually.",

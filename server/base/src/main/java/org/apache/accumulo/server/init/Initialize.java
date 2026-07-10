@@ -246,6 +246,9 @@ public class Initialize implements KeywordExecutable {
     try {
       return zoo.exists("/");
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       return false;
     }
   }
@@ -459,6 +462,9 @@ public class Initialize implements KeywordExecutable {
           ResourceGroupPropKey.of(rgid).createZNode(zrw);
           log.info("Added resource group {}", trimmed);
         } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Error creating resource group: " + trimmed, e);
           return false;
         }
@@ -486,6 +492,9 @@ public class Initialize implements KeywordExecutable {
           ResourceGroupPropKey.of(rgid).removeZNode(zs);
           log.info("Removed resource group {}", trimmed);
         } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Error removing resource group: " + trimmed, e);
           return false;
         }
@@ -622,6 +631,7 @@ public class Initialize implements KeywordExecutable {
       log.error("Problem trying to get Volume configuration", e);
       success = false;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("Thread was interrupted when trying to get Volume configuration", e);
       success = false;
     } catch (KeeperException e) {

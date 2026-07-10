@@ -423,6 +423,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
                   + " it may have been deleted or renamed.", table);
               continue;
             }
+            // If current information in the Manager indicates that the tserver
+            // is not hosting tablets for the table, then move on to the next
+            // tserver
+            if (e.getValue().getTableMap() != null
+                && !e.getValue().getTableMap().containsKey(tid.canonical())) {
+              LOG.debug("TServer {} is not hosting any tablets for table {}", e.getKey(), table);
+              continue;
+            }
             try {
               List<TabletStatistics> outOfBoundsTablets = getOnlineTabletsForTable(e.getKey(), tid);
               if (outOfBoundsTablets == null) {

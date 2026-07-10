@@ -76,6 +76,9 @@ public class PreUpgradeValidation {
             aclErrorOccurred.set(true);
           }
         } catch (KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Error getting ACL for path: {}", path, e);
           aclErrorOccurred.set(true);
         }
@@ -87,6 +90,9 @@ public class PreUpgradeValidation {
                 + "for instructions on how to fix.");
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Upgrade Failed! Error validating nodes under current root node.",
           e);
     }

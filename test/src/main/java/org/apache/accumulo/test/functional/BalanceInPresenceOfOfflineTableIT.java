@@ -21,9 +21,10 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -37,20 +38,14 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TableInfo;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.BalanceIT;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -147,22 +142,22 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     long currentWait = 1_000;
     boolean balancingWorked = false;
 
-    Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());
     while (!balancingWorked && (System.currentTimeMillis() - startTime) < ((5 * 60 + 15) * 1000)) {
       Thread.sleep(currentWait);
       currentWait = Math.min(currentWait * 2, 30_000);
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
-      ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute((ClientContext) accumuloClient,
-          client -> client.getManagerStats(TraceUtil.traceInfo(),
-              creds.toThrift(accumuloClient.instanceOperations().getInstanceId())));
-
-      if (stats.getTServerInfoSize() < 2) {
+      if (accumuloClient.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() < 2) {
         log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);
         continue;
       }
-      if (stats.getUnassignedTablets() != 0) {
+
+      Map<String,Integer> tableLocations = BalanceIT.countLocations(accumuloClient, TEST_TABLE);
+
+      long unassignedTablets =
+          tableLocations.entrySet().stream().filter(e -> e.getKey().equals("none")).count();
+      if (unassignedTablets != 0) {
         log.debug("We shouldn't have unassigned tablets. sleeping for {}ms", currentWait);
         continue;
       }
@@ -172,24 +167,25 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
         continue;
       }
 
-      long[] tabletsPerServer = new long[stats.getTServerInfoSize()];
-      Arrays.fill(tabletsPerServer, 0L);
-      for (int i = 0; i < stats.getTServerInfoSize(); i++) {
-        for (Map.Entry<String,TableInfo> entry : stats.getTServerInfo().get(i).getTableMap()
-            .entrySet()) {
-          tabletsPerServer[i] += entry.getValue().getTablets();
-          log.debug("Tablets per server {} {} {} {}", stats.getTServerInfo().get(i).getName(), i,
-              entry.getKey(), entry.getValue().getTablets());
-        }
-      }
+      HashMap<String,Integer> serversWithTablets = tableLocations.entrySet().stream()
+          .filter(e -> !e.getKey().equals("none")).filter(e -> e.getValue() > 0).collect(
+              HashMap<String,Integer>::new, (m, e) -> m.put(e.getKey(), e.getValue()), (m1, m2) -> {
+                for (Entry<String,Integer> e2 : m2.entrySet()) {
+                  m1.merge(e2.getKey(), e2.getValue(), (left, right) -> left + right);
+                }
+              });
 
-      if (tabletsPerServer[0] <= 10) {
-        log.debug("We should have > 10 tablets. sleeping for {}ms tabletsPerServer:{}", currentWait,
-            List.of(tabletsPerServer));
+      if (serversWithTablets.isEmpty()) {
         continue;
       }
-      long min = NumberUtils.min(tabletsPerServer);
-      long max = NumberUtils.max(tabletsPerServer);
+
+      if (serversWithTablets.values().iterator().next() <= 10) {
+        log.debug("We should have > 10 tablets. sleeping for {}ms tabletsPerServer:{}", currentWait,
+            List.of(serversWithTablets));
+        continue;
+      }
+      Integer min = serversWithTablets.values().stream().min(Long::compare).orElseThrow();
+      Integer max = serversWithTablets.values().stream().max(Long::compare).orElseThrow();
       log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
         log.debug(

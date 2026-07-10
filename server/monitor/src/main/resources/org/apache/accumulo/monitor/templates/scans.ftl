@@ -28,14 +28,14 @@
                 <th class="firstcell">Server</th>
                 <th>Server Type</th>
                 <th>Resource Group</th>
-                <th>Table ID</th>
+                <th>Table Name</th>
                 <th>Session ID</th>
                 <th>Client</th>
                 <th>User</th>
-                <th>Scan State</th>
+                <th class="scan-state">Scan State</th>
                 <th>Scan Type</th>
-                <th>Age</th>
-                <th>Idle Time</th>
+                <th class="duration">Age</th>
+                <th class="duration">Idle Time</th>
               </tr>
             </thead>
             <tbody></tbody>

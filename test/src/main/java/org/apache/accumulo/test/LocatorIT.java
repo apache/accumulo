@@ -52,8 +52,8 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ManagerAssignmentIT;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -215,8 +215,8 @@ public class LocatorIT extends AccumuloClusterHarness {
         // Accessing table3 in the cache should cause table1 and table4 to eventually be cleared
         // because they no longer exist. This also test that online and offline tables a properly
         // cleared from the cache.
-        assertNotNull(ctx.getTabletLocationCache(tableId3));
-        return !ctx.isTabletLocationCachePresent(tableId1)
+        var t3 = ctx.getTabletLocationCache(tableId3);
+        return t3 != null && !ctx.isTabletLocationCachePresent(tableId1)
             && !ctx.isTabletLocationCachePresent(tableId4);
       });
 

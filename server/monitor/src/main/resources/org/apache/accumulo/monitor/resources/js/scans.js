@@ -41,9 +41,27 @@ $(function () {
         defaultContent: '&mdash;'
       },
       {
+        "targets": 0,
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            return renderServerMetricsLink(row.type, row.resourceGroup, data);
+          }
+          return data;
+        }
+      },
+      {
         "targets": "duration",
         "render": function (data, type, row) {
           if (type === 'display') data = timeDuration(data);
+          return data;
+        }
+      },
+      {
+        "targets": "scan-state",
+        "render": function (data, type) {
+          if (type === 'display') {
+            return renderActivityState(data === 'IDLE' ? 1 : 0, type);
+          }
           return data;
         }
       },
@@ -56,7 +74,7 @@ $(function () {
       }
     ],
     "columns": [{
-        "data": "server",
+        "data": "server"
       },
       {
         "data": "type"
@@ -65,7 +83,8 @@ $(function () {
         "data": "resourceGroup"
       },
       {
-        "data": "tableId"
+        "data": "tableId",
+        "render": renderTableLink
       },
       {
         "data": "sessionId"
@@ -90,6 +109,8 @@ $(function () {
       }
     ]
   });
+
+  refresh();
 });
 
 
@@ -97,7 +118,8 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
-  getScans().then(function () {
+  $.when(getScans(), getTables()).then(function () {
+    computeTableMap();
     refreshScansTable();
   });
 }

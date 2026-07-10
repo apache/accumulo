@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.start;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -185,7 +185,7 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "binary-rows", TestBinaryRows.class));
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "cancel", CancelCompaction.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "change-secret", ChangeSecret.class));
-    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "check", SystemCheck.class));
+    expectSet.add(new CommandInfo(CommandGroups.CHECK, "system", SystemCheck.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-accumulo-properties",
         CheckAccumuloProperties.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-compaction-config",
@@ -196,7 +196,7 @@ public class KeywordStartIT {
     expectSet
         .add(new CommandInfo(CommandGroups.INSTANCE, "delete-instance", DeleteZooInstance.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-config", DumpConfig.class));
-    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-zoo", DumpZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "dump", DumpZookeeper.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "import", ImportConfigCommand.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "export", ExportConfigCommand.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "fate", Fate.class));
@@ -221,8 +221,8 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "manager", ManagerExecutable.class));
     expectSet
         .add(new CommandInfo(CommandGroups.PROCESS, "minicluster", MiniClusterExecutable.class));
-    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "missing-files",
-        RemoveEntriesForMissingFiles.class));
+    expectSet.add(
+        new CommandInfo(CommandGroups.CHECK, "missing-files", RemoveEntriesForMissingFiles.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "monitor", MonitorExecutable.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "multi-table-ingest",
         TestMultiTableIngest.class));
@@ -232,8 +232,7 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "random-writer", RandomWriter.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "remove-scan-server-references",
         ScanServerMetadataEntries.class));
-    expectSet
-        .add(new CommandInfo(CommandGroups.CONFIG, "restore-zookeeper", RestoreZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "restore", RestoreZookeeper.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "rfile-info", PrintInfo.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "service-status", ServiceStatus.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "shell", Shell.class));
@@ -247,14 +246,14 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "tserver", TServerExecutable.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "upgrade", UpgradeUtil.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "verify-ingest", VerifyIngest.class));
-    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "verify-tablet-assignments",
+    expectSet.add(new CommandInfo(CommandGroups.CHECK, "verify-tablet-assignments",
         VerifyTabletAssignments.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "version", Version.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "wal-info", LogReader.class));
-    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "zoo-info-viewer", ZooInfoViewer.class));
-    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "zoo-prop-editor", ZooPropEditor.class));
-    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "zoo-zap", ZooZap.class));
-    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "zk-cli", ZooKeeperMain.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "info-viewer", ZooInfoViewer.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "prop-editor", ZooPropEditor.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zap", ZooZap.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "cli", ZooKeeperMain.class));
 
     Map<CommandGroup,Map<String,KeywordExecutable>> actualExecutables = getKeywordExecutables();
     SortedSet<CommandInfo> actualSet = new TreeSet<>();

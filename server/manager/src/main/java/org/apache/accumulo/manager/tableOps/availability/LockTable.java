@@ -88,7 +88,7 @@ public class LockTable extends AbstractFateOperation {
    * be converted to a RowRange, an infinite LockRange is returned.
    */
   private LockRange getLockRange(FateEnv env) {
-    if (tRange.infiniteStartKey && tRange.infiniteStopKey) {
+    if (tRange.isInfiniteStartKey() && tRange.isInfiniteStopKey()) {
       return LockRange.infinite();
     }
     Range range = new Range(tRange);

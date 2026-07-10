@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -84,7 +85,7 @@ public class TimeoutClientTabletCache extends SyncingClientTabletCache {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      Map<String,TabletServerMutations<T>> binnedMutations, ArrayList<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
     try {

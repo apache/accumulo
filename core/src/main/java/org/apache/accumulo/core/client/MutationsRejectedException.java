@@ -43,7 +43,7 @@ public class MutationsRejectedException extends AccumuloException {
   private static final long serialVersionUID = 1L;
 
   private final ArrayList<ConstraintViolationSummary> cvsl = new ArrayList<>();
-  private final HashMap<TabletId,Set<SecurityErrorCode>> af = new HashMap<>();
+  private final HashMap<TabletId,Set<SecurityErrorCode>> af;
   private final HashSet<String> es = new HashSet<>();
   private final int unknownErrors;
 
@@ -68,7 +68,7 @@ public class MutationsRejectedException extends AccumuloException {
         + "  security codes: " + format(hashMap, (ClientContext) client) + "  # server errors "
         + serverSideErrors.size() + " # exceptions " + unknownErrors, cause);
     this.cvsl.addAll(cvsList);
-    this.af.putAll(hashMap);
+    this.af = new HashMap<>(hashMap);
     this.es.addAll(serverSideErrors);
     this.unknownErrors = unknownErrors;
   }

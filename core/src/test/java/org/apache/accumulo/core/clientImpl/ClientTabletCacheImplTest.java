@@ -297,7 +297,7 @@ public class ClientTabletCacheImplTest {
   private void runTest(ClientTabletCacheImpl metaCache, List<Mutation> ml,
       Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
     Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-    List<Mutation> afailures = new ArrayList<>();
+    ArrayList<Mutation> afailures = new ArrayList<>();
     metaCache.binMutations(context, ml, binnedMutations, afailures);
 
     verify(emb, binnedMutations);
@@ -556,8 +556,6 @@ public class ClientTabletCacheImplTest {
       return true;
     }
 
-    @Override
-    public void invalidateCache(String server) {}
   }
 
   static class TestRootClientTabletCache extends RootClientTabletCache {
@@ -1564,9 +1562,6 @@ public class ClientTabletCacheImplTest {
           public boolean isLockHeld(String tserver, String session) {
             return activeLocks.contains(tserver + ":" + session);
           }
-
-          @Override
-          public void invalidateCache(String server) {}
         });
 
     KeyExtent ke1 = createNewKeyExtent("foo", null, null);
@@ -1824,7 +1819,7 @@ public class ClientTabletCacheImplTest {
       ml.add(createNewMutation("" + c, "cf1:cq1=v3", "cf1:cq2=v4"));
     }
     Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-    List<Mutation> afailures = new ArrayList<>();
+    ArrayList<Mutation> afailures = new ArrayList<>();
     assertEquals(List.of(), lookups);
     metaCache.binMutations(context, ml, binnedMutations, afailures);
     assertTrue(binnedMutations.isEmpty());
@@ -1965,6 +1960,7 @@ public class ClientTabletCacheImplTest {
             }
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         } finally {
           activeLookups.decrementAndGet();

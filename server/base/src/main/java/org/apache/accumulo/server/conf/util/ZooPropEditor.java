@@ -76,7 +76,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   @Override
   public String keyword() {
-    return "zoo-prop-editor";
+    return "prop-editor";
   }
 
   @Override
@@ -87,7 +87,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CONFIG;
+    return CommandGroups.ZOOKEEPER;
   }
 
   @Override
@@ -210,6 +210,9 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
     try {
       return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
     } catch (IOException | KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
   }
