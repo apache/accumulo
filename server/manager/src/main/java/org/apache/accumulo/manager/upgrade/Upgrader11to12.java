@@ -1035,7 +1035,7 @@ public class Upgrader11to12 implements Upgrader {
   public void deleteCompactionTempFiles(final ServerContext ctx, final DeleteStats stats,
       final Collection<Path> deletedFiles) {
 
-    final String pattern = "/tables/*/*/*";
+    final String pattern = "/tables/*/*/*.rf_tmp";
     final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
     final ExecutorService svc = Executors.newFixedThreadPool(vols.size());
     final List<Future<Void>> futures = new ArrayList<>(vols.size());
