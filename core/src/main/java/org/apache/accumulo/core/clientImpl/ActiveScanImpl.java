@@ -62,28 +62,28 @@ public final class ActiveScanImpl extends ActiveScan {
   ActiveScanImpl(ClientContext context,
       org.apache.accumulo.core.tabletscan.thrift.ActiveScan activeScan, ServerId server)
       throws TableNotFoundException {
-    this.scanId = activeScan.scanId;
-    this.client = activeScan.client;
-    this.user = activeScan.user;
-    this.age = activeScan.age;
-    this.idle = activeScan.idleTime;
-    this.tableName = context.getQualifiedTableName(TableId.of(activeScan.tableId));
+    this.scanId = activeScan.getScanId();
+    this.client = activeScan.getClient();
+    this.user = activeScan.getUser();
+    this.age = activeScan.getAge();
+    this.idle = activeScan.getIdleTime();
+    this.tableName = context.getQualifiedTableName(TableId.of(activeScan.getTableId()));
     this.type = ScanType.valueOf(activeScan.getType().name());
-    this.state = ScanState.valueOf(activeScan.state.name());
-    this.extent = KeyExtent.fromThrift(activeScan.extent);
-    this.authorizations = new Authorizations(activeScan.authorizations);
+    this.state = ScanState.valueOf(activeScan.getState().name());
+    this.extent = KeyExtent.fromThrift(activeScan.getExtent());
+    this.authorizations = new Authorizations(activeScan.getAuthorizations());
 
-    this.columns = new ArrayList<>(activeScan.columns.size());
+    this.columns = new ArrayList<>(activeScan.getColumns().size());
 
-    for (TColumn tcolumn : activeScan.columns) {
+    for (TColumn tcolumn : activeScan.getColumns()) {
       this.columns.add(new Column(tcolumn));
     }
 
     this.ssiList = new ArrayList<>();
-    for (IterInfo ii : activeScan.ssiList) {
-      this.ssiList.add(ii.iterName + "=" + ii.priority + "," + ii.className);
+    for (IterInfo ii : activeScan.getSsiList()) {
+      this.ssiList.add(ii.getIterName() + "=" + ii.getPriority() + "," + ii.getClassName());
     }
-    this.ssio = activeScan.ssio;
+    this.ssio = activeScan.getSsio();
     this.server = Objects.requireNonNull(server);
   }
 

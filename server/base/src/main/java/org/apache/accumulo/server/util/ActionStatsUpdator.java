@@ -23,14 +23,14 @@ import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 public class ActionStatsUpdator {
 
   public static void update(ActionStats summary, ActionStats td) {
-    summary.status += td.status;
-    summary.elapsed += td.elapsed;
-    summary.num += td.num;
-    summary.count += td.count;
-    summary.sumDev += td.sumDev;
-    summary.queueTime += td.queueTime;
-    summary.queueSumDev += td.queueSumDev;
-    summary.fail += td.fail;
+    summary.setStatus(summary.getStatus() + td.getStatus());
+    summary.setElapsed(summary.getElapsed() + td.getElapsed());
+    summary.setNum(summary.getNum() + td.getNum());
+    summary.setCount(summary.getCount() + td.getCount());
+    summary.setSumDev(summary.getSumDev() + td.getSumDev());
+    summary.setQueueTime(summary.getQueueTime() + td.getQueueTime());
+    summary.setQueueSumDev(summary.getQueueSumDev() + td.getQueueSumDev());
+    summary.setFail(summary.getFail() + td.getFail());
   }
 
 }

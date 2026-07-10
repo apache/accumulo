@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness;
+package org.apache.accumulo.test.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;

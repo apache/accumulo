@@ -56,9 +56,9 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.KeeperException;
@@ -367,6 +367,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
 
     } catch (TableNotFoundException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
 
@@ -395,6 +398,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
 
     } catch (TableNotFoundException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
 

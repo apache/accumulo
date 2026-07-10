@@ -60,7 +60,7 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
 
     Map<ResourceGroupId,Set<TabletServerId>> tserverGroups = new HashMap<>();
     currentTServerGrouping.forEach((k, v) -> {
-      Set<TabletServerId> servers = new HashSet<>();
+      Set<TabletServerId> servers = new HashSet<>(v.size());
       v.forEach(tsi -> servers.add(TabletServerIdImpl.fromThrift(tsi)));
       tserverGroups.put(k, servers);
     });

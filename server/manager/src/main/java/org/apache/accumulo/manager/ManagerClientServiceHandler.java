@@ -480,6 +480,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
       key.createZNode(context.getZooSession().asReaderWriter());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       Manager.log.error("Problem creating resource group config node in zookeeper", e);
       throw new TException(e.getMessage());
     }
@@ -694,7 +697,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     Set<TServerInstance> tserverInstances = manager.onlineTabletServers();
-    List<String> servers = new ArrayList<>();
+    List<String> servers = new ArrayList<>(tserverInstances.size());
     for (TServerInstance tserverInstance : tserverInstances) {
       servers.add(tserverInstance.getHostPort());
     }
@@ -720,7 +723,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     final AuthenticationTokenSecretManager secretManager = context.getSecretManager();
     try {
       Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair =
-          secretManager.generateToken(credentials.principal, config);
+          secretManager.generateToken(credentials.getPrincipal(), config);
 
       return new TDelegationToken(ByteBuffer.wrap(pair.getKey().getPassword()),
           pair.getValue().getThriftIdentifier());
@@ -783,7 +786,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
 
       var results = tabletsMutator.process();
-      List<TKeyExtent> updated = new ArrayList<>();
+      List<TKeyExtent> updated = new ArrayList<>(results.size());
       results.forEach((key, result) -> {
         if (result.getStatus() == Status.ACCEPTED) {
           updated.add(result.getExtent().toThrift());

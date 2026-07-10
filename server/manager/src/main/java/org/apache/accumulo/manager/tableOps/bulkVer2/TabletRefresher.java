@@ -102,7 +102,8 @@ public class TabletRefresher {
 
     while (!refreshesNeeded.isEmpty()) {
 
-      Map<TabletMetadata.Location,Future<List<TKeyExtent>>> futures = new HashMap<>();
+      Map<TabletMetadata.Location,Future<List<TKeyExtent>>> futures =
+          new HashMap<>(refreshesNeeded.size(), 1.0f);
 
       for (Map.Entry<TabletMetadata.Location,List<TKeyExtent>> entry : refreshesNeeded.entrySet()) {
 
@@ -124,6 +125,9 @@ public class TabletRefresher {
         try {
           nonRefreshedExtents = future.get();
         } catch (InterruptedException | ExecutionException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new RuntimeException(e);
         }
         if (nonRefreshedExtents.isEmpty()) {
@@ -190,6 +194,7 @@ public class TabletRefresher {
           retry.waitForNextAttempt(log, logId + " waiting for " + refreshesNeeded.size()
               + " tservers to refresh their tablets metadata");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }

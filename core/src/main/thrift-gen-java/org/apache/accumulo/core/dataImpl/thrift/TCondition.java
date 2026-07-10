@@ -39,13 +39,13 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TConditionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TConditionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cf; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cq; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cv; // required
-  public long ts; // required
-  public boolean hasTimestamp; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer val; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer iterators; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cf; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cq; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer cv; // required
+  private long ts; // required
+  private boolean hasTimestamp; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer val; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer iterators; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -219,7 +219,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getCf() {
-    setCf(org.apache.thrift.TBaseHelper.rightSize(cf));
+    this.cf = org.apache.thrift.TBaseHelper.rightSize(cf);
     return cf == null ? null : cf.array();
   }
 
@@ -253,7 +253,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getCq() {
-    setCq(org.apache.thrift.TBaseHelper.rightSize(cq));
+    this.cq = org.apache.thrift.TBaseHelper.rightSize(cq);
     return cq == null ? null : cq.array();
   }
 
@@ -287,7 +287,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getCv() {
-    setCv(org.apache.thrift.TBaseHelper.rightSize(cv));
+    this.cv = org.apache.thrift.TBaseHelper.rightSize(cv);
     return cv == null ? null : cv.array();
   }
 
@@ -367,7 +367,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getVal() {
-    setVal(org.apache.thrift.TBaseHelper.rightSize(val));
+    this.val = org.apache.thrift.TBaseHelper.rightSize(val);
     return val == null ? null : val.array();
   }
 
@@ -401,7 +401,7 @@ public class TCondition implements org.apache.thrift.TBase<TCondition, TConditio
   }
 
   public byte[] getIterators() {
-    setIterators(org.apache.thrift.TBaseHelper.rightSize(iterators));
+    this.iterators = org.apache.thrift.TBaseHelper.rightSize(iterators);
     return iterators == null ? null : iterators.array();
   }
 

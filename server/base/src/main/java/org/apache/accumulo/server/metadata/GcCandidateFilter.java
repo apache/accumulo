@@ -16,12 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package test;
+package org.apache.accumulo.server.metadata;
 
-public interface Test {
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 
-  String hello();
+public class GcCandidateFilter extends Filter {
 
-  int add();
+  @Override
+  public boolean accept(Key k, Value v) {
+    return v.equals(SkewedKeyValue.NAME);
+  }
 
 }

@@ -16,30 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.harness;
+package org.apache.accumulo.start.test;
 
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
-
-/**
- * Callback interface to inject configuration into the MiniAccumuloCluster or Hadoop core-site.xml
- * file used by the MiniAccumuloCluster
- */
-@FunctionalInterface
-public interface MiniClusterConfigurationCallback {
-
-  class NoCallback implements MiniClusterConfigurationCallback {
-
-    private NoCallback() {}
+public class TestObject implements Test {
+    
+    int i = 0;
 
     @Override
-    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      return;
+    public String hello() {
+        return "Hello from testX";
     }
-  }
 
-  MiniClusterConfigurationCallback NO_CALLBACK = new NoCallback();
-
-  void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite);
+    @Override
+    public int add() {
+        i += 1;
+        return i;
+    }
 
 }

@@ -160,6 +160,7 @@ public class DistributedWorkQueue {
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               log.info("Interrupted looking for work", e);
             }
           }
@@ -230,6 +231,7 @@ public class DistributedWorkQueue {
                 } catch (KeeperException e) {
                   log.error("Failed to look for work at path {}; {}", path, event, e);
                 } catch (InterruptedException e) {
+                  Thread.currentThread().interrupt();
                   log.info("Interrupted looking for work at path {}; {}", path, event, e);
                 }
               } else {
@@ -272,6 +274,7 @@ public class DistributedWorkQueue {
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               log.info("Interrupted looking for work", e);
             }
           }

@@ -36,10 +36,10 @@ public class TAuthenticationKey implements org.apache.thrift.TBase<TAuthenticati
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TAuthenticationKeyStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TAuthenticationKeyTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer secret; // required
-  public int keyId; // optional
-  public long expirationDate; // optional
-  public long creationDate; // optional
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer secret; // required
+  private int keyId; // optional
+  private long expirationDate; // optional
+  private long creationDate; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -173,7 +173,7 @@ public class TAuthenticationKey implements org.apache.thrift.TBase<TAuthenticati
   }
 
   public byte[] getSecret() {
-    setSecret(org.apache.thrift.TBaseHelper.rightSize(secret));
+    this.secret = org.apache.thrift.TBaseHelper.rightSize(secret);
     return secret == null ? null : secret.array();
   }
 

@@ -951,6 +951,15 @@ public enum Property {
       The resources that are used by default can be seen in \
       `accumulo/server/monitor/src/main/resources/templates/default.ftl`.
       """, "2.0.0"),
+  MONITOR_PURGE_STATE_THRESHOLD("monitor.purge.state.threshold", "10m", PropertyType.TIMEDURATION,
+      """
+          The Monitor contains an internal data structure that contains all of the data used in the UI. \
+          This property controls how long the Monitor should retain that data structure after the last \
+          connection has disconnected from the Monitor. Keeping the data structure will allow for an \
+          immediate display of the last known state. Removing the data structure will cause the UI \
+          to wait for new data to be fetched to compute the known state.
+          """,
+      "4.0.0"),
   MONITOR_FETCH_TIMEOUT("monitor.fetch.timeout", "5m", PropertyType.TIMEDURATION, """
       The Monitor fetches information for display in a set of background threads. This property \
       controls the amount of time that process should wait before cancelling any remaining \

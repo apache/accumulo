@@ -155,6 +155,7 @@ public final class LruBlockCache extends SynchronousLoadingBlockCache
         try {
           Thread.sleep(10);
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(ex);
         }
       }
@@ -534,7 +535,7 @@ public final class LruBlockCache extends SynchronousLoadingBlockCache
           try {
             this.wait();
           } catch (InterruptedException e) {
-            // empty
+            Thread.currentThread().interrupt();
           }
         }
         LruBlockCache cache = this.cache.get();

@@ -65,7 +65,7 @@ public class TableMapping {
           "Putting built-in tables into the Accumulo namespace table map after init should not be possible");
     }
     requireNonNull(tableId);
-    var rawTableName = TableNameUtil.qualify(requireNonNull(tableName)).getSecond();
+    var rawTableName = TableNameUtil.qualify(requireNonNull(tableName)).tableName();
     requireNonNull(operation);
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
@@ -112,8 +112,8 @@ public class TableMapping {
           "Renaming built-in tables in the Accumulo namespace table map should not be possible");
     }
     requireNonNull(tableId);
-    var rawOldName = TableNameUtil.qualify(requireNonNull(oldName)).getSecond();
-    var rawNewName = TableNameUtil.qualify(requireNonNull(newName)).getSecond();
+    var rawOldName = TableNameUtil.qualify(requireNonNull(oldName)).tableName();
+    var rawNewName = TableNameUtil.qualify(requireNonNull(newName)).tableName();
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());

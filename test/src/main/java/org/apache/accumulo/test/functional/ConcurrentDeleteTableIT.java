@@ -49,7 +49,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -98,6 +98,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
             } catch (TableNotFoundException e) {
               // expected
             } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException(e);
             }
           }));
@@ -153,6 +156,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           } catch (TableNotFoundException | TableOfflineException e) {
             // expected
           } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(e);
           }
         }));

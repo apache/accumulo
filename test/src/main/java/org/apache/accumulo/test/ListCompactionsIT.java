@@ -36,14 +36,14 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ListCompactions;
 import org.apache.accumulo.server.util.ListCompactions.RunningCompactionSummary;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
@@ -123,10 +123,11 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
       }, 10000);
 
       expectedCompactions.values().forEach(tec -> {
-        RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
+        RunningCompactionSummary rcs =
+            compactionsByEcid.get(tec.getJob().getExternalCompactionId());
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());
-        assertEquals(tec.groupName, rcs.getGroup().canonical());
+        assertEquals(tec.getGroupName(), rcs.getGroup().canonical());
         assertEquals(tec.getCompactor(), rcs.getAddr());
       });
 

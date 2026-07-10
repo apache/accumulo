@@ -232,6 +232,7 @@ public class SlowOps {
           }
         });
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Interruped while getting compactions from compactors", e);
       }
 
@@ -242,6 +243,7 @@ public class SlowOps {
       try {
         Thread.sleep(SECONDS.toMillis(3));
       } catch (InterruptedException ex) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("interrupted during sleep", ex);
       }
     } while (!timer.hasElapsed(maxWait));

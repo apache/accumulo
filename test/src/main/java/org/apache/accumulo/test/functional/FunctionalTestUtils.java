@@ -228,6 +228,9 @@ public class FunctionalTestUtils {
       var lockPath = context.getServerPaths().createTableLocksPath();
       return admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null, false);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }

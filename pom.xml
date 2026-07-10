@@ -154,10 +154,9 @@ under the License.
     <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
     <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>21</minimalJavaBuildVersion>
-    <minimalMavenBuildVersion>3.9</minimalMavenBuildVersion>
     <modernizer.javaVersion>${javaVersion}</modernizer.javaVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2025-08-13T01:30:03Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-06-30T00:16:12Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -172,7 +171,7 @@ under the License.
     <version.curator>5.8.0</version.curator>
     <version.errorprone>2.41.0</version.errorprone>
     <version.flatbuffers>24.3.25</version.flatbuffers>
-    <version.hadoop>3.4.2</version.hadoop>
+    <version.hadoop>3.5.0</version.hadoop>
     <version.log4j>2.25.4</version.log4j>
     <version.opentelemetry>1.60.1</version.opentelemetry>
     <version.slf4j>2.0.17</version.slf4j>

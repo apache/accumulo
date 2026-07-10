@@ -35,9 +35,9 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TColumnStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TColumnTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnFamily; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnQualifier; // required
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnVisibility; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnFamily; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnQualifier; // required
+  private @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer columnVisibility; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -163,7 +163,7 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public byte[] getColumnFamily() {
-    setColumnFamily(org.apache.thrift.TBaseHelper.rightSize(columnFamily));
+    this.columnFamily = org.apache.thrift.TBaseHelper.rightSize(columnFamily);
     return columnFamily == null ? null : columnFamily.array();
   }
 
@@ -197,7 +197,7 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public byte[] getColumnQualifier() {
-    setColumnQualifier(org.apache.thrift.TBaseHelper.rightSize(columnQualifier));
+    this.columnQualifier = org.apache.thrift.TBaseHelper.rightSize(columnQualifier);
     return columnQualifier == null ? null : columnQualifier.array();
   }
 
@@ -231,7 +231,7 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public byte[] getColumnVisibility() {
-    setColumnVisibility(org.apache.thrift.TBaseHelper.rightSize(columnVisibility));
+    this.columnVisibility = org.apache.thrift.TBaseHelper.rightSize(columnVisibility);
     return columnVisibility == null ? null : columnVisibility.array();
   }
 

@@ -44,26 +44,18 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveCompactionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-  public long age; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> inputFiles; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
-  /**
-   * 
-   * @see TCompactionType
-   */
-  public @org.apache.thrift.annotation.Nullable TCompactionType type; // required
-  /**
-   * 
-   * @see TCompactionReason
-   */
-  public @org.apache.thrift.annotation.Nullable TCompactionReason reason; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String localityGroup; // required
-  public long entriesRead; // required
-  public long entriesWritten; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
-  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
-  public long timesPaused; // required
+  private @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
+  private long age; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> inputFiles; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
+  private @org.apache.thrift.annotation.Nullable TCompactionType type; // required
+  private @org.apache.thrift.annotation.Nullable TCompactionReason reason; // required
+  private @org.apache.thrift.annotation.Nullable java.lang.String localityGroup; // required
+  private long entriesRead; // required
+  private long entriesWritten; // required
+  private @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
+  private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
+  private long timesPaused; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {

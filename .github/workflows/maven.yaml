@@ -54,6 +54,8 @@ jobs:
       run: src/build/ci/find-unapproved-abstract-ITs.sh
     - name: Check for unapproved package naming conventions
       run: src/build/ci/check-module-package-conventions.sh
+    - name: Check for unapproved bufferFor methods
+      run: src/build/ci/find-unapproved-thrift-bytebuffer.sh
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
@@ -67,7 +69,6 @@ jobs:
         profile:
           - {name: 'unit-tests',    javaver: 21, args: 'verify -PskipQA -DskipTests=false'}
           - {name: 'qa-checks',     javaver: 21, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'compat',        javaver: 21, args: 'package -DskipTests -Dversion.hadoop=3.0.3 -Dversion.zookeeper=3.6.4'}
           - {name: 'errorprone',    javaver: 21, args: 'verify -Perrorprone,skipQA'}
           - {name: 'jdk25',         javaver: 25, args: 'verify javadoc:jar -DskipTests'}
       fail-fast: false
