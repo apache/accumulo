@@ -165,7 +165,7 @@ public abstract class AbstractServer
   public void gracefulShutdown(TCredentials credentials) {
 
     try {
-      if (!context.getSecurityOperation().canPerformSystemActions(credentials)) {
+      if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
         log.warn("Ignoring shutdown request, user {} does not have the appropriate permissions",
             credentials.getPrincipal());
         return;
