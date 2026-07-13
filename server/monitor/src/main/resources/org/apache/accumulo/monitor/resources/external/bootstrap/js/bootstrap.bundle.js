@@ -753,27 +753,6 @@
       }
       return parents;
     },
-    prev(element, selector) {
-      let previous = element.previousElementSibling;
-      while (previous) {
-        if (previous.matches(selector)) {
-          return [previous];
-        }
-        previous = previous.previousElementSibling;
-      }
-      return [];
-    },
-    // TODO: this is now unused; remove later along with prev()
-    next(element, selector) {
-      let next = element.nextElementSibling;
-      while (next) {
-        if (next.matches(selector)) {
-          return [next];
-        }
-        next = next.nextElementSibling;
-      }
-      return [];
-    },
     focusableChildren(element) {
       const focusables = ['a', 'button', 'input', 'textarea', 'select', 'details', '[tabindex]', '[contenteditable="true"]'].map(selector => `${selector}:not([tabindex^="-"])`).join(',');
       return this.find(focusables, element).filter(el => !isDisabled(el) && isVisible(el));
