@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.cli.CommandOutputEnvelope;
 import org.apache.accumulo.core.cli.CommandReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 
 /**
  * Wrapper for JSON formatted report.
@@ -54,6 +56,15 @@ public class ServiceStatusReport implements CommandReport {
   @Override
   public Object getData() {
     return this;
+  }
+
+  @Override
+  public String toEnvelopedJson(String commandName) {
+    Gson data = showHosts ? new GsonBuilder().disableJdkUnsafe().create() : new GsonBuilder()
+        .disableJdkUnsafe().setExclusionStrategies(new HostExclusionStrategy()).create();
+
+    JsonElement dataElement = data.toJsonTree(this, ServiceStatusReport.class);
+    return CommandOutputEnvelope.of(commandName, dataElement).toJson();
   }
 
   private static class HostExclusionStrategy implements ExclusionStrategy {
