@@ -21,15 +21,25 @@ package org.apache.accumulo.server.util;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PropUtil {
+
+  private static final Logger CONFIG_LOG =
+      LoggerFactory.getLogger("org.apache.accumulo.configuration");
 
   private PropUtil() {}
 
@@ -44,11 +54,13 @@ public final class PropUtil {
       final Map<String,String> properties) throws IllegalArgumentException {
     PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().putAll(propStoreKey, properties);
+    logSetProperties(propStoreKey, properties);
   }
 
   public static void removeProperties(final ServerContext context,
       final PropStoreKey<?> propStoreKey, final Collection<String> propertyNames) {
     context.getPropStore().removeProperties(propStoreKey, propertyNames);
+    logRemoveProperties(propStoreKey, propertyNames);
   }
 
   public static void replaceProperties(final ServerContext context,
@@ -56,6 +68,7 @@ public final class PropUtil {
       throws IllegalArgumentException {
     PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().replaceAll(propStoreKey, version, properties);
+    logReplaceProperties(propStoreKey, version, properties);
   }
 
   protected static void validateProperties(final ServerContext context,
@@ -102,4 +115,66 @@ public final class PropUtil {
       }
     }
   }
+
+  static void logSetProperties(final PropStoreKey<?> propStoreKey,
+      final Map<String,String> properties) {
+    if (properties.isEmpty()) {
+      return;
+    }
+    if (CONFIG_LOG.isInfoEnabled()) {
+      CONFIG_LOG.info("action=set; scope={}; target={}; properties={};", scope(propStoreKey),
+          target(propStoreKey), printableProperties(properties));
+    }
+  }
+
+  static void logRemoveProperties(final PropStoreKey<?> propStoreKey,
+      final Collection<String> propertyNames) {
+    if (CONFIG_LOG.isInfoEnabled()) {
+      CONFIG_LOG.info("action=remove; scope={}; target={}; properties={};", scope(propStoreKey),
+          target(propStoreKey), new TreeSet<>(propertyNames));
+    }
+  }
+
+  static void logReplaceProperties(final PropStoreKey<?> propStoreKey, final long version,
+      final Map<String,String> properties) {
+    if (properties.isEmpty()) {
+      return;
+    }
+    if (CONFIG_LOG.isInfoEnabled()) {
+      CONFIG_LOG.info("action=modify; scope={}; target={}; version={}; properties={};",
+          scope(propStoreKey), target(propStoreKey), version, printableProperties(properties));
+    }
+  }
+
+  private static Map<String,String> printableProperties(Map<String,String> properties) {
+    Map<String,String> printable = new TreeMap<>();
+    for (var prop : properties.entrySet()) {
+      final String key = prop.getKey();
+      final String printableValue = Property.isSensitive(key) ? "<hidden>" : prop.getValue();
+      printable.put(key, printableValue);
+    }
+    return printable;
+  }
+
+  private static String scope(PropStoreKey<?> propStoreKey) {
+    if (propStoreKey instanceof SystemPropKey) {
+      return "system";
+    } else if (propStoreKey instanceof NamespacePropKey) {
+      return "namespace";
+    } else if (propStoreKey instanceof TablePropKey) {
+      return "table";
+    }
+    return propStoreKey.getClass().getSimpleName();
+  }
+
+  private static String target(PropStoreKey<?> propStoreKey) {
+    if (propStoreKey instanceof SystemPropKey) {
+      return "system";
+    } else if (propStoreKey instanceof NamespacePropKey || propStoreKey instanceof TablePropKey) {
+      return propStoreKey.getId().canonical();
+    } else {
+      return propStoreKey.getPath();
+    }
+  }
+
 }
