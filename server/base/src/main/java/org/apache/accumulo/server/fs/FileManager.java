@@ -115,7 +115,7 @@ public class FileManager {
 
       long curTime = System.currentTimeMillis();
 
-      ArrayList<FileSKVIterator> filesToClose = new ArrayList<>();
+      ArrayList<FileSKVIterator> filesToClose = new ArrayList<>(openFiles.size());
 
       // determine which files to close in a sync block, and then close the
       // files outside of the sync block

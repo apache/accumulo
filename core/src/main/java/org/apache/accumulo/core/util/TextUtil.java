@@ -26,21 +26,18 @@ import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.Text;
 
 public final class TextUtil {
+
+  public static Text fromNullableBytes(byte[] bytes) {
+    return bytes == null ? null : new Text(bytes);
+  }
+
   public static byte[] getBytes(Text text) {
     byte[] bytes = text.getBytes();
-    if (bytes.length != text.getLength()) {
-      bytes = new byte[text.getLength()];
-      System.arraycopy(text.getBytes(), 0, bytes, 0, bytes.length);
-    }
-    return bytes;
+    return bytes.length == text.getLength() ? bytes : text.copyBytes();
   }
 
   public static ByteBuffer getByteBuffer(Text text) {
-    if (text == null) {
-      return null;
-    }
-    byte[] bytes = text.getBytes();
-    return ByteBuffer.wrap(bytes, 0, text.getLength());
+    return text == null ? null : ByteBuffer.wrap(text.getBytes(), 0, text.getLength());
   }
 
   public static Text truncate(Text text, int maxLen) {
@@ -51,7 +48,6 @@ public final class TextUtil {
       newText.append(suffix.getBytes(UTF_8), 0, suffix.length());
       return newText;
     }
-
     return text;
   }
 

@@ -121,7 +121,7 @@ public class ThriftTransportPool {
    *        and false if the thread is running within a client
    * @return a new instance with its checker thread started to clean up idle transports
    */
-  static ThriftTransportPool startNew(LongSupplier maxAgeMillis, boolean shouldHalt) {
+  public static ThriftTransportPool startNew(LongSupplier maxAgeMillis, boolean shouldHalt) {
     var pool = new ThriftTransportPool(maxAgeMillis, shouldHalt);
     log.debug("Set thrift transport pool idle time to {}ms", maxAgeMillis.getAsLong());
     pool.checkThread.start();
@@ -144,9 +144,9 @@ public class ThriftTransportPool {
 
   public Pair<String,TTransport> getAnyCachedTransport(ThriftClientTypes<?> type) {
 
-    final List<ThriftTransportKey> serversSet = new ArrayList<>();
-
-    for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
+    var keys = connectionPool.getThriftTransportKeys();
+    final List<ThriftTransportKey> serversSet = new ArrayList<>(keys.size());
+    for (ThriftTransportKey ttk : keys) {
       if (ttk.getType().equals(type)) {
         serversSet.add(ttk);
       }

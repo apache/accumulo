@@ -150,7 +150,7 @@ public class TDelegationToken implements org.apache.thrift.TBase<TDelegationToke
   }
 
   public byte[] getPassword() {
-    setPassword(org.apache.thrift.TBaseHelper.rightSize(password));
+    this.password = org.apache.thrift.TBaseHelper.rightSize(password);
     return password == null ? null : password.array();
   }
 

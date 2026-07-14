@@ -215,11 +215,12 @@ public class ExternalCompactionUtil {
       ExecutorService executor, Consumer<TExternalCompaction> consumer)
       throws InterruptedException {
 
-    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>();
     final List<ServerId> failures = new ArrayList<>();
+    final Set<ServerId> compactors =
+        context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>(compactors.size());
 
     try {
-      Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
       compactors.forEach(s -> {
         final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
         Future<TExternalCompaction> future =
@@ -266,16 +267,17 @@ public class ExternalCompactionUtil {
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
-    List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(slp -> {
-          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-          futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
-        });
+    Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    List<Future<ExternalCompactionId>> futures = new ArrayList<>(compactors.size());
+    compactors.forEach(slp -> {
+      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+      futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
+    });
     executor.shutdown();
 
-    HashSet<ExternalCompactionId> runningIds = new HashSet<>();
+    HashSet<ExternalCompactionId> runningIds = new HashSet<>(compactors.size() / 4);
 
     futures.forEach(future -> {
       try {

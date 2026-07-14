@@ -297,7 +297,7 @@ public class ClientTabletCacheImplTest {
   private void runTest(ClientTabletCacheImpl metaCache, List<Mutation> ml,
       Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
     Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-    List<Mutation> afailures = new ArrayList<>();
+    ArrayList<Mutation> afailures = new ArrayList<>();
     metaCache.binMutations(context, ml, binnedMutations, afailures);
 
     verify(emb, binnedMutations);
@@ -1819,7 +1819,7 @@ public class ClientTabletCacheImplTest {
       ml.add(createNewMutation("" + c, "cf1:cq1=v3", "cf1:cq2=v4"));
     }
     Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-    List<Mutation> afailures = new ArrayList<>();
+    ArrayList<Mutation> afailures = new ArrayList<>();
     assertEquals(List.of(), lookups);
     metaCache.binMutations(context, ml, binnedMutations, afailures);
     assertTrue(binnedMutations.isEmpty());

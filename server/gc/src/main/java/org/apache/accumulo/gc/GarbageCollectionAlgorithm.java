@@ -141,7 +141,7 @@ public class GarbageCollectionAlgorithm {
 
     List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
-    Set<TableId> tableIdsSeen = new HashSet<>();
+    Set<TableId> tableIdsSeen = new HashSet<>(tableIdsBefore.size());
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
         tableIdsSeen.add(ref.getTableId());

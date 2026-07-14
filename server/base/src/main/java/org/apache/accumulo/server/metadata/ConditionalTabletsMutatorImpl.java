@@ -177,7 +177,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
         .logInterval(Duration.ofMinutes(3)).createRetry();
   }
 
-  private Iterator<ConditionalWriter.Result> writeMutations(ConditionalWriter conditionalWriter) {
+  private List<ConditionalWriter.Result> writeMutations(ConditionalWriter conditionalWriter) {
     var results = conditionalWriter.write(mutations.iterator());
 
     List<ConditionalWriter.Result> resultsList = new ArrayList<>();
@@ -206,7 +206,7 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       partitionResults(results, resultsList, unknownResults);
     }
 
-    return resultsList.iterator();
+    return resultsList;
   }
 
   private Ample.ConditionalResult.Status mapStatus(KeyExtent extent,
@@ -251,10 +251,11 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
 
         var results = writeMutations(conditionalWriter);
 
-        var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>();
+        var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>(results.size(), 1.0f);
 
-        while (results.hasNext()) {
-          var result = results.next();
+        var resultsIter = results.iterator();
+        while (resultsIter.hasNext()) {
+          var result = resultsIter.next();
           var row = new Text(result.getMutation().getRow());
           resultsMap.put(extents.get(row), result);
         }
