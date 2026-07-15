@@ -20,7 +20,9 @@ package org.apache.accumulo.manager.tableOps.namespace.delete;
 
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -48,7 +50,12 @@ public class DeleteNamespace extends AbstractFateOperation {
   }
 
   @Override
-  public Repo<FateEnv> call(FateId fateId, FateEnv environment) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
+    if (!environment.getContext().getTableMapping(namespaceId).getIdToNameMap().isEmpty()) {
+      throw new AcceptableThriftTableOperationException(namespaceId.canonical(), null,
+          TableOperation.DELETE, TableOperationExceptionType.NAMESPACE_NOTEMPTY,
+          "Namespace is not empty");
+    }
     environment.getEventPublisher().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }
