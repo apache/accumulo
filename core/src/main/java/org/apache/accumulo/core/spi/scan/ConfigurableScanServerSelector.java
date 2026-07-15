@@ -233,6 +233,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       if (servers.endsWith("%")) {
         double percent = Double.parseDouble(servers.substring(0, servers.length() - 1));
         if (percent <= 0 || percent > 100 || !Double.isFinite(percent)) {
+          isServersPercent = false;
           throw new IllegalArgumentException("Bad servers percentage : " + servers);
         }
         else {
