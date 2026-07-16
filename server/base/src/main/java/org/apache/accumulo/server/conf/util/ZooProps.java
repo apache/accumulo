@@ -147,26 +147,30 @@ public class ZooProps extends ServerKeywordExecutable<ZooProps.PropsOpts> {
     @Parameter(names = {"-d", "--delete"}, description = "delete a property")
     String deleteOpt = "";
 
+    // --- Singular scope options, used with --set, --delete or default
     @Parameter(names = {"-t", "--table"},
-        description = "table to display/set/delete properties for")
+        description = "table to display for --set, --delete or default display"
+            + "Not valid with --get")
     String tableOpt = "";
 
     @Parameter(names = {"-tid", "--table-id"},
-        description = "table id to display/set/delete properties for")
+        description = "table id to display for --set, --delete or default display")
     String tableIdOpt = "";
 
     @Parameter(names = {"-ns", "--namespace"},
-        description = "namespace to display/set/delete properties for")
+        description = "namespace to display for --set, --delete or default display")
     String namespaceOpt = "";
 
     @Parameter(names = {"-nid", "--namespace-id"},
-        description = "namespace id to display/set/delete properties for")
+        description = "namespace id to display for --set, --delete or default display")
     String namespaceIdOpt = "";
 
     @Parameter(names = {"-r", "--resource-group"},
-        description = "resource group name to display/set/delete properties for",
+        description = "resource group name to display for --set, --delete or default display",
         variableArity = true)
     List<String> resourceGroupOpt = new ArrayList<>();
+
+    // --- Multi-scope options, used with --get
 
     @Parameter(names = {"--get"},
         description = "print a multi-scope property report (ZooInfoViewer output). "
@@ -194,12 +198,14 @@ public class ZooProps extends ServerKeywordExecutable<ZooProps.PropsOpts> {
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {
       super.parseArgs(programName, args, others);
-      if (!setOpt.isEmpty() && !deleteOpt.isEmpty()) {
-        throw new IllegalArgumentException("Cannot use --set and --delete in one command");
-      }
-      if ((!systemOpt || !namespacesOpt.isEmpty() || !tablesOpt.isEmpty()) && !getOpt
-          && setOpt.isEmpty() && deleteOpt.isEmpty()) {
-        if (!namespacesOpt.isEmpty() || !tablesOpt.isEmpty()) {
+      boolean isMutating = !setOpt.isEmpty() || !deleteOpt.isEmpty();
+      if (!namespacesOpt.isEmpty() || !tablesOpt.isEmpty()) {
+        if (isMutating) {
+          throw new IllegalArgumentException(
+              "--namespaces and --tables are not valid with --set or --delete");
+        }
+
+        if (!getOpt) {
           throw new IllegalArgumentException("--namespaces and --tables are only valid with --get");
         }
       }
