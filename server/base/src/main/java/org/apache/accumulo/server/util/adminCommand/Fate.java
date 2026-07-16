@@ -161,9 +161,9 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
         description = "Includes detailed transaction information when printing")
     boolean printDetails;
 
-    @Parameter(names = {"-n", "--numSplits"},
-        description = "Generate N split points for the fate table and print to stdout. N should always be greater than 1.")
-    int numSplits = 1;
+    @Parameter(names = {"-n", "--num-splits"},
+        description = "Generate N split points for the fate table and print to stdout. N must be >= 1.")
+    int numSplits = -1;
 
     @Parameter(names = {"-sf", "--splitsFile"},
         description = "Write split points to a file. Used with -n or --num-splits.")
@@ -291,8 +291,10 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     List<String> splits = generateSplits(options.numSplits);
 
     if (options.splitsFile != null) {
-      try (PrintWriter writer = new PrintWriter(new BufferedWriter(
-          new OutputStreamWriter(Files.newOutputStream(Path.of(options.splitsFile)), UTF_8)))) {
+      Path splitsPath = Path.of(options.splitsFile);
+      try (var out = Files.newOutputStream(splitsPath);
+          var osw = new OutputStreamWriter(out, UTF_8); var bw = new BufferedWriter(osw);
+          var writer = new PrintWriter(bw)) {
         splits.forEach(writer::println);
       }
       System.out.println("Wrote " + splits.size() + " split point(s) to " + options.splitsFile);
@@ -303,8 +305,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
 
   static List<String> generateSplits(int numSplits) {
     Preconditions.checkArgument(numSplits >= 1,
-        "Number of splits must be greater than 1. Specifying 0 would generate no splits and leave the table unchanged.",
-        numSplits);
+        "Number of splits must be greater than 1. Specifying 0 would generate no splits and leave the table unchanged.");
 
     // Same logic as in FateManager.getDesiredPartitions()
     // Work w/ 60 bit unsigned integers to partition the space and then shift over by 4. Used 60
