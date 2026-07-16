@@ -571,8 +571,7 @@ public class CryptoTest {
       FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
 
       // verify that each input stream returned by decrypter.decryptStream() is independent when
-      // used
-      // by multiple threads
+      // used by multiple threads
       for (int i = 0; i < numTasks; i++) {
         var future = executor.submit(() -> {
           startLatch.countDown();

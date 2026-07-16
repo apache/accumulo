@@ -302,8 +302,7 @@ public class CompactionJobQueuesTest {
       // threads should concurrently empty queues causing them to be deleted.
       for (int i = 0; i < numToAdd; i++) {
         // Create unique exents because re-adding the same extent will clobber any jobs already in
-        // the
-        // queue for that extent which could throw off the counts
+        // the queue for that extent which could throw off the counts
         KeyExtent extent = new KeyExtent(TableId.of("1"), new Text(i + "z"), new Text(i + "a"));
         jobQueues.add(extent, List.of(newJob((short) (i % 31), i, groups[i % groups.length])));
       }

@@ -726,8 +726,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
       });
 
       // now that there are not other thread modifying properties, make a modification to check that
-      // the returned map
-      // is exactly as expected.
+      // the returned map is exactly as expected.
       Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
         int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
         int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));

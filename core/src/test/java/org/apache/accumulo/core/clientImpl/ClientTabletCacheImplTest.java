@@ -2036,13 +2036,10 @@ public class ClientTabletCacheImplTest {
 
       assertTrue(sawTwoActive.get(), "Expected to see exactly two lookups.");
       // The second metadata tablet (mte2) contains two user tablets (ke2 and ke3). Depending on
-      // which
-      // of these two user tablets is looked up in the metadata table first will see a total of 2 or
-      // 3
-      // lookups. If the location of ke2 is looked up first then it will get the locations of ke2
-      // and
-      // ke3 from mte2 and put them in the cache. If the location of ke3 is looked up first then it
-      // will only get the location of ke3 from mte2 and not ke2.
+      // which of these two user tablets is looked up in the metadata table first will see a total
+      // of 2 or 3 lookups. If the location of ke2 is looked up first then it will get the locations
+      // of ke2 and ke3 from mte2 and put them in the cache. If the location of ke3 is looked up
+      // first then it will only get the location of ke3 from mte2 and not ke2.
       assertTrue(lookups.size() == 2 || lookups.size() == 3,
           "Expected 2 or 3 lookups, got " + lookups.size() + " : " + lookups);
       assertEquals(1,

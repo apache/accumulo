@@ -142,8 +142,7 @@ public class LargeReadIT extends AccumuloClusterHarness {
 
         // Run lots of concurrent task that should only read the small data, if they read the big
         // column family then it will exceed the tablet server memory and cause it to die and the
-        // test
-        // to timeout.
+        // test to timeout.
         var tasks =
             Stream.iterate(scanTask, t -> t).limit(numTasks * 5).collect(Collectors.toList());
         assertEquals(numTasks * 5, tasks.size());
@@ -167,9 +166,8 @@ public class LargeReadIT extends AccumuloClusterHarness {
 
         // Run the scans again, reading from files instead of in memory map... verify the large data
         // is not brought into memory from the file, which would kill the tablet server. The test
-        // was
-        // created because of a bug in the native map code, but can also check the rfile code for a
-        // similar problem.
+        // was created because of a bug in the native map code, but can also check the rfile code
+        // for a similar problem.
         for (var future : executor.invokeAll(tasks)) {
           assertEquals(100, future.get());
         }

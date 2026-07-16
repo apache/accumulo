@@ -428,9 +428,8 @@ public class SplitIT extends AccumuloClusterHarness {
 
         if (offlineTable) {
           // The splits seen immediately after offline() call should not change after all the
-          // futures
-          // complete. This ensures that nothing changes in the tablet after the offline+wait call
-          // returns.
+          // futures complete. This ensures that nothing changes in the tablet after the
+          // offline+wait call returns.
           assertEquals(splitsAfterOffline, new HashSet<>(c.tableOperations().listSplits(tableName)),
               "Splits changed after offline");
 
