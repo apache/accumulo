@@ -110,7 +110,7 @@ public class SplitUtils {
   private static ArrayList<FileSKVIterator> openIndexes(ServerContext context,
       TableConfiguration tableConf, Collection<StoredTabletFile> files) throws IOException {
 
-    ArrayList<FileSKVIterator> readers = new ArrayList<>();
+    ArrayList<FileSKVIterator> readers = new ArrayList<>(files.size());
 
     try {
       for (TabletFile file : files) {

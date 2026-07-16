@@ -799,7 +799,7 @@ public class Manager extends AbstractServer
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
-    final ArrayList<Future<?>> tasks = new ArrayList<>();
+    final ArrayList<Future<?>> tasks = new ArrayList<>(currentServers.size());
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {

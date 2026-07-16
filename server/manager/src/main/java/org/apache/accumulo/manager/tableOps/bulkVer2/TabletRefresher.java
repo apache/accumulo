@@ -102,7 +102,8 @@ public class TabletRefresher {
 
     while (!refreshesNeeded.isEmpty()) {
 
-      Map<TabletMetadata.Location,Future<List<TKeyExtent>>> futures = new HashMap<>();
+      Map<TabletMetadata.Location,Future<List<TKeyExtent>>> futures =
+          new HashMap<>(refreshesNeeded.size(), 1.0f);
 
       for (Map.Entry<TabletMetadata.Location,List<TKeyExtent>> entry : refreshesNeeded.entrySet()) {
 

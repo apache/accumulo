@@ -271,8 +271,8 @@ public class Condition {
     checkArgument(iterators != null, "iterators is null");
 
     if (iterators.length > 1) {
-      HashSet<String> names = new HashSet<>();
-      HashSet<Integer> prios = new HashSet<>();
+      HashSet<String> names = new HashSet<>(iterators.length, 1.0f);
+      HashSet<Integer> prios = new HashSet<>(iterators.length, 1.0f);
 
       for (IteratorSetting iteratorSetting : iterators) {
         if (!names.add(iteratorSetting.getName())) {

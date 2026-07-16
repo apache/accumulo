@@ -167,13 +167,16 @@ public class Bulk {
   }
 
   public static class Files implements Iterable<FileInfo> {
-    final Map<String,FileInfo> files = new HashMap<>();
+    final Map<String,FileInfo> files;
 
     public Files(Collection<FileInfo> files) {
+      this.files = new HashMap<>(files.size(), 1.0f);
       files.forEach(this::add);
     }
 
-    public Files() {}
+    public Files() {
+      this.files = new HashMap<>();
+    }
 
     public void add(FileInfo fi) {
       if (files.putIfAbsent(fi.name, fi) != null) {
