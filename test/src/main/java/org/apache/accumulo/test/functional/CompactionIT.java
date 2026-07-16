@@ -286,26 +286,29 @@ public class CompactionIT extends CompactionITBase {
       final int THREADS = 5;
       for (int count = 0; count < THREADS; count++) {
         ExecutorService executor = Executors.newFixedThreadPool(THREADS);
-        final int span = 500000 / 59;
-        for (int i = 0; i < 500000; i += 500000 / 59) {
-          final int finalI = i;
-          Runnable r = () -> {
-            try {
-              VerifyParams params = new VerifyParams(getClientProps(), tableName, span);
-              params.startRow = finalI;
-              params.random = 56;
-              params.dataSize = 50;
-              params.cols = 1;
-              VerifyIngest.verifyIngest(c, params);
-            } catch (Exception ex) {
-              log.warn("Got exception verifying data", ex);
-              fail.set(true);
-            }
-          };
-          executor.execute(r);
+        try {
+          final int span = 500000 / 59;
+          for (int i = 0; i < 500000; i += 500000 / 59) {
+            final int finalI = i;
+            Runnable r = () -> {
+              try {
+                VerifyParams params = new VerifyParams(getClientProps(), tableName, span);
+                params.startRow = finalI;
+                params.random = 56;
+                params.dataSize = 50;
+                params.cols = 1;
+                VerifyIngest.verifyIngest(c, params);
+              } catch (Exception ex) {
+                log.warn("Got exception verifying data", ex);
+                fail.set(true);
+              }
+            };
+            executor.execute(r);
+          }
+        } finally {
+          executor.shutdown();
+          executor.awaitTermination(defaultTimeout().toSeconds(), SECONDS);
         }
-        executor.shutdown();
-        executor.awaitTermination(defaultTimeout().toSeconds(), SECONDS);
         assertFalse(fail.get(),
             "Failed to successfully run all threads, Check the test output for error");
       }
@@ -1070,56 +1073,60 @@ public class CompactionIT extends CompactionITBase {
       client.tableOperations().setProperty(table, Property.TABLE_MAJC_RATIO.getKey(), "1");
 
       // start a bunch of compactions in the background
-      var executor = Executors.newCachedThreadPool();
       final int numTasks = 20;
       List<Future<?>> futures = new ArrayList<>(numTasks);
       CountDownLatch startLatch = new CountDownLatch(numTasks);
       assertTrue(numTasks >= startLatch.getCount(),
           "Not enough tasks/threads to satisfy latch count - deadlock risk");
-      // start user compactions on a subset of the tables tablets, system compactions should attempt
-      // to run on all tablets. With concurrency should get a mix.
-      for (int i = 1; i < numTasks + 1; i++) {
-        var startRow = new Text(String.format("r:%04d", i - 1));
-        var endRow = new Text(String.format("r:%04d", i));
-        final CompactionConfig config = new CompactionConfig();
-        config.setWait(true);
-        config.setStartRow(startRow);
-        config.setEndRow(endRow);
-        futures.add(executor.submit(() -> {
-          startLatch.countDown();
-          startLatch.await();
-          client.tableOperations().compact(table, config);
-          return null;
-        }));
-      }
-      assertEquals(numTasks, futures.size());
-
-      log.debug("Waiting for offline");
-      // take tablet offline while there are concurrent compactions
-      client.tableOperations().offline(table, true);
-
-      // grab a snapshot of all the tablets files after waiting for offline, do not expect any
-      // tablets files to change at this point
-      var files1 = getFiles(ctx, tableId);
-
-      // wait for the background compactions
-      log.debug("Waiting for futures");
-      for (var future : futures) {
-        try {
-          future.get();
-        } catch (ExecutionException ee) {
-          // its ok if some of the compactions fail because the table was concurrently taken offline
-          assertTrue(ee.getMessage().contains("is offline"));
+      var executor = Executors.newCachedThreadPool();
+      try {
+        // start user compactions on a subset of the tables tablets, system compactions should
+        // attempt
+        // to run on all tablets. With concurrency should get a mix.
+        for (int i = 1; i < numTasks + 1; i++) {
+          var startRow = new Text(String.format("r:%04d", i - 1));
+          var endRow = new Text(String.format("r:%04d", i));
+          final CompactionConfig config = new CompactionConfig();
+          config.setWait(true);
+          config.setStartRow(startRow);
+          config.setEndRow(endRow);
+          futures.add(executor.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
+            client.tableOperations().compact(table, config);
+            return null;
+          }));
         }
+        assertEquals(numTasks, futures.size());
+
+        log.debug("Waiting for offline");
+        // take tablet offline while there are concurrent compactions
+        client.tableOperations().offline(table, true);
+
+        // grab a snapshot of all the tablets files after waiting for offline, do not expect any
+        // tablets files to change at this point
+        var files1 = getFiles(ctx, tableId);
+
+        // wait for the background compactions
+        log.debug("Waiting for futures");
+        for (var future : futures) {
+          try {
+            future.get();
+          } catch (ExecutionException ee) {
+            // its ok if some of the compactions fail because the table was concurrently taken
+            // offline
+            assertTrue(ee.getMessage().contains("is offline"));
+          }
+        }
+
+        // grab a second snapshot of the tablets files after all the background operations completed
+        var files2 = getFiles(ctx, tableId);
+
+        // do not expect the files to have changed after the offline operation returned.
+        assertEquals(files1, files2);
+      } finally {
+        executor.shutdown();
       }
-
-      // grab a second snapshot of the tablets files after all the background operations completed
-      var files2 = getFiles(ctx, tableId);
-
-      // do not expect the files to have changed after the offline operation returned.
-      assertEquals(files1, files2);
-
-      executor.shutdown();
     }
   }
 

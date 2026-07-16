@@ -470,41 +470,45 @@ public class BulkNewIT extends SharedMiniClusterBase {
       // Start a second bulk import in background thread because it is expected this bulk import
       // will hang because tablets are over the pause file limit.
       ExecutorService executor = Executors.newFixedThreadPool(1);
-      var future = executor.submit(() -> {
-        client.tableOperations().importDirectory(dir2).to(tableName).tableTime(true).load();
-        return null;
-      });
+      try {
+        var future = executor.submit(() -> {
+          client.tableOperations().importDirectory(dir2).to(tableName).tableTime(true).load();
+          return null;
+        });
 
-      // sleep a bit to give the bulk import a chance to run
-      UtilWaitThread.sleep(3000);
-      // bulk import should not have gone through it should be pausing because the tablet have too
-      // many files
-      assertFalse(future.isDone());
-      verifyData(client, tableName, 0, 179, false);
+        // sleep a bit to give the bulk import a chance to run
+        UtilWaitThread.sleep(3000);
+        // bulk import should not have gone through it should be pausing because the tablet have too
+        // many files
+        assertFalse(future.isDone());
+        verifyData(client, tableName, 0, 179, false);
 
-      // Before the bulk import runs no tablets should have loaded flags set
-      assertEquals(Map.of("0060", 0, "0120", 0, "null", 0), countLoaded(client, tableName));
-      // compacting the first tablet should allow the import on that tablet to proceed
-      client.tableOperations().compact(tableName,
-          new CompactionConfig().setWait(true).setEndRow(new Text("0060")));
-      // Wait for the first tablets data to be updated by bulk import.
-      Wait.waitFor(
-          () -> Map.of("0060", 7, "0120", 0, "null", 0).equals(countLoaded(client, tableName)));
+        // Before the bulk import runs no tablets should have loaded flags set
+        assertEquals(Map.of("0060", 0, "0120", 0, "null", 0), countLoaded(client, tableName));
+        // compacting the first tablet should allow the import on that tablet to proceed
+        client.tableOperations().compact(tableName,
+            new CompactionConfig().setWait(true).setEndRow(new Text("0060")));
+        // Wait for the first tablets data to be updated by bulk import.
+        Wait.waitFor(
+            () -> Map.of("0060", 7, "0120", 0, "null", 0).equals(countLoaded(client, tableName)));
 
-      // The bulk imports on the other tablets should not have gone through, verify their data was
-      // not updated. Spot check a few rows in the other two tablets. The first tablet may or may
-      // not be updated on the tablet server at this point, so can not look at its data.
-      assertEquals(61L, readRowValue(client, tableName, 61));
-      assertEquals(100L, readRowValue(client, tableName, 100));
-      assertEquals(140L, readRowValue(client, tableName, 140));
+        // The bulk imports on the other tablets should not have gone through, verify their data was
+        // not updated. Spot check a few rows in the other two tablets. The first tablet may or may
+        // not be updated on the tablet server at this point, so can not look at its data.
+        assertEquals(61L, readRowValue(client, tableName, 61));
+        assertEquals(100L, readRowValue(client, tableName, 100));
+        assertEquals(140L, readRowValue(client, tableName, 140));
 
-      // compact the entire table, should allow all bulk imports to go through
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      // wait for bulk import to complete
-      future.get();
-      // verify the values were updated by the bulk import that was paused
-      verifyData(client, tableName, 0, 179, 1000, false);
-      assertEquals(Map.of("0060", 0, "0120", 0, "null", 0), countLoaded(client, tableName));
+        // compact the entire table, should allow all bulk imports to go through
+        client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+        // wait for bulk import to complete
+        future.get();
+        // verify the values were updated by the bulk import that was paused
+        verifyData(client, tableName, 0, 179, 1000, false);
+        assertEquals(Map.of("0060", 0, "0120", 0, "null", 0), countLoaded(client, tableName));
+      } finally {
+        executor.shutdown();
+      }
     }
   }
 
@@ -1200,7 +1204,6 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().addSplits(tableName, splits);
 
       final int numTasks = 16;
-      var executor = Executors.newFixedThreadPool(numTasks);
       var futures = new ArrayList<Future<?>>();
       // wait for a portion of the tasks to be ready
       CountDownLatch startLatch = new CountDownLatch(numTasks);
@@ -1212,26 +1215,29 @@ public class BulkNewIT extends SharedMiniClusterBase {
       var imports = IntStream.range(2, 8999).boxed().collect(Collectors.toList());
       // The order in which imports are added to the load plan should not matter so test that.
       Collections.shuffle(imports);
-      for (var data : imports) {
-        String filename = "f" + data + ".";
-        loadPlanBuilder.loadFileTo(filename + RFile.EXTENSION, RangeType.TABLE, row(data - 1),
-            row(data));
-        var future = executor.submit(() -> {
-          startLatch.countDown();
-          startLatch.await();
-          writeData(fs, dir + "/" + filename, aconf, data, data);
-          return null;
-        });
-        futures.add(future);
-        rowsExpected.add(row(data));
-      }
-      assertEquals(imports.size(), futures.size());
+      var executor = Executors.newFixedThreadPool(numTasks);
+      try {
+        for (var data : imports) {
+          String filename = "f" + data + ".";
+          loadPlanBuilder.loadFileTo(filename + RFile.EXTENSION, RangeType.TABLE, row(data - 1),
+              row(data));
+          var future = executor.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
+            writeData(fs, dir + "/" + filename, aconf, data, data);
+            return null;
+          });
+          futures.add(future);
+          rowsExpected.add(row(data));
+        }
+        assertEquals(imports.size(), futures.size());
 
-      for (var future : futures) {
-        future.get();
+        for (var future : futures) {
+          future.get();
+        }
+      } finally {
+        executor.shutdown();
       }
-
-      executor.shutdown();
 
       var loadPlan = loadPlanBuilder.build();
 

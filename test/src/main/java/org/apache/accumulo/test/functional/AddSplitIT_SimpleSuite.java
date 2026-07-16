@@ -291,7 +291,6 @@ public class AddSplitIT_SimpleSuite extends SharedMiniClusterBase {
   @Test
   public void concurrentAddSplitTest() throws Exception {
     var threads = 10;
-    var service = Executors.newFixedThreadPool(threads);
     var latch = new CountDownLatch(threads);
 
     String tableName = getUniqueNames(1)[0];
@@ -311,36 +310,39 @@ public class AddSplitIT_SimpleSuite extends SharedMiniClusterBase {
       var commonSplits = commonBuilder.build();
       allSplits.putAll(commonSplits);
 
-      // Spin up 10 threads and concurrently submit all 50 existing splits
-      // as well as 50 unique splits, this should create a collision with fate
-      // and cause retries
-      for (int i = 1; i <= threads; i++) {
-        var start = i * 100;
-        service.execute(() -> {
-          // add the 50 common splits
-          SortedMap<Text,TabletMergeability> splits = new TreeMap<>(commonSplits);
-          // create 50 unique splits
-          for (int j = start; j < start + 50; j++) {
-            splits.put(new Text(String.format("%09d", j)),
-                TabletMergeability.after(Duration.ofHours(1 + j)));
-          }
-          // make sure all splits are captured
-          allSplits.putAll(splits);
-          // Wait for all 10 threads to be ready before calling putSplits()
-          // to increase the chance of collisions
-          latch.countDown();
-          try {
-            latch.await();
-            c.tableOperations().putSplits(tableName, splits);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        });
+      var service = Executors.newFixedThreadPool(threads);
+      try {
+        // Spin up 10 threads and concurrently submit all 50 existing splits
+        // as well as 50 unique splits, this should create a collision with fate
+        // and cause retries
+        for (int i = 1; i <= threads; i++) {
+          var start = i * 100;
+          service.execute(() -> {
+            // add the 50 common splits
+            SortedMap<Text,TabletMergeability> splits = new TreeMap<>(commonSplits);
+            // create 50 unique splits
+            for (int j = start; j < start + 50; j++) {
+              splits.put(new Text(String.format("%09d", j)),
+                  TabletMergeability.after(Duration.ofHours(1 + j)));
+            }
+            // make sure all splits are captured
+            allSplits.putAll(splits);
+            // Wait for all 10 threads to be ready before calling putSplits()
+            // to increase the chance of collisions
+            latch.countDown();
+            try {
+              latch.await();
+              c.tableOperations().putSplits(tableName, splits);
+            } catch (Exception e) {
+              throw new RuntimeException(e);
+            }
+          });
+        }
+      } finally {
+        // Wait for all 10 threads to finish
+        service.shutdown();
+        assertTrue(service.awaitTermination(2, TimeUnit.MINUTES));
       }
-
-      // Wait for all 10 threads to finish
-      service.shutdown();
-      assertTrue(service.awaitTermination(2, TimeUnit.MINUTES));
 
       // Verify we have 550 splits and then all splits are correctly set
       assertEquals(50 + (threads * 50), allSplits.size());

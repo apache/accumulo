@@ -601,157 +601,159 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
   private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
     final int numTasks = 4;
     ExecutorService executor = Executors.newFixedThreadPool(numTasks);
-    CountDownLatch startLatch = new CountDownLatch(numTasks);
-    assertTrue(numTasks >= startLatch.getCount(),
-        "Not enough tasks/threads to satisfy latch count - deadlock risk");
-    var tasks = new ArrayList<Callable<Void>>(numTasks);
+    try {
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
+      var tasks = new ArrayList<Callable<Void>>(numTasks);
 
-    final int iterations = 151;
+      final int iterations = 151;
 
-    tasks.add(() -> {
-      startLatch.countDown();
-      startLatch.await();
-      for (int i = 0; i < iterations; i++) {
+      tasks.add(() -> {
+        startLatch.countDown();
+        startLatch.await();
+        for (int i = 0; i < iterations; i++) {
 
-        Map<String,String> prevProps = null;
-        if (i % 10 == 0) {
-          prevProps = propShim.getProperties();
+          Map<String,String> prevProps = null;
+          if (i % 10 == 0) {
+            prevProps = propShim.getProperties();
+          }
+
+          Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
+            int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
+            int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+            int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+            int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
+
+            tableProps.put("general.custom.A", A + 2 + "");
+            tableProps.put("general.custom.B", B + 3 + "");
+            tableProps.put("general.custom.C", C + 5 + "");
+            tableProps.put("general.custom.D", D + 7 + "");
+          });
+
+          if (prevProps != null) {
+            var beforeA = Integer.parseInt(prevProps.getOrDefault("general.custom.A", "0"));
+            var beforeB = Integer.parseInt(prevProps.getOrDefault("general.custom.B", "0"));
+            var beforeC = Integer.parseInt(prevProps.getOrDefault("general.custom.C", "0"));
+            var beforeD = Integer.parseInt(prevProps.getOrDefault("general.custom.D", "0"));
+
+            var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
+            var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
+            var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
+            var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
+
+            // because there are other thread possibly making changes since reading prevProps, can
+            // only do >= as opposed to == check. Should at a minimum see the changes made by this
+            // thread.
+            assertTrue(afterA >= beforeA + 2);
+            assertTrue(afterB >= beforeB + 3);
+            assertTrue(afterC >= beforeC + 5);
+            assertTrue(afterD >= beforeD + 7);
+          }
         }
+        return null;
+      });
 
-        Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
-          int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
-          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
-          int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
-          int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
+      tasks.add(() -> {
+        startLatch.countDown();
+        startLatch.await();
+        for (int i = 0; i < iterations; i++) {
+          propShim.modifyProperties(tableProps -> {
+            int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+            int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
 
-          tableProps.put("general.custom.A", A + 2 + "");
-          tableProps.put("general.custom.B", B + 3 + "");
-          tableProps.put("general.custom.C", C + 5 + "");
-          tableProps.put("general.custom.D", D + 7 + "");
-        });
-
-        if (prevProps != null) {
-          var beforeA = Integer.parseInt(prevProps.getOrDefault("general.custom.A", "0"));
-          var beforeB = Integer.parseInt(prevProps.getOrDefault("general.custom.B", "0"));
-          var beforeC = Integer.parseInt(prevProps.getOrDefault("general.custom.C", "0"));
-          var beforeD = Integer.parseInt(prevProps.getOrDefault("general.custom.D", "0"));
-
-          var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
-          var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
-          var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
-          var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
-
-          // because there are other thread possibly making changes since reading prevProps, can
-          // only do >= as opposed to == check. Should at a minimum see the changes made by this
-          // thread.
-          assertTrue(afterA >= beforeA + 2);
-          assertTrue(afterB >= beforeB + 3);
-          assertTrue(afterC >= beforeC + 5);
-          assertTrue(afterD >= beforeD + 7);
+            tableProps.put("general.custom.B", B + 11 + "");
+            tableProps.put("general.custom.C", C + 13 + "");
+          });
         }
+        return null;
+      });
+
+      tasks.add(() -> {
+        startLatch.countDown();
+        startLatch.await();
+        for (int i = 0; i < iterations; i++) {
+          propShim.modifyProperties(tableProps -> {
+            int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+
+            tableProps.put("general.custom.B", B + 17 + "");
+          });
+        }
+        return null;
+      });
+
+      tasks.add(() -> {
+        startLatch.countDown();
+        startLatch.await();
+        for (int i = 0; i < iterations; i++) {
+          propShim.modifyProperties(tableProps -> {
+            int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));
+            tableProps.put("general.custom.E", E + 19 + "");
+          });
+        }
+        return null;
+      });
+
+      assertEquals(numTasks, tasks.size());
+
+      // run all of the above task concurrently
+      for (Future<Void> future : executor.invokeAll(tasks)) {
+        // see if there were any exceptions in the background thread and wait for it to finish
+        future.get();
       }
-      return null;
-    });
 
-    tasks.add(() -> {
-      startLatch.countDown();
-      startLatch.await();
-      for (int i = 0; i < iterations; i++) {
-        propShim.modifyProperties(tableProps -> {
-          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
-          int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+      Map<String,String> expected = new HashMap<>();
 
-          tableProps.put("general.custom.B", B + 11 + "");
-          tableProps.put("general.custom.C", C + 13 + "");
-        });
-      }
-      return null;
-    });
+      // determine the expected sum for all the additions done by the separate threads for each
+      // property
+      expected.put("general.custom.A", iterations * 2 + "");
+      expected.put("general.custom.B", iterations * (3 + 11 + 17) + "");
+      expected.put("general.custom.C", iterations * (5 + 13) + "");
+      expected.put("general.custom.D", iterations * 7 + "");
+      expected.put("general.custom.E", iterations * 19 + "");
 
-    tasks.add(() -> {
-      startLatch.countDown();
-      startLatch.await();
-      for (int i = 0; i < iterations; i++) {
-        propShim.modifyProperties(tableProps -> {
-          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+      final var IS_NOT_CUSTOM_TABLE_PROP =
+          Pattern.compile("general[.]custom[.][ABCDEF]").asMatchPredicate().negate();
+      Wait.waitFor(() -> {
+        var tableProps = new HashMap<>(propShim.getProperties());
+        tableProps.keySet().removeIf(IS_NOT_CUSTOM_TABLE_PROP);
+        boolean equal = expected.equals(tableProps);
+        if (!equal) {
+          log.info(
+              "Waiting for properties to converge. Actual:" + tableProps + " Expected:" + expected);
+        }
+        return equal;
+      });
 
-          tableProps.put("general.custom.B", B + 17 + "");
-        });
-      }
-      return null;
-    });
+      // now that there are not other thread modifying properties, make a modification to check that
+      // the returned map
+      // is exactly as expected.
+      Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
+        int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
+        int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+        int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+        int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
 
-    tasks.add(() -> {
-      startLatch.countDown();
-      startLatch.await();
-      for (int i = 0; i < iterations; i++) {
-        propShim.modifyProperties(tableProps -> {
-          int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));
-          tableProps.put("general.custom.E", E + 19 + "");
-        });
-      }
-      return null;
-    });
+        tableProps.put("general.custom.A", A + 2 + "");
+        tableProps.put("general.custom.B", B + 3 + "");
+        tableProps.put("general.custom.C", C + 5 + "");
+        tableProps.put("general.custom.D", D + 7 + "");
+      });
 
-    assertEquals(numTasks, tasks.size());
+      var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
+      var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
+      var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
+      var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
+      var afterE = Integer.parseInt(acceptedProps.get("general.custom.E"));
 
-    // run all of the above task concurrently
-    for (Future<Void> future : executor.invokeAll(tasks)) {
-      // see if there were any exceptions in the background thread and wait for it to finish
-      future.get();
+      assertEquals(iterations * 2 + 2, afterA);
+      assertEquals(iterations * (3 + 11 + 17) + 3, afterB);
+      assertEquals(iterations * (5 + 13) + 5, afterC);
+      assertEquals(iterations * 7 + 7, afterD);
+      assertEquals(iterations * 19, afterE);
+    } finally {
+      executor.shutdown();
     }
-
-    Map<String,String> expected = new HashMap<>();
-
-    // determine the expected sum for all the additions done by the separate threads for each
-    // property
-    expected.put("general.custom.A", iterations * 2 + "");
-    expected.put("general.custom.B", iterations * (3 + 11 + 17) + "");
-    expected.put("general.custom.C", iterations * (5 + 13) + "");
-    expected.put("general.custom.D", iterations * 7 + "");
-    expected.put("general.custom.E", iterations * 19 + "");
-
-    final var IS_NOT_CUSTOM_TABLE_PROP =
-        Pattern.compile("general[.]custom[.][ABCDEF]").asMatchPredicate().negate();
-    Wait.waitFor(() -> {
-      var tableProps = new HashMap<>(propShim.getProperties());
-      tableProps.keySet().removeIf(IS_NOT_CUSTOM_TABLE_PROP);
-      boolean equal = expected.equals(tableProps);
-      if (!equal) {
-        log.info(
-            "Waiting for properties to converge. Actual:" + tableProps + " Expected:" + expected);
-      }
-      return equal;
-    });
-
-    // now that there are not other thread modifying properties, make a modification to check that
-    // the returned map
-    // is exactly as expected.
-    Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
-      int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
-      int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
-      int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
-      int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
-
-      tableProps.put("general.custom.A", A + 2 + "");
-      tableProps.put("general.custom.B", B + 3 + "");
-      tableProps.put("general.custom.C", C + 5 + "");
-      tableProps.put("general.custom.D", D + 7 + "");
-    });
-
-    var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
-    var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
-    var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
-    var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
-    var afterE = Integer.parseInt(acceptedProps.get("general.custom.E"));
-
-    assertEquals(iterations * 2 + 2, afterA);
-    assertEquals(iterations * (3 + 11 + 17) + 3, afterB);
-    assertEquals(iterations * (5 + 13) + 5, afterC);
-    assertEquals(iterations * 7 + 7, afterD);
-    assertEquals(iterations * 19, afterE);
-
-    executor.shutdown();
   }
 
   @Test

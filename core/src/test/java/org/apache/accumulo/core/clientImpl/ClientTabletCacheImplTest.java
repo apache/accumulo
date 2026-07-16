@@ -1984,69 +1984,76 @@ public class ClientTabletCacheImplTest {
     setLocation(tservers, "tserver3", mte2, ke3, "tserver9");
 
     var executor = Executors.newCachedThreadPool();
-    final int lookupCount = 128;
-    final int roundCount = 8;
-    final int numTasks = roundCount * lookupCount;
+    try {
+      final int lookupCount = 128;
+      final int roundCount = 8;
+      final int numTasks = roundCount * lookupCount;
 
-    List<Future<CachedTablet>> futures = new ArrayList<>(numTasks);
-    CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at once
-    assertTrue(numTasks >= startLatch.getCount(),
-        "Not enough tasks to satisfy latch count - deadlock risk");
+      List<Future<CachedTablet>> futures = new ArrayList<>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at once
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-    // multiple rounds to increase the chance of contention
-    for (int round = 0; round < roundCount; round++) {
+      // multiple rounds to increase the chance of contention
+      for (int round = 0; round < roundCount; round++) {
 
-      // start a bunch of threads all trying to lookup data in the cache
-      // should see exactly 2 threads doing metadata lookups at a time
-      List<String> rowsToLookup = new ArrayList<>(lookupCount);
+        // start a bunch of threads all trying to lookup data in the cache
+        // should see exactly 2 threads doing metadata lookups at a time
+        List<String> rowsToLookup = new ArrayList<>(lookupCount);
 
-      for (int i = 0; i < lookupCount; i++) {
-        String lookup = (char) ('a' + (i % 26)) + "";
-        rowsToLookup.add(lookup);
+        for (int i = 0; i < lookupCount; i++) {
+          String lookup = (char) ('a' + (i % 26)) + "";
+          rowsToLookup.add(lookup);
+        }
+
+        Collections.shuffle(rowsToLookup, RANDOM.get());
+
+        for (var lookup : rowsToLookup) {
+          var future = executor.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
+            if (RANDOM.get().nextInt(10) < 3) {
+              Thread.yield();
+            }
+            var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
+            if (lookup.compareTo("m") <= 0) {
+              assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
+            } else if (lookup.compareTo("q") <= 0) {
+              assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
+            } else {
+              assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
+            }
+            return loc;
+          });
+          futures.add(future);
+        }
+      }
+      assertEquals(numTasks, futures.size());
+
+      for (var future : futures) {
+        assertNotNull(future.get());
       }
 
-      Collections.shuffle(rowsToLookup, RANDOM.get());
-
-      for (var lookup : rowsToLookup) {
-        var future = executor.submit(() -> {
-          startLatch.countDown();
-          startLatch.await();
-          if (RANDOM.get().nextInt(10) < 3) {
-            Thread.yield();
-          }
-          var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
-          if (lookup.compareTo("m") <= 0) {
-            assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
-          } else if (lookup.compareTo("q") <= 0) {
-            assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
-          } else {
-            assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
-          }
-          return loc;
-        });
-        futures.add(future);
-      }
+      assertTrue(sawTwoActive.get(), "Expected to see exactly two lookups.");
+      // The second metadata tablet (mte2) contains two user tablets (ke2 and ke3). Depending on
+      // which
+      // of these two user tablets is looked up in the metadata table first will see a total of 2 or
+      // 3
+      // lookups. If the location of ke2 is looked up first then it will get the locations of ke2
+      // and
+      // ke3 from mte2 and put them in the cache. If the location of ke3 is looked up first then it
+      // will only get the location of ke3 from mte2 and not ke2.
+      assertTrue(lookups.size() == 2 || lookups.size() == 3,
+          "Expected 2 or 3 lookups, got " + lookups.size() + " : " + lookups);
+      assertEquals(1,
+          lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte1)).count(),
+          lookups::toString);
+      var mte2Lookups =
+          lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte2)).count();
+      assertTrue(mte2Lookups == 1 || mte2Lookups == 2, lookups::toString);
+    } finally {
+      executor.shutdown();
     }
-    assertEquals(numTasks, futures.size());
-
-    for (var future : futures) {
-      assertNotNull(future.get());
-    }
-
-    assertTrue(sawTwoActive.get(), "Expected to see exactly two lookups.");
-    // The second metadata tablet (mte2) contains two user tablets (ke2 and ke3). Depending on which
-    // of these two user tablets is looked up in the metadata table first will see a total of 2 or 3
-    // lookups. If the location of ke2 is looked up first then it will get the locations of ke2 and
-    // ke3 from mte2 and put them in the cache. If the location of ke3 is looked up first then it
-    // will only get the location of ke3 from mte2 and not ke2.
-    assertTrue(lookups.size() == 2 || lookups.size() == 3,
-        "Expected 2 or 3 lookups, got " + lookups.size() + " : " + lookups);
-    assertEquals(1, lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte1)).count(),
-        lookups::toString);
-    var mte2Lookups =
-        lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte2)).count();
-    assertTrue(mte2Lookups == 1 || mte2Lookups == 2, lookups::toString);
-    executor.shutdown();
   }
 
   @Test
@@ -2097,51 +2104,55 @@ public class ClientTabletCacheImplTest {
     metaCache.invalidateCache(ke2);
 
     var executor = Executors.newCachedThreadPool();
+    try {
 
-    // acquire this lock to simulate a metadata table lookup blocking
-    lookupLock.lock();
+      // acquire this lock to simulate a metadata table lookup blocking
+      lookupLock.lock();
 
-    // verify test assumption
-    assertEquals(0, lookupLock.getQueueLength());
+      // verify test assumption
+      assertEquals(0, lookupLock.getQueueLength());
 
-    // start a background task that will read from the metadata table
-    var lookupFuture = executor
-        .submit(() -> metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+      // start a background task that will read from the metadata table
+      var lookupFuture = executor
+          .submit(() -> metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
+              .getTserverLocation().orElseThrow());
 
-    // wait for the background thread to get stuck waiting on the lock
-    while (lookupLock.getQueueLength() == 0) {
-      Thread.sleep(5);
+      // wait for the background thread to get stuck waiting on the lock
+      while (lookupLock.getQueueLength() == 0) {
+        Thread.sleep(5);
+      }
+
+      // The lookup task should be blocked trying to get location from the metadata table
+      assertFalse(lookupFuture.isDone());
+      assertEquals(1, lookupLock.getQueueLength());
+
+      // should be able to get the tablet locations that are still in the cache w/o blocking
+      assertEquals("tserver3",
+          metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
+              .getTserverLocation().orElseThrow());
+      assertEquals("tserver5",
+          metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
+              .getTserverLocation().orElseThrow());
+      assertEquals("tserver6",
+          metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
+              .getTserverLocation().orElseThrow());
+
+      // The lookup task should still be blocked
+      assertFalse(lookupFuture.isDone());
+      assertEquals(1, lookupLock.getQueueLength());
+
+      // allow the metadata lookup running in background thread to proceed.
+      lookupLock.unlock();
+
+      // The future should be able to run and complete
+      assertEquals("tserver4", lookupFuture.get());
+
+      // verify test assumptions
+      assertTrue(lookupFuture.isDone());
+      assertEquals(0, lookupLock.getQueueLength());
+    } finally {
+      executor.shutdown();
     }
-
-    // The lookup task should be blocked trying to get location from the metadata table
-    assertFalse(lookupFuture.isDone());
-    assertEquals(1, lookupLock.getQueueLength());
-
-    // should be able to get the tablet locations that are still in the cache w/o blocking
-    assertEquals("tserver3",
-        metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
-    assertEquals("tserver5",
-        metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
-    assertEquals("tserver6",
-        metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
-
-    // The lookup task should still be blocked
-    assertFalse(lookupFuture.isDone());
-    assertEquals(1, lookupLock.getQueueLength());
-
-    // allow the metadata lookup running in background thread to proceed.
-    lookupLock.unlock();
-
-    // The future should be able to run and complete
-    assertEquals("tserver4", lookupFuture.get());
-
-    // verify test assumptions
-    assertTrue(lookupFuture.isDone());
-    assertEquals(0, lookupLock.getQueueLength());
   }
 
   @Test
