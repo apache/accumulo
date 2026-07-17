@@ -743,18 +743,14 @@ public class ConfigurableScanServerSelectorTest {
   }
 
   @Test
-  public void testInfiniteServerPercentage(){
+  public void testInfiniteServerPercentage() {
     String defaultProfile =
-            "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
-                    + "[{'servers':'50%', 'busyTimeout':'60s'}]}";
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
+            + "[{'servers':'Double.POSITIVE_INFINITY%', 'busyTimeout':'60s'}]}";
 
-    String profile1 =
-            "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m','busyTimeoutMultiplier':2, "
-                    + "'attemptPlans':[{'servers':'Double.POSITIVE_INFINITY%', 'busyTimeout':'10m'}]}";
+    var opts = Map.of("profiles", ("[" + defaultProfile + "]").replace('\'', '"'));
 
-    var opts = Map.of("profiles",
-            ("[" + profile1 + "," + defaultProfile + "]").replace('\'', '"'));
-
-      assertThrows(IllegalArgumentException.class, () -> runBusyTest(100, 1, 5, 66, opts));
+    var exception = assertThrows(IllegalArgumentException.class, () -> runBusyTest(100, 1, 5, 66, opts));
+    assertTrue(exception.getMessage().contains("Bad"));
   }
 }
