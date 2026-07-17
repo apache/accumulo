@@ -746,7 +746,7 @@ public class ConfigurableScanServerSelectorTest {
   public void testInfiniteServerPercentage() {
     String defaultProfile =
         "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
-            + "[{'servers':'Double.POSITIVE_INFINITY%', 'busyTimeout':'60s'}]}";
+            + "[{'servers':'NaN%', 'busyTimeout':'60s'}]}";
 
     var opts = Map.of("profiles", ("[" + defaultProfile + "]").replace('\'', '"'));
 
