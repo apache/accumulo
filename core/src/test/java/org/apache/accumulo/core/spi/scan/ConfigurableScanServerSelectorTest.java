@@ -750,7 +750,8 @@ public class ConfigurableScanServerSelectorTest {
 
     var opts = Map.of("profiles", ("[" + defaultProfile + "]").replace('\'', '"'));
 
-    var exception = assertThrows(IllegalArgumentException.class, () -> runBusyTest(100, 1, 5, 66, opts));
-    assertTrue(exception.getMessage().contains("Bad"));
+    var exception =
+        assertThrows(IllegalArgumentException.class, () -> runBusyTest(100, 1, 5, 66, opts));
+    assertTrue(exception.getMessage().contains("Bad servers percentage"));
   }
 }
