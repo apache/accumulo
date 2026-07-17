@@ -115,7 +115,7 @@
   <properties>
     <!-- properties used by the accumulo build in our own POM files -->
     <accumulo.build.extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.stream=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</accumulo.build.extraTestArgs>
-    <accumulo.build.javadoc.since>2.0.0,2.0.1,2.1.0,2.1.1,2.1.2,2.1.3,2.1.4,2.1.5,2.1.6</accumulo.build.javadoc.since>
+    <accumulo.build.javadoc.since>2.0.0,2.0.1,2.1.0,2.1.1,2.1.2,2.1.3,2.1.4,2.1.5,2.1.6,2.1.7</accumulo.build.javadoc.since>
     <accumulo.build.license.header><![CDATA[
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
