@@ -55,6 +55,7 @@ import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.accumulo.tserver.log.ResolvedSortedLog;
 import org.apache.accumulo.tserver.logger.LogReader.ReaderOpts;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -140,7 +141,8 @@ public class LogReader extends ServerKeywordExecutable<ReaderOpts> {
         LogFileValue value = new LogFileValue();
 
         // ensure it's a regular non-sorted WAL file, and not a single sorted WAL in RFile format
-        if (fs.getFileStatus(path).isFile()) {
+        FileStatus status = fs.getFileStatus(path);
+        if (status.isFile()) {
           if (file.endsWith(".rf")) {
             log.error("Unable to read from a single RFile. A non-sorted WAL file was expected. "
                 + "To read sorted WALs, please pass in a directory containing the sorted recovery logs.");
@@ -148,13 +150,13 @@ public class LogReader extends ServerKeywordExecutable<ReaderOpts> {
           }
 
           if (opts.printOnlyEncryptionInfo) {
-            try (final FSDataInputStream fsinput = fs.open(path)) {
+            try (final FSDataInputStream fsinput = fs.open(path, status)) {
               printCryptoParams(fsinput, path);
             }
             continue;
           }
 
-          try (final FSDataInputStream fsinput = fs.open(path);
+          try (final FSDataInputStream fsinput = fs.open(path, status);
               DataInputStream input = DfsLogger.getDecryptingStream(fsinput, walCryptoService)) {
             while (true) {
               try {

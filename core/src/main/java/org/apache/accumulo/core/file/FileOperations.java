@@ -23,6 +23,9 @@ import static org.apache.accumulo.core.file.blockfile.impl.CacheProvider.NULL_PR
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -36,9 +39,11 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FutureDataInputStreamBuilder;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 
@@ -75,6 +80,33 @@ public abstract class FileOperations {
 
   public static FileOperations getInstance() {
     return new DispatchingFileFactory();
+  }
+
+  public static FSDataInputStream openFile(FileSystem fs, Path path, FileStatus status)
+      throws IOException {
+    final FutureDataInputStreamBuilder builder = fs.openFile(path);
+    if (status != null) {
+      builder.withFileStatus(status);
+    }
+    final CompletableFuture<FSDataInputStream> future = builder.build();
+    while (!future.isDone()) {
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("Interrupted while opening file: " + path, e);
+      }
+    }
+    try {
+      return future.get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Interrupted while opening file: " + path, e);
+    } catch (CancellationException e) {
+      throw new IOException("Cancelled while opening file: " + path, e);
+    } catch (ExecutionException e) {
+      throw new IOException("Error trying to open file: " + path, e);
+    }
   }
 
   //
