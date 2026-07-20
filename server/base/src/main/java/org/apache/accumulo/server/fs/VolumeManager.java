@@ -157,6 +157,9 @@ public interface VolumeManager extends AutoCloseable {
   // forward to the appropriate FileSystem object
   FSDataInputStream open(Path path) throws IOException;
 
+  // forward to the appropriate FileSystem object
+  FSDataInputStream open(Path path, FileStatus status) throws IOException;
+
   // forward to the appropriate FileSystem object, throws an exception if the paths are in different
   // volumes
   boolean rename(Path path, Path newPath) throws IOException;
