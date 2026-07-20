@@ -26,12 +26,11 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
@@ -49,7 +48,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FutureDataInputStreamBuilder;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
@@ -102,43 +100,21 @@ public class CachableBlockFile {
         FileStatus status) {
       this.cacheId = pathToCacheId(dataFile);
       this.inputSupplier = () -> {
-        FutureDataInputStreamBuilder builder = fs.openFile(dataFile);
-        if (status != null) {
-          builder.withFileStatus(status);
-        }
-        CompletableFuture<FSDataInputStream> future = builder.build();
-        while (!future.isDone()) {
+        FSDataInputStream is = FileOperations.openFile(fs, dataFile, status);
+        if (dropCacheBehind) {
+          // Tell the DataNode that the write ahead log does not need to be cached in the OS page
+          // cache
           try {
-            Thread.sleep(10);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Interrupted while opening file: " + dataFile, e);
+            is.setDropBehind(Boolean.TRUE);
+            log.trace("Called setDropBehind(TRUE) for stream reading file {}", dataFile);
+          } catch (UnsupportedOperationException e) {
+            log.debug("setDropBehind not enabled for wal file: {}", dataFile);
+          } catch (IOException e) {
+            log.debug("IOException setting drop behind for file: {}, msg: {}", dataFile,
+                e.getMessage());
           }
         }
-        try {
-          FSDataInputStream is = future.get();
-          if (dropCacheBehind) {
-            // Tell the DataNode that the write ahead log does not need to be cached in the OS page
-            // cache
-            try {
-              is.setDropBehind(Boolean.TRUE);
-              log.trace("Called setDropBehind(TRUE) for stream reading file {}", dataFile);
-            } catch (UnsupportedOperationException e) {
-              log.debug("setDropBehind not enabled for wal file: {}", dataFile);
-            } catch (IOException e) {
-              log.debug("IOException setting drop behind for file: {}, msg: {}", dataFile,
-                  e.getMessage());
-            }
-          }
-          return is;
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new IOException("Interrupted while opening file: " + dataFile, e);
-        } catch (CancellationException e) {
-          throw new IOException("Cancelled while opening file: " + dataFile, e);
-        } catch (ExecutionException e) {
-          throw new IOException("Error trying to open file: " + dataFile, e);
-        }
+        return is;
       };
       this.lengthSupplier =
           () -> status == null ? fs.getFileStatus(dataFile).getLen() : status.getLen();

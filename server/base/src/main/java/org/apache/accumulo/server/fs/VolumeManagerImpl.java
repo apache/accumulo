@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -306,6 +307,11 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public FSDataInputStream open(Path path) throws IOException {
     return getFileSystemByPath(path).open(path);
+  }
+
+  @Override
+  public FSDataInputStream open(Path path, FileStatus status) throws IOException {
+    return FileOperations.openFile(getFileSystemByPath(path), path, status);
   }
 
   @Override
