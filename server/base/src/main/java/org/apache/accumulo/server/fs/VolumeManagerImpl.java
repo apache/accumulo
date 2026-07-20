@@ -29,13 +29,17 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -53,6 +57,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.BulkDelete;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -73,6 +78,7 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class VolumeManagerImpl implements VolumeManager {
 
@@ -86,6 +92,7 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
+  private final Set<Volume> bulkDeleteVolumes;
   private final VolumeChooser chooser;
   private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
@@ -95,6 +102,29 @@ public class VolumeManagerImpl implements VolumeManager {
     this.volumesByName = volumes;
     // We may have multiple directories used in a single FileSystem (e.g. testing)
     this.volumesByFileSystemUri = invertVolumesByFileSystem(volumesByName);
+
+    this.bulkDeleteVolumes = new HashSet<>();
+    for (Volume v : volumes.values()) {
+      FileSystem fs = v.getFileSystem();
+      String base = v.getBasePath().isBlank() ? "/" : v.getBasePath();
+      Path basePath = fs.makeQualified(new Path(base));
+      try {
+        if (fs.hasPathCapability(basePath, "fs.capability.bulk.delete")) {
+          try (BulkDelete bulk = fs.createBulkDelete(basePath)) {
+            // Don't use the BulkDelete API if the page size is only 1.
+            // The DefaultBulkDeleteOperation implementation has a page size of 1.
+            // The S3A FileSystem implementation has a default of 250 and
+            // is configured by the property `fs.s3a.bulk.delete.page.size`.
+            if (bulk.pageSize() > 1) {
+              this.bulkDeleteVolumes.add(v);
+            }
+          }
+        }
+      } catch (IllegalArgumentException | IOException e) {
+        log.warn("Error determining bulk delete capability for volume {}", v.getBasePath(), e);
+      }
+    }
+
     ensureSyncIsEnabled();
     // if they supplied a property and we cannot load it, then fail hard
     VolumeChooser chooser1;
@@ -213,6 +243,109 @@ public class VolumeManagerImpl implements VolumeManager {
     return getFileSystemByPath(path).delete(path, true);
   }
 
+  @Override
+  public Map<Path,DeleteStatus> deleteBulk(Collection<Path> paths) throws IOException {
+
+    requireNonNull(paths);
+
+    if (paths.isEmpty()) {
+      return Map.of();
+    }
+
+    if (paths.size() == 1) {
+      Path p = paths.iterator().next();
+      try {
+        if (delete(p)) {
+          return Map.of(p, DeleteStatus.TRUE);
+        } else {
+          return Map.of(p, DeleteStatus.FALSE);
+        }
+      } catch (IOException e) {
+        return Map.of(p, DeleteStatus.ERROR);
+      }
+    }
+
+    final Map<Volume,ArrayList<Path>> pathsSupportingBulkDelete = new HashMap<>();
+    final List<Path> pathsNotSupportingBulkDelete = new ArrayList<>();
+    final Map<Path,DeleteStatus> results = new ConcurrentHashMap<>();
+    final List<Future<Void>> futures = new LinkedList<>();
+
+    for (Path p : paths) {
+      Volume v = getVolumeForPath(p);
+      if (v != null && this.bulkDeleteVolumes.contains(v)) {
+        pathsSupportingBulkDelete.computeIfAbsent(v, (k) -> new ArrayList<Path>()).add(p);
+      } else {
+        pathsNotSupportingBulkDelete.add(p);
+      }
+    }
+
+    if (!pathsNotSupportingBulkDelete.isEmpty()) {
+      final ExecutorService delSvc;
+      if (pathsNotSupportingBulkDelete.size() < 4) {
+        // Do not bother creating a thread pool and threads for a few files.
+        delSvc = MoreExecutors.newDirectExecutorService();
+      } else {
+        delSvc = Executors.newFixedThreadPool(8);
+      }
+      pathsNotSupportingBulkDelete.forEach(p -> {
+        futures.add(delSvc.submit(() -> {
+          try {
+            if (delete(p)) {
+              results.put(p, DeleteStatus.TRUE);
+            } else {
+              results.put(p, DeleteStatus.FALSE);
+            }
+            return null;
+          } catch (IOException e) {
+            log.error("Error deleting file at {}", p, e);
+            results.put(p, DeleteStatus.ERROR);
+            return null;
+          }
+        }));
+      });
+      delSvc.shutdown();
+    }
+
+    for (Entry<Volume,ArrayList<Path>> e : pathsSupportingBulkDelete.entrySet()) {
+      Volume v = e.getKey();
+      List<Path> deletes = e.getValue();
+      FileSystem fs = v.getFileSystem();
+      Path basePath = fs.makeQualified(new Path(v.getBasePath()));
+      try (BulkDelete bulk = fs.createBulkDelete(basePath)) {
+        int batchSize = bulk.pageSize();
+        for (int i = 0; i <= deletes.size(); i += batchSize) {
+          List<Path> subset = deletes.subList(i, Math.min(i + batchSize, deletes.size()));
+          List<Entry<Path,String>> errors = bulk.bulkDelete(subset);
+          errors.forEach((entry) -> {
+            log.error("Failed to delete file at {}, reason: {}", entry.getKey(), entry.getValue());
+            results.put(entry.getKey(), DeleteStatus.ERROR);
+            if (!subset.remove(entry.getKey())) {
+              log.error("Did not find error path {} in input set {}", entry.getKey(), subset);
+            }
+          });
+          subset.forEach(success -> results.put(success, DeleteStatus.TRUE));
+        }
+      }
+    }
+
+    while (!futures.isEmpty()) {
+      Iterator<Future<Void>> iter = futures.iterator();
+      while (iter.hasNext()) {
+        Future<Void> f = iter.next();
+        if (f.isDone()) {
+          iter.remove();
+        }
+      }
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException(e);
+      }
+    }
+    return results;
+  }
+
   protected void ensureSyncIsEnabled() {
     for (Entry<String,Volume> entry : volumesByName.entrySet()) {
       FileSystem fs = entry.getValue().getFileSystem();
@@ -281,6 +414,31 @@ public class VolumeManagerImpl implements VolumeManager {
     } else {
       log.debug("Could not determine volume for Path: {}", path);
       return desiredFs;
+    }
+  }
+
+  private Volume getVolumeForPath(Path path) {
+    FileSystem desiredFs;
+    try {
+      Configuration volumeConfig = hadoopConf;
+      for (String vol : volumesByName.keySet()) {
+        if (path.toString().startsWith(vol)) {
+          volumeConfig = getVolumeManagerConfiguration(conf, hadoopConf, vol);
+          break;
+        }
+      }
+      desiredFs = requireNonNull(path).getFileSystem(volumeConfig);
+    } catch (IOException ex) {
+      throw new UncheckedIOException(ex);
+    }
+    URI desiredFsUri = desiredFs.getUri();
+    Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
+    if (candidateVolumes != null) {
+      return candidateVolumes.stream().filter(volume -> volume.containsPath(path)).findFirst()
+          .orElse(null);
+    } else {
+      log.debug("Could not determine volume for Path: {}", path);
+      return null;
     }
   }
 

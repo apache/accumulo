@@ -20,12 +20,13 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.VolumeManager.DeleteStatus;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.FindOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
@@ -59,7 +61,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -176,71 +177,33 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
     }
   }
 
-  private static boolean deleteTmpFile(ServerContext context, Path p) throws IOException {
-    if (context.getVolumeManager().exists(p)) {
-      boolean result = context.getVolumeManager().delete(p);
-      if (result) {
-        LOG.debug("Removed old temp file {}", p);
-      } else {
-        LOG.error("Unable to remove old temp file {}, operation returned false with no exception",
-            p);
-      }
-      return result;
-    }
-    return true;
-  }
-
   public static DeleteStats deleteTempFiles(ServerContext context, Set<Path> filesToDelete) {
 
-    final ExecutorService delSvc;
-    if (filesToDelete.size() < 4) {
-      // Do not bother creating a thread pool and threads for a few files.
-      delSvc = MoreExecutors.newDirectExecutorService();
-    } else {
-      delSvc = Executors.newFixedThreadPool(8);
-    }
-
     final DeleteStats stats = new DeleteStats();
-
-    // use a linked list to make removal from the middle of the list quick
-    final List<Future<Boolean>> futures = new LinkedList<>();
-
-    filesToDelete.forEach(p -> {
-      futures.add(delSvc.submit(() -> deleteTmpFile(context, p)));
-    });
-    delSvc.shutdown();
-
     try {
-      int expectedResponses = filesToDelete.size();
-      while (expectedResponses > 0) {
-        Iterator<Future<Boolean>> iter = futures.iterator();
-        while (iter.hasNext()) {
-          Future<Boolean> future = iter.next();
-          if (future.isDone()) {
-            expectedResponses--;
-            iter.remove();
-            try {
-              if (future.get()) {
-                stats.success++;
-              } else {
-                stats.failure++;
-              }
-            } catch (ExecutionException e) {
-              stats.error++;
-              LOG.error("Error deleting a compaction tmp file", e);
-            }
-          }
+      Map<Path,DeleteStatus> results = context.getVolumeManager().deleteBulk(filesToDelete);
+      results.forEach((k, v) -> {
+        switch (v) {
+          case ERROR:
+            LOG.error("Error deleting a compaction tmp file {}", k);
+            stats.error++;
+            break;
+          case FALSE:
+            LOG.error(
+                "Unable to remove old temp file {}, operation returned false with no exception", k);
+            stats.failure++;
+            break;
+          case TRUE:
+            LOG.debug("Removed old temp file {}", k);
+            stats.success++;
+            break;
+          default:
+            break;
         }
-        if (expectedResponses > 0) {
-          LOG.debug("Waiting on {} background delete operations", expectedResponses);
-          UtilWaitThread.sleep(1_000);
-        }
-      }
-      delSvc.awaitTermination(10, TimeUnit.MINUTES);
+      });
       return stats;
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException("Error in VolumeManager.deleteBulk", e);
     }
   }
 
