@@ -165,9 +165,10 @@ public abstract class AbstractServer
   public void gracefulShutdown(TCredentials credentials) {
 
     try {
-      if (!context.getSecurityOperation().canPerformSystemActions(credentials)) {
-        log.warn("Ignoring shutdown request, user " + credentials.getPrincipal()
-            + " does not have the appropriate permissions.");
+      if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
+        log.warn("Ignoring shutdown request, user {} does not have the appropriate permissions",
+            credentials.getPrincipal());
+        return;
       }
     } catch (ThriftSecurityException e) {
       log.error(
@@ -180,9 +181,10 @@ public abstract class AbstractServer
       // Don't interrupt the server thread, that will cause
       // IO operations to fail as the servers are finishing
       // their work.
-      log.info("Graceful shutdown initiated.");
+      log.info("Graceful shutdown initiated by user {}", credentials.getPrincipal());
     } else {
-      log.warn("Graceful shutdown previously requested.");
+      log.warn("Graceful shutdown previously requested. Requested again by user {}",
+          credentials.getPrincipal());
     }
   }
 
@@ -228,10 +230,10 @@ public abstract class AbstractServer
       verificationThread.interrupt();
       verificationThread.join();
     }
-    log.info(getClass().getSimpleName() + " process shut down.");
+    log.info("{} process shut down", getClass().getSimpleName());
     Throwable thrown = err.get();
     if (thrown != null) {
-      System.err.println("Uncaught execption in AbstractServer.runServer");
+      System.err.println("Uncaught exception in AbstractServer.runServer");
       thrown.printStackTrace();
       System.err.flush();
       log.error("Uncaught exception ", thrown);
