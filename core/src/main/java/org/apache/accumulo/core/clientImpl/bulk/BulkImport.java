@@ -266,8 +266,10 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf,
-      UnreferencedTabletFile dataFile, long fileSize, Collection<KeyExtent> extents, FileSystem ns,
-      Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
+      UnreferencedTabletFile dataFile, FileStatus status, Collection<KeyExtent> extents,
+      FileSystem ns, Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
+
+    final long fileSize = status.getLen();
 
     if (extents.size() == 1) {
       return Collections.singletonMap(extents.iterator().next(), fileSize);
@@ -281,9 +283,10 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     Text row = new Text();
 
-    try (FileSKVIterator index =
-        FileOperations.getInstance().newIndexReaderBuilder().forFile(dataFile, ns, ns.getConf(), cs)
-            .withTableConfiguration(acuConf).withFileLenCache(fileLenCache).build()) {
+    try (FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
+        .forFile(dataFile, ns, ns.getConf(), cs, status).withTableConfiguration(acuConf)
+        .withFileLenCache(fileLenCache).build()) {
+
       while (index.hasTop()) {
         Key key = index.getTopKey();
         totalIndexEntries++;
@@ -354,10 +357,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
       KeyExtentCache keyExtentCache, UnreferencedTabletFile file, FileSystem fs,
-      Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
-    try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(context.getConfiguration())
-        .withFileLenCache(fileLenCache).seekToBeginning().build()) {
+      Cache<String,Long> fileLenCache, CryptoService cs, FileStatus status) throws IOException {
+    try (FileSKVIterator reader =
+        FileOperations.getInstance().newReaderBuilder().forFile(file, fs, fs.getConf(), cs, status)
+            .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
+            .seekToBeginning().build()) {
 
       Collection<ByteSequence> columnFamilies = Collections.emptyList();
       NextRowFunction nextRowFunction = row -> {
@@ -559,11 +563,11 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         try {
           long t1 = System.currentTimeMillis();
           List<KeyExtent> extents =
-              findOverlappingTablets(context, extentCache, file, fs, fileLensCache, cs);
+              findOverlappingTablets(context, extentCache, file, fs, fileLensCache, cs, fileStatus);
           // make sure file isn't going to too many tablets
           checkTabletCount(maxTablets, extents.size(), file.toString());
-          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), file,
-              fileStatus.getLen(), extents, fs, fileLensCache, cs);
+          Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), file, fileStatus,
+              extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>(extents.size(), 1.0f);
           for (KeyExtent ke : extents) {
             pathLocations.put(ke, new Bulk.FileInfo(file.getPath(), estSizes.getOrDefault(ke, 0L)));
