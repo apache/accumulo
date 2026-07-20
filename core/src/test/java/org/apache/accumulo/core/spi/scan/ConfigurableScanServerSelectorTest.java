@@ -741,4 +741,20 @@ public class ConfigurableScanServerSelectorTest {
       assertEquals(Duration.ofMillis(expected), selections.getDelay());
     }
   }
+
+  /**
+   * Test that a NaN server percentage value throws the expected exception
+   */
+  @Test
+  public void testInfiniteServerPercentage() {
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
+            + "[{'servers':'NaN%', 'busyTimeout':'60s'}]}";
+
+    var opts = Map.of("profiles", ("[" + defaultProfile + "]").replace('\'', '"'));
+
+    var exception =
+        assertThrows(IllegalArgumentException.class, () -> runBusyTest(100, 1, 5, 66, opts));
+    assertTrue(exception.getMessage().contains("Bad servers percentage"));
+  }
 }
