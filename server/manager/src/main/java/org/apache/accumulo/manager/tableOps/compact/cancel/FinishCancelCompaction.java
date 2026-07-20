@@ -18,15 +18,20 @@
  */
 package org.apache.accumulo.manager.tableOps.compact.cancel;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-class FinishCancelCompaction extends ManagerRepo {
+import com.google.gson.JsonObject;
+
+class FinishCancelCompaction extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
   private final NamespaceId namespaceId;
@@ -37,14 +42,22 @@ class FinishCancelCompaction extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) {
-    Utils.unreserveTable(environment, tableId, tid, LockType.READ);
-    Utils.unreserveNamespace(environment, namespaceId, tid, LockType.READ);
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) {
+    Utils.unreserveTable(environment.getContext(), tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.READ);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager environment) {
+  public void undo(FateId fateId, FateEnv environment) {
 
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    return GSON.get().toJson(details);
   }
 }

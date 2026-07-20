@@ -48,8 +48,11 @@ import org.apache.hadoop.mapreduce.InputSplit;
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
-  private String tableId, tableName;
-  private Boolean offline, isolatedScan, localIterators;
+  private String tableId;
+  private String tableName;
+  private Boolean offline;
+  private Boolean isolatedScan;
+  private Boolean localIterators;
   private Set<IteratorSetting.Column> fetchedColumns;
   private List<IteratorSetting> iterators;
   private SamplerConfiguration samplerConfig;

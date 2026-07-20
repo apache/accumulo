@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Manages an internal list of secret keys used to sign new authentication tokens as they are
  * generated, and to validate existing tokens used for authentication.
@@ -255,6 +257,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
         try {
           keyDistributor.remove(key);
         } catch (KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Failed to remove AuthenticationKey from ZooKeeper. Exiting", e);
           throw new IllegalStateException(e);
         }
@@ -282,6 +287,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     return super.generateSecret();
   }
 
+  @SuppressFBWarnings(value = "HSM_HIDING_METHOD", justification = "")
   public static SecretKey createSecretKey(byte[] raw) {
     return SecretManager.createSecretKey(raw);
   }

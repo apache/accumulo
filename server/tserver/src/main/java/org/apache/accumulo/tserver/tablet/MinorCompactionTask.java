@@ -75,7 +75,7 @@ class MinorCompactionTask implements Runnable {
           while (true) {
             try {
               if (newFile == null) {
-                newFile = tablet.getNextDataFilename(FilePrefix.MINOR_COMPACTION);
+                newFile = tablet.getNextDataFilename(FilePrefix.FLUSH);
                 tmpFile =
                     new ReferencedTabletFile(new Path(newFile.getNormalizedPathStr() + "_tmp"));
               }
@@ -128,10 +128,6 @@ class MinorCompactionTask implements Runnable {
         throw e;
       } finally {
         span.end();
-      }
-
-      if (tablet.needsSplit(tablet.getSplitComputations())) {
-        tablet.getTabletServer().executeSplit(tablet);
       }
     } catch (Exception e) {
       log.error("Unknown error during minor compaction for extent: {}", tablet.getExtent(), e);

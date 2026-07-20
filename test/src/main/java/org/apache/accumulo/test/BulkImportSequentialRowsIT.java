@@ -28,8 +28,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
@@ -39,8 +39,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 // ACCUMULO-3967
 public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
@@ -57,7 +55,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Need more than one tserver
-    cfg.setNumTservers(2);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -106,7 +104,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
       to.importDirectory(bulk.toString()).to(tableName).load();
 
       // The bug is that some tablets don't get imported into.
-      assertEquals(NR * NV, Iterables.size(client.createScanner(tableName, Authorizations.EMPTY)));
+      assertEquals(NR * NV, client.createScanner(tableName, Authorizations.EMPTY).stream().count());
     }
   }
 

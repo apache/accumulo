@@ -25,6 +25,7 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -290,6 +291,14 @@ public interface AccumuloClient extends AutoCloseable {
    * @return an object to modify instance configuration
    */
   InstanceOperations instanceOperations();
+
+  /**
+   * Retrieves a ResourceGroupOperations object to modify resource group configuration.
+   *
+   * @return an object to modify resource group configuration
+   * @since 4.0.0
+   */
+  ResourceGroupOperations resourceGroupOperations();
 
   /**
    * @return All {@link Properties} used to create client except 'auth.token'

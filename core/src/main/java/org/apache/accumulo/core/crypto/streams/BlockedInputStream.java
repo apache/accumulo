@@ -23,15 +23,20 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Reader corresponding to BlockedOutputStream. Expects all data to be in the form of size (int)
  * data (size bytes) junk (however many bytes it takes to complete a block)
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class BlockedInputStream extends InputStream {
   byte[] array;
   // ReadPos is where to start reading
   // WritePos is the last position written to
-  int readPos, writePos;
+  int readPos;
+  int writePos;
   DataInputStream in;
   int blockSize;
   boolean finished = false;

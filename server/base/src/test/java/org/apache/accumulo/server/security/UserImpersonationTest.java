@@ -108,7 +108,9 @@ public class UserImpersonationTest {
 
   @Test
   public void testSingleUserAndHost() {
-    String server = "server", host = "single_host.domain.com", client = "single_client";
+    String server = "server";
+    String host = "single_host.domain.com";
+    String client = "single_client";
     setValidHosts(host);
     setValidUsers(server, client);
     UserImpersonation impersonation = new UserImpersonation(conf);
@@ -131,7 +133,10 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleExplicitUsers() {
-    String server = "server", client1 = "client1", client2 = "client2", client3 = "client3";
+    String server = "server";
+    String client1 = "client1";
+    String client2 = "client2";
+    String client3 = "client3";
     setValidHosts("*");
     setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
@@ -153,7 +158,10 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleExplicitHosts() {
-    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3";
+    String server = "server";
+    String host1 = "host1";
+    String host2 = "host2";
+    String host3 = "host3";
     setValidHosts(Joiner.on(',').join(host1, host2, host3));
     setValidUsers(server, "*");
     UserImpersonation impersonation = new UserImpersonation(conf);
@@ -175,8 +183,13 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleExplicitUsersHosts() {
-    String server = "server", host1 = "host1", host2 = "host2", host3 = "host3",
-        client1 = "client1", client2 = "client2", client3 = "client3";
+    String server = "server";
+    String host1 = "host1";
+    String host2 = "host2";
+    String host3 = "host3";
+    String client1 = "client1";
+    String client2 = "client2";
+    String client3 = "client3";
     setValidHosts(Joiner.on(',').join(host1, host2, host3));
     setValidUsers(server, Joiner.on(',').join(client1, client2, client3));
     UserImpersonation impersonation = new UserImpersonation(conf);
@@ -203,8 +216,14 @@ public class UserImpersonationTest {
 
   @Test
   public void testMultipleAllowedImpersonators() {
-    String server1 = "server1", server2 = "server2", host1 = "host1", host2 = "host2",
-        host3 = "host3", client1 = "client1", client2 = "client2", client3 = "client3";
+    String server1 = "server1";
+    String server2 = "server2";
+    String host1 = "host1";
+    String host2 = "host2";
+    String host3 = "host3";
+    String client1 = "client1";
+    String client2 = "client2";
+    String client3 = "client3";
     // server1 can impersonate client1 and client2 from host1 or host2
     // server2 can impersonate only client3 from host3
     setValidHosts(Joiner.on(',').join(host1, host2), host3);
@@ -255,7 +274,8 @@ public class UserImpersonationTest {
 
   @Test
   public void testSingleUser() {
-    final String server = "server/hostname@EXAMPLE.COM", client = "client@EXAMPLE.COM";
+    final String server = "server/hostname@EXAMPLE.COM";
+    final String client = "client@EXAMPLE.COM";
     conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION, server + ":" + client);
     conf.set(Property.INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION, "*");
     UserImpersonation impersonation = new UserImpersonation(conf);

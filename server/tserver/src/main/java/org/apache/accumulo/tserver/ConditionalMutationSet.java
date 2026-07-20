@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.tserver.data.ServerConditionalMutation;
+import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.hadoop.io.WritableComparator;
 
 public class ConditionalMutationSet {
@@ -78,10 +78,13 @@ public class ConditionalMutationSet {
     defer(updates, deferred, new DuplicateFilter());
   }
 
-  static void sortConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates) {
+  static int sortConditionalMutations(Map<KeyExtent,List<ServerConditionalMutation>> updates) {
+    int numMutations = 0;
     for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : updates.entrySet()) {
       entry.getValue().sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
           o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
+      numMutations += entry.getValue().size();
     }
+    return numMutations;
   }
 }

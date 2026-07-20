@@ -25,11 +25,12 @@
     Exceptions can be made if the bug is particularly spammy or trivial.
   -->
   <Match>
-    <!-- ignore thrift-generated files -->
+    <!-- ignore generated files -->
     <Or>
       <Package name="org.apache.accumulo.core.compaction.thrift" />
       <Package name="org.apache.accumulo.core.clientImpl.thrift" />
       <Package name="org.apache.accumulo.core.dataImpl.thrift" />
+      <Package name="org.apache.accumulo.core.fate.thrift" />
       <Package name="org.apache.accumulo.core.gc.thrift" />
       <Package name="org.apache.accumulo.core.manager.thrift" />
       <Package name="org.apache.accumulo.core.process.thrift" />
@@ -39,6 +40,7 @@
       <Package name="org.apache.accumulo.core.tabletscan.thrift" />
       <Package name="org.apache.accumulo.core.tabletserver.thrift" />
       <Package name="org.apache.accumulo.core.trace.thrift" />
+      <Package name="org.apache.accumulo.core.metrics.flatbuffers" />
     </Or>
   </Match>
   <Match>

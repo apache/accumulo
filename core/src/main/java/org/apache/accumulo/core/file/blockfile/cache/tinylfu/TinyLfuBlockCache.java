@@ -35,12 +35,13 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 
@@ -66,12 +67,12 @@ public final class TinyLfuBlockCache implements BlockCache {
   private final CacheType type;
 
   public TinyLfuBlockCache(Configuration conf, CacheType type) {
-    cache = Caffeine.newBuilder()
+    cache = Caches.getInstance().createNewBuilder(CacheName.TINYLFU_BLOCK_CACHE, false)
         .initialCapacity((int) Math.ceil(1.2 * conf.getMaxSize(type) / conf.getBlockSize()))
-        .weigher((String blockName, Block block) -> {
+        .recordStats().weigher((String blockName, Block block) -> {
           int keyWeight = ClassSize.align(blockName.length()) + ClassSize.STRING;
           return keyWeight + block.weight();
-        }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
+        }).maximumWeight(conf.getMaxSize(type)).build();
     policy = cache.policy().eviction().orElseThrow();
     maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
     ScheduledFuture<?> future = statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC,

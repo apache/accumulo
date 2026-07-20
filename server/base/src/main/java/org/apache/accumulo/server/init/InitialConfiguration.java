@@ -25,13 +25,12 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
-import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.hadoop.conf.Configuration;
 
 public class InitialConfiguration {
@@ -42,6 +41,8 @@ public class InitialConfiguration {
   private final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
+  // config for only fate table
+  private final HashMap<String,String> initialFateTableConf = new HashMap<>();
   // config for only scan ref table
   private final HashMap<String,String> initialScanRefTableConf = new HashMap<>();
   private final Configuration hadoopConf;
@@ -72,14 +73,9 @@ public class InitialConfiguration {
     commonConfig.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
 
     initialRootMetaConf.putAll(commonConfig);
-    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-        SimpleCompactionDispatcher.class.getName());
-    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
     initialRootMetaConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
     initialRootMetaConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
         MetadataConstraints.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
-        "20," + MetadataBulkLoadFilter.class.getName());
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", MetadataSchema.TabletsSection.TabletColumnFamily.NAME,
             MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME));
@@ -90,9 +86,13 @@ public class InitialConfiguration {
             MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME));
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
 
-    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-        SimpleCompactionDispatcher.class.getName());
-    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+    initialFateTableConf.putAll(commonConfig);
+    initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
+    // Create a locality group that contains tx admin columns so its fast to scan. When fate
+    // looks for work it scans this family.
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "txAdmin",
+        FateSchema.TxAdminColumnFamily.STR_NAME);
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "txAdmin");
 
     initialScanRefTableConf.putAll(commonConfig);
 
@@ -111,9 +111,8 @@ public class InitialConfiguration {
   private void setMetadataReplication(int replication, String reason) {
     String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
-            + AccumuloTable.METADATA.tableName()
-            + " replication of 5. What do you want to set your "
-            + AccumuloTable.METADATA.tableName() + " replication to? (" + replication + ") ");
+            + SystemTables.METADATA.tableName() + " replication of 5. What do you want to set your "
+            + SystemTables.METADATA.tableName() + " replication to? (" + replication + ") ");
     if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {
@@ -133,6 +132,10 @@ public class InitialConfiguration {
 
   HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
+  }
+
+  HashMap<String,String> getFateTableConf() {
+    return initialFateTableConf;
   }
 
   HashMap<String,String> getScanRefTableConf() {

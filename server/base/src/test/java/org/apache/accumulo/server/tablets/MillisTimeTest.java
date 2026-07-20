@@ -49,13 +49,13 @@ public class MillisTimeTest {
 
   @Test
   public void testUseMaxTimeFromWALog_Yes() {
-    mtime.useMaxTimeFromWALog(5678L);
+    mtime.updateTimeIfGreater(5678L);
     assertEquals("M5678", mtime.getMetadataTime().encode());
   }
 
   @Test
   public void testUseMaxTimeFromWALog_No() {
-    mtime.useMaxTimeFromWALog(0L);
+    mtime.updateTimeIfGreater(0L);
     assertEquals("M1234", mtime.getMetadataTime().encode());
   }
 

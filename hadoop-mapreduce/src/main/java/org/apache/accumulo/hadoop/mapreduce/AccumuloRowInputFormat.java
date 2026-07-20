@@ -55,7 +55,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * For descriptions of all options see
  * {@link org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder.InputFormatOptions}
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloRowInputFormat extends InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
   private static final Class<AccumuloRowInputFormat> CLASS = AccumuloRowInputFormat.class;

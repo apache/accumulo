@@ -38,8 +38,8 @@ public abstract class ScanTask<T> implements Runnable {
   protected final TabletHostingServer server;
   protected AtomicBoolean interruptFlag;
   protected ArrayBlockingQueue<Object> resultQueue;
-  protected AtomicInteger state;
-  private AtomicReference<ScanRunState> runState;
+  protected final AtomicInteger state;
+  private final AtomicReference<ScanRunState> runState;
 
   private Thread scanThread = null;
   private final Lock scanThreadLock = new ReentrantLock();
@@ -149,22 +149,12 @@ public abstract class ScanTask<T> implements Runnable {
   }
 
   private String stateString(int state) {
-    String stateStr;
-    switch (state) {
-      case ADDED:
-        stateStr = "ADDED";
-        break;
-      case CANCELED:
-        stateStr = "CANCELED";
-        break;
-      case INITIAL:
-        stateStr = "INITIAL";
-        break;
-      default:
-        stateStr = "UNKNOWN";
-        break;
-    }
-    return stateStr;
+    return switch (state) {
+      case ADDED -> "ADDED";
+      case CANCELED -> "CANCELED";
+      case INITIAL -> "INITIAL";
+      default -> "UNKNOWN";
+    };
   }
 
   /**

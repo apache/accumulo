@@ -22,17 +22,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -86,30 +86,33 @@ public class WalStateManager {
     UNREFERENCED
   }
 
-  private final ClientContext context;
+  public record WalStatePath(WalState state, Path path) {
+  }
+
   private final ZooReaderWriter zoo;
 
   private volatile boolean checkedExistance = false;
 
   public WalStateManager(ServerContext context) {
-    this.context = context;
     this.zoo = context.getZooSession().asReaderWriter();
   }
 
   private String root() throws WalMarkerException {
-    String root = context.getZooKeeperRoot() + ZWALS;
 
     try {
-      if (!checkedExistance && !zoo.exists(root)) {
-        zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
+      if (!checkedExistance && !zoo.exists(ZWALS)) {
+        zoo.putPersistentData(ZWALS, new byte[0], NodeExistsPolicy.SKIP);
       }
 
       checkedExistance = true;
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
 
-    return root;
+    return ZWALS;
   }
 
   // Tablet server exists
@@ -119,6 +122,9 @@ public class WalStateManager {
     try {
       zoo.putPersistentData(root() + "/" + tsi, data, NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
   }
@@ -139,6 +145,9 @@ public class WalStateManager {
       log.debug("Setting {} to {}", path.getName(), state);
       zoo.putPersistentData(root() + "/" + tsi + "/" + path.getName(), data, policy);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
   }
@@ -148,9 +157,9 @@ public class WalStateManager {
     updateState(tsi, path, WalState.UNREFERENCED);
   }
 
-  private static Pair<WalState,Path> parse(byte[] data) {
+  public static WalStatePath parse(byte[] data) {
     String[] parts = new String(data, UTF_8).split(",");
-    return new Pair<>(WalState.valueOf(parts[0]), new Path(parts[1]));
+    return new WalStatePath(WalState.valueOf(parts[0]), new Path(parts[1]));
   }
 
   // Manager needs to know the logs for the given instance
@@ -172,15 +181,18 @@ public class WalStateManager {
         }
 
         if (zdata != null) {
-          Pair<WalState,Path> parts = parse(zdata);
-          if (parts.getFirst() != WalState.UNREFERENCED) {
-            result.add(parts.getSecond());
+          WalStatePath parts = parse(zdata);
+          if (parts.state() != WalState.UNREFERENCED) {
+            result.add(parts.path());
           }
         }
       }
     } catch (KeeperException.NoNodeException e) {
       log.debug("{} has no wal entry in zookeeper, assuming no logs", tsi);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
     return result;
@@ -202,30 +214,37 @@ public class WalStateManager {
         }
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
     return result;
   }
 
   // garbage collector wants to know the state (open/closed) of a log, and the filename to delete
-  public Pair<WalState,Path> state(TServerInstance instance, UUID uuid) throws WalMarkerException {
+  public WalStatePath state(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
       String path = root() + "/" + instance + "/" + uuid;
       return parse(zoo.getData(path));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
   }
 
-  // utility combination of getAllMarkers and state
-  public Map<Path,WalState> getAllState() throws WalMarkerException {
-    Map<Path,WalState> result = new HashMap<>();
-    for (Entry<TServerInstance,List<UUID>> entry : getAllMarkers().entrySet()) {
+  /**
+   * @return the state and path for all WAL markers.
+   */
+  public Set<WalStatePath> getAllState() throws WalMarkerException {
+    Map<TServerInstance,List<UUID>> markers = getAllMarkers();
+    Set<WalStatePath> result = new HashSet<>(markers.size());
+    for (Entry<TServerInstance,List<UUID>> entry : markers.entrySet()) {
       for (UUID id : entry.getValue()) {
-        // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
-        // expect the following call to fail because the WAL info in ZK was deleted.
-        Pair<WalState,Path> state = state(entry.getKey(), id);
-        result.put(state.getSecond(), state.getFirst());
+        // WAL markers can be deleted while reading them.
+        result.add(state(entry.getKey(), id));
       }
     }
     return result;
@@ -238,6 +257,9 @@ public class WalStateManager {
       String path = root() + "/" + instance + "/" + uuid;
       zoo.delete(path);
     } catch (InterruptedException | KeeperException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
   }
@@ -248,6 +270,9 @@ public class WalStateManager {
     try {
       zoo.recursiveDelete(path, NodeMissingPolicy.FAIL);
     } catch (InterruptedException | KeeperException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new WalMarkerException(e);
     }
   }

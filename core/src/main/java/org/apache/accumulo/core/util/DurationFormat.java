@@ -23,7 +23,12 @@ public class DurationFormat {
 
   public DurationFormat(long time, String space) {
     String dash = "-";
-    long ms, sec, min, hr, day, yr;
+    long ms;
+    long sec;
+    long min;
+    long hr;
+    long day;
+    long yr;
 
     if (time == 0) {
       str = dash;

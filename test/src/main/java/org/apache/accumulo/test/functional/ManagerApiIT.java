@@ -43,11 +43,9 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,9 +69,6 @@ public class ManagerApiIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    // need to pretend to be a server, so we can bypass all of
-    // the singleton resource management in this test
-    SingletonManager.setMode(Mode.SERVER);
     SharedMiniClusterBase.startMiniCluster();
     rootUser = new Credentials(getPrincipal(), getToken());
     regularUser = new Credentials("regularUser", new PasswordToken("regularUser"));

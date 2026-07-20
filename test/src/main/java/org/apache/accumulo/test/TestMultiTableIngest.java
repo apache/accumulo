@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -33,12 +34,19 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.TestMultiTableIngest.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class TestMultiTableIngest {
+@AutoService(KeywordExecutable.class)
+public class TestMultiTableIngest extends ClientKeywordExecutable<Opts> {
 
   static class Opts extends ClientOpts {
     @Parameter(names = "--readonly", description = "read only")
@@ -72,11 +80,28 @@ public class TestMultiTableIngest {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    ArrayList<String> tableNames = new ArrayList<>();
+  public TestMultiTableIngest() {
+    super(new Opts());
+  }
 
-    Opts opts = new Opts();
-    opts.parseArgs(TestMultiTableIngest.class.getName(), args);
+  @Override
+  public String keyword() {
+    return "multi-table-ingest";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return TestCommandGroup.INSTANCE;
+  }
+
+  @Override
+  public String description() {
+    return "Reads, and optionally writes, mutations using multiple tables";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
+    ArrayList<String> tableNames = new ArrayList<>();
     // create the test table within accumulo
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       for (int i = 0; i < opts.tables; i++) {

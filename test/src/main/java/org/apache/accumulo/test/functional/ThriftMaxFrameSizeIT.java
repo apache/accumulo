@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -89,7 +89,7 @@ public class ThriftMaxFrameSizeIT {
 
     @Override
     public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setProperty(Property.GENERAL_RPC_SERVER_TYPE, serverType.name());
       String maxFrameSizeStr = Integer.toString(CONFIGURED_MAX_FRAME_SIZE);
       cfg.setProperty(Property.RPC_MAX_MESSAGE_SIZE, maxFrameSizeStr);

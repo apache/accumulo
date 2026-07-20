@@ -19,7 +19,7 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.ArrayList;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -32,7 +32,7 @@ class ImportedTableInfo implements Serializable {
   public String tableName;
   public TableId tableId;
   public NamespaceId namespaceId;
-  public List<DirectoryMapping> directories;
+  public ArrayList<DirectoryMapping> directories; // type must be serializable
   public String exportFile;
   public boolean keepMappings;
   public boolean keepOffline;

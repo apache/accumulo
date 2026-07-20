@@ -21,12 +21,12 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Suppliers.memoize;
 import static java.util.Objects.requireNonNull;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.BiFunction;
@@ -125,14 +125,14 @@ public class ClientInfoImpl implements ClientInfo {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided propertiesFilePath")
   public static Properties toProperties(String propertiesFilePath) {
-    return toProperties(Paths.get(propertiesFilePath));
+    return toProperties(Path.of(propertiesFilePath));
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided propertiesFile")
   public static Properties toProperties(Path propertiesFile) {
     Properties properties = new Properties();
-    try (InputStream is = new FileInputStream(propertiesFile.toFile())) {
+    try (InputStream is = Files.newInputStream(propertiesFile, StandardOpenOption.READ)) {
       properties.load(is);
     } catch (IOException e) {
       throw new IllegalArgumentException("Failed to load properties from " + propertiesFile, e);

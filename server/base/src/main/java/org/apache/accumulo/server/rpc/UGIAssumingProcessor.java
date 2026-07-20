@@ -78,10 +78,9 @@ public class UGIAssumingProcessor implements TProcessor {
   @Override
   public void process(final TProtocol inProt, final TProtocol outProt) throws TException {
     TTransport trans = inProt.getTransport();
-    if (!(trans instanceof TSaslServerTransport)) {
+    if (!(trans instanceof TSaslServerTransport saslTrans)) {
       throw new TException("Unexpected non-SASL transport " + trans.getClass() + ": " + trans);
     }
-    TSaslServerTransport saslTrans = (TSaslServerTransport) trans;
     SaslServer saslServer = saslTrans.getSaslServer();
     String endUser = saslServer.getAuthorizationID();
 

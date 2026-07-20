@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.conf;
 
 import static org.apache.accumulo.core.conf.Property.TABLE_ITERATOR_MINC_PREFIX;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -83,8 +84,9 @@ public class AccumuloConfigurationTest {
     ConfigurationCopy cc = new ConfigurationCopy(c);
     cc.set(Property.TSERV_CLIENTPORT, "1020");
     int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-    assertEquals(1, ports.length);
-    assertEquals(Integer.parseInt(Property.TSERV_CLIENTPORT.getDefaultValue()), ports[0]);
+    assertEquals(100, ports.length);
+    assertArrayEquals(
+        PropertyType.PortRange.parse(Property.TSERV_CLIENTPORT.getDefaultValue()).toArray(), ports);
   }
 
   @Test

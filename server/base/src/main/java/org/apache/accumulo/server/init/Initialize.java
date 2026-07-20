@@ -39,23 +39,25 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -129,7 +131,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
-      InitialConfiguration initConfig) {
+      InitialConfiguration initConfig) throws InterruptedException, KeeperException {
     String instanceNamePath;
     String instanceName;
     String rootUser;
@@ -159,18 +161,18 @@ public class Initialize implements KeywordExecutable {
     InstanceId instanceId = InstanceId.of(UUID.randomUUID());
     ZooKeeperInitializer zki = new ZooKeeperInitializer();
     zki.initializeConfig(instanceId, zoo);
+    zki.initInstanceNameAndId(zoo, instanceId, opts.clearInstanceName, instanceNamePath);
 
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
       var chooserEnv =
-          new VolumeChooserEnvironmentImpl(Scope.INIT, AccumuloTable.ROOT.tableId(), null, context);
+          new VolumeChooserEnvironmentImpl(Scope.INIT, SystemTables.ROOT.tableId(), null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
       String rootTabletFileUri = new Path(fs.choose(chooserEnv, initConfig.getVolumeUris())
-          + SEPARATOR + TABLE_DIR + SEPARATOR + AccumuloTable.ROOT.tableId() + SEPARATOR
+          + SEPARATOR + TABLE_DIR + SEPARATOR + SystemTables.ROOT.tableId() + SEPARATOR
           + rootTabletDirName + SEPARATOR + "00000_00000." + ext).toString();
-      zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
-          rootTabletFileUri);
+      zki.initialize(context, rootTabletDirName, rootTabletFileUri);
 
       if (!createDirs(fs, instanceId, initConfig.getVolumeUris())) {
         throw new IOException("Problem creating directories on " + fs.getVolumes());
@@ -178,7 +180,7 @@ public class Initialize implements KeywordExecutable {
       var fileSystemInitializer = new FileSystemInitializer(initConfig);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
       var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR
-          + AccumuloTable.ROOT.tableId() + SEPARATOR + rootTabletDirName);
+          + SystemTables.ROOT.tableId() + SEPARATOR + rootTabletDirName);
       fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);
@@ -222,8 +224,8 @@ public class Initialize implements KeywordExecutable {
       final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       // We don't have any valid creds to talk to HDFS
       if (!ugi.hasKerberosCredentials()) {
-        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB),
-            accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
+        final String accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
         // Fail if the site configuration doesn't contain appropriate credentials
         if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
@@ -244,6 +246,9 @@ public class Initialize implements KeywordExecutable {
     try {
       return zoo.exists("/");
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       return false;
     }
   }
@@ -311,7 +316,8 @@ public class Initialize implements KeywordExecutable {
   private String getInstanceNamePath(ZooReaderWriter zoo, Opts opts)
       throws KeeperException, InterruptedException {
     // set up the instance name
-    String instanceName, instanceNamePath = null;
+    String instanceName;
+    String instanceNamePath = null;
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {
@@ -437,6 +443,66 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
+  private static boolean addResourceGroups(InitialConfiguration initConfig,
+      String resourceGroupsArg) {
+
+    try (ServerContext context = new ServerContext(initConfig.getSiteConf())) {
+      if (resourceGroupsArg == null) {
+        return true;
+      }
+      final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
+      final String[] rgs = resourceGroupsArg.split(",");
+      for (String rg : rgs) {
+        String trimmed = rg.trim();
+        final var rgid = ResourceGroupId.of(trimmed);
+        if (rgid == ResourceGroupId.DEFAULT) {
+          continue;
+        }
+        try {
+          ResourceGroupPropKey.of(rgid).createZNode(zrw);
+          log.info("Added resource group {}", trimmed);
+        } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
+          log.error("Error creating resource group: " + trimmed, e);
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private static boolean removeResourceGroups(InitialConfiguration initConfig,
+      String resourceGroupsArg) {
+
+    try (ServerContext context = new ServerContext(initConfig.getSiteConf())) {
+      if (resourceGroupsArg == null) {
+        return true;
+      }
+      final ZooSession zs = context.getZooSession();
+      final String[] rgs = resourceGroupsArg.split(",");
+      for (String rg : rgs) {
+        String trimmed = rg.trim();
+        final var rgid = ResourceGroupId.of(trimmed);
+        if (rgid == ResourceGroupId.DEFAULT) {
+          continue;
+        }
+        try {
+          ResourceGroupPropKey.of(rgid).removeZNode(zs);
+          log.info("Removed resource group {}", trimmed);
+        } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
+          log.error("Error removing resource group: " + trimmed, e);
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
   private static boolean addVolumes(VolumeManager fs, InitialConfiguration initConfig,
       ServerDirs serverDirs) {
     var hadoopConf = initConfig.getHadoopConf();
@@ -478,6 +544,12 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static class Opts extends Help {
+    @Parameter(names = "--add-resource-groups",
+        description = "Add resource groups (comma separated list of names)")
+    String resourceGroups = null;
+    @Parameter(names = "--remove-resource-groups",
+        description = "Remove resource groups (comma separated list of names)")
+    String removeResourceGroups = null;
     @Parameter(names = "--add-volumes",
         description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;
@@ -511,8 +583,8 @@ public class Initialize implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.INSTANCE;
   }
 
   @Override
@@ -521,10 +593,15 @@ public class Initialize implements KeywordExecutable {
   }
 
   @Override
+  public Object getOptions() {
+    return new Opts();
+  }
+
+  @Override
   public void execute(final String[] args) {
     boolean success = true;
     Opts opts = new Opts();
-    opts.parseArgs("accumulo init", args);
+    opts.parseArgs("init", args);
     var siteConfig = SiteConfiguration.auto();
     SecurityUtil.serverLogin(siteConfig);
     Configuration hadoopConfig = new Configuration();
@@ -538,7 +615,14 @@ public class Initialize implements KeywordExecutable {
       if (success && opts.addVolumes) {
         success = addVolumes(fs, initConfig, serverDirs);
       }
-      if (!opts.resetSecurity && !opts.addVolumes) {
+      if (success && opts.resourceGroups != null) {
+        success = addResourceGroups(initConfig, opts.resourceGroups);
+      }
+      if (success && opts.removeResourceGroups != null) {
+        success = removeResourceGroups(initConfig, opts.removeResourceGroups);
+      }
+      if (!opts.resetSecurity && !opts.addVolumes && opts.resourceGroups == null
+          && opts.removeResourceGroups == null) {
         try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
           success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
         }
@@ -546,8 +630,14 @@ public class Initialize implements KeywordExecutable {
     } catch (IOException e) {
       log.error("Problem trying to get Volume configuration", e);
       success = false;
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      log.error("Thread was interrupted when trying to get Volume configuration", e);
+      success = false;
+    } catch (KeeperException e) {
+      log.error("ZooKeeper error when trying to get Volume configuration", e);
+      success = false;
     } finally {
-      SingletonManager.setMode(Mode.CLOSED);
       if (!success) {
         System.exit(-1);
       }
@@ -580,6 +670,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
+  // Called from MiniAccumuloClusterImpl and VolumeIT
   public static void main(String[] args) {
     new Initialize().execute(args);
   }

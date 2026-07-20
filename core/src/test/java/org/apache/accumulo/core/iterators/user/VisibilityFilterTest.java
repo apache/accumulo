@@ -19,11 +19,13 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -155,10 +157,43 @@ public class VisibilityFilterTest {
   }
 
   @Test
+  public void testMulitAllowAuthorizedLabelsOnly() throws IOException {
+    IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
+    VisibilityFilter.setAuthorizations(is,
+        List.of(new Authorizations("abc"), new Authorizations("def")));
+
+    TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
+    verify(source, 3, is.getOptions(), GOOD, GOOD, GOOD_VIS, 1);
+
+    source = createSourceWithHiddenData(30, 500);
+    verify(source, 530, is.getOptions(), GOOD, GOOD, GOOD_VIS, 30);
+
+    source = createSourceWithHiddenData(1000, 500);
+    verify(source, 1500, is.getOptions(), GOOD, GOOD, GOOD_VIS, 1000);
+  }
+
+  @Test
   public void testAllowUnauthorizedLabelsOnly() throws IOException {
     IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
     VisibilityFilter.setNegate(is, true);
     VisibilityFilter.setAuthorizations(is, new Authorizations("def"));
+
+    TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
+    verify(source, 3, is.getOptions(), BAD, BAD, HIDDEN_VIS, 2);
+
+    source = createSourceWithHiddenData(30, 500);
+    verify(source, 530, is.getOptions(), BAD, BAD, HIDDEN_VIS, 500);
+
+    source = createSourceWithHiddenData(1000, 500);
+    verify(source, 1500, is.getOptions(), BAD, BAD, HIDDEN_VIS, 500);
+  }
+
+  @Test
+  public void testMultiAllowUnauthorizedLabelsOnly() throws IOException {
+    IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
+    VisibilityFilter.setNegate(is, true);
+    VisibilityFilter.setAuthorizations(is,
+        List.of(new Authorizations("abc"), new Authorizations("def")));
 
     TreeMap<Key,Value> source = createSourceWithHiddenData(1, 2);
     verify(source, 3, is.getOptions(), BAD, BAD, HIDDEN_VIS, 2);
@@ -242,4 +277,16 @@ public class VisibilityFilterTest {
     assertEquals(new Authorizations("abc", "def").serialize(), opts.get("auths"));
   }
 
+  @Test
+  public void testDeepCopyAfterInit() throws IOException {
+    IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
+    VisibilityFilter.setAuthorizations(is, new Authorizations("abc"));
+    Map<String,String> opts = is.getOptions();
+    Filter filter = new VisibilityFilter();
+    TreeMap<Key,Value> source = new TreeMap<>();
+    filter.init(new SortedMapIterator(source), opts, null);
+    Filter copyFilter = (Filter) filter.deepCopy(null);
+    Key k = new Key("row", "cf", "cq", "abc");
+    assertTrue(copyFilter.accept(k, new Value()));
+  }
 }

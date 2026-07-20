@@ -28,9 +28,9 @@ import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 public class ConstraintViolationSummary implements Serializable {
 
   private static final long serialVersionUID = 1L;
-  public String constrainClass;
-  public short violationCode;
-  public String violationDescription;
+  public final String constrainClass;
+  public final short violationCode;
+  public final String violationDescription;
   public long numberOfViolatingMutations;
 
   /**
@@ -55,8 +55,8 @@ public class ConstraintViolationSummary implements Serializable {
    * @param tcvs Thrift summary
    */
   public ConstraintViolationSummary(TConstraintViolationSummary tcvs) {
-    this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription,
-        tcvs.numberOfViolatingMutations);
+    this(tcvs.getConstrainClass(), tcvs.getViolationCode(), tcvs.getViolationDescription(),
+        tcvs.getNumberOfViolatingMutations());
   }
 
   public String getConstrainClass() {

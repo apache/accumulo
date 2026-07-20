@@ -18,12 +18,10 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionsNoLongerRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getLastState;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
@@ -32,31 +30,49 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles;
+import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
@@ -72,21 +88,21 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
     startMiniClusterWithConfig(new ExternalCompaction3Config());
   }
 
-  @AfterEach
-  public void tearDown() throws Exception {
-    // The ExternalDoNothingCompactor needs to be restarted between tests
-    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+  @AfterAll
+  public static void afterTests() {
+    stopMiniCluster();
   }
 
   @Test
   public void testMergeCancelsExternalCompaction() throws Exception {
 
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
-
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+          ExternalDoNothingCompactor.class);
 
       createTable(client, table1, "cs1", 2);
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
@@ -111,13 +127,16 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
         assertEquals(2, md.size());
       }
 
+      // Verify that a tmp file is created
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 1);
+
       // Merge - blocking operation
       Text start = md.get(0).getPrevEndRow();
       Text end = md.get(1).getEndRow();
       client.tableOperations().merge(table1, start, end);
 
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // ensure compaction ids were deleted by merge operation from metadata table
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
@@ -131,17 +150,25 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
               .collect(Collectors.toSet());
         }
       }
+
+      // Verify that the tmp file are cleaned up
+      Wait.waitFor(() -> FindCompactionTmpFiles
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty());
+
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
-      // because we split the table, FaTE will continue to queue up a compaction
-      client.tableOperations().delete(table1);
+      // because we split the table, FaTE would continue to queue up a compaction
+      client.tableOperations().cancelCompaction(table1);
+
+    } finally {
+      getCluster().getClusterControl().stop(ServerType.COMPACTOR);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+
     }
   }
 
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
-    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE2);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
@@ -149,7 +176,13 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
       createTable(client, table1, "cs2", 2);
       writeData(client, table1);
-      compact(client, table1, 2, QUEUE2, false);
+
+      IteratorSetting setting = new IteratorSetting(50, "slow", SlowIterator.class);
+      SlowIterator.setSeekSleepTime(setting, 5000);
+      SlowIterator.setSleepTime(setting, 5000);
+      client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+
+      compact(client, table1, 2, GROUP2, false);
 
       TableId tid = getCluster().getServerContext().getTableId(table1);
 
@@ -157,28 +190,33 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> ecids =
           waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
 
-      // Stop the Coordinator
-      getCluster().getClusterControl().stop(ServerType.COMPACTION_COORDINATOR);
+      ServerContext ctx = getCluster().getServerContext();
 
-      // Restart the coordinator while the compaction is running
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+      // Wait for all compactions to start
+      Map<ExternalCompactionId,RunningCompactionInfo> originalRunningInfo = null;
+      do {
+        originalRunningInfo = getRunningCompactionInformation(ctx, ecids);
+      } while (originalRunningInfo == null
+          || originalRunningInfo.values().stream().allMatch(rci -> rci.duration == 0));
 
-      // Confirm compaction is still running
-      int matches = 0;
-      while (matches == 0) {
-        TExternalCompactionList running = getRunningCompactions(getCluster().getServerContext());
-        if (running.getCompactions() != null) {
-          for (ExternalCompactionId ecid : ecids) {
-            TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
-            if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
-              matches++;
-              assertEquals(TCompactionState.IN_PROGRESS, getLastState(tec));
-            }
-          }
+      // Stop the Manager (Coordinator)
+      getCluster().getClusterControl().stop(ServerType.MANAGER);
+
+      // Restart the Manager while the compaction is running
+      getCluster().getClusterControl().start(ServerType.MANAGER);
+
+      Map<ExternalCompactionId,RunningCompactionInfo> postRestartRunningInfo =
+          getRunningCompactionInformation(ctx, ecids);
+
+      for (Entry<ExternalCompactionId,RunningCompactionInfo> post : postRestartRunningInfo
+          .entrySet()) {
+        if (originalRunningInfo.containsKey(post.getKey())) {
+          assertTrue(
+              (post.getValue().duration - originalRunningInfo.get(post.getKey()).duration) > 0);
         }
-        UtilWaitThread.sleep(250);
+        final String lastState = post.getValue().status;
+        assertTrue(lastState.equals(TCompactionState.IN_PROGRESS.name()));
       }
-      assertTrue(matches > 0);
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
@@ -186,6 +224,45 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       client.tableOperations().cancelCompaction(table1);
 
     }
+  }
+
+  private Map<ExternalCompactionId,RunningCompactionInfo> getRunningCompactionInformation(
+      ServerContext ctx, Set<ExternalCompactionId> ecids) throws InterruptedException {
+
+    final Map<ExternalCompactionId,RunningCompactionInfo> results = new HashMap<>();
+
+    while (results.isEmpty()) {
+      Map<String,TExternalCompaction> running = null;
+      while (running == null || running.isEmpty()) {
+        try {
+          Optional<HostAndPort> coordinatorHost =
+              ExternalCompactionUtil.findCompactionCoordinator(ctx);
+          if (coordinatorHost.isEmpty()) {
+            throw new TTransportException(
+                "Unable to get CompactionCoordinator address from ZooKeeper");
+          }
+          running = getRunningCompactions(ctx);
+        } catch (TException t) {
+          running = null;
+          Thread.sleep(2000);
+        }
+      }
+      for (ExternalCompactionId ecid : ecids) {
+        final TExternalCompaction tec = running.get(ecid.canonical());
+        if (tec != null && tec.getUpdatesSize() > 0) {
+          // When the coordinator restarts it inserts a message into the updates. If this
+          // is the last message, then don't insert this into the results. We want to get
+          // an actual update from the Compactor.
+          TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(tec.getUpdates());
+          var lastEntry = sorted.lastEntry();
+          if (lastEntry.getValue().getMessage().equals(CompactionCoordinator.RESTART_UPDATE_MSG)) {
+            continue;
+          }
+          results.put(ecid, new RunningCompactionInfo(tec));
+        }
+      }
+    }
+    return results;
   }
 
 }

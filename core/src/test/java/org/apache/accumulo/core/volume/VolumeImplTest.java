@@ -42,7 +42,8 @@ public class VolumeImplTest {
   @Test
   public void testFileSystemInequivalence() {
     Configuration hadoopConf = createMock(Configuration.class);
-    FileSystem fs = createMock(FileSystem.class), other = createMock(FileSystem.class);
+    FileSystem fs = createMock(FileSystem.class);
+    FileSystem other = createMock(FileSystem.class);
 
     String basePath = "/accumulo";
 
@@ -62,7 +63,8 @@ public class VolumeImplTest {
   @Test
   public void testFileSystemEquivalence() {
     Configuration hadoopConf = createMock(Configuration.class);
-    FileSystem fs = createMock(FileSystem.class), other = createMock(FileSystem.class);
+    FileSystem fs = createMock(FileSystem.class);
+    FileSystem other = createMock(FileSystem.class);
     String basePath = "/accumulo";
 
     expect(fs.getConf()).andReturn(hadoopConf).anyTimes();

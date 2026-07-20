@@ -19,28 +19,29 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TableInfo;
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.BalanceIT;
 import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,6 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "1K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 3,
         MemoryUnit.BYTE);
   }
@@ -60,53 +60,73 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
   @Test
   public void simpleBalancerFairness() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      c.tableOperations().create("test_ingest");
-      c.tableOperations().setProperty("test_ingest", Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K");
-      c.tableOperations().create("unused");
-      TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10000000, NUM_SPLITS);
+      final String ingestTable = "test_ingest";
+      final String unusedTable = "unused";
+
+      c.tableOperations().create(ingestTable,
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
+      c.tableOperations().setProperty(ingestTable, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K");
+      c.tableOperations().create(unusedTable,
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
+      TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10_000_000, NUM_SPLITS);
       log.info("Creating {} splits", splits.size());
-      c.tableOperations().addSplits("unused", splits);
-      List<String> tservers = c.instanceOperations().getTabletServers();
+      c.tableOperations().addSplits(unusedTable, splits);
+      Set<ServerId> tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
       TestIngest.IngestParams params = new TestIngest.IngestParams(getClientProperties());
       params.rows = 5000;
       TestIngest.ingest(c, params);
-      c.tableOperations().flush("test_ingest", null, null, false);
-      Thread.sleep(SECONDS.toMillis(45));
-      Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
+      c.tableOperations().flush(ingestTable, null, null, false);
 
-      int unassignedTablets = 1;
-      ManagerMonitorInfo stats = null;
-      ClientContext context = (ClientContext) c;
-      for (int i = 0; unassignedTablets > 0 && i < 20; i++) {
-        stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
-        unassignedTablets = stats.getUnassignedTablets();
+      // wait for tablet assignment
+      Wait.waitFor(() -> {
+        Map<String,Integer> ingestTableLocations = BalanceIT.countLocations(c, ingestTable);
+        Map<String,Integer> unusedTableLocations = BalanceIT.countLocations(c, unusedTable);
+        long unassignedTablets = Stream
+            .concat(ingestTableLocations.entrySet().stream(),
+                unusedTableLocations.entrySet().stream())
+            .filter(e -> e.getKey().equals("none")).count();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
               unassignedTablets);
-          Thread.sleep(3000);
+          return false;
+        } else {
+          return true;
         }
-      }
+      }, SECONDS.toMillis(45), SECONDS.toMillis(3));
 
-      assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 60 seconds");
+      // wait for tablets to be balanced
+      Wait.waitFor(() -> {
+        Map<String,Integer> ingestTableLocations = BalanceIT.countLocations(c, ingestTable);
+        Map<String,Integer> unusedTableLocations = BalanceIT.countLocations(c, unusedTable);
+        HashMap<String,Integer> serversWithTablets = Stream
+            .concat(ingestTableLocations.entrySet().stream(),
+                unusedTableLocations.entrySet().stream())
+            .filter(e -> !e.getKey().equals("none")).filter(e -> e.getValue() > 0)
+            .collect(HashMap<String,Integer>::new, (m, e) -> m.put(e.getKey(), e.getValue()),
+                (m1, m2) -> {
+                  for (Entry<String,Integer> e2 : m2.entrySet()) {
+                    m1.merge(e2.getKey(), e2.getValue(), (left, right) -> left + right);
+                  }
+                });
+        assertTrue(serversWithTablets.size() >= 2,
+            "Expected at least 2 tservers to have tablets, but found " + serversWithTablets.size());
 
-      // Compute online tablets per tserver
-      List<Integer> counts = new ArrayList<>();
-      for (TabletServerStatus server : stats.tServerInfo) {
-        int count = 0;
-        for (TableInfo table : server.tableMap.values()) {
-          count += table.onlineTablets;
+        List<Integer> values = new ArrayList<>();
+        values.addAll(serversWithTablets.values());
+        for (int i = 1; i < values.size(); i++) {
+          int diff = Math.abs(values.get(0) - values.get(i));
+          log.info(" Counts: {}", values);
+          if (diff > tservers.size()) {
+            log.info(
+                "Difference in tablets between tservers is greater than expected. Counts: {} tsevers:{}",
+                values, tservers.size());
+            return false;
+          }
         }
-        counts.add(count);
-      }
-      assertTrue(counts.size() > 1, "Expected to have at least two TabletServers");
-      for (int i = 1; i < counts.size(); i++) {
-        int diff = Math.abs(counts.get(0) - counts.get(i));
-        assertTrue(diff <= tservers.size(),
-            "Expected difference in tablets to be less than or equal to " + counts.size()
-                + " but was " + diff + ". Counts " + counts);
-      }
+
+        // if diff is less than the number of tservers, then we are good
+        return true;
+      }, SECONDS.toMillis(60), SECONDS.toMillis(3));
     }
   }
 

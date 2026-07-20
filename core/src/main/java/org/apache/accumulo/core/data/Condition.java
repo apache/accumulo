@@ -210,6 +210,21 @@ public class Condition {
   }
 
   /**
+   * This method sets the expected value of a column. In order for the condition to pass the column
+   * must exist and have this value. If a value is not set, then the column must be absent for the
+   * condition to pass. See {@link #setValue(byte[])}.
+   *
+   * @param value value
+   * @return this condition
+   * @throws IllegalArgumentException if value is null
+   * @since 4.0.0
+   */
+  public Condition setValue(Value value) {
+    checkArgument(value != null, "value is null");
+    return setValue(value.get());
+  }
+
+  /**
    * Gets the value of this condition.
    *
    * @return value
@@ -256,8 +271,8 @@ public class Condition {
     checkArgument(iterators != null, "iterators is null");
 
     if (iterators.length > 1) {
-      HashSet<String> names = new HashSet<>();
-      HashSet<Integer> prios = new HashSet<>();
+      HashSet<String> names = new HashSet<>(iterators.length, 1.0f);
+      HashSet<Integer> prios = new HashSet<>(iterators.length, 1.0f);
 
       for (IteratorSetting iteratorSetting : iterators) {
         if (!names.add(iteratorSetting.getName())) {
@@ -289,10 +304,9 @@ public class Condition {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof Condition)) {
+    if (!(o instanceof Condition condition)) {
       return false;
     }
-    Condition condition = (Condition) o;
     return Objects.equals(cf, condition.cf) && Objects.equals(cq, condition.cq)
         && Objects.equals(cv, condition.cv) && Objects.equals(val, condition.val)
         && Objects.equals(ts, condition.ts) && Arrays.equals(iterators, condition.iterators);

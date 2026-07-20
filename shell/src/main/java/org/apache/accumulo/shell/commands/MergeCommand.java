@@ -18,7 +18,11 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -28,7 +32,11 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class MergeCommand extends Command {
-  private Option verboseOpt, forceOpt, sizeOpt, allOpt;
+  private Option verboseOpt;
+  private Option forceOpt;
+  private Option sizeOpt;
+  private Option allOpt;
+  private Option dryRunOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -36,6 +44,7 @@ public class MergeCommand extends Command {
     boolean verbose = shellState.isVerbose();
     boolean force = false;
     boolean all = false;
+    boolean dryRun = false;
     long size = -1;
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     final Text startRow = OptUtil.getStartRow(cl);
@@ -46,11 +55,14 @@ public class MergeCommand extends Command {
     if (cl.hasOption(forceOpt.getOpt())) {
       force = true;
     }
-    if (cl.hasOption(allOpt.getOpt())) {
+    if (cl.hasOption(allOpt)) {
       all = true;
     }
     if (cl.hasOption(sizeOpt.getOpt())) {
       size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
+    }
+    if (cl.hasOption(dryRunOpt)) {
+      dryRun = true;
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
       if (!shellState
@@ -60,21 +72,7 @@ public class MergeCommand extends Command {
         return 0;
       }
     }
-    if (size < 0) {
-      shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
-    } else {
-      final boolean finalVerbose = verbose;
-      final Merge merge = new Merge() {
-        @Override
-        protected void message(String fmt, Object... args) {
-          if (finalVerbose) {
-            shellState.getWriter().println(String.format(fmt, args));
-          }
-        }
-      };
-      merge.mergomatic(shellState.getAccumuloClient(), tableName, startRow, endRow, size, force);
-    }
-    return 0;
+    return executeMerge(shellState, tableName, startRow, endRow, size, verbose, force, dryRun);
   }
 
   @Override
@@ -95,9 +93,15 @@ public class MergeCommand extends Command {
         new Option("s", "size", true, "merge tablets to the given size over the entire table");
     forceOpt = new Option("f", "force", false,
         "merge small tablets to large tablets, even if it goes over the given size");
-    allOpt = new Option("", "all", false,
-        "allow an entire table to be merged into one tablet without prompting"
+    // Using the constructor does not allow for empty option
+    Option.Builder allBuilder = Option.builder().longOpt("all").hasArg(false)
+        .desc("allow an entire table to be merged into one tablet without prompting"
             + " the user for confirmation");
+    allOpt = allBuilder.build();
+    Option.Builder dryRunBuilder = Option.builder().longOpt("dry-run").hasArg(false)
+        .desc("print the ranges it will merge, but do not perform any merge operations");
+    dryRunOpt = dryRunBuilder.build();
+
     o.addOption(OptUtil.startRowOpt());
     o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to be merged"));
@@ -105,7 +109,41 @@ public class MergeCommand extends Command {
     o.addOption(sizeOpt);
     o.addOption(forceOpt);
     o.addOption(allOpt);
+    o.addOption(dryRunOpt);
     return o;
   }
 
+  // This method is stubbed out to allow for mock testing
+  int executeMerge(Shell shellState, String tableName, Text startRow, Text endRow, long size,
+      boolean verbose, boolean force, boolean dryRun) throws AccumuloException,
+      TableNotFoundException, AccumuloSecurityException, Merge.MergeException {
+    if (size < 0) {
+      if (dryRun) {
+        shellState.getWriter()
+            .println(String.format(
+                "dry-run would have started a Fate Merge for table %s tablet range (%s to %s]",
+                tableName,
+                startRow == null ? "-inf"
+                    : Key.toPrintableString(startRow.getBytes(), 0, startRow.getLength(),
+                        startRow.getLength()),
+                endRow == null ? "+inf" : Key.toPrintableString(endRow.getBytes(), 0,
+                    endRow.getLength(), endRow.getLength())));
+        return 0;
+      }
+      shellState.getAccumuloClient().tableOperations().merge(tableName, startRow, endRow);
+    } else {
+      final boolean finalVerbose = verbose;
+      final Merge merge = new Merge() {
+        @Override
+        protected void message(String fmt, Object... args) {
+          if (finalVerbose) {
+            shellState.getWriter().println(String.format(fmt, args));
+          }
+        }
+      };
+      merge.mergomatic(shellState.getAccumuloClient(), tableName, startRow, endRow, size, force,
+          dryRun);
+    }
+    return 0;
+  }
 }

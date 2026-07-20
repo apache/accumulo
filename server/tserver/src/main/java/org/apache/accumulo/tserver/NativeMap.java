@@ -45,11 +45,12 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
-import org.apache.accumulo.core.util.PreAllocatedArray;
+import org.apache.accumulo.core.util.PreallocatedList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid
@@ -180,7 +181,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     private NMIterator source;
 
-    private PreAllocatedArray<Entry<Key,Value>> nextEntries;
+    private List<Entry<Key,Value>> nextEntries;
     private int index;
     private int end;
 
@@ -190,7 +191,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     ConcurrentIterator(Key key) {
       // start off with a small read ahead
-      nextEntries = new PreAllocatedArray<>(1);
+      nextEntries = PreallocatedList.create(1);
 
       rlock.lock();
       try {
@@ -213,12 +214,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       int amountRead = 0;
 
       // as we keep filling, increase the read ahead buffer
-      if (nextEntries.length < MAX_READ_AHEAD_ENTRIES) {
+      if (nextEntries.size() < MAX_READ_AHEAD_ENTRIES) {
         nextEntries =
-            new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+            PreallocatedList.create(Math.min(nextEntries.size() * 2, MAX_READ_AHEAD_ENTRIES));
       }
 
-      while (source.hasNext() && end < nextEntries.length) {
+      while (source.hasNext() && end < nextEntries.size()) {
         Entry<Key,Value> ne = source.next();
         nextEntries.set(end++, ne);
         amountRead += ne.getKey().getSize() + ne.getValue().getSize();
@@ -542,17 +543,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     private Range range;
     private AtomicBoolean interruptFlag;
     private int interruptCheckCount = 0;
+    private boolean seeked = false;
 
     private NMSKVIter(NativeMap map, AtomicBoolean interruptFlag) {
       this.map = map;
-      this.range = new Range();
-      iter = map.new ConcurrentIterator();
-      if (iter.hasNext()) {
-        entry = iter.next();
-      } else {
-        entry = null;
-      }
-
+      this.iter = null;
+      this.entry = null;
       this.interruptFlag = interruptFlag;
     }
 
@@ -572,12 +568,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     @Override
     public boolean hasTop() {
+      Preconditions.checkState(seeked, "seek() was never called");
       return entry != null;
     }
 
     @Override
     public void next() {
-
       if (entry == null) {
         throw new NoSuchElementException();
       }
@@ -596,7 +592,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       } else {
         entry = null;
       }
-
     }
 
     @Override
@@ -606,7 +601,11 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         throw new IterationInterruptedException();
       }
 
-      iter.delete();
+      if (iter != null) {
+        iter.delete();
+      } else {
+        Preconditions.checkState(!seeked);
+      }
 
       this.range = range;
 
@@ -625,6 +624,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         entry = null;
       }
 
+      seeked = true;
       while (hasTop() && range.beforeStartKey(getTopKey())) {
         next();
       }

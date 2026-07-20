@@ -165,7 +165,7 @@ public abstract class VersionedPropCodec {
    * Extracts the timestamp from the encoded byte array without fully decoding the payload. Normally
    * the timestamp should be obtained from a fully decoded instance of the versioned properties.
    * <p>
-   * The cost of reading the byte array from the backing store should be considered verses the
+   * The cost of reading the byte array from the backing store should be considered versus the
    * additional cost of decoding - with a goal of reducing data reads from the store preferred.
    * Generally reading from the store will be followed by some sort of usage which would require the
    * full decode operation anyway, so uses of this method should be narrow and limited.

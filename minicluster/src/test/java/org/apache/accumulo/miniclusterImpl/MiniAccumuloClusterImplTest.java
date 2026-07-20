@@ -18,31 +18,24 @@
  */
 package org.apache.accumulo.miniclusterImpl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
-import java.util.Arrays;
+import java.nio.file.Path;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.Iterators;
 
@@ -50,34 +43,28 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterImplTest {
-  public static File testDir;
+
+  @TempDir
+  private static Path tempDir;
 
   private static MiniAccumuloClusterImpl accumulo;
 
   private static final int NUM_TSERVERS = 2;
 
   private static String TEST_TABLE = "test";
-  private static String testTableID;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterImplTest.class.getName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-
     MiniAccumuloConfigImpl config =
-        new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
+        new MiniAccumuloConfigImpl(tempDir.toFile(), "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
-    config.setNumTservers(NUM_TSERVERS);
+    config.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
     AccumuloClient client = accumulo.createAccumuloClient("root", new PasswordToken("superSecret"));
     TableOperations tableops = client.tableOperations();
     tableops.create(TEST_TABLE);
-    testTableID = tableops.tableIdMap().get(TEST_TABLE);
 
     Scanner s = client.createScanner(TEST_TABLE, Authorizations.EMPTY);
     Iterators.size(s.iterator());
@@ -100,40 +87,6 @@ public class MiniAccumuloClusterImplTest {
         assertNotNull(procRef);
       }
     }
-  }
-
-  @Test
-  @Timeout(60)
-  public void saneMonitorInfo() throws Exception {
-    ManagerMonitorInfo stats;
-    // Expecting default AccumuloTables + TEST_TABLE
-    int expectedNumTables = AccumuloTable.values().length + 1;
-    while (true) {
-      stats = accumulo.getManagerMonitorInfo();
-      if (stats.tableMap.size() < expectedNumTables) {
-        continue;
-      }
-
-      if (null != stats.tServerInfo && stats.tServerInfo.size() == NUM_TSERVERS) {
-        break;
-      }
-    }
-    List<ManagerState> validStates = Arrays.asList(ManagerState.values());
-    List<ManagerGoalState> validGoals = Arrays.asList(ManagerGoalState.values());
-    assertTrue(validStates.contains(stats.state), "manager state should be valid.");
-    assertTrue(validGoals.contains(stats.goalState),
-        "manager goal state should be in " + validGoals + ". is " + stats.goalState);
-    assertNotNull(stats.tableMap, "should have a table map.");
-    assertTrue(stats.tableMap.containsKey(AccumuloTable.ROOT.tableId().canonical()),
-        "root table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloTable.METADATA.tableId().canonical()),
-        "meta table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloTable.SCAN_REF.tableId().canonical()),
-        "scan ref table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(testTableID),
-        "our test table should exist in " + stats.tableMap.keySet());
-    assertNotNull(stats.tServerInfo, "there should be tservers.");
-    assertEquals(NUM_TSERVERS, stats.tServerInfo.size());
   }
 
   @AfterAll

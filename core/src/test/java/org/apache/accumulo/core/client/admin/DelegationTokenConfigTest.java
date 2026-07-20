@@ -30,8 +30,8 @@ public class DelegationTokenConfigTest {
 
   @Test
   public void testTimeUnit() {
-    DelegationTokenConfig config1 = new DelegationTokenConfig(),
-        config2 = new DelegationTokenConfig();
+    DelegationTokenConfig config1 = new DelegationTokenConfig();
+    DelegationTokenConfig config2 = new DelegationTokenConfig();
 
     config1.setTokenLifetime(1000, MILLISECONDS);
     config2.setTokenLifetime(1, SECONDS);

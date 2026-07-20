@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -48,7 +49,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -83,8 +84,10 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         count++;
 
         final CountDownLatch cdl = new CountDownLatch(numDeleteOps);
+        assertTrue(numDeleteOps >= cdl.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(numDeleteOps);
 
         for (int i = 0; i < numDeleteOps; i++) {
           futures.add(es.submit(() -> {
@@ -95,6 +98,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
             } catch (TableNotFoundException e) {
               // expected
             } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException(e);
             }
           }));
@@ -150,6 +156,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           } catch (TableNotFoundException | TableOfflineException e) {
             // expected
           } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(e);
           }
         }));

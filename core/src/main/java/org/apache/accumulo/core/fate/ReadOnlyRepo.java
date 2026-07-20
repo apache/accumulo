@@ -25,9 +25,16 @@ package org.apache.accumulo.core.fate;
  * also be safe to call without impacting the state of system components.
  */
 public interface ReadOnlyRepo<T> {
-
-  long isReady(long tid, T environment) throws Exception;
+  long isReady(FateId fateId, T environment) throws Exception;
 
   String getName();
+
+  /**
+   * Returns detailed information about the transaction. This information may include protected
+   * information and should only be used in server-side tools (not the Monitor).
+   *
+   * @return json details
+   */
+  String getDetails();
 
 }

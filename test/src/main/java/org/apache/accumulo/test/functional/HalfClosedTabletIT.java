@@ -40,11 +40,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -70,7 +70,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     }
 
   }
@@ -256,7 +256,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
   public static void setInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
       TableId tableId) {
-    TablePropKey key = TablePropKey.of(context, tableId);
+    TablePropKey key = TablePropKey.of(tableId);
     context.getPropStore().putAll(key,
         Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid"));
   }

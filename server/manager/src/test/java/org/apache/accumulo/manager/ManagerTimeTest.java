@@ -20,6 +20,7 @@ package org.apache.accumulo.manager;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -126,5 +127,11 @@ public class ManagerTimeTest {
     // a previously created SteadyTime based on the same skew
     assertTrue(skew.toNanos() - updatedSkew.toNanos() > 0);
     assertTrue(skew.compareTo(updatedSkew) > 0);
+  }
+
+  @Test
+  public void testManagerIsNotSet() {
+    var mt = new ManagerTime();
+    assertThrows(NullPointerException.class, mt::getTime);
   }
 }

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,17 +39,20 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSortedMap;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to
@@ -64,14 +68,15 @@ public class NewTableConfiguration {
   private static final InitialTableState DEFAULT_CREATION_MODE = InitialTableState.ONLINE;
   private InitialTableState initialTableState = DEFAULT_CREATION_MODE;
 
-  private boolean limitVersion = true;
+  private boolean includeDefaults = true;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
-  private SortedSet<Text> splitProps = Collections.emptySortedSet();
+  private SortedMap<Text,TabletMergeability> splitProps = Collections.emptySortedMap();
+  private TabletAvailability initialTabletAvailability = TabletAvailability.ONDEMAND;
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -101,14 +106,16 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause
-   * the table to be created without that iterator, or any others which may become defaults in the
-   * future.
+   * Currently, the default table properties include the default iterator
+   * ({@link VersioningIterator}) and the constraint {@link DefaultKeySizeConstraint}. This method
+   * will cause the table to be created without this iterator or constraint, and any others which
+   * may become defaults in the future.
    *
+   * @since 2.1.4
    * @return this
    */
-  public NewTableConfiguration withoutDefaultIterators() {
-    this.limitVersion = false;
+  public NewTableConfiguration withoutDefaults() {
+    this.includeDefaults = false;
     return this;
   }
 
@@ -150,7 +157,7 @@ public class NewTableConfiguration {
 
     try {
       LocalityGroupUtil.checkLocalityGroups(props);
-    } catch (LocalityGroupConfigurationError e) {
+    } catch (LocalityGroupConfigurationException e) {
       throw new IllegalArgumentException(e);
     }
 
@@ -167,15 +174,41 @@ public class NewTableConfiguration {
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
-    if (limitVersion) {
-      propertyMap.putAll(IteratorConfigUtil.generateInitialTableProperties(limitVersion));
-    }
-
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
     propertyMap.putAll(iteratorProps);
     propertyMap.putAll(localityProps);
+
+    if (includeDefaults) {
+      var initTableProps = IteratorConfigUtil.getInitialTableProperties();
+      // check the properties for conflicts with default iterators
+      var defaultIterSettings = IteratorConfigUtil.getInitialTableIteratorSettings();
+      for (var defaultIterSetting : defaultIterSettings.entrySet()) {
+        var setting = defaultIterSetting.getKey();
+        var scopes = defaultIterSetting.getValue();
+        try {
+          TableOperationsHelper.checkIteratorConflicts(propertyMap, setting, scopes);
+        } catch (AccumuloException e) {
+          throw new IllegalArgumentException(String.format(
+              "conflict with default table iterator: scopes: %s setting: %s", scopes, setting), e);
+        }
+      }
+
+      // check the properties for conflicts with default properties (non-iterator)
+      var nonIterDefaults = IteratorConfigUtil.getInitialTableProperties();
+      nonIterDefaults.keySet().removeAll(IteratorConfigUtil.getInitialTableIterators().keySet());
+      for (var nonIterDefault : nonIterDefaults.entrySet()) {
+        var dk = nonIterDefault.getKey();
+        var dv = nonIterDefault.getValue();
+        var valInPropMap = propertyMap.get(dk);
+        Preconditions.checkArgument(valInPropMap == null || valInPropMap.equals(dv), String.format(
+            "conflict for property %s : %s (default val) != %s (set val)", dk, dv, valInPropMap));
+      }
+
+      propertyMap.putAll(initTableProps);
+    }
+
     return Collections.unmodifiableMap(propertyMap);
   }
 
@@ -187,6 +220,18 @@ public class NewTableConfiguration {
    * @since 2.0.0
    */
   public Collection<Text> getSplits() {
+    return splitProps.keySet();
+  }
+
+  /**
+   * Return Collection of split values and associated TabletMergeability.
+   *
+   * @return Collection containing splits and TabletMergeability associated with this
+   *         NewTableConfiguration object.
+   *
+   * @since 4.0.0
+   */
+  public SortedMap<Text,TabletMergeability> getSplitsMap() {
     return splitProps;
   }
 
@@ -260,7 +305,13 @@ public class NewTableConfiguration {
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
     checkArgument(!splits.isEmpty(), "splits set is empty");
-    this.splitProps = ImmutableSortedSet.copyOf(splits);
+    return withSplits(TabletMergeabilityUtil.userDefaultSplits(splits));
+  }
+
+  public NewTableConfiguration withSplits(final SortedMap<Text,TabletMergeability> splits) {
+    checkArgument(splits != null, "splits set is null");
+    checkArgument(!splits.isEmpty(), "splits set is empty");
+    this.splitProps = ImmutableSortedMap.copyOf(splits);
     return this;
   }
 
@@ -313,6 +364,25 @@ public class NewTableConfiguration {
       checkDisjoint(properties, iteratorProps, "iterator");
     }
     return this;
+  }
+
+  /**
+   * Sets the initial tablet availability for all tablets. If not set, the default is
+   * {@link TabletAvailability#ONDEMAND}
+   *
+   * @since 4.0.0
+   */
+  public NewTableConfiguration
+      withInitialTabletAvailability(final TabletAvailability tabletAvailability) {
+    this.initialTabletAvailability = tabletAvailability;
+    return this;
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  public TabletAvailability getInitialTabletAvailability() {
+    return this.initialTabletAvailability;
   }
 
   /**

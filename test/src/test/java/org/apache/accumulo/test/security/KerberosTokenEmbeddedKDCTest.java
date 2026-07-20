@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.harness.TestingKdc;
-import org.apache.accumulo.harness.WithTestNames;
+import org.apache.accumulo.test.harness.TestingKdc;
+import org.apache.accumulo.test.harness.WithTestNames;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -69,7 +69,7 @@ public class KerberosTokenEmbeddedKDCTest extends WithTestNames {
   @Test
   public void test() throws Exception {
     String user = testName();
-    File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
+    File userKeytab = kdc.getKeytabDir().resolve(user + ".keytab").toFile();
     if (userKeytab.exists() && !userKeytab.delete()) {
       log.warn("Unable to delete {}", userKeytab);
     }
@@ -93,7 +93,7 @@ public class KerberosTokenEmbeddedKDCTest extends WithTestNames {
   @Test
   public void testDestroy() throws Exception {
     String user = testName();
-    File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
+    File userKeytab = kdc.getKeytabDir().resolve(user + ".keytab").toFile();
     if (userKeytab.exists() && !userKeytab.delete()) {
       log.warn("Unable to delete {}", userKeytab);
     }

@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -56,8 +57,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
@@ -70,7 +71,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -125,9 +125,9 @@ public class Gatherer {
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
       CryptoService cryptoService) {
     this.ctx = context;
-    this.tableId = TableId.of(request.tableId);
-    this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
-    this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
+    this.tableId = TableId.of(request.getTableId());
+    this.startRow = TextUtil.fromNullableBytes(request.getBounds().getStartRow());
+    this.endRow = TextUtil.fromNullableBytes(request.getBounds().getEndRow());
     this.clipRange = new Range(startRow, false, endRow, true);
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
@@ -185,7 +185,7 @@ public class Gatherer {
 
     Map<String,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
 
-    List<String> tservers = null;
+    List<ServerId> tservers = null;
 
     for (Entry<StoredTabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
@@ -203,7 +203,8 @@ public class Gatherer {
 
       if (location == null) {
         if (tservers == null) {
-          tservers = ctx.instanceOperations().getTabletServers();
+          tservers =
+              new ArrayList<>(ctx.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
           Collections.sort(tservers);
         }
 
@@ -211,18 +212,19 @@ public class Gatherer {
         // same file (as long as the set of tservers is stable).
         int idx = Math.abs(Hashing.murmur3_32_fixed()
             .hashString(entry.getKey().getNormalizedPathStr(), UTF_8).asInt()) % tservers.size();
-        location = tservers.get(idx);
+        location = tservers.get(idx).toHostPortString();
       }
+
+      Function<RowRange,TRowRange> toTRowRange =
+          r -> new TRowRange(TextUtil.getByteBuffer(r.getLowerBound()),
+              TextUtil.getByteBuffer(r.getUpperBound()));
 
       // merge contiguous ranges
       List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
           .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
+      // clip ranges to queried range
       List<TRowRange> ranges =
-          merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
-                                                                                                // ranges
-                                                                                                // to
-                                                                                                // queried
-                                                                                                // range
+          merged.stream().map(this::toClippedExtent).map(toTRowRange).collect(Collectors.toList());
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -284,8 +286,8 @@ public class Gatherer {
 
   private class FilesProcessor implements Supplier<ProcessedFiles> {
 
-    HostAndPort location;
-    Map<StoredTabletFile,List<TRowRange>> allFiles;
+    final HostAndPort location;
+    final Map<StoredTabletFile,List<TRowRange>> allFiles;
     private final TInfo tinfo;
     private final AtomicBoolean cancelFlag;
 
@@ -316,8 +318,8 @@ public class Gatherer {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
                 getRequest(), files.entrySet().stream().collect(Collectors
                     .toMap(entry -> entry.getKey().getNormalizedPathStr(), Entry::getValue)));
-            while (!tSums.finished && !cancelFlag.get()) {
-              tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
+            while (!tSums.isFinished() && !cancelFlag.get()) {
+              tSums = client.contiuneGetSummaries(tinfo, tSums.getSessionId());
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
@@ -358,7 +360,7 @@ public class Gatherer {
         Map<String,Map<StoredTabletFile,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
 
-        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
+        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>(filesGBL.size() + 1);
         if (previousWork != null) {
           futures.add(CompletableFuture
               .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
@@ -432,11 +434,15 @@ public class Gatherer {
   public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
-    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+    Function<TRowRange,RowRange> fromThrift = tRowRange -> {
+      Text lowerBound = TextUtil.fromNullableBytes(tRowRange.getStartRow());
+      Text upperBound = TextUtil.fromNullableBytes(tRowRange.getEndRow());
+      return RowRange.range(lowerBound, false, upperBound, true);
+    };
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>(files.size());
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl =
-            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
+        List<RowRange> rrl = entry.getValue().stream().map(fromThrift).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
@@ -476,8 +482,8 @@ public class Gatherer {
         tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
-          while (!tsr.finished && !cancelFlag.get()) {
-            tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
+          while (!tsr.isFinished() && !cancelFlag.get()) {
+            tsr = client.contiuneGetSummaries(tinfo, tsr.getSessionId());
           }
           return tsr;
         });
@@ -505,7 +511,7 @@ public class Gatherer {
     // have each tablet server process ~100K files
     int numRequest = Math.max(numFiles / 100_000, 1);
 
-    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>(numRequest);
 
     AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
@@ -535,51 +541,10 @@ public class Gatherer {
   private RowRange toClippedExtent(Range r) {
     r = clipRange.clip(r);
 
-    Text startRow = removeTrailingZeroFromRow(r.getStartKey());
-    Text endRow = removeTrailingZeroFromRow(r.getEndKey());
+    final Text lowerBound = removeTrailingZeroFromRow(r.getStartKey());
+    final Text upperBound = removeTrailingZeroFromRow(r.getEndKey());
 
-    return new RowRange(startRow, endRow);
-  }
-
-  public static class RowRange {
-    private final Text startRow;
-    private final Text endRow;
-
-    public RowRange(KeyExtent ke) {
-      this.startRow = ke.prevEndRow();
-      this.endRow = ke.endRow();
-    }
-
-    public RowRange(TRowRange trr) {
-      this.startRow = ByteBufferUtil.toText(trr.startRow);
-      this.endRow = ByteBufferUtil.toText(trr.endRow);
-    }
-
-    public RowRange(Text startRow, Text endRow) {
-      this.startRow = startRow;
-      this.endRow = endRow;
-    }
-
-    public Range toRange() {
-      return new Range(startRow, false, endRow, true);
-    }
-
-    public TRowRange toThrift() {
-      return new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
-    }
-
-    public Text getStartRow() {
-      return startRow;
-    }
-
-    public Text getEndRow() {
-      return endRow;
-    }
-
-    @Override
-    public String toString() {
-      return startRow + " " + endRow;
-    }
+    return RowRange.range(lowerBound, false, upperBound, true);
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,

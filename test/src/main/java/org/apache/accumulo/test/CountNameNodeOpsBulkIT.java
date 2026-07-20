@@ -23,7 +23,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -44,7 +45,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.minicluster.ServerType;
@@ -67,7 +67,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.useMiniDFS(true);
   }
 
@@ -75,7 +75,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       justification = "path provided by test; url provided by test")
   private Map<?,?> getStats() throws Exception {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
-    URL url = new URL(uri + "/jmx");
+    var url = new URI(uri + "/jmx").toURL();
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readWebPage(url).body();
     Map<?,?> jsonObject = GSON.get().fromJson(jsonString, Map.class);
@@ -103,6 +103,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_MAJC_RATIO.getKey(), "2000");
       props.put(Property.TABLE_FILE_MAX.getKey(), "2000");
+      props.put(Property.TABLE_FILE_PAUSE.getKey(), "2000");
       // splits to slow down bulk import
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i < 0xf; i++) {
@@ -112,8 +113,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);
 
-      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
-      assertEquals(1, stats.tServerInfo.size());
+      assertEquals(1, c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size());
 
       log.info("Creating lots of bulk import files");
       final FileSystem fs = getCluster().getFileSystem();

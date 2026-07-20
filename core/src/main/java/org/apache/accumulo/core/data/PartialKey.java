@@ -30,7 +30,7 @@ public enum PartialKey {
   // everything with delete flag
   ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL(6);
 
-  int depth;
+  final int depth;
 
   private PartialKey(int depth) {
     this.depth = depth;

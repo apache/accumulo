@@ -19,9 +19,33 @@
 namespace java org.apache.accumulo.core.process.thrift
 namespace cpp org.apache.accumulo.core.process.thrift
 
+include "client.thrift"
 include "security.thrift"
 
+enum MetricSource {
+  COMPACTOR
+  GARBAGE_COLLECTOR
+  MANAGER
+  SCAN_SERVER
+  TABLET_SERVER
+}
+
+struct MetricResponse {
+  1:MetricSource serverType
+  2:string server
+  3:string resourceGroup
+  4:i64 timestamp
+  5:list<binary> metrics
+}
+
 service ServerProcessService {
+
+  MetricResponse getMetrics(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials  
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
 
   oneway void gracefulShutdown(
     1:security.TCredentials credentials  

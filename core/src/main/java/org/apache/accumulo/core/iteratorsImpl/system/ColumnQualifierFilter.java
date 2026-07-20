@@ -41,13 +41,13 @@ public class ColumnQualifierFilter extends ServerFilter {
     this.columnsQualifiers = new HashMap<>();
 
     columns.forEach(col -> {
-      if (col.columnQualifier != null) {
+      if (col.getColumnQualifier() != null) {
         this.columnsQualifiers
-            .computeIfAbsent(new ArrayByteSequence(col.columnQualifier), k -> new HashSet<>())
-            .add(new ArrayByteSequence(col.columnFamily));
+            .computeIfAbsent(new ArrayByteSequence(col.getColumnQualifier()), k -> new HashSet<>())
+            .add(new ArrayByteSequence(col.getColumnFamily()));
       } else {
         // this whole column family should pass
-        columnFamilies.add(new ArrayByteSequence(col.columnFamily));
+        columnFamilies.add(new ArrayByteSequence(col.getColumnFamily()));
       }
     });
   }

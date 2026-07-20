@@ -53,7 +53,7 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
  *     .store(job);
  * </pre>
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   private static final Class<AccumuloOutputFormat> CLASS = AccumuloOutputFormat.class;

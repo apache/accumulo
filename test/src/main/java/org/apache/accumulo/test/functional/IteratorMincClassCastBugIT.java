@@ -41,8 +41,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -62,7 +62,7 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // this bug only shows up when not using native maps
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, "false");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   @Test
@@ -77,7 +77,7 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
       groups.put("g2", Set.of(new Text("odd")));
       ntc.setLocalityGroups(groups);
 
-      IteratorSetting iteratorSetting = new IteratorSetting(20, ClasCastIterator.class);
+      IteratorSetting iteratorSetting = new IteratorSetting(30, ClasCastIterator.class);
       ntc.attachIterator(iteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.minc));
 
       c.tableOperations().create(tableName, ntc);

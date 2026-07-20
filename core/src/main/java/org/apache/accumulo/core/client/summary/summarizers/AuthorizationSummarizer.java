@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.summary.CountingSummarizer;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -81,11 +81,11 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          auths = new HashSet<>();
-          for (String auth : AccessExpression.of(vis.toArray()).getAuthorizations().asSet()) {
-            auths.add(new ArrayByteSequence(auth));
-          }
-          cache.put(new ArrayByteSequence(vis), auths);
+          var newAuths = new HashSet<ByteSequence>();
+          BytesAccess.findAuthorizations(vis.toArray(),
+              auth -> newAuths.add(new ArrayByteSequence(auth)));
+          cache.put(new ArrayByteSequence(vis), newAuths);
+          auths = newAuths;
         }
 
         for (ByteSequence auth : auths) {

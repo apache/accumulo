@@ -28,9 +28,11 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
@@ -48,19 +50,20 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
 /**
  * keeps track of information needed to identify a tablet
  */
-public class KeyExtent implements Comparable<KeyExtent> {
+public final class KeyExtent implements Comparable<KeyExtent> {
 
   private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
 
@@ -112,10 +115,9 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * @param tke the KeyExtent in its Thrift object form
    */
   public static KeyExtent fromThrift(TKeyExtent tke) {
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tke.table), UTF_8));
-    Text endRow = tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow));
-    Text prevEndRow =
-        tke.prevEndRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.prevEndRow));
+    TableId tableId = TableId.of(new String(tke.getTable(), UTF_8));
+    Text endRow = tke.getEndRow() == null ? null : new Text(tke.getEndRow());
+    Text prevEndRow = tke.getPrevEndRow() == null ? null : new Text(tke.getPrevEndRow());
     return new KeyExtent(tableId, endRow, prevEndRow);
   }
 
@@ -280,10 +282,9 @@ public class KeyExtent implements Comparable<KeyExtent> {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof KeyExtent)) {
+    if (!(o instanceof KeyExtent oke)) {
       return false;
     }
-    KeyExtent oke = (KeyExtent) o;
     return tableId().equals(oke.tableId()) && Objects.equals(endRow(), oke.endRow())
         && Objects.equals(prevEndRow(), oke.prevEndRow());
   }
@@ -381,8 +382,8 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * <p>
    * For example, if this extent represented a range of data from <code>A</code> to <code>Z</code>
    * for a user table, <code>T</code>, this would compute the range to scan
-   * <code>accumulo.metadata</code> that would include all the the metadata for <code>T</code>'s
-   * tablets that contain data in the range <code>(A,Z]</code>.
+   * <code>accumulo.metadata</code> that would include all the metadata for <code>T</code>'s tablets
+   * that contain data in the range <code>(A,Z]</code>.
    */
   public Range toMetaRange() {
     Text metadataPrevRow =
@@ -536,15 +537,15 @@ public class KeyExtent implements Comparable<KeyExtent> {
   }
 
   public boolean isSystemTable() {
-    return AccumuloTable.allTableIds().contains(tableId());
+    return SystemTables.containsTableId(tableId());
   }
 
   public boolean isMeta() {
-    return tableId().equals(AccumuloTable.METADATA.tableId()) || isRootTablet();
+    return tableId().equals(SystemTables.METADATA.tableId()) || isRootTablet();
   }
 
   public boolean isRootTablet() {
-    return tableId().equals(AccumuloTable.ROOT.tableId());
+    return tableId().equals(SystemTables.ROOT.tableId());
   }
 
   public String obscured() {
@@ -558,6 +559,28 @@ public class KeyExtent implements Comparable<KeyExtent> {
       digester.update(endRow().getBytes(), 0, endRow().getLength());
     }
     return Base64.getEncoder().encodeToString(digester.digest());
+  }
+
+  public String toBase64() {
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    try {
+      writeTo(buffer);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
+    return Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+  }
+
+  public static KeyExtent fromBase64(String encoded) {
+    byte[] data = Base64.getDecoder().decode(encoded);
+    DataInputBuffer buffer = new DataInputBuffer();
+    buffer.reset(data, data.length);
+    try {
+      return KeyExtent.readFrom(buffer);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
 }

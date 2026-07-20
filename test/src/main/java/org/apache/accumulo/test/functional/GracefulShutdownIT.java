@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -28,9 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -39,31 +37,34 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopServers;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -99,19 +100,16 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumCompactors(0);
-      cfg.setNumScanServers(0);
-      cfg.setNumTservers(2);
-      cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(0);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
       cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
-      cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
-      cfg.setProperty(Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH, "true");
       cfg.setProperty(Property.COMPACTOR_CANCEL_CHECK_INTERVAL, "5s");
-      cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
-      cfg.setProperty("tserver.compaction.major.service." + GROUP_NAME + ".planner",
-          DefaultCompactionPlanner.class.getName());
-      cfg.setProperty("tserver.compaction.major.service." + GROUP_NAME + ".planner.opts.executors",
-          "[{'name':'all', 'type': 'external', 'queue': '" + GROUP_NAME + "'}]");
+      cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + GROUP_NAME + ".planner",
+          RatioBasedCompactionPlanner.class.getName());
+      cfg.setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + GROUP_NAME + ".planner.opts.groups",
+          "[{'group': '" + GROUP_NAME + "'}]");
       cfg.setClientProperty(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles",
           clientConfiguration);
       // Timeout scan sessions after being idle for 3 seconds
@@ -164,7 +162,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
 
       // Restart Garbage Collector
       final ServiceLockPath gcLockPath =
-          ServiceLock.path(ctx.getZooKeeperRoot() + Constants.ZGC_LOCK);
+          getCluster().getServerContext().getServerPaths().getGarbageCollector(true);
       Optional<ServiceLockData> data = ServiceLock.getLockData(ctx.getZooSession(), gcLockPath);
       assertTrue(data.isPresent());
       final HostAndPort gcAddress = data.orElseThrow().getAddress(ThriftService.GC);
@@ -172,17 +170,19 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       // Don't call `new Admin().execute(new String[] {"signalShutdown", "-h ", host, "-p ",
       // Integer.toString(port)})`
       // because this poisons the SingletonManager and puts it into SERVER mode
-      Admin.signalGracefulShutdown(ctx, gcAddress.toString());
+      StopServers.signalGracefulShutdown(ctx, gcAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.GARBAGE_COLLECTOR);
         return control.getProcesses(ServerType.GARBAGE_COLLECTOR).isEmpty();
       });
 
       // Restart Tablet Server
-      final List<String> tservers = client.instanceOperations().getTabletServers();
+      final Set<ServiceLockPath> tservers = getCluster().getServerContext().getServerPaths()
+          .getTabletServer((rg) -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true);
       assertEquals(2, tservers.size());
-      final HostAndPort tserverAddress = HostAndPort.fromString(tservers.get(0));
-      Admin.signalGracefulShutdown(ctx, tserverAddress.toString());
+      final HostAndPort tserverAddress =
+          HostAndPort.fromString(tservers.iterator().next().getServer());
+      StopServers.signalGracefulShutdown(ctx, tserverAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.TABLET_SERVER);
         return control.getProcesses(ServerType.TABLET_SERVER).size() == 1;
@@ -193,10 +193,16 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       client.instanceOperations().waitForBalance();
 
       // Restart Manager
-      final List<String> managers = client.instanceOperations().getManagerLocations();
-      assertEquals(1, managers.size());
-      final HostAndPort managerAddress = HostAndPort.fromString(managers.get(0));
-      Admin.signalGracefulShutdown(ctx, managerAddress.toString());
+      final ServiceLockPath manager =
+          getCluster().getServerContext().getServerPaths().getManager(true);
+      assertNotNull(manager);
+      Set<ServerId> managerLocations =
+          client.instanceOperations().getServers(ServerId.Type.MANAGER);
+      assertNotNull(managerLocations);
+      assertEquals(1, managerLocations.size());
+      final HostAndPort managerAddress =
+          HostAndPort.fromString(managerLocations.iterator().next().toHostPortString());
+      StopServers.signalGracefulShutdown(ctx, managerAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.MANAGER);
         return control.getProcesses(ServerType.MANAGER).isEmpty();
@@ -206,12 +212,19 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       client.instanceOperations().waitForBalance();
 
       // Compact table and shutdown compactor
-      control.startCoordinator(CompactionCoordinator.class);
-      getCluster().getConfig().setNumCompactors(1);
-      control.startCompactors(Compactor.class, 1, GROUP_NAME);
-      Wait.waitFor(() -> client.instanceOperations().getCompactors().size() == 1);
-      final Set<String> compactors = client.instanceOperations().getCompactors();
-      final HostAndPort compactorAddress = HostAndPort.fromString(compactors.iterator().next());
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(GROUP_NAME,
+          1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+
+      Wait.waitFor(() -> getCluster()
+          .getServerContext().getServerPaths().getCompactor(
+              (rg) -> rg.equals(ResourceGroupId.of(GROUP_NAME)), AddressSelector.all(), true)
+          .size() == 1);
+      final Set<ServiceLockPath> compactors = getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(ResourceGroupId.of(GROUP_NAME)),
+              AddressSelector.all(), true);
+      final HostAndPort compactorAddress =
+          HostAndPort.fromString(compactors.iterator().next().getServer());
 
       final CompactionConfig cc = new CompactionConfig();
       final IteratorSetting is = new IteratorSetting(100, SlowIterator.class);
@@ -222,24 +235,33 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
 
       final long numFiles2 = getNumFilesForTable(ctx, tid);
       assertEquals(numFiles2, numFiles);
-      assertEquals(0, ExternalCompactionTestUtils.getRunningCompactions(ctx).getCompactionsSize());
+      Set<ServerId> newManagerLocations =
+          client.instanceOperations().getServers(ServerId.Type.MANAGER);
+      assertNotNull(newManagerLocations);
+      assertEquals(1, newManagerLocations.size());
+      assertEquals(0, ExternalCompactionTestUtils.getRunningCompactions(ctx).size());
       client.tableOperations().compact(tableName, cc);
-      Wait.waitFor(
-          () -> ExternalCompactionTestUtils.getRunningCompactions(ctx).getCompactionsSize() > 0);
-      Admin.signalGracefulShutdown(ctx, compactorAddress.toString());
+      Wait.waitFor(() -> !ExternalCompactionTestUtils.getRunningCompactions(ctx).isEmpty());
+      StopServers.signalGracefulShutdown(ctx, compactorAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.COMPACTOR);
         return control.getProcesses(ServerType.COMPACTOR).isEmpty();
       });
-      final long numFiles3 = getNumFilesForTable(ctx, tid);
-      assertTrue(numFiles3 < numFiles2);
-      assertEquals(1, numFiles3);
+      Wait.waitFor(() -> getNumFilesForTable(ctx, tid) < numFiles2);
+      assertEquals(1, getNumFilesForTable(ctx, tid));
 
-      getCluster().getConfig().setNumScanServers(1);
-      control.startScanServer(ScanServer.class, 1, GROUP_NAME);
-      Wait.waitFor(() -> client.instanceOperations().getScanServers().size() == 1);
-      final Set<String> sservers = client.instanceOperations().getScanServers();
-      final HostAndPort sserver = HostAndPort.fromString(sservers.iterator().next());
+      getCluster().getConfig().getClusterServerConfiguration()
+          .addScanServerResourceGroup(GROUP_NAME, 1);
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
+
+      Wait.waitFor(() -> getCluster()
+          .getServerContext().getServerPaths().getScanServer(
+              (rg) -> rg.equals(ResourceGroupId.of(GROUP_NAME)), AddressSelector.all(), true)
+          .size() == 1);
+      final Set<ServiceLockPath> sservers =
+          getCluster().getServerContext().getServerPaths().getScanServer(
+              (rg) -> rg.equals(ResourceGroupId.of(GROUP_NAME)), AddressSelector.all(), true);
+      final HostAndPort sserver = HostAndPort.fromString(sservers.iterator().next().getServer());
       try (final Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
@@ -248,9 +270,10 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         scanner.setBatchSize(1);
         int count = 0;
         for (Entry<Key,Value> e : scanner) {
+          assertNotNull(e);
           count++;
           if (count == 2) {
-            Admin.signalGracefulShutdown(ctx, sserver.toString());
+            StopServers.signalGracefulShutdown(ctx, sserver);
           }
         }
         assertEquals(10, count);

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util.time;
 
+import java.io.Serializable;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +31,8 @@ import com.google.common.base.Preconditions;
  * is not expected to represent real world date times, its main use is for computing deltas similar
  * System.nanoTime but across JVM processes.
  */
-public class SteadyTime implements Comparable<SteadyTime> {
+public class SteadyTime implements Comparable<SteadyTime>, Serializable {
+  private static final long serialVersionUID = 1L;
 
   private final Duration time;
 

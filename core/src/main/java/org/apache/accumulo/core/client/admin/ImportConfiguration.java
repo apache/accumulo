@@ -26,7 +26,7 @@ import org.apache.accumulo.core.clientImpl.ImportConfigurationImpl;
  * A configuration object that can be used with
  * {@link TableOperations#importTable(String, Set, ImportConfiguration)}
  *
- * @since 2.1
+ * @since 2.1.0
  */
 public interface ImportConfiguration {
   ImportConfiguration EMPTY = builder().build();
@@ -47,7 +47,7 @@ public interface ImportConfiguration {
   /**
    * A ImportConfiguration builder
    *
-   * @since 2.1
+   * @since 2.1.0
    */
   interface Builder {
 

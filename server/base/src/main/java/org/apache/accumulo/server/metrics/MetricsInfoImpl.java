@@ -25,12 +25,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MonitorMeterRegistry;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +67,7 @@ public class MetricsInfoImpl implements MetricsInfo {
   private AutoCloseable logMetrics;
 
   private final boolean metricsEnabled;
+  private final AtomicReference<MeterRegistry> monitorRegistry = new AtomicReference<>();
 
   private final List<MetricsProducer> producers = new ArrayList<>();
 
@@ -92,6 +97,16 @@ public class MetricsInfoImpl implements MetricsInfo {
   }
 
   @Override
+  public boolean isMonitorRegistryEnabled() {
+    return monitorRegistry.get() != null;
+  }
+
+  @Override
+  public MeterRegistry getMonitorRegistry() {
+    return monitorRegistry.get();
+  }
+
+  @Override
   public synchronized void addMetricsProducers(MetricsProducer... producer) {
     if (!metricsEnabled) {
       return;
@@ -114,6 +129,7 @@ public class MetricsInfoImpl implements MetricsInfo {
     Objects.requireNonNull(tags);
 
     if (!metricsEnabled) {
+      ThreadPools.getServerThreadPools().disableThreadPoolMetrics();
       LOG.info("Metrics not initialized, metrics are disabled.");
       return;
     }
@@ -121,6 +137,22 @@ public class MetricsInfoImpl implements MetricsInfo {
     if (commonTags != null) {
       LOG.warn("metrics registry has already been initialized");
       return;
+    }
+
+    var userTags = context.getConfiguration().get(Property.GENERAL_MICROMETER_USER_TAGS);
+    if (!userTags.isEmpty()) {
+      tags = new ArrayList<>(tags);
+      String[] userTagList = userTags.split(",");
+      for (String userTag : userTagList) {
+        String[] tagParts = userTag.split("=");
+        if (tagParts.length == 2) {
+          Tag tag = Tag.of(tagParts[0], MetricsUtil.formatString(tagParts[1]));
+          tags.add(tag);
+        } else {
+          LOG.warn("Malformed user metric tag: {} in property {}", userTag,
+              Property.GENERAL_MICROMETER_USER_TAGS.getKey());
+        }
+      }
     }
 
     commonTags = List.copyOf(tags);
@@ -139,12 +171,18 @@ public class MetricsInfoImpl implements MetricsInfo {
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
+        if (registry.getClass().equals(MonitorMeterRegistry.class)) {
+          monitorRegistry.compareAndSet(null, registry);
+        }
         registry.config().commonTags(commonTags);
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
         LOG.warn("Could not load registry {}", factoryName, ex);
       }
     }
+
+    // Set the MeterRegistry on the ThreadPools
+    ThreadPools.getServerThreadPools().setMeterRegistry(Metrics.globalRegistry);
 
     if (jvmMetricsEnabled) {
       LOG.info("enabling detailed jvm, classloader, jvm gc and process metrics");

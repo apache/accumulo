@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,19 +33,28 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.test.functional.ManagerAssignmentIT;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -87,6 +97,11 @@ public class LocatorIT extends AccumuloClusterHarness {
 
   @Test
   public void testBasic() throws Exception {
+
+    final Predicate<TabletMetadata> hostedAndCurrentNotNull =
+        t -> t.getTabletAvailability() == TabletAvailability.HOSTED && t.hasCurrent()
+            && t.getLocation().getHostAndPort() != null;
+
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
@@ -104,7 +119,22 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ArrayList<Range> ranges = new ArrayList<>();
 
-      HashSet<String> tservers = new HashSet<>(client.instanceOperations().getTabletServers());
+      HashSet<String> tservers = new HashSet<>();
+      client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
+          .forEach((s) -> tservers.add(s.toHostPortString()));
+
+      // locate won't find any locations, tablets are not hosted
+      ranges.add(r1);
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
+
+      ranges.add(r2);
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
+
+      ranges.clear();
+
+      tableOps.setTabletAvailability(tableName, RowRange.all(), TabletAvailability.HOSTED);
+      Wait.waitFor(() -> hostedAndCurrentNotNull
+          .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
       ranges.add(r1);
       Locations ret = tableOps.locate(tableName, ranges);
@@ -119,6 +149,9 @@ public class LocatorIT extends AccumuloClusterHarness {
       splits.add(new Text("r"));
       tableOps.addSplits(tableName, splits);
 
+      Wait.waitFor(() -> hostedAndCurrentNotNull
+          .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
+
       ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t2), r2, Set.of(t2, t3)),
           Map.of(t2, Set.of(r1, r2), t3, Set.of(r2)));
@@ -127,9 +160,69 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       assertThrows(TableOfflineException.class, () -> tableOps.locate(tableName, ranges));
 
+      tableOps.online(tableName, true);
+
+      Wait.waitFor(
+          () -> hostedAndCurrentNotNull
+              .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, new Text("r"))),
+          60000, 250);
+
+      ArrayList<Range> ranges2 = new ArrayList<>();
+      ranges2.add(r1);
+      ret = tableOps.locate(tableName, ranges2);
+      assertContains(ret, tservers, Map.of(r1, Set.of(t2)), Map.of(t2, Set.of(r1)));
+
       tableOps.delete(tableName);
 
       assertThrows(TableNotFoundException.class, () -> tableOps.locate(tableName, ranges));
+    }
+  }
+
+  @Test
+  public void testClearingUnused() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tables = getUniqueNames(4);
+      String table1 = tables[0];
+      String table2 = tables[1];
+      String table3 = tables[2];
+      String table4 = tables[3];
+
+      TableOperations tableOps = client.tableOperations();
+      tableOps.create(table1);
+      tableOps.create(table2);
+      tableOps.create(table3, new NewTableConfiguration().createOffline());
+      tableOps.create(table4, new NewTableConfiguration().createOffline());
+
+      var ctx = getCluster().getServerContext();
+
+      ctx.setClearFrequency(Duration.ofMillis(100));
+
+      TableId tableId1 = ctx.getTableId(table1);
+      TableId tableId2 = ctx.getTableId(table2);
+      TableId tableId3 = ctx.getTableId(table3);
+      TableId tableId4 = ctx.getTableId(table4);
+
+      for (var tableId : List.of(tableId1, tableId2, tableId3, tableId4)) {
+        assertFalse(ctx.isTabletLocationCachePresent(tableId));
+        assertNotNull(ctx.getTabletLocationCache(tableId));
+        assertTrue(ctx.isTabletLocationCachePresent(tableId));
+      }
+
+      tableOps.delete(table1);
+      tableOps.delete(table4);
+
+      Wait.waitFor(() -> {
+        // Accessing table3 in the cache should cause table1 and table4 to eventually be cleared
+        // because they no longer exist. This also test that online and offline tables a properly
+        // cleared from the cache.
+        var t3 = ctx.getTabletLocationCache(tableId3);
+        return t3 != null && !ctx.isTabletLocationCachePresent(tableId1)
+            && !ctx.isTabletLocationCachePresent(tableId4);
+      });
+
+      // table2 and table3 should be left in the cache
+      assertTrue(ctx.isTabletLocationCachePresent(tableId2));
+      assertTrue(ctx.isTabletLocationCachePresent(tableId3));
     }
   }
 }

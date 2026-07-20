@@ -27,7 +27,7 @@ package org.apache.accumulo.core.spi.scan;
  */
 class DefaultScanDispatch extends ScanDispatchImpl {
 
-  static DefaultScanDispatch DEFAULT_SCAN_DISPATCH = new DefaultScanDispatch();
+  static final DefaultScanDispatch DEFAULT_SCAN_DISPATCH = new DefaultScanDispatch();
 
   private DefaultScanDispatch() {
     super.build();

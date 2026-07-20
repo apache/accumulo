@@ -20,20 +20,20 @@ package org.apache.accumulo.tserver.metrics;
 
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MINC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_HOLD;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_BYTES;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_MUTATIONS;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_MAJC_QUEUED;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_MAJC_RUNNING;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MEM_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_RUNNING;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_TOTAL;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_FILES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_LONG_ASSIGNMENTS;
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE;
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE_ONDEMAND;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_OPENING;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_UNOPENED;
 
@@ -72,9 +72,10 @@ public class TabletServerMetrics implements MetricsProducer {
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this,
             TabletServerMetrics::getTotalEntriesWritten)
         .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
-    LongTaskTimer timer = LongTaskTimer.builder(TSERVER_MAJC_STUCK.getName())
-        .description(TSERVER_MAJC_STUCK.getDescription()).register(registry);
+    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MINC_STUCK.getName())
+        .description(COMPACTOR_MINC_STUCK.getDescription()).register(registry);
     CompactionWatcher.setTimer(timer);
+
     Gauge
         .builder(TSERVER_TABLETS_LONG_ASSIGNMENTS.getName(), util,
             TabletServerMetricsUtil::getLongTabletAssignments)
@@ -85,19 +86,20 @@ public class TabletServerMetrics implements MetricsProducer {
     Gauge.builder(TSERVER_MEM_ENTRIES.getName(), util, TabletServerMetricsUtil::getEntriesInMemory)
         .description(TSERVER_MEM_ENTRIES.getDescription()).register(registry);
     Gauge
-        .builder(TSERVER_MAJC_RUNNING.getName(), util, TabletServerMetricsUtil::getMajorCompactions)
-        .description(TSERVER_MAJC_RUNNING.getDescription()).register(registry);
-    Gauge
-        .builder(TSERVER_MAJC_QUEUED.getName(), util,
-            TabletServerMetricsUtil::getMajorCompactionsQueued)
-        .description(TSERVER_MAJC_QUEUED.getDescription()).register(registry);
-    Gauge
         .builder(TSERVER_MINC_RUNNING.getName(), util, TabletServerMetricsUtil::getMinorCompactions)
         .description(TSERVER_MINC_RUNNING.getDescription()).register(registry);
     Gauge
         .builder(TSERVER_MINC_QUEUED.getName(), util,
             TabletServerMetricsUtil::getMinorCompactionsQueued)
         .description(TSERVER_MINC_QUEUED.getDescription()).register(registry);
+    Gauge
+        .builder(TSERVER_TABLETS_ONLINE_ONDEMAND.getName(), util,
+            TabletServerMetricsUtil::getOnDemandOnlineCount)
+        .description(TSERVER_TABLETS_ONLINE_ONDEMAND.getDescription()).register(registry);
+    Gauge
+        .builder(TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM.getName(), util,
+            TabletServerMetricsUtil::getOnDemandUnloadedLowMem)
+        .description(TSERVER_TABLETS_ONDEMAND_UNLOADED_FOR_MEM.getDescription()).register(registry);
     Gauge.builder(TSERVER_TABLETS_ONLINE.getName(), util, TabletServerMetricsUtil::getOnlineCount)
         .description(TSERVER_TABLETS_ONLINE.getDescription()).register(registry);
     Gauge.builder(TSERVER_TABLETS_OPENING.getName(), util, TabletServerMetricsUtil::getOpeningCount)
@@ -117,8 +119,8 @@ public class TabletServerMetrics implements MetricsProducer {
         .description(TSERVER_TABLETS_FILES.getDescription()).register(registry);
     Gauge.builder(TSERVER_HOLD.getName(), util, TabletServerMetricsUtil::getHoldTime)
         .description(TSERVER_HOLD.getDescription()).register(registry);
-    Gauge.builder(TSERVER_INGEST_MUTATIONS.getName(), util, TabletServerMetricsUtil::getIngestCount)
-        .description(TSERVER_INGEST_MUTATIONS.getDescription()).register(registry);
+    Gauge.builder(TSERVER_INGEST_ENTRIES.getName(), util, TabletServerMetricsUtil::getIngestCount)
+        .description(TSERVER_INGEST_ENTRIES.getDescription()).register(registry);
     Gauge.builder(TSERVER_INGEST_BYTES.getName(), util, TabletServerMetricsUtil::getIngestByteCount)
         .description(TSERVER_INGEST_BYTES.getDescription()).register(registry);
   }

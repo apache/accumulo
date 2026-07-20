@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin.compaction;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,7 @@ public interface CompactionConfigurer {
   /**
    * @since 2.1.0
    */
-  public interface InitParameters {
+  interface InitParameters {
     TableId getTableId();
 
     Map<String,String> getOptions();
@@ -49,16 +50,25 @@ public interface CompactionConfigurer {
   /**
    * @since 2.1.0
    */
-  public interface InputParameters {
+  interface InputParameters {
     TableId getTableId();
 
+    Collection<CompactableFile> getInputFiles();
+
     /**
-     * @return the id of the tablet being compacted
-     * @since 3.0.0
+     * Returns the tablet that is compacting.
+     *
+     * @since 2.1.4
      */
     TabletId getTabletId();
 
-    public Collection<CompactableFile> getInputFiles();
+    /**
+     * Returns the path that the compaction will write to, one use of this is to know the output
+     * volume.
+     *
+     * @since 2.1.4
+     */
+    URI getOutputFile();
 
     /**
      * For user and selector compactions:
@@ -78,7 +88,7 @@ public interface CompactionConfigurer {
      * <li>There is no selected set of files so the empty set is returned.</li>
      * </ul>
      *
-     * @since 3.1
+     * @since 4.0.0
      */
     public Set<CompactableFile> getSelectedFiles();
 
@@ -90,7 +100,7 @@ public interface CompactionConfigurer {
    *
    * @since 2.1.0
    */
-  public class Overrides {
+  class Overrides {
     private final Map<String,String> tablePropertyOverrides;
 
     public Overrides(Map<String,String> tablePropertyOverrides) {

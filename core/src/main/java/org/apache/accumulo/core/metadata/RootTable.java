@@ -38,8 +38,8 @@ public class RootTable {
    */
   public static final String ZROOT_TABLET_GC_CANDIDATES = ZROOT_TABLET + "/gc_candidates";
 
-  public static final KeyExtent EXTENT = new KeyExtent(AccumuloTable.ROOT.tableId(), null, null);
-  public static final KeyExtent OLD_EXTENT = new KeyExtent(AccumuloTable.METADATA.tableId(),
-      TabletsSection.encodeRow(AccumuloTable.METADATA.tableId(), null), null);
+  public static final KeyExtent EXTENT = new KeyExtent(SystemTables.ROOT.tableId(), null, null);
+  public static final KeyExtent OLD_EXTENT = new KeyExtent(SystemTables.METADATA.tableId(),
+      TabletsSection.encodeRow(SystemTables.METADATA.tableId(), null), null);
 
 }

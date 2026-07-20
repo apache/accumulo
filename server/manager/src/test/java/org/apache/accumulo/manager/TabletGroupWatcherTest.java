@@ -18,70 +18,38 @@
  */
 package org.apache.accumulo.manager;
 
+import static org.apache.accumulo.manager.TabletGroupWatcher.findServerIgnoringSession;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.manager.TabletGroupWatcher.HighTablet;
-import org.apache.hadoop.io.Text;
+import java.util.TreeMap;
+
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.net.HostAndPort;
+
 public class TabletGroupWatcherTest {
-
   @Test
-  public void testComputeNewDfvEven() {
-    DataFileValue original = new DataFileValue(20, 10, 100);
-    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
+  public void testFindingServer() {
+    TreeMap<TServerInstance,String> servers = new TreeMap<>();
 
-    assertEquals(10, newValues.getFirst().getSize());
-    assertEquals(5, newValues.getFirst().getNumEntries());
-    assertEquals(original.getTime(), newValues.getFirst().getTime());
-    assertEquals(10, newValues.getSecond().getSize());
-    assertEquals(5, newValues.getSecond().getNumEntries());
-    assertEquals(original.getTime(), newValues.getSecond().getTime());
-  }
+    servers.put(new TServerInstance("192.168.1.2:9997", 50L), "tserver1");
+    // add an entry where only the session differs. For this case the code does not really care
+    // which one is found, the impl happens to find the first one. This situation could happen
+    // temporarily, and it should not cause any problems.
+    servers.put(new TServerInstance("192.168.1.2:9997", 70L), "tserver2");
+    servers.put(new TServerInstance("192.168.1.4:9997", -90L), "tserver3");
 
-  @Test
-  public void testComputeNewDfvOdd() {
-    DataFileValue original = new DataFileValue(21, 11, 100);
-    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
+    assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.1:9997")));
+    assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.2:9996")));
+    assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.2:9998")));
+    assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.3:9997")));
+    assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.5:9997")));
 
-    assertEquals(10, newValues.getFirst().getSize());
-    assertEquals(5, newValues.getFirst().getNumEntries());
-    assertEquals(original.getTime(), newValues.getFirst().getTime());
-    assertEquals(11, newValues.getSecond().getSize());
-    assertEquals(6, newValues.getSecond().getNumEntries());
-    assertEquals(original.getTime(), newValues.getSecond().getTime());
-  }
-
-  @Test
-  public void testComputeNewDfvSmall() {
-    DataFileValue original = new DataFileValue(1, 2, 100);
-    Pair<DataFileValue,DataFileValue> newValues = TabletGroupWatcher.computeNewDfv(original);
-
-    assertEquals(1, newValues.getFirst().getSize());
-    assertEquals(1, newValues.getFirst().getNumEntries());
-    assertEquals(original.getTime(), newValues.getFirst().getTime());
-    assertEquals(1, newValues.getSecond().getSize());
-    assertEquals(1, newValues.getSecond().getNumEntries());
-    assertEquals(original.getTime(), newValues.getSecond().getTime());
-  }
-
-  @Test
-  public void testHighTablet() {
-    HighTablet mergedTruePrevRowFalse = new HighTablet(
-        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("end"), null), true);
-    assertNotNull(mergedTruePrevRowFalse.getExtent());
-    assertTrue(mergedTruePrevRowFalse.isMerged());
-
-    HighTablet mergedFalsePrevRowFalse = new HighTablet(
-        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("end"), null), false);
-    assertNotNull(mergedFalsePrevRowFalse.getExtent());
-    assertFalse(mergedFalsePrevRowFalse.isMerged());
+    assertEquals(new TServerInstance("192.168.1.2:9997", 50L),
+        findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.2:9997")));
+    assertEquals(new TServerInstance("192.168.1.4:9997", -90L),
+        findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.4:9997")));
   }
 }

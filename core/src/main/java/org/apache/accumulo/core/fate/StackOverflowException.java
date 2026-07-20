@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.fate;
 
-public class StackOverflowException extends Exception {
+public class StackOverflowException extends RuntimeException {
 
   public StackOverflowException(String msg) {
     super(msg);

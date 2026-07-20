@@ -27,7 +27,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.Pair;
@@ -73,15 +73,15 @@ public class CompactionJobPrioritizer {
 
   static {
     // root table
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.ROOT.tableId(), CompactionKind.USER),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(SystemTables.ROOT.tableId(), CompactionKind.USER),
         ROOT_TABLE_USER);
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.ROOT.tableId(), CompactionKind.SYSTEM),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(SystemTables.ROOT.tableId(), CompactionKind.SYSTEM),
         ROOT_TABLE_SYSTEM);
 
     // metadata table
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.METADATA.tableId(), CompactionKind.USER),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(SystemTables.METADATA.tableId(), CompactionKind.USER),
         METADATA_TABLE_USER);
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.METADATA.tableId(), CompactionKind.SYSTEM),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(SystemTables.METADATA.tableId(), CompactionKind.SYSTEM),
         METADATA_TABLE_SYSTEM);
 
     // metadata table
@@ -91,7 +91,6 @@ public class CompactionJobPrioritizer {
         SYSTEM_NS_SYSTEM);
   }
 
-  @SuppressWarnings("deprecation")
   public static short createPriority(final NamespaceId nsId, final TableId tableId,
       final CompactionKind kind, final int totalFiles, final int compactingFiles,
       final int maxFilesPerTablet) {
@@ -117,27 +116,20 @@ public class CompactionJobPrioritizer {
       }
     };
 
-    // Handle the case of a CHOP compaction. For the purposes of determining
-    // a priority, treat them as a USER compaction.
-    CompactionKind calculationKind = kind;
-    if (kind == CompactionKind.SELECTOR) {
-      calculationKind = CompactionKind.SYSTEM;
-    }
-
     Range<Short> range = null;
     Function<Range<Short>,Short> func = normalPriorityFunction;
     if (Namespace.ACCUMULO.id() == nsId) {
       // Handle system tables
-      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, calculationKind));
+      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, kind));
       if (range == null) {
-        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, calculationKind));
+        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, kind));
       }
     } else {
       // Handle user tables
-      if (totalFiles > maxFilesPerTablet && calculationKind == CompactionKind.SYSTEM) {
+      if (totalFiles > maxFilesPerTablet && kind == CompactionKind.SYSTEM) {
         range = TABLE_OVER_SIZE;
         func = tabletOverSizeFunction;
-      } else if (calculationKind == CompactionKind.SYSTEM) {
+      } else if (kind == CompactionKind.SYSTEM) {
         range = USER_TABLE_SYSTEM;
       } else {
         range = USER_TABLE_USER;
@@ -151,5 +143,4 @@ public class CompactionJobPrioritizer {
     return func.apply(range);
 
   }
-
 }

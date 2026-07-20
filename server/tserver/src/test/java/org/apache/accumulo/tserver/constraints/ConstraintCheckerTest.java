@@ -34,10 +34,10 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.data.constraints.Constraint.Environment;
-import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +46,6 @@ public class ConstraintCheckerTest {
   private ConstraintChecker cc;
   private ArrayList<Constraint> constraints;
   private Environment env;
-  private TabletId tabletId;
   private Mutation m;
   private Mutation m2;
 
@@ -57,13 +56,11 @@ public class ConstraintCheckerTest {
     expect(cc.getConstraints()).andReturn(constraints);
 
     env = createMock(Environment.class);
-    tabletId = createMock(TabletId.class);
+    TabletId tabletId = TabletId.of(TableId.of("id"), "d", "a");
     expect(env.getTablet()).andReturn(tabletId);
 
     m = createMock(Mutation.class);
     m2 = createMock(Mutation.class);
-    expect(tabletId.getEndRow()).andReturn(new Text("d")).anyTimes();
-    expect(tabletId.getPrevEndRow()).andReturn(new Text("a")).anyTimes();
     expect(m.getRow()).andReturn("b".getBytes(UTF_8)).anyTimes();
     expect(m2.getRow()).andReturn("z".getBytes(UTF_8)).anyTimes();
   }
@@ -88,7 +85,6 @@ public class ConstraintCheckerTest {
   }
 
   private void replayAll() {
-    replay(tabletId);
     replay(env);
     replay(cc);
     replay(m);

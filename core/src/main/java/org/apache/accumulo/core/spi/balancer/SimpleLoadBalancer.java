@@ -162,7 +162,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
       // Sort by total number of online tablets, per server
       int total = 0;
-      ArrayList<ServerCounts> totals = new ArrayList<>();
+      ArrayList<ServerCounts> totals = new ArrayList<>(current.size());
       for (Entry<TabletServerId,TServerStatus> entry : current.entrySet()) {
         int serverTotal = 0;
         if (entry.getValue() != null && entry.getValue().getTableMap() != null) {
@@ -235,11 +235,11 @@ public class SimpleLoadBalancer implements TabletBalancer {
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count,
       Map<TableId,Map<TabletId,TabletStatistics>> donerTabletStats) {
 
-    if (count == 0) {
+    if (count <= 0) {
       return Collections.emptyList();
     }
 
-    List<TabletMigration> result = new ArrayList<>();
+    List<TabletMigration> result = new ArrayList<>(count);
     // Copy counts so we can update them as we propose migrations
     Map<TableId,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
     Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
@@ -265,11 +265,11 @@ public class SimpleLoadBalancer implements TabletBalancer {
         log.error("Unable to select a tablet to move", ex);
         return result;
       }
-      TabletId tabletId = selectTablet(onlineTabletsForTable);
-      onlineTabletsForTable.remove(tabletId);
-      if (tabletId == null) {
+      if (onlineTabletsForTable.isEmpty()) {
         return result;
       }
+      TabletId tabletId = onlineTabletsForTable.keySet().iterator().next();
+      onlineTabletsForTable.remove(tabletId);
       tooMuchMap.put(table, tooMuchMap.get(table) - 1);
       /*
        * If a table grows from 1 tablet then tooLittleMap.get(table) can return a null, since there
@@ -324,23 +324,6 @@ public class SimpleLoadBalancer implements TabletBalancer {
     return result;
   }
 
-  static TabletId selectTablet(Map<TabletId,TabletStatistics> extents) {
-    if (extents.isEmpty()) {
-      return null;
-    }
-    TabletId mostRecentlySplit = null;
-    long splitTime = 0;
-    for (Entry<TabletId,TabletStatistics> entry : extents.entrySet()) {
-      @SuppressWarnings("deprecation")
-      long splitCreationTime = entry.getValue().getSplitCreationTime();
-      if (splitCreationTime >= splitTime) {
-        splitTime = splitCreationTime;
-        mostRecentlySplit = entry.getKey();
-      }
-    }
-    return mostRecentlySplit;
-  }
-
   // define what it means for a tablet to be busy
   private static TableId busiest(Map<String,TableStatistics> tables) {
     TableId result = null;
@@ -358,6 +341,10 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   @Override
   public void getAssignments(AssignmentParameters params) {
+    if (params.currentStatus().isEmpty()) {
+      log.debug("No known TabletServers, skipping tablet assignment for now.");
+      return;
+    }
     params.unassignedTablets().forEach((tabletId, tserverId) -> params.addAssignment(tabletId,
         getAssignment(params.currentStatus(), tserverId)));
   }

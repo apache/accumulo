@@ -172,7 +172,10 @@ public class RelativeKey implements Writable {
       fieldsPrefixed = 0;
     }
 
-    final byte[] row, cf, cq, cv;
+    final byte[] row;
+    final byte[] cf;
+    final byte[] cq;
+    final byte[] cv;
     final long ts;
 
     row = getData(in, ROW_SAME, ROW_COMMON_PREFIX, () -> prevKey.getRowData());
@@ -204,9 +207,9 @@ public class RelativeKey implements Writable {
   }
 
   public static class SkippR {
-    RelativeKey rk;
-    int skipped;
-    Key prevKey;
+    final RelativeKey rk;
+    final int skipped;
+    final Key prevKey;
 
     SkippR(RelativeKey rk, int skipped, Key prevKey) {
       this.rk = rk;
@@ -219,8 +222,15 @@ public class RelativeKey implements Writable {
       Key currKey, int entriesLeft) throws IOException {
     // this method mostly avoids object allocation and only does compares when the row changes
 
-    ArrayByteSequence row, cf, cq, cv;
-    ArrayByteSequence prow, pcf, pcq, pcv;
+    ArrayByteSequence row;
+    ArrayByteSequence cf;
+    ArrayByteSequence cq;
+    ArrayByteSequence cv;
+
+    ArrayByteSequence prow;
+    ArrayByteSequence pcf;
+    ArrayByteSequence pcq;
+    ArrayByteSequence pcv;
 
     ByteSequence stopRow = seekKey.getRowData();
     ByteSequence stopCF = seekKey.getColumnFamilyData();
@@ -230,7 +240,9 @@ public class RelativeKey implements Writable {
     long pts = -1;
     boolean pdel = false;
 
-    int rowCmp = -1, cfCmp = -1, cqCmp = -1;
+    int rowCmp = -1;
+    int cfCmp = -1;
+    int cqCmp = -1;
 
     if (currKey != null) {
 
@@ -397,7 +409,10 @@ public class RelativeKey implements Writable {
     }
 
     if (count > 1) {
-      ArrayByteSequence trow, tcf, tcq, tcv;
+      ArrayByteSequence trow;
+      ArrayByteSequence tcf;
+      ArrayByteSequence tcq;
+      ArrayByteSequence tcv;
       long tts;
 
       // when the current keys field is same as the last, then

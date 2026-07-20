@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -35,9 +34,11 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.data.Stat;
@@ -47,59 +48,71 @@ import org.junit.jupiter.api.Test;
 
 public class CompactionDriverTest {
 
-  private final InstanceId instance = InstanceId.of(UUID.randomUUID());
-  private final NamespaceId namespaceId = NamespaceId.of("testNamespace");
-  private final TableId tableId = TableId.of("testTable");
-  private final byte[] startRow = new byte[0];
-  private final byte[] endRow = new byte[0];
-  private final long compactId = 123; // arbitrary
+  private static final InstanceId instance = InstanceId.of(UUID.randomUUID());
+  private static final TableId tableId = TableId.of("testTable");
 
-  private Manager manager;
+  private static class CompactionTestDriver extends CompactionDriver {
+    private static final long serialVersionUID = 1L;
+    private final boolean cancelled;
+
+    static CompactionDriver cancelled() {
+      return new CompactionTestDriver(true);
+    }
+
+    static CompactionDriver notCancelled() {
+      return new CompactionTestDriver(false);
+    }
+
+    private CompactionTestDriver(boolean cancelled) {
+      super(NamespaceId.of("testNamespace"), tableId, new byte[0], new byte[0]);
+      this.cancelled = cancelled;
+    }
+
+    @Override
+    protected boolean isCancelled(FateId fateId, ServerContext context) {
+      return cancelled;
+    }
+  }
+
+  private FateEnv fateEnv;
   private ServerContext ctx;
   private ZooSession zk;
 
   @BeforeEach
   public void setup() {
-    manager = createMock(Manager.class);
+    fateEnv = createMock(FateEnv.class);
     ctx = createMock(ServerContext.class);
     zk = createMock(ZooSession.class);
     expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
     expect(ctx.getZooSession()).andReturn(zk).anyTimes();
     expect(zk.asReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
-    expect(manager.getContext()).andReturn(ctx).anyTimes();
+    expect(fateEnv.getContext()).andReturn(ctx).anyTimes();
   }
 
   @AfterEach
   public void teardown() {
-    verify(manager, ctx, zk);
+    verify(fateEnv, ctx, zk);
   }
 
   @Test
   public void testCancelId() throws Exception {
-    runDriver(compactId + 1, TableOperationsImpl.COMPACTION_CANCELED_MSG);
+    runDriver(CompactionTestDriver.cancelled(), TableOperationsImpl.COMPACTION_CANCELED_MSG);
   }
 
   @Test
   public void testTableBeingDeleted() throws Exception {
     String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId);
-    expect(zk.exists(deleteMarkerPath, null)).andReturn(new Stat()).once();
-    runDriver(compactId - 1, TableOperationsImpl.TABLE_DELETED_MSG);
+    expect(zk.exists(deleteMarkerPath, null)).andReturn(new Stat());
+    runDriver(CompactionTestDriver.notCancelled(), TableOperationsImpl.TABLE_DELETED_MSG);
   }
 
-  private void runDriver(long cancelId, String expectedMessage) throws Exception {
-    final String zCancelID = CompactionDriver.createCompactionCancellationPath(instance, tableId);
-    expect(zk.getData(zCancelID, null, null)).andReturn(Long.toString(cancelId).getBytes(UTF_8));
-
-    final var driver = new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
-    final long mockTxId = tableId.hashCode();
-
-    replay(manager, ctx, zk);
+  private void runDriver(CompactionDriver driver, String expectedMessage) {
+    replay(fateEnv, ctx, zk);
     var e = assertThrows(AcceptableThriftTableOperationException.class,
-        () -> driver.isReady(mockTxId, manager));
+        () -> driver.isReady(FateId.from(FateInstanceType.USER, UUID.randomUUID()), fateEnv));
     assertEquals(e.getTableId(), tableId.toString());
     assertEquals(e.getOp(), TableOperation.COMPACT);
     assertEquals(e.getType(), TableOperationExceptionType.OTHER);
     assertEquals(expectedMessage, e.getDescription());
   }
-
 }

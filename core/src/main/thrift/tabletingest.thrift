@@ -100,14 +100,4 @@ service TabletIngestClientService {
     1:client.TInfo tinfo
     2:data.UpdateID sessID
   )
-
-  oneway void loadFiles(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:i64 tid
-    4:string dir
-    7:map<data.TKeyExtent, map<string, DataFileInfo>> files
-    6:bool setTime
-  )
-
 }

@@ -65,12 +65,12 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       return iterator;
     }
 
-    protected boolean isDefaultLocalityGroup;
-    protected Map<ByteSequence,MutableLong> columnFamilies;
+    protected final boolean isDefaultLocalityGroup;
+    protected final Map<ByteSequence,MutableLong> columnFamilies;
     private InterruptibleIterator iterator;
   }
 
-  public static class LocalityGroupContext {
+  public static final class LocalityGroupContext {
     final List<LocalityGroup> groups;
     final LocalityGroup defaultGroup;
     final Map<ByteSequence,LocalityGroup> groupByCf;

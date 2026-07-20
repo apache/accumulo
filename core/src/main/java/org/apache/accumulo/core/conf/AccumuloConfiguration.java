@@ -356,7 +356,11 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           return IntStream.of(port);
         } else {
           log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
-          return IntStream.of(Integer.parseInt(property.getDefaultValue()));
+          if (property.getDefaultValue().contains("-")) {
+            return PortRange.parse(property.getDefaultValue());
+          } else {
+            return IntStream.of(Integer.parseInt(property.getDefaultValue()));
+          }
         }
       } catch (NumberFormatException e1) {
         throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
@@ -466,8 +470,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract boolean isPropertySet(Property prop);
 
   private static class RefCount<T> {
-    T obj;
-    long count;
+    final T obj;
+    final long count;
 
     RefCount(long c, T r) {
       this.count = c;

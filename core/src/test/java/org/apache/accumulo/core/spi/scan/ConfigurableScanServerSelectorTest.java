@@ -21,14 +21,17 @@ package org.apache.accumulo.core.spi.scan;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -46,6 +50,8 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import com.google.common.base.Preconditions;
 
@@ -54,7 +60,7 @@ public class ConfigurableScanServerSelectorTest {
   static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
-    private final Supplier<Map<String,String>> scanServers;
+    private final Supplier<Map<String,ResourceGroupId>> scanServers;
 
     InitParams(Set<String> scanServers) {
       this(scanServers, Map.of());
@@ -62,18 +68,17 @@ public class ConfigurableScanServerSelectorTest {
 
     InitParams(Set<String> scanServers, Map<String,String> opts) {
       this.opts = opts;
-      var scanServersMap = new HashMap<String,String>();
-      scanServers.forEach(
-          sserv -> scanServersMap.put(sserv, ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME));
+      var scanServersMap = new HashMap<String,ResourceGroupId>();
+      scanServers.forEach(sserv -> scanServersMap.put(sserv, ResourceGroupId.DEFAULT));
       this.scanServers = () -> scanServersMap;
     }
 
-    InitParams(Map<String,String> scanServers, Map<String,String> opts) {
+    InitParams(Map<String,ResourceGroupId> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = () -> scanServers;
     }
 
-    InitParams(Supplier<Map<String,String>> scanServers, Map<String,String> opts) {
+    InitParams(Supplier<Map<String,ResourceGroupId>> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = scanServers;
     }
@@ -98,7 +103,7 @@ public class ConfigurableScanServerSelectorTest {
         }
 
         @Override
-        public String getGroup() {
+        public ResourceGroupId getGroup() {
           return entry.getValue();
         }
 
@@ -121,6 +126,13 @@ public class ConfigurableScanServerSelectorTest {
     SelectorParams(TabletId tablet, Map<TabletId,Collection<? extends ScanServerAttempt>> attempts,
         Map<String,String> hints) {
       this.tablets = Set.of(tablet);
+      this.attempts = attempts;
+      this.hints = hints;
+    }
+
+    SelectorParams(Set<TabletId> tablets,
+        Map<TabletId,Collection<? extends ScanServerAttempt>> attempts, Map<String,String> hints) {
+      this.tablets = Set.copyOf(tablets);
       this.attempts = attempts;
       this.hints = hints;
     }
@@ -433,9 +445,12 @@ public class ConfigurableScanServerSelectorTest {
         ("[" + defaultProfile + ", " + profile1 + "," + profile2 + "]").replace('\'', '"'));
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    selector.init(new InitParams(Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", "g1",
-        "ss5:5", "g1", "ss6:6", "g2", "ss7:7", "g2", "ss8:8", "g2"), opts));
+    var dg = ResourceGroupId.DEFAULT;
+    selector.init(new InitParams(
+        Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", ResourceGroupId.of("g1"), "ss5:5",
+            ResourceGroupId.of("g1"), "ss6:6", ResourceGroupId.of("g2"), "ss7:7",
+            ResourceGroupId.of("g2"), "ss8:8", ResourceGroupId.of("g2")),
+        opts));
 
     Set<String> servers = new HashSet<>();
 
@@ -511,13 +526,13 @@ public class ConfigurableScanServerSelectorTest {
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 
-    AtomicReference<Map<String,String>> scanServers = new AtomicReference<>(Map.of());
+    AtomicReference<Map<String,ResourceGroupId>> scanServers = new AtomicReference<>(Map.of());
 
     selector.init(new InitParams(scanServers::get, opts));
 
     var tabletId = nti("1", "m");
 
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    var dg = ResourceGroupId.DEFAULT;
 
     var params = new SelectorParams(tabletId, Map.of(), Map.of()) {
       @Override
@@ -541,5 +556,189 @@ public class ConfigurableScanServerSelectorTest {
 
     assertTrue(Set.of("ss1:1", "ss2:2", "ss3:3").contains(actions.getScanServer(tabletId)));
     assertFalse(scanServers.get().isEmpty());
+  }
+
+  @Test
+  public void testServerSetChanges() throws Exception {
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
+            + "'attemptPlans':[{'servers':3, 'busyTimeout':'60s'}]}";
+
+    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
+
+    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    // start off w/ one scan server
+    AtomicReference<Map<String,ResourceGroupId>> scanServers =
+        new AtomicReference<>(Map.of("localhost:8000", ResourceGroupId.of(dg)));
+
+    selector.init(new InitParams(scanServers::get, opts));
+
+    for (int i = 0; i < 50; i++) {
+      var tabletId = nti("" + i, "m");
+      assertEquals("localhost:8000",
+          selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId));
+      assertEquals("localhost:8000",
+          selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId));
+    }
+
+    // add some new scan servers, the selector should eventually pick these up and start making
+    // different decisions
+    HashMap<String,ResourceGroupId> newServers = new HashMap<>();
+    for (int i = 0; i < 30; i++) {
+      newServers.put(String.format("localhost:%d", 8000 + i), ResourceGroupId.of(dg));
+    }
+    // add some servers in another RG, these should be ignored
+    for (int i = 0; i < 30; i++) {
+      newServers.put(String.format("localhost:%d", 9000 + i), ResourceGroupId.of("other"));
+    }
+    scanServers.set(newServers);
+
+    // wait until the new scan servers are noticed
+    var tabletId = nti("1", "m");
+    while ("localhost:8000"
+        .equals(selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId))) {
+      Thread.sleep(100);
+    }
+
+    // now should see tablet spread across the new scan servers servers
+    HashSet<String> allServersSeen = new HashSet<>();
+    for (int i = 0; i < 100; i++) {
+      tabletId = nti("" + i, "m");
+      HashSet<String> serversSeen = new HashSet<>();
+      for (int j = 0; j < 30; j++) {
+        var server = selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId);
+        serversSeen.add(server);
+        allServersSeen.add(server);
+      }
+      // each tablet should spread across three servers
+      assertEquals(3, serversSeen.size());
+    }
+    // all tablets should spread across all scan servers
+    assertEquals(30, allServersSeen.size());
+  }
+
+  /**
+   * Test that previous failures are not used again unless all servers have failed
+   */
+  @ParameterizedTest
+  @EnumSource
+  public void testPreviousFailures(ScanServerAttempt.Result result) {
+    HashMap<String,ResourceGroupId> servers = new HashMap<>();
+    for (int i = 0; i < 30; i++) {
+      servers.put(String.format("localhost:%d", 8000 + i), ResourceGroupId.DEFAULT);
+    }
+
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
+            + "'attemptPlans':[{'servers':3, 'busyTimeout':'60s'}]}";
+    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
+    selector.init(new InitParams(() -> servers, opts));
+
+    var tabletId = nti("1", "m");
+    var selected = selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId);
+    assertTrue(servers.containsKey(selected));
+
+    // try selecting again, should pick a different server
+    var attempts = new HashSet<ScanServerAttempt>();
+    attempts.add(new TestScanServerAttempt(selected, result));
+    var selected2 =
+        selector.selectServers(new SelectorParams(tabletId, Map.of(tabletId, attempts), Map.of()))
+            .getScanServer(tabletId);
+    assertTrue(servers.containsKey(selected2));
+    assertNotEquals(selected, selected2);
+
+    // try selecting again, should pick a different server
+    attempts.add(new TestScanServerAttempt(selected2, result));
+    var selected3 =
+        selector.selectServers(new SelectorParams(tabletId, Map.of(tabletId, attempts), Map.of()))
+            .getScanServer(tabletId);
+    assertTrue(servers.containsKey(selected3));
+    assertNotEquals(selected, selected3);
+    assertNotEquals(selected2, selected3);
+
+    // try selecting again, at this point all servers failed so should try any one of them
+    attempts.add(new TestScanServerAttempt(selected3, result));
+    var selected4 =
+        selector.selectServers(new SelectorParams(tabletId, Map.of(tabletId, attempts), Map.of()))
+            .getScanServer(tabletId);
+    assertTrue(Set.of(selected, selected2, selected3).contains(selected4));
+  }
+
+  @Test
+  public void testErrors() {
+    var dg = ResourceGroupId.DEFAULT;
+    HashMap<String,ResourceGroupId> servers = new HashMap<>();
+    for (int i = 0; i < 30; i++) {
+      servers.put(String.format("localhost:%d", 8000 + i), dg);
+    }
+
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
+            + "'attemptPlans':[{'servers':3, 'busyTimeout':'60s'}]}";
+    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
+    selector.init(new InitParams(() -> servers, opts));
+
+    var tablet1 = nti("1", "m");
+    var tablet2 = nti("1", "x");
+    var selections =
+        selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), Map.of(), Map.of()));
+    // no errors so there should be no delay
+    assertEquals(Duration.ZERO, selections.getDelay());
+    var selected1 = selections.getScanServer(tablet1);
+    var selected2 = selections.getScanServer(tablet2);
+    assertTrue(servers.containsKey(selected1));
+    assertTrue(servers.containsKey(selected2));
+
+    Map<TabletId,Collection<? extends ScanServerAttempt>> attempts = new HashMap<>();
+    List<ScanServerAttempt> tablet1Attempts = new ArrayList<>();
+    attempts.put(tablet1, tablet1Attempts);
+    List<ScanServerAttempt> tablet2Attempts = new ArrayList<>();
+    attempts.put(tablet2, tablet2Attempts);
+
+    tablet1Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.BUSY));
+    selections =
+        selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), attempts, Map.of()));
+    // no errors, only a busy timeout, so there should be no delay
+    assertEquals(Duration.ZERO, selections.getDelay());
+
+    // add a single error to single tablet, should cause a delay
+    tablet2Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.ERROR));
+    selections =
+        selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), attempts, Map.of()));
+    assertEquals(Duration.ofMillis(100), selections.getDelay());
+
+    // add a single error to another tablet, should not increase the delay
+    tablet1Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.ERROR));
+    selections =
+        selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), attempts, Map.of()));
+    assertEquals(Duration.ofMillis(100), selections.getDelay());
+
+    // make tablet 1 have two errors, should cause a 200 ms delay
+    tablet1Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.ERROR));
+    selections =
+        selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), attempts, Map.of()));
+    assertEquals(Duration.ofMillis(200), selections.getDelay());
+
+    // make tablet 2 have three errors, should cause a 400ms delay
+    tablet2Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.ERROR));
+    tablet2Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.ERROR));
+    selections =
+        selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), attempts, Map.of()));
+    assertEquals(Duration.ofMillis(400), selections.getDelay());
+
+    // keep adding errors until max is reached
+    int expected = 400;
+    while (expected < 30_000) {
+      expected *= 2;
+      expected = Math.min(30_000, expected);
+      tablet2Attempts.add(new TestScanServerAttempt(selected1, ScanServerAttempt.Result.ERROR));
+      selections =
+          selector.selectServers(new SelectorParams(Set.of(tablet1, tablet2), attempts, Map.of()));
+      assertEquals(Duration.ofMillis(expected), selections.getDelay());
+    }
   }
 }

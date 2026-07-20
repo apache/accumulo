@@ -18,93 +18,25 @@
     under the License.
 
 -->
-      <script>
-        $(function () {
-          // initialize DataTables
-          initServerTables('${server}');
-        });
-      </script>
-      <div class="row">
-        <div class="col-xs-12">
-          <h3>${title}</h3>
-        </div>
+    <script>
+      var serverMetricsType = '${(serverType!)?js_string}';
+      var serverMetricsResourceGroup = '${(resourceGroup!)?js_string}';
+      var serverMetricsAddress = '${(server!)?js_string}';
+    </script>
+    <div id="serverMetricsStatusBanner" style="display: none;">
+      <div id="server-metrics-banner-message" class="alert alert-danger" role="alert"></div>
+    </div>
+    <div class="row">
+      <div class="col-xs-12">
+        <span class="table-caption">Server Metrics</span>
+        <br />
+        <span class="table-subcaption">
+          ${(serverType!)?html} ${(server!)?html}<#if resourceGroup?has_content> (${resourceGroup?html})</#if>
+        </span>
+        <br />
+        <br />
+        <table id="serverMetrics" class="table caption-top table-bordered table-striped table-condensed">
+          <#include "table_loading.ftl" >
+        </table>
       </div>
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="tServerDetail" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">${server}</span></caption>
-            <thead>
-              <tr>
-                <th class="big-num">Hosted&nbsp;Tablets&nbsp;</th>
-                <th class="big-num">Entries&nbsp;</th>
-                <th class="big-num">Minor&nbsp;Compacting&nbsp;</th>
-                <th class="big-num">Major&nbsp;Compacting&nbsp;</th>
-                <th class="big-num">Splitting&nbsp;</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <br />
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="opHistoryDetails" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">All-Time&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
-            <thead>
-              <tr>
-                <th>Operation&nbsp;</th>
-                <th class="big-num">Success&nbsp;</th>
-                <th class="big-num">Failure&nbsp;</th>
-                <th class="duration">Average<br />Queue&nbsp;Time&nbsp;</th>
-                <th class="duration">Std.&nbsp;Dev.<br />Queue&nbsp;Time&nbsp;</th>
-                <th class="duration">Average<br />Time&nbsp;</th>
-                <th class="duration">Std.&nbsp;Dev.<br />Time&nbsp;</th>
-                <th>Percentage&nbsp;Time&nbsp;Spent&nbsp;</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <br />
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="currentTabletOps" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Current&nbsp;Tablet&nbsp;Operation&nbsp;Results</span></caption>
-            <thead>
-              <tr>
-                <th class="duration">Minor&nbsp;Average&nbsp;</th>
-                <th class="duration">Minor&nbsp;Std&nbsp;Dev&nbsp;</th>
-                <th class="duration">Major&nbsp;Avg&nbsp;</th>
-                <th class="duration">Major&nbsp;Std&nbsp;Dev&nbsp;</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <br />
-      <div class="row">
-        <div class="col-xs-12">
-          <table id="perTabletResults" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Detailed Tablet Operations</span></caption>
-            <thead>
-              <tr>
-                <th>Table&nbsp;</th>
-                <th title="Run 'getsplits -v' in the Accumulo Shell to associate the encoded tablets with their actual splits.">Tablet&nbsp;</th>
-                <th class="big-num">Entries&nbsp;</th>
-                <th class="big-num">Ingest&nbsp;</th>
-                <th class="big-num">Query&nbsp;</th>
-                <th class="duration">Minor&nbsp;Avg&nbsp;</th>
-                <th class="duration">Minor&nbsp;Std&nbsp;Dev&nbsp;</th>
-                <th class="big-num">Minor&nbsp;Avg&nbsp;e/s&nbsp;</th>
-                <th class="duration">Major&nbsp;Avg&nbsp;</th>
-                <th class="duration">Major&nbsp;Std&nbsp;Dev&nbsp;</th>
-                <th class="big-num">Major&nbsp;Avg&nbsp;e/s&nbsp;</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+    </div>

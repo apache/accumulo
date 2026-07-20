@@ -22,18 +22,25 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Buffers all input in a growing buffer until flush() is called. Then entire buffer is written,
  * with size information, and padding to force the underlying crypto output stream to also fully
  * flush
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class BlockedOutputStream extends OutputStream {
   int blockSize;
   DataOutputStream out;
   ByteBuffer bb;
+  private final AtomicBoolean openTracker;
 
-  public BlockedOutputStream(OutputStream out, int blockSize, int bufferSize) {
+  public BlockedOutputStream(OutputStream out, int blockSize, int bufferSize,
+      AtomicBoolean openTracker) {
     if (bufferSize <= 0) {
       throw new IllegalArgumentException("bufferSize must be greater than 0.");
     }
@@ -50,6 +57,7 @@ public class BlockedOutputStream extends OutputStream {
     // some buffer space + bytes to make the buffer evened up with the cipher block size - 4 bytes
     // for the size int
     bb = ByteBuffer.allocate(bufferSize + remainder - 4);
+    this.openTracker = openTracker;
   }
 
   @Override
@@ -113,5 +121,6 @@ public class BlockedOutputStream extends OutputStream {
   public void close() throws IOException {
     flush();
     out.close();
+    openTracker.compareAndSet(true, false);
   }
 }

@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
+
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A strongly typed representation of a namespace ID. This class cannot be used to get a namespace
@@ -33,7 +35,8 @@ public class NamespaceId extends AbstractId<NamespaceId> {
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of NamespaceId objects in the JVM at any given moment
   // WeakReferences are used because we don't need them to stick around any longer than they need to
-  static final Cache<String,NamespaceId> cache = Caffeine.newBuilder().weakValues().build();
+  static final Cache<String,NamespaceId> cache =
+      Caches.getInstance().createNewBuilder(CacheName.NAMESPACE_ID, false).weakValues().build();
 
   private NamespaceId(String canonical) {
     super(canonical);

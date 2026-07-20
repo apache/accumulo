@@ -1,0 +1,67 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.accumulo.manager.tableOps.compact;
+
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
+import org.apache.hadoop.io.Text;
+
+import com.google.gson.JsonObject;
+
+public class RefreshTablets extends AbstractFateOperation {
+
+  private static final long serialVersionUID = 1L;
+
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
+  private final byte[] startRow;
+  private final byte[] endRow;
+
+  public RefreshTablets(TableId tableId, NamespaceId namespaceId, byte[] startRow, byte[] endRow) {
+    this.tableId = tableId;
+    this.namespaceId = namespaceId;
+    this.startRow = startRow;
+    this.endRow = endRow;
+  }
+
+  @Override
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    TabletRefresher.refresh(env, fateId, tableId, startRow, endRow, tabletMetadata -> true);
+
+    return new CleanUp(tableId, namespaceId, startRow, endRow);
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("startRow", startRow == null ? null : new Text(startRow).toString());
+    details.addProperty("endRow", endRow == null ? null : new Text(endRow).toString());
+    return GSON.get().toJson(details);
+  }
+}

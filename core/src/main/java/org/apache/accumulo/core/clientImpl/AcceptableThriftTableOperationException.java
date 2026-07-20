@@ -23,6 +23,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.fate.AcceptableException;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 /**
  * Concrete implementation of {@link AcceptableException} for table operations.
  */
@@ -32,7 +34,8 @@ public class AcceptableThriftTableOperationException extends ThriftTableOperatio
   private static final long serialVersionUID = 1L;
 
   public AcceptableThriftTableOperationException(String tableId, String tableName,
-      TableOperation op, TableOperationExceptionType type, String description) {
+      @NonNull TableOperation op, @NonNull TableOperationExceptionType type,
+      @NonNull String description) {
     super(tableId, tableName, op, type, description);
   }
 }

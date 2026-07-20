@@ -36,14 +36,15 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -132,8 +133,8 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
       String tableContextClasspath = tableContextDir + "/TestFoo.jar";
 
-      // Set the ScanContextIT context on the instance
-      c.instanceOperations().setProperty(tableContextProperty, CONTEXT);
+      // Set the ScanContextIT context on the namespace
+      c.namespaceOperations().setProperty(Namespace.DEFAULT.name(), tableContextProperty, CONTEXT);
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);

@@ -39,7 +39,8 @@ public class AuthenticationTokenKeyManager implements Runnable {
   private final long keyUpdateInterval;
   private final long tokenMaxLifetime;
   private int idSeq = 0;
-  private volatile boolean keepRunning = true, initialized = false;
+  private volatile boolean keepRunning = true;
+  private volatile boolean initialized = false;
 
   /**
    * Construct the key manager which will generate new AuthenticationKeys to generate and verify
@@ -87,6 +88,7 @@ public class AuthenticationTokenKeyManager implements Runnable {
       try {
         Thread.sleep(5000);
       } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
         log.debug("Interrupted waiting for next update", ie);
       }
     }
@@ -119,6 +121,9 @@ public class AuthenticationTokenKeyManager implements Runnable {
         }
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Failed to fetch existing AuthenticationKeys from ZooKeeper");
     }
   }
@@ -161,6 +166,9 @@ public class AuthenticationTokenKeyManager implements Runnable {
       try {
         keyDistributor.advertise(newKey);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Failed to advertise AuthenticationKey in ZooKeeper. Exiting.", e);
         throw new IllegalStateException(e);
       }

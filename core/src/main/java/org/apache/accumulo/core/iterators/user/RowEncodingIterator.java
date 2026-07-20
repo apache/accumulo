@@ -98,8 +98,8 @@ public abstract class RowEncodingIterator
     return newInstance;
   }
 
-  List<Key> keys = new ArrayList<>();
-  List<Value> values = new ArrayList<>();
+  final List<Key> keys = new ArrayList<>();
+  final List<Value> values = new ArrayList<>();
 
   private void prepKeys() throws IOException {
     long kvBufSize = 0;

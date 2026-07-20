@@ -26,7 +26,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.easymock.EasyMock;
@@ -39,6 +38,7 @@ public class MockServerContext {
   public static ServerContext get() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.INSTANCE_RPC_SASL_ENABLED, "false");
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
     return context;
@@ -58,7 +58,6 @@ public class MockServerContext {
 
     ServerContext sc = createMock(ServerContext.class);
     expect(sc.getInstanceID()).andReturn(instanceID).anyTimes();
-    expect(sc.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceID)).anyTimes();
     expect(sc.getPropStore()).andReturn(propStore).anyTimes();
     return sc;
   }

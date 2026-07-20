@@ -18,16 +18,25 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import java.util.Set;
+
+import org.apache.accumulo.core.cli.ServerOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.zookeeper.KeeperException;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class Info implements KeywordExecutable {
+public class Info extends ServerKeywordExecutable<ServerOpts> {
+
+  public Info() {
+    super(new ServerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -35,8 +44,8 @@ public class Info implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.INSTANCE;
   }
 
   @Override
@@ -45,14 +54,12 @@ public class Info implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) throws KeeperException, InterruptedException {
-    var context = new ServerContext(SiteConfiguration.auto());
-    System.out.println("monitor: " + MonitorUtil.getLocation(context));
-    System.out.println("managers: " + context.getManagerLocations());
-    System.out.println("zookeepers: " + context.getZooKeepers());
-  }
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    ServerContext context = getServerContext();
+    Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
 
-  public static void main(String[] args) throws Exception {
-    new Info().execute(args);
+    System.out.println("monitor: " + MonitorUtil.getLocation(context));
+    System.out.println("managers: " + managers);
+    System.out.println("zookeepers: " + context.getZooKeepers());
   }
 }

@@ -21,21 +21,16 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
-import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TableInfo;
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -51,7 +46,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -64,35 +58,29 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       for (int i = 0; i < 1000; i++) {
         splits.add(new Text(String.format("%03d", i)));
       }
-      c.tableOperations().setProperty(AccumuloTable.METADATA.tableName(),
+      c.tableOperations().setProperty(SystemTables.METADATA.tableName(),
           Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
       // propagation time
       Thread.sleep(SECONDS.toMillis(5));
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
-        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits)
+            .withInitialTabletAvailability(TabletAvailability.HOSTED);
         c.tableOperations().create(tableName, ntc);
         log.info("flushing");
-        c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-        c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+        c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       }
 
+      TableId tid0 = TableId.of(c.tableOperations().tableIdMap().get("table0"));
+      TableId tid1 = TableId.of(c.tableOperations().tableIdMap().get("table1"));
+
       while (true) {
-        ClientContext context = (ClientContext) c;
-        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
-        int tablets = 0;
-        for (TabletServerStatus tserver : stats.tServerInfo) {
-          for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {
-            if (entry.getKey().startsWith("!") || entry.getKey().startsWith("+")) {
-              continue;
-            }
-            tablets += entry.getValue().onlineTablets;
-          }
-        }
-        log.info("Online tablets " + tablets);
-        if (tablets == 2002) {
+        long hostedTabletCount = ManagerAssignmentIT.countTabletsWithLocation(c, tid0)
+            + ManagerAssignmentIT.countTabletsWithLocation(c, tid1);
+        log.info("Online tablets " + hostedTabletCount);
+        if (hostedTabletCount == 2002) {
           break;
         }
         Thread.sleep(SECONDS.toMillis(1));

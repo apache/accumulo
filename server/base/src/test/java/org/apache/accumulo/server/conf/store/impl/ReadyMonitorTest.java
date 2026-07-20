@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,6 +72,7 @@ public class ReadyMonitorTest {
       boolean terminated = workerPool.awaitTermination(2000, MILLISECONDS);
       log.trace("Worked pool successfully terminated: {}", terminated);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       // don't care.
       workerPool.shutdownNow();
     }
@@ -145,6 +147,9 @@ public class ReadyMonitorTest {
         log.debug("waiting: {}", NANOSECONDS.toSeconds(timeWaiting));
         assertTrue(timeWaiting < MILLISECONDS.toNanos(readyTestTimeout));
       } catch (ExecutionException | InterruptedException ex) {
+        if (ex instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.warn("Task failed", ex);
         fail("Task failed with exception - " + ex.getMessage());
       }
@@ -168,13 +173,12 @@ public class ReadyMonitorTest {
     public Long call() throws Exception {
       // signal ready to run
       readyToRunLatch.countDown();
-      // time waiting for isReady to complete++
-      long start = System.nanoTime();
+
+      Timer isReadyTimer = Timer.startNew();
       readyMonitor.isReady();
       finishedLatch.countDown();
 
-      // returning nanoseconds.
-      return System.nanoTime() - start;
+      return isReadyTimer.elapsed(NANOSECONDS);
     }
   }
 }

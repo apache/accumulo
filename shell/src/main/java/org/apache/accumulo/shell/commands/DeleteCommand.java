@@ -38,7 +38,8 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class DeleteCommand extends Command {
-  private Option deleteOptAuths, timestampOpt;
+  private Option deleteOptAuths;
+  private Option timestampOpt;
   private Option timeoutOption;
 
   protected long getTimeout(final CommandLine cl) {

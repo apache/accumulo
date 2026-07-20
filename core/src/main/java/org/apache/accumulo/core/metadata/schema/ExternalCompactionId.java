@@ -26,7 +26,7 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
 
   // A common prefix is nice when grepping logs for external compaction ids. The prefix also serves
   // as a nice sanity check on data coming in over the network and from persistent storage.
-  private static final String PREFIX = "ECID:";
+  public static final String PREFIX = "ECID-";
 
   private ExternalCompactionId(UUID uuid) {
     super(PREFIX + uuid);
@@ -66,5 +66,4 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
     }
     return of(ecid);
   }
-
 }

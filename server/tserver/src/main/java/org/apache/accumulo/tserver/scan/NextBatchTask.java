@@ -89,12 +89,14 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
           scanSession.extent.toThrift()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
+        server.getScanMetrics().incrementScanErrors();
         log.warn("Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
       addResult(e);
     } catch (IOException | RuntimeException e) {
+      server.getScanMetrics().incrementScanErrors();
       log.warn("exception while scanning tablet {} for {}", scanSession.extent, scanSession.client,
           e);
       addResult(e);

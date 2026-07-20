@@ -19,18 +19,22 @@
 package org.apache.accumulo.core.lock;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.UuidUtil;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -43,10 +47,33 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+/**
+ * This class uses Sequential Ephemeral ZooKeeper Nodes
+ * (https://zookeeper.apache.org/doc/r3.9.5/zookeeperProgrammers.html#Sequence+Nodes+--+Unique+Naming)
+ * to implement locks for Accumulo server processes. This class will create an ephemeral sequential
+ * node under a base path using the prefix "zlock#" + UUID + "#". The ZooKeeper server will append a
+ * 10-digit zero-padded number to this prefix using a one-up counter. The base path could be an HA
+ * service like the Manager or a non-HA service like a TabletServer.
+ *
+ * When an instance of this class has the lowest counter number at the base path, then it has the
+ * lock. When an instance of this class does not have the lowest counter number, then it watches the
+ * node with the next lowest counter number. When the node that has the next lowest counter number
+ * is deleted, then this instance could acquire the lock.
+ *
+ * Instance of this class also place a Watcher on the base path node. If the base path Watcher
+ * receives a Session Expired event, then it calls lostLock which should end up halting the Accumulo
+ * server process.
+ */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ServiceLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
-  private static final String ZLOCK_PREFIX = "zlock#";
+  public static final String ZLOCK_PREFIX = "zlock#";
 
   private static class Prefix {
     private final String prefix;
@@ -60,23 +87,6 @@ public class ServiceLock implements Watcher {
       return this.prefix;
     }
 
-  }
-
-  public static class ServiceLockPath {
-    private final String path;
-
-    private ServiceLockPath(String path) {
-      this.path = requireNonNull(path);
-    }
-
-    @Override
-    public String toString() {
-      return this.path;
-    }
-  }
-
-  public static ServiceLockPath path(String path) {
-    return new ServiceLockPath(path);
   }
 
   public enum LockLossReason {
@@ -98,38 +108,73 @@ public class ServiceLock implements Watcher {
     void failedToAcquireLock(Exception e);
   }
 
+  // the base path
   private final ServiceLockPath path;
+
   protected final ZooSession zooKeeper;
+
+  // "zlock#" + UUID + "#"
   private final Prefix vmLockPrefix;
 
+  // A LockWatcher instance supplied to this class
+  // by the caller when trying to acquire the lock
+  // in ZooKeeper. This object does not represent
+  // a Watcher in ZooKeeper, but allows an instance
+  // of this class to communicate with the calling
+  // object by invoking callback methods.
   private LockWatcher lockWatcher;
-  private String lockNodeName;
-  private volatile boolean lockWasAcquired;
-  private volatile boolean watchingParent;
 
-  private String createdNodeName;
-  private String watchingNodeName;
+  // A variable which is initially null, then set
+  // to the createdNodeName when the lock is acquired.
+  // This variable is set to null when this instance
+  // loses the lock.
+  private volatile String lockNodeName;
+
+  // boolean to track if this instance has ever held the lock
+  private volatile boolean lockWasAcquired;
+
+  // boolean to track if there is a watcher on the base path.
+  private volatile boolean watchingBasePath;
+
+  // Represents the name of the ephemeral sequential node that
+  // the ZooKeeper server created for us with the unique one-up
+  // counter. This variable is set to null when this instance
+  // acquires the lock.
+  private volatile String createdNodeName;
+
+  // Represents the path of the ephemeral sequential node that
+  // has the next lowest counter value. An instance of this class
+  // will watch this node and will attempt to acquire the lock
+  // when this node is deleted.
+  private String watchingNodePath;
 
   public ServiceLock(ZooSession zookeeper, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = requireNonNull(zookeeper);
     this.path = requireNonNull(path);
     try {
       zooKeeper.exists(path.toString(), this);
-      watchingParent = true;
+      watchingBasePath = true;
       this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Error setting initial watch", ex);
       throw new IllegalStateException(ex);
     }
   }
 
-  private static class LockWatcherWrapper implements AccumuloLockWatcher {
+  // Watcher used in tryLock method that wraps the supplied LockWatcher
+  // so that the supplied LockWatcher.failedToAcquireLock method is not
+  // invoked. The supplied LockWatcher.failedToAcquireLock method may
+  // halt the server, but we don't want to do that in a tryLock invocation.
+  private static class TryLockWatcherWrapper implements AccumuloLockWatcher {
 
-    boolean acquiredLock = false;
-    LockWatcher lw;
+    private boolean acquiredLock = false;
+    private final LockWatcher delegate;
 
-    public LockWatcherWrapper(LockWatcher lw2) {
-      this.lw = lw2;
+    public TryLockWatcherWrapper(LockWatcher lw2) {
+      this.delegate = lw2;
     }
 
     @Override
@@ -144,12 +189,12 @@ public class ServiceLock implements Watcher {
 
     @Override
     public void lostLock(LockLossReason reason) {
-      lw.lostLock(reason);
+      delegate.lostLock(reason);
     }
 
     @Override
     public void unableToMonitorLockNode(Exception e) {
-      lw.unableToMonitorLockNode(e);
+      delegate.unableToMonitorLockNode(e);
     }
 
   }
@@ -157,7 +202,7 @@ public class ServiceLock implements Watcher {
   public synchronized boolean tryLock(LockWatcher lw, ServiceLockData lockData)
       throws KeeperException, InterruptedException {
 
-    LockWatcherWrapper lww = new LockWatcherWrapper(lw);
+    TryLockWatcherWrapper lww = new TryLockWatcherWrapper(lw);
 
     lock(lww, lockData);
 
@@ -186,10 +231,10 @@ public class ServiceLock implements Watcher {
    */
   public static List<String> validateAndSort(ServiceLockPath path, List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
-    List<String> validChildren = new ArrayList<>();
     if (children == null || children.isEmpty()) {
-      return validChildren;
+      return List.of();
     }
+    List<String> validChildren = new ArrayList<>(children.size());
     children.forEach(c -> {
       LOG.trace("Validating {}", c);
       if (c.startsWith(ZLOCK_PREFIX)) {
@@ -200,9 +245,7 @@ public class ServiceLock implements Watcher {
           String sequenceNum = candidate.substring(idx + 1);
           try {
             LOG.trace("Testing uuid format of {}", uuid);
-            // string check guards uuids like "1-1-1-1-1" that parse to
-            // "00000001-0001-0001-0001-000000000001"
-            if (!uuid.equals(UUID.fromString(uuid).toString())) {
+            if (!UuidUtil.isUUID(uuid, 0)) {
               throw new IllegalArgumentException(uuid + " is an invalid UUID");
             }
             if (sequenceNum.length() == 10) {
@@ -274,31 +317,28 @@ public class ServiceLock implements Watcher {
     return lowestPrevNode;
   }
 
-  private synchronized void determineLockOwnership(final String createdEphemeralNode,
-      final AccumuloLockWatcher lw) throws KeeperException, InterruptedException {
+  private synchronized void determineLockOwnership(final AccumuloLockWatcher lw)
+      throws KeeperException, InterruptedException {
 
-    if (createdNodeName == null) {
-      throw new IllegalStateException(
-          "Called determineLockOwnership() when ephemeralNodeName == null");
-    }
+    Preconditions.checkState(createdNodeName != null, "createdNodeName cannot be null");
 
     List<String> children = validateAndSort(path, zooKeeper.getChildren(path.toString(), null));
 
-    if (!children.contains(createdEphemeralNode)) {
-      LOG.error("Expected ephemeral node {} to be in the list of children {}", createdEphemeralNode,
+    if (!children.contains(createdNodeName)) {
+      LOG.error("Expected ephemeral node {} to be in the list of children {}", createdNodeName,
           children);
       throw new IllegalStateException(
-          "Lock attempt ephemeral node no longer exist " + createdEphemeralNode);
+          "Lock attempt ephemeral node no longer exist " + createdNodeName);
     }
 
-    if (children.get(0).equals(createdEphemeralNode)) {
+    if (children.get(0).equals(createdNodeName)) {
       LOG.debug("[{}] First candidate is my lock, acquiring...", vmLockPrefix);
-      if (!watchingParent) {
+      if (!watchingBasePath) {
         throw new IllegalStateException(
             "Can not acquire lock, no longer watching parent : " + path);
       }
       this.lockWatcher = lw;
-      this.lockNodeName = createdEphemeralNode;
+      this.lockNodeName = createdNodeName;
       createdNodeName = null;
       lockWasAcquired = true;
       lw.acquiredLock();
@@ -306,16 +346,16 @@ public class ServiceLock implements Watcher {
       LOG.debug("[{}] Lock held by another process with ephemeral node: {}", vmLockPrefix,
           children.get(0));
 
-      String lowestPrevNode = findLowestPrevPrefix(children, createdEphemeralNode);
+      String lowestPrevNode = findLowestPrevPrefix(children, createdNodeName);
 
-      watchingNodeName = path + "/" + lowestPrevNode;
-      final String nodeToWatch = watchingNodeName;
+      watchingNodePath = path + "/" + lowestPrevNode;
+      final String nodeToWatch = watchingNodePath;
       LOG.debug("[{}] Establishing watch on prior node {}", vmLockPrefix, nodeToWatch);
       Watcher priorNodeWatcher = new Watcher() {
         @Override
         public void process(WatchedEvent event) {
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("[{}] Processing {}", vmLockPrefix, event);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("[{}] Processing {}", vmLockPrefix, event);
           }
           boolean renew = true;
           if (event.getType() == EventType.NodeDeleted && event.getPath().equals(nodeToWatch)) {
@@ -324,10 +364,10 @@ public class ServiceLock implements Watcher {
             synchronized (ServiceLock.this) {
               try {
                 if (createdNodeName != null) {
-                  determineLockOwnership(createdEphemeralNode, lw);
+                  determineLockOwnership(lw);
                 } else if (LOG.isDebugEnabled()) {
                   LOG.debug("[{}] While waiting for another lock {}, {} was deleted; {}",
-                      vmLockPrefix, nodeToWatch, createdEphemeralNode, event);
+                      vmLockPrefix, nodeToWatch, createdNodeName, event);
                 }
               } catch (Exception e) {
                 if (lockNodeName == null) {
@@ -351,20 +391,27 @@ public class ServiceLock implements Watcher {
             renew = false;
           }
           if (renew) {
-            try {
-              Stat restat = zooKeeper.exists(nodeToWatch, this);
-              if (restat == null) {
-                // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
-                // created a Watcher on a node that does not exist. Delete the watcher we just
-                // created.
-                zooKeeper.removeWatches(nodeToWatch, this, WatcherType.Any, true);
-                determineLockOwnership(createdEphemeralNode, lw);
-              } else {
-                LOG.debug("[{}] Renewed watch on prior node  {}", vmLockPrefix, nodeToWatch);
+            synchronized (ServiceLock.this) {
+              if (createdNodeName != null) {
+                try {
+                  Stat restat = zooKeeper.exists(nodeToWatch, this);
+                  if (restat == null) {
+                    // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
+                    // created a Watcher on a node that does not exist. Delete the watcher we just
+                    // created.
+                    zooKeeper.removeWatches(nodeToWatch, this, WatcherType.Any, true);
+                    determineLockOwnership(lw);
+                  } else {
+                    LOG.debug("[{}] Renewed watch on prior node {}", vmLockPrefix, nodeToWatch);
+                  }
+                } catch (KeeperException | InterruptedException e) {
+                  if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                  }
+                  lw.failedToAcquireLock(
+                      new Exception("Failed to renew watch on prior node: " + nodeToWatch, e));
+                }
               }
-            } catch (KeeperException | InterruptedException e) {
-              lw.failedToAcquireLock(
-                  new Exception("Failed to renew watch on other manager node", e));
             }
           }
         }
@@ -376,7 +423,7 @@ public class ServiceLock implements Watcher {
         // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
         // created a Watcher on a node that does not exist. Delete the watcher we just created.
         zooKeeper.removeWatches(nodeToWatch, priorNodeWatcher, WatcherType.Any, true);
-        determineLockOwnership(createdEphemeralNode, lw);
+        determineLockOwnership(lw);
       }
     }
 
@@ -385,6 +432,7 @@ public class ServiceLock implements Watcher {
   private void lostLock(LockLossReason reason) {
     LockWatcher localLw = lockWatcher;
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     localLw.lostLock(reason);
@@ -485,6 +533,8 @@ public class ServiceLock implements Watcher {
                   // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
                   // created a Watcher on a node that does not exist. Delete the watcher we just
                   // created.
+                  LOG.debug("Removing watcher for path {} since stat return was null",
+                      pathForWatcher);
                   zooKeeper.removeWatches(pathForWatcher, this, WatcherType.Any, true);
 
                   if (lockNodeName != null) {
@@ -515,9 +565,12 @@ public class ServiceLock implements Watcher {
       createdNodeName = pathForWatcher.substring(path.toString().length() + 1);
 
       // We have created a node, do we own the lock?
-      determineLockOwnership(createdNodeName, lw);
+      determineLockOwnership(lw);
 
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       lw.failedToAcquireLock(e);
     }
   }
@@ -542,6 +595,9 @@ public class ServiceLock implements Watcher {
     return del;
   }
 
+  @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
+      justification = "Sleep is okay. Can hold the lock as long as needed, as we are shutting down."
+          + " Don't need or want other operations to run.")
   public synchronized void unlock() throws InterruptedException, KeeperException {
     if (lockNodeName == null) {
       throw new IllegalStateException();
@@ -551,11 +607,23 @@ public class ServiceLock implements Watcher {
     String localLock = lockNodeName;
 
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     final String pathToDelete = path + "/" + localLock;
     LOG.debug("[{}] Deleting all at path {} due to unlock", vmLockPrefix, pathToDelete);
     ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
+
+    // Wait for the delete to happen on the server before exiting method
+    Timer start = Timer.startNew();
+    while (zooKeeper.exists(pathToDelete, null) != null) {
+      Thread.sleep(100);
+      if (start.hasElapsed(10, SECONDS)) {
+        start.restart();
+        LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,
+            pathToDelete);
+      }
+    }
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }
@@ -564,7 +632,7 @@ public class ServiceLock implements Watcher {
    * @return path of node that this lock is watching
    */
   public synchronized String getWatching() {
-    return watchingNodeName;
+    return watchingNodePath;
   }
 
   public synchronized String getLockPath() {
@@ -578,11 +646,18 @@ public class ServiceLock implements Watcher {
     return lockNodeName;
   }
 
+  private LockID lockId = null;
+
   public synchronized LockID getLockID() {
     if (lockNodeName == null) {
       throw new IllegalStateException("Lock not held");
     }
-    return new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+
+    if (lockId == null) {
+      lockId = new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+    }
+
+    return lockId;
   }
 
   /**
@@ -614,7 +689,7 @@ public class ServiceLock implements Watcher {
       LOG.debug("{}", event);
     }
 
-    watchingParent = false;
+    watchingBasePath = false;
 
     if (event.getState() == KeeperState.Expired && lockNodeName != null) {
       lostLock(LockLossReason.SESSION_EXPIRED);
@@ -622,7 +697,7 @@ public class ServiceLock implements Watcher {
 
       try { // set the watch on the parent node again
         zooKeeper.exists(path.toString(), this);
-        watchingParent = true;
+        watchingBasePath = true;
       } catch (KeeperException.ConnectionLossException ex) {
         // we can't look at the lock because we aren't connected, but our session is still good
         LOG.warn("lost connection to zookeeper", ex);
@@ -640,7 +715,7 @@ public class ServiceLock implements Watcher {
 
   public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
-    var zLockPath = path(lid.path);
+    var zLockPath = ServiceLockPaths.parse(Optional.empty(), lid.path);
     List<String> children = validateAndSort(zLockPath, zc.getChildren(zLockPath.toString()));
 
     if (children.isEmpty()) {
@@ -674,8 +749,8 @@ public class ServiceLock implements Watcher {
     return ServiceLockData.parse(data);
   }
 
-  public static Optional<ServiceLockData> getLockData(
-      org.apache.accumulo.core.fate.zookeeper.ZooCache zc, ServiceLockPath path, ZcStat stat) {
+  public static Optional<ServiceLockData> getLockData(ZooCache zc, ServiceLockPath path,
+      ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
@@ -765,6 +840,9 @@ public class ServiceLock implements Watcher {
     try {
       return null != this.zooKeeper.exists(lockPath, null);
     } catch (KeeperException | InterruptedException | RuntimeException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Error verfiying lock at {}", lockPath, e);
       return false;
     }

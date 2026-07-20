@@ -35,7 +35,7 @@ import org.apache.thrift.transport.TTransportException;
  * Serializes and deserializes Thrift messages to and from byte arrays. This class is not
  * thread-safe, external synchronization is necessary if it is used concurrently.
  */
-public class ThriftMessageUtil {
+public final class ThriftMessageUtil {
 
   private final int initialCapacity;
 

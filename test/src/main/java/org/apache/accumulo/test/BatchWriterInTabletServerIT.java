@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -63,7 +63,8 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   @Test
   public void testNormalWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
-    String t1 = uniqueNames[0], t2 = uniqueNames[1];
+    String t1 = uniqueNames[0];
+    String t2 = uniqueNames[1];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       int numEntriesToWritePerEntry = 50;
       IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,
@@ -83,7 +84,8 @@ public class BatchWriterInTabletServerIT extends AccumuloClusterHarness {
   @Test
   public void testClearLocatorAndSplitWrite() throws Exception {
     String[] uniqueNames = getUniqueNames(2);
-    String t1 = uniqueNames[0], t2 = uniqueNames[1];
+    String t1 = uniqueNames[0];
+    String t2 = uniqueNames[1];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       int numEntriesToWritePerEntry = 50;
       IteratorSetting itset = BatchWriterIterator.iteratorSetting(6, 0, 15, 1000,

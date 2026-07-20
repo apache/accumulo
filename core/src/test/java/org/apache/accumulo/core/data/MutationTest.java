@@ -948,4 +948,111 @@ public class MutationTest {
 
     assertEquals(expected, m.prettyPrint());
   }
+
+  /**
+   * Test that the mutation is correctly updated to be added when a valid Key is passed through
+   * {@link Mutation.FamilyOptions#keyColumns(Key)}, and a valid Value is passed through
+   * {@link Mutation.TimestampOptions#put(Value)}.
+   */
+  @Test
+  public void testAddingKeyColumns() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+
+    Key k2 = new Key(nt("r1"), nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), 2L);
+    m.at().keyColumns(k2).put(nv("v2"));
+
+    assertEquals(2, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(2, m.size());
+    assertEquals(2, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 2L, false, false, "v2");
+  }
+
+  /**
+   * Test that the mutation is correctly updated to be deleted when a valid Key is passed through
+   * {@link Mutation.TimestampOptions#delete()}.
+   */
+  @Test
+  public void testDeletingKeyColumns() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+    m.at().keyColumns(k).delete();
+
+    Key k2 = new Key(nt("r1"), nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), 2L);
+    m.at().keyColumns(k2).delete();
+
+    assertEquals(3, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(3, m.size());
+    assertEquals(3, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf1", "cq1", "cv1", 1L, false, true, "");
+    verifyColumnUpdate(updates.get(2), "cf2", "cq2", "cv2", 2L, false, true, "");
+  }
+
+  /**
+   * Test that mutations are correctly added back through after being previously deleted.
+   */
+  @Test
+  public void testAddingDeletedKeyColumnsBack() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+    m.at().keyColumns(k).delete();
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+
+    Key k2 = new Key(nt("r1"), nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), 2L);
+    m.at().keyColumns(k2).delete();
+    m.at().keyColumns(k2).put(nv("v1"));
+
+    assertEquals(5, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(5, m.size());
+    assertEquals(5, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf1", "cq1", "cv1", 1L, false, true, "");
+    verifyColumnUpdate(updates.get(2), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(3), "cf2", "cq2", "cv2", 2L, false, true, "");
+    verifyColumnUpdate(updates.get(4), "cf2", "cq2", "cv2", 2L, false, false, "v1");
+  }
+
+  /**
+   * Test that a NullPointerException is thrown when passing a null Key through
+   * {@link Mutation.FamilyOptions#keyColumns(Key)}.
+   */
+  @Test
+  public void testKeyColumnsAddingNullKey() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = null;
+    Value v = nv("v1");
+
+    assertThrows(NullPointerException.class, () -> m.at().keyColumns(k).put(v));
+  }
+
+  /**
+   * Test that a NullPointerException is thrown when passing a null Value through
+   * {@link Mutation.TimestampOptions#put(Value)}.
+   */
+  @Test
+  public void testKeyColumnsAddingNullValue() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    Value v = null;
+
+    assertThrows(NullPointerException.class, () -> m.at().keyColumns(k).put(v));
+  }
+
 }

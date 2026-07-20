@@ -21,26 +21,15 @@ package org.apache.accumulo.server.conf.store;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
 
-public class TablePropKey extends PropStoreKey<TableId> {
+public class TablePropKey extends IdBasedPropStoreKey<TableId> {
 
-  public static TablePropKey of(final ServerContext context, final TableId tableId) {
-    return of(context.getInstanceID(), tableId);
+  private TablePropKey(final TableId tableId) {
+    super(ZTABLES + "/" + tableId.canonical() + ZCONFIG, tableId);
   }
 
-  public static TablePropKey of(final InstanceId instanceId, final TableId tableId) {
-    return new TablePropKey(instanceId, buildNodePath(instanceId, tableId), tableId);
-  }
-
-  private TablePropKey(final InstanceId instanceId, final String path, final TableId tableId) {
-    super(instanceId, path, tableId);
-  }
-
-  private static String buildNodePath(final InstanceId instanceId, final TableId id) {
-    return ZooUtil.getRoot(instanceId) + ZTABLES + "/" + id.canonical() + ZCONFIG;
+  public static TablePropKey of(final TableId tableId) {
+    return new TablePropKey(tableId);
   }
 }

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.net.URL;
-import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
@@ -95,23 +93,10 @@ public interface ClientInfo {
   }
 
   /**
-   * @return ClientInfo given URL path to client config file
-   */
-  static ClientInfo from(URL propertiesURL) {
-    return new ClientInfoImpl(ClientInfoImpl.toProperties(propertiesURL), Optional.empty());
-  }
-
-  /**
    * @return ClientInfo given properties and token
    */
   static ClientInfo from(Properties properties, AuthenticationToken token) {
     return new ClientInfoImpl(properties, Optional.of(token));
   }
 
-  /**
-   * @return ClientInfo given path to client config file
-   */
-  static ClientInfo from(Path propertiesFile) {
-    return new ClientInfoImpl(ClientInfoImpl.toProperties(propertiesFile), Optional.empty());
-  }
 }

@@ -42,7 +42,7 @@ import org.apache.hadoop.util.Progressable;
 /**
  * @see org.apache.accumulo.hadoop.mapreduce.AccumuloOutputFormat
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   private static final Class<AccumuloOutputFormat> CLASS = AccumuloOutputFormat.class;

@@ -38,9 +38,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class BlockCacheMetrics implements MetricsProducer {
 
-  BlockCache indexCache;
-  BlockCache dataCache;
-  BlockCache summaryCache;
+  final BlockCache indexCache;
+  final BlockCache dataCache;
+  final BlockCache summaryCache;
 
   public BlockCacheMetrics(BlockCache indexCache, BlockCache dataCache, BlockCache summaryCache) {
     this.indexCache = indexCache;

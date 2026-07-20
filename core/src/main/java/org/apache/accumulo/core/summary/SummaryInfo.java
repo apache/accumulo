@@ -44,10 +44,6 @@ class SummaryInfo {
     return lastRow;
   }
 
-  Map<String,Long> getSummary() {
-    return summary;
-  }
-
   int getCount() {
     return count;
   }

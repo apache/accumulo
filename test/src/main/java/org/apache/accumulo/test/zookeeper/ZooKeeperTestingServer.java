@@ -20,6 +20,7 @@ package org.apache.accumulo.test.zookeeper;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.util.PortUtils;
@@ -38,7 +39,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
   public static final String SECRET = "secret";
 
-  private TestingServer zkServer;
+  protected TestingServer zkServer;
 
   /**
    * Instantiate a running zookeeper server - this call will block until the server is ready for
@@ -68,10 +69,27 @@ public class ZooKeeperTestingServer implements AutoCloseable {
     }
   }
 
+  public void restart() throws Exception {
+    zkServer.restart();
+  }
+
   @FunctionalInterface
   public interface ZooSessionConstructor<T extends ZooSession> {
     public T construct(String clientName, String connectString, int timeout, String instanceSecret)
         throws IOException;
+  }
+
+  /**
+   * Create a new instance of a ZooKeeper client that is already connected to the testing server
+   * using the provided constructor that accepts the connection string (appended with the provided
+   * root path), the timeout, and a watcher used by this class to wait for the client to connect.
+   * This can be used to construct a subclass of the ZooKeeper client that implements non-standard
+   * behavior for a test.
+   */
+  public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f, String root,
+      Duration timeout) throws IOException, InterruptedException {
+    return f.construct(ZooKeeperTestingServer.class.getSimpleName(),
+        zkServer.getConnectString() + root, (int) timeout.toMillis(), SECRET);
   }
 
   /**
@@ -82,8 +100,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    */
   public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f)
       throws IOException, InterruptedException {
-    return f.construct(ZooKeeperTestingServer.class.getSimpleName(), zkServer.getConnectString(),
-        30_000, SECRET);
+    return newClient(f, "", Duration.ofSeconds(30));
   }
 
   /**
@@ -92,6 +109,19 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    */
   public ZooSession newClient() throws IOException, InterruptedException {
     return newClient(ZooSession::new);
+  }
+
+  /**
+   * Create a new instance of a standard ZooKeeper client that is already connected to the testing
+   * server and "chroot-ed" to the provided root path. The caller is responsible for closing the
+   * object.
+   */
+  public ZooSession newClient(String root) throws IOException, InterruptedException {
+    return newClient(ZooSession::new, root, Duration.ofSeconds(30));
+  }
+
+  public ZooSession newClient(Duration timeout) throws IOException, InterruptedException {
+    return newClient(ZooSession::new, "", timeout);
   }
 
   @Override

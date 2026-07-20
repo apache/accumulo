@@ -25,6 +25,7 @@ import java.time.Duration;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -47,7 +48,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.useMiniDFS(true);
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
@@ -55,7 +56,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // wait until a tablet server is up
-      while (client.instanceOperations().getTabletServers().isEmpty()) {
+      while (client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty()) {
         Thread.sleep(50);
       }
       final String tableName = getUniqueNames(1)[0];

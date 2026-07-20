@@ -39,7 +39,7 @@ public class ColumnUtil {
   }
 
   public static class ColFamHashKey {
-    Text columnFamily;
+    final Text columnFamily;
 
     Key key;
 
@@ -81,8 +81,8 @@ public class ColumnUtil {
   }
 
   public static class ColHashKey {
-    Text columnFamily;
-    Text columnQualifier;
+    final Text columnFamily;
+    final Text columnQualifier;
 
     Key key;
 

@@ -24,18 +24,44 @@ var scansList;
  * Creates scans initial table
  */
 $(function () {
+
+  sessionStorage[SCANS] = JSON.stringify([]);
+
   // Create a table for scans list
   scansList = $('#scansList').DataTable({
-    "ajax": {
-      "url": '/rest/scans',
-      "dataSrc": "scans"
+    "ajax": function (data, callback) {
+      callback({
+        data: getStoredArray(SCANS)
+      });
     },
     "stateSave": true,
-    "dom": 't<"align-left"l>p',
+    "colReorder": true,
     "columnDefs": [{
+        targets: '_all',
+        defaultContent: '&mdash;'
+      },
+      {
+        "targets": 0,
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            return renderServerMetricsLink(row.type, row.resourceGroup, data);
+          }
+          return data;
+        }
+      },
+      {
         "targets": "duration",
         "render": function (data, type, row) {
           if (type === 'display') data = timeDuration(data);
+          return data;
+        }
+      },
+      {
+        "targets": "scan-state",
+        "render": function (data, type) {
+          if (type === 'display') {
+            return renderActivityState(data === 'IDLE' ? 1 : 0, type);
+          }
           return data;
         }
       },
@@ -48,26 +74,43 @@ $(function () {
       }
     ],
     "columns": [{
-        "data": "server",
-        "type": "html",
-        "render": function (data, type, row, meta) {
-          if (type === 'display') {
-            data = '<a href="/tservers?s=' + row.server + '">' + row.server + '</a>';
-          }
-          return data;
-        }
+        "data": "server"
       },
       {
-        "data": "scanCount"
+        "data": "type"
       },
       {
-        "data": "oldestScan"
+        "data": "resourceGroup"
       },
       {
-        "data": "fetched"
+        "data": "tableId",
+        "render": renderTableLink
       },
+      {
+        "data": "sessionId"
+      },
+      {
+        "data": "client"
+      },
+      {
+        "data": "user"
+      },
+      {
+        "data": "state"
+      },
+      {
+        "data": "scanType"
+      },
+      {
+        "data": "age"
+      },
+      {
+        "data": "idleTime"
+      }
     ]
   });
+
+  refresh();
 });
 
 
@@ -75,7 +118,10 @@ $(function () {
  * Used to redraw the page
  */
 function refresh() {
-  refreshScansTable();
+  $.when(getScans(), getTables()).then(function () {
+    computeTableMap();
+    refreshScansTable();
+  });
 }
 
 /**

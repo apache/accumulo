@@ -27,26 +27,28 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExternalDoNothingCompactor extends Compactor
-    implements Iface, ServerProcessService.Iface {
+public class ExternalDoNothingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalDoNothingCompactor.class);
 
-  ExternalDoNothingCompactor(ConfigOpts opts, String[] args) {
+  ExternalDoNothingCompactor(ServerOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -63,11 +65,10 @@ public class ExternalDoNothingCompactor extends Compactor
       CountDownLatch stopped, AtomicReference<Throwable> err) {
 
     // Set this to true so that only 1 external compaction is run
+    final AtomicReference<FileCompactor> ref = new AtomicReference<>();
     gracefulShutdown(getContext().rpcCreds());
 
     return new FileCompactorRunnable() {
-
-      final AtomicReference<FileCompactor> ref = new AtomicReference<>();
 
       @Override
       public AtomicReference<FileCompactor> getFileCompactor() {
@@ -83,10 +84,15 @@ public class ExternalDoNothingCompactor extends Compactor
       public void run() {
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-          update.setState(TCompactionState.STARTED);
-          update.setMessage("Compaction started");
-          updateCompactionState(job, update);
+
+          // Create tmp output file
+          final TabletMetadata tm = getContext().getAmple()
+              .readTablet(KeyExtent.fromThrift(job.getExtent()), ColumnType.DIR);
+          ReferencedTabletFile newFile = TabletNameGenerator.getNextDataFilenameForMajc(
+              job.isPropagateDeletes(), getContext(), tm.getExtent(), tm.getDirName(), (dir) -> {},
+              ExternalCompactionId.from(job.getExternalCompactionId()));
+          LOG.info("Creating tmp file: {}", newFile.getPath());
+          getContext().getVolumeManager().createNewFile(newFile.getPath());
 
           LOG.info("Starting compactor");
           started.countDown();
@@ -110,6 +116,9 @@ public class ExternalDoNothingCompactor extends Compactor
 
       @Override
       public void initialize() throws RetriesExceededException {
+        TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
+            "Compaction started", -1, -1, -1, getCompactionAge().toNanos());
+        updateCompactionState(job, update);
         // This isn't used, just need to create and return something
         ref.set(new FileCompactor(getContext(), KeyExtent.fromThrift(job.getExtent()), null, null,
             false, null, null, null, null, null));
@@ -120,7 +129,7 @@ public class ExternalDoNothingCompactor extends Compactor
   }
 
   public static void main(String[] args) throws Exception {
-    try (var compactor = new ExternalDoNothingCompactor(new ConfigOpts(), args)) {
+    try (var compactor = new ExternalDoNothingCompactor(new ServerOpts(), args)) {
       compactor.runServer();
     }
   }

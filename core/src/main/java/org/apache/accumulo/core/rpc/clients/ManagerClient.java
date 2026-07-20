@@ -21,9 +21,11 @@ package org.apache.accumulo.core.rpc.clients;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.net.UnknownHostException;
-import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -33,21 +35,37 @@ import com.google.common.net.HostAndPort;
 
 public interface ManagerClient<C extends TServiceClient> {
 
+  public static String getPrimaryManagerLocation(ClientContext context) {
+    String managerLocation = null;
+    ServiceLockPaths.ServiceLockPath m = context.getServerPaths().getManager(true);
+    if (m != null) {
+      Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
+      if (sld.isPresent()) {
+        managerLocation = sld.orElseThrow().getAddressString(ServiceLockData.ThriftService.MANAGER);
+      }
+    }
+    return managerLocation;
+  }
+
   default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    List<String> locations = context.getManagerLocations();
+    // obtain the primary manager location
+    String managerLocation = getPrimaryManagerLocation(context);
 
-    if (locations.isEmpty()) {
+    if (managerLocation == null) {
       log.debug("No managers...");
       return null;
     }
 
-    HostAndPort manager = HostAndPort.fromString(locations.get(0));
-    if (manager.getPort() == 0) {
+    if (managerLocation.equals("0.0.0.0:0")) {
+      // The Manager creates the lock with an initial address of 0.0.0.0:0, then
+      // later updates the lock contents with the actual address after everything
+      // is started.
+      log.debug("Manager is up and lock acquired, waiting for address...");
       return null;
     }
-
+    HostAndPort manager = HostAndPort.fromString(managerLocation);
     try {
       // Manager requests can take a long time: don't ever time out
       return ThriftUtil.getClientNoTimeout(type, manager, context);
@@ -60,7 +78,6 @@ public interface ManagerClient<C extends TServiceClient> {
       log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
       return null;
     }
-
   }
 
 }

@@ -21,6 +21,8 @@ package org.apache.accumulo.manager.upgrade;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -30,6 +32,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.AccumuloDataVersion;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
@@ -37,37 +40,42 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
 public class AccumuloTest {
+  private ServerContext context;
   private FileSystem fs;
   private Path path;
   private ServerDirs serverDirs;
 
   @BeforeEach
   public void setUp() {
+    context = createMock(ServerContext.class);
     fs = createMock(FileSystem.class);
     path = createMock(Path.class);
+    replay(context, fs, path);
     serverDirs = new ServerDirs(DefaultConfiguration.getInstance(), new Configuration());
   }
 
+  @AfterEach
+  public void verifyMocks() {
+    verify(context, fs, path);
+  }
+
   private FileStatus[] mockPersistentVersion(String s) {
-    FileStatus[] files = new FileStatus[1];
-    files[0] = createMock(FileStatus.class);
-    Path filePath = createMock(Path.class);
-    expect(filePath.getName()).andReturn(s);
-    replay(filePath);
-    expect(files[0].getPath()).andReturn(filePath);
-    replay(files[0]);
-    return files;
+    var fileStatus = new FileStatus();
+    fileStatus.setPath(new Path(s));
+    return new FileStatus[] {fileStatus};
   }
 
   @Test
   public void testGetAccumuloPersistentVersion() throws Exception {
     FileStatus[] files = mockPersistentVersion("42");
+    reset(fs);
     expect(fs.listStatus(path)).andReturn(files);
     replay(fs);
 
@@ -76,6 +84,7 @@ public class AccumuloTest {
 
   @Test
   public void testGetAccumuloPersistentVersion_Null() throws Exception {
+    reset(fs);
     expect(fs.listStatus(path)).andReturn(null);
     replay(fs);
 
@@ -84,6 +93,7 @@ public class AccumuloTest {
 
   @Test
   public void testGetAccumuloPersistentVersion_Empty() throws Exception {
+    reset(fs);
     expect(fs.listStatus(path)).andReturn(new FileStatus[0]);
     replay(fs);
 
@@ -92,6 +102,7 @@ public class AccumuloTest {
 
   @Test
   public void testGetAccumuloPersistentVersion_Fail() throws Exception {
+    reset(fs);
     expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
     replay(fs);
     assertThrows(RuntimeException.class, () -> serverDirs.getAccumuloPersistentVersion(fs, path));
@@ -141,8 +152,10 @@ public class AccumuloTest {
     expect(vm.create(newVersion2)).andReturn(fsdos2);
     replay(vm);
 
-    UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
+    UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator(context);
     ServerDirs constants = new ServerDirs(DefaultConfiguration.getInstance(), new Configuration());
     upgradeCoordinator.updateAccumuloVersion(constants, vm, 7);
+
+    verify(v1, fs1, fsdos1, v2, fs2, fsdos2, vm);
   }
 }

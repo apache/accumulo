@@ -33,9 +33,13 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Will read/write old mutations.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class OldMutation implements Writable {
 
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
@@ -173,10 +177,10 @@ public class OldMutation implements Writable {
   public OldMutation() {}
 
   public OldMutation(TMutation tmutation) {
-    this.row = ByteBufferUtil.toBytes(tmutation.row);
-    this.data = ByteBufferUtil.toBytes(tmutation.data);
-    this.entries = tmutation.entries;
-    this.values = ByteBufferUtil.toBytesList(tmutation.values);
+    this.row = tmutation.getRow();
+    this.data = tmutation.getData();
+    this.entries = tmutation.getEntries();
+    this.values = ByteBufferUtil.toBytesList(tmutation.getValues());
 
     if (this.row == null) {
       throw new IllegalArgumentException("null row");

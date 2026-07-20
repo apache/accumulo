@@ -30,12 +30,12 @@ import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.AfterEach;
@@ -51,7 +51,6 @@ public class RestartStressIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> opts = cfg.getSiteConfig();
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
-    opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     opts.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
     opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     opts.put(Property.MANAGER_RECOVERY_DELAY.getKey(), "1s");

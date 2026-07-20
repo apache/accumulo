@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.state;
 import org.apache.accumulo.core.metadata.TabletState;
 
 public class TableCounts {
-  int[] counts = new int[TabletState.values().length];
+  final int[] counts = new int[TabletState.values().length];
 
   public int unassigned() {
     return counts[TabletState.UNASSIGNED.ordinal()];

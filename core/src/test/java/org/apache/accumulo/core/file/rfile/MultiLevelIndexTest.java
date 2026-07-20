@@ -66,7 +66,7 @@ public class MultiLevelIndexTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     CryptoService cs = CryptoFactoryLoader.getServiceForServer(aconf);
-    BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf, cs);
+    BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", hadoopConf, cs);
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 

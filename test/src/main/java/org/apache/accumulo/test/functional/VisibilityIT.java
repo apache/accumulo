@@ -37,16 +37,18 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.user.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteArraySet;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,6 +94,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
       insertData(c, table);
       queryData(c, table);
+      queryDataMultiAuth(c, table);
       deleteData(c, table);
 
       insertDefaultData(c, table2);
@@ -220,6 +223,48 @@ public class VisibilityIT extends AccumuloClusterHarness {
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("A", "Z"), expected);
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss("Z"), expected);
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
+  }
+
+  /**
+   * Configures Scanners with the users default authorizations, then it adds a
+   * MultiAuthVisibilityFilter with different sets of Authorizations
+   */
+  private void queryDataMultiAuth(AccumuloClient c, String tableName) throws Exception {
+
+    c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
+        new Authorizations("A", "B", "FOO", "L", "M", "Z"));
+
+    Authorizations userAuths = c.securityOperations().getUserAuthorizations(c.whoami());
+
+    Set<String> expectedUserAuths =
+        Set.of("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13");
+    try (Scanner scanner = c.createScanner(tableName, userAuths);
+        BatchScanner bs = c.createBatchScanner(tableName, userAuths, 3)) {
+      verify(scanner.iterator(), expectedUserAuths.toArray(new String[] {}));
+
+      bs.setRanges(Collections.singleton(new Range()));
+      verify(bs.iterator(), expectedUserAuths.toArray(new String[] {}));
+    }
+
+    Authorizations entity1 = new Authorizations("A", "B", "FOO", "L", "M");
+    Authorizations entity2 = new Authorizations("B", "FOO", "Z");
+    // should only see entries with no column visibility, B and/or FOO
+    Set<String> expectedAuths = Set.of("v1", "v3", "v11");
+
+    IteratorSetting is = new IteratorSetting(100, "userAuths", VisibilityFilter.class);
+    VisibilityFilter.setAuthorizations(is, Set.of(entity1, entity2));
+
+    try (Scanner scanner = c.createScanner(tableName, userAuths);
+        BatchScanner bs = c.createBatchScanner(tableName, userAuths, 3)) {
+
+      scanner.addScanIterator(is);
+      verify(scanner.iterator(), expectedAuths.toArray(new String[] {}));
+
+      bs.setRanges(Collections.singleton(new Range()));
+      bs.addScanIterator(is);
+      verify(bs.iterator(), expectedAuths.toArray(new String[] {}));
+    }
+
   }
 
   private void queryData(AccumuloClient c, String tableName, Set<String> allAuths,

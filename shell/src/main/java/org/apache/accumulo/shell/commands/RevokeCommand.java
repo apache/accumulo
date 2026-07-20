@@ -39,7 +39,8 @@ public class RevokeCommand extends TableOperation {
     disableUnflaggedTableOptions();
   }
 
-  private Option systemOpt, userOpt;
+  private Option systemOpt;
+  private Option userOpt;
   private String user;
   private String[] permission;
 

@@ -20,7 +20,9 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -30,7 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
@@ -47,7 +49,10 @@ import org.apache.hadoop.io.Text;
 
 public class GetSplitsCommand extends Command {
 
-  private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
+  private Option outputFileOpt;
+  private Option maxSplitsOpt;
+  private Option base64Opt;
+  private Option verboseOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -59,12 +64,20 @@ public class GetSplitsCommand extends Command {
     final int maxSplits = m == null ? 0 : Integer.parseInt(m);
     final boolean encode = cl.hasOption(base64Opt.getOpt());
     final boolean verbose = cl.hasOption(verboseOpt.getOpt());
+    final String[] obscuredExtentMatches = cl.getOptionValues(verboseOpt.getOpt());
+    final Set<String> matches = new HashSet<>();
+
+    if (obscuredExtentMatches != null) {
+      for (String s : obscuredExtentMatches) {
+        matches.add(s);
+      }
+    }
 
     try (PrintLine p =
         outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
       if (verbose) {
-        String systemTableToCheck = AccumuloTable.METADATA.tableName().equals(tableName)
-            ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName();
+        String systemTableToCheck = SystemTables.METADATA.tableName().equals(tableName)
+            ? SystemTables.ROOT.tableName() : SystemTables.METADATA.tableName();
         final Scanner scanner =
             shellState.getAccumuloClient().createScanner(systemTableToCheck, Authorizations.EMPTY);
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -78,12 +91,15 @@ public class GetSplitsCommand extends Command {
         for (final Entry<Key,Value> next : scanner) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
             KeyExtent extent = KeyExtent.fromMetaPrevRow(next);
-            final String pr = encode(encode, extent.prevEndRow());
-            final String er = encode(encode, extent.endRow());
-            final String line =
-                String.format("%-26s (%s, %s%s", extent.obscured(), pr == null ? "-inf" : pr,
-                    er == null ? "+inf" : er, er == null ? ") Default Tablet " : "]");
-            p.print(line);
+            final String obscured = extent.obscured();
+            if (matches.isEmpty() || matches.contains(obscured)) {
+              final String pr = encode(encode, extent.prevEndRow());
+              final String er = encode(encode, extent.endRow());
+              final String line =
+                  String.format("%-26s (%s, %s%s", obscured, pr == null ? "-inf" : pr,
+                      er == null ? "+inf" : er, er == null ? ") Default Tablet " : "]");
+              p.print(line);
+            }
           }
         }
       } else {
@@ -125,14 +141,18 @@ public class GetSplitsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
 
-    maxSplitsOpt =
-        new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
+    maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return that are"
+        + " selected from the existing splits; see TableOperations.listSplits");
     maxSplitsOpt.setArgName("num");
 
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
 
     verboseOpt =
-        new Option("v", "verbose", false, "print out the tablet information with start/end rows");
+        new Option("v", "verbose", false, "print out the obscured tablets with start/end rows, "
+            + "will limit output to matching obscured extents if match arguments are supplied");
+    verboseOpt.setOptionalArg(true);
+    verboseOpt.setArgs(Option.UNLIMITED_VALUES);
+    verboseOpt.setArgName("match");
 
     opts.addOption(outputFileOpt);
     opts.addOption(maxSplitsOpt);

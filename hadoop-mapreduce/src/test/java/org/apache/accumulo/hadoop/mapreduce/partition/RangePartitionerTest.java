@@ -79,7 +79,8 @@ public class RangePartitionerTest {
   private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) throws IOException {
     assertEquals(strings.length, bins.length);
     for (int i = 0; i < strings.length; ++i) {
-      int bin = bins[i], part =
+      int bin = bins[i];
+      int part =
           prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
       assertEquals(bin, part);
     }

@@ -20,7 +20,6 @@ package org.apache.accumulo.tserver;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
@@ -31,6 +30,8 @@ import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.Tablet;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * This interface exist to support passing a {@link TabletServer} or {@link ScanServerInfo} to a
@@ -58,7 +59,7 @@ public interface TabletHostingServer {
 
   ServiceLock getLock();
 
-  ZooCache getManagerLockCache();
-
   BlockCacheManager.Configuration getBlockCacheConfiguration(AccumuloConfiguration acuConf);
+
+  HostAndPort getAdvertiseAddress();
 }

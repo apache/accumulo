@@ -18,17 +18,17 @@
  */
 package org.apache.accumulo.server.init;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -37,17 +37,20 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -74,38 +77,36 @@ public class FileSystemInitializer {
   }
 
   public static class InitialTablet {
-    TableId tableId;
-    String dirName;
-    Text prevEndRow, endRow, extent;
-    String[] files;
+    final TableId tableId;
+    final String dirName;
+    final Text prevEndRow;
+    final Text endRow;
+    final Text extent;
+    final String[] files;
+    final TabletMergeabilityMetadata mergeability;
 
-    InitialTablet(TableId tableId, String dirName, Text prevEndRow, Text endRow, String... files) {
+    InitialTablet(TableId tableId, String dirName, Text prevEndRow, Text endRow,
+        TabletMergeabilityMetadata mergeability, String... files) {
       this.tableId = tableId;
       this.dirName = dirName;
       this.prevEndRow = prevEndRow;
       this.endRow = endRow;
+      this.mergeability = Objects.requireNonNull(mergeability);
       this.files = files;
       this.extent = new Text(MetadataSchema.TabletsSection.encodeRow(this.tableId, this.endRow));
     }
 
-    private TreeMap<Key,Value> createEntries() {
-      TreeMap<Key,Value> sorted = new TreeMap<>();
-      Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
-      sorted.put(new Key(this.extent, DIRECTORY_COLUMN.getColumnFamily(),
-          DIRECTORY_COLUMN.getColumnQualifier(), 0), new Value(this.dirName));
-      sorted.put(
-          new Key(this.extent, TIME_COLUMN.getColumnFamily(), TIME_COLUMN.getColumnQualifier(), 0),
-          new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
-      sorted.put(
-          new Key(this.extent, PREV_ROW_COLUMN.getColumnFamily(),
-              PREV_ROW_COLUMN.getColumnQualifier(), 0),
-          MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow(this.prevEndRow));
-      for (String file : this.files) {
-        var col =
-            new ColumnFQ(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, new Text(file));
-        sorted.put(new Key(extent, col.getColumnFamily(), col.getColumnQualifier(), 0), EMPTY_SIZE);
+    private Map<Key,Value> createEntries() {
+      KeyExtent keyExtent = new KeyExtent(tableId, endRow, prevEndRow);
+      var builder = TabletMetadata.builder(keyExtent).putDirName(dirName)
+          .putTime(new MetadataTime(0, TimeType.LOGICAL))
+          .putTabletAvailability(TabletAvailability.HOSTED).putTabletMergeability(mergeability)
+          .putPrevEndRow(prevEndRow);
+      for (String file : files) {
+        builder.putFile(new ReferencedTabletFile(new Path(file)).insert(), new DataFileValue(0, 0));
       }
-      return sorted;
+      return builder.build().getKeyValues().stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public Mutation createMutation() {
@@ -125,44 +126,58 @@ public class FileSystemInitializer {
     initSystemTablesConfig(context);
 
     VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(
-        VolumeChooserEnvironment.Scope.INIT, AccumuloTable.METADATA.tableId(), null, context);
+        VolumeChooserEnvironment.Scope.INIT, SystemTables.METADATA.tableId(), SPLIT_POINT, context);
+    String tableMetadataTabletDirUri =
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + SystemTables.METADATA.tableId() + Path.SEPARATOR + TABLE_TABLETS_TABLET_DIR;
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        SystemTables.FATE.tableId(), null, context);
+
+    String fateTableDefaultTabletDirUri = fs.choose(chooserEnv, context.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + SystemTables.FATE.tableId() + Path.SEPARATOR
+        + MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        SystemTables.SCAN_REF.tableId(), null, context);
+
+    String scanRefTableDefaultTabletDirUri = fs.choose(chooserEnv, context.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + SystemTables.SCAN_REF.tableId()
+        + Path.SEPARATOR + MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+
+    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        SystemTables.METADATA.tableId(), null, context);
+
     String defaultMetadataTabletDirName =
         MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + defaultMetadataTabletDirName;
-
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
-        AccumuloTable.METADATA.tableId(), SPLIT_POINT, context);
-
-    String tableMetadataTabletDirUri =
-        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + AccumuloTable.METADATA.tableId() + Path.SEPARATOR + TABLE_TABLETS_TABLET_DIR;
-
-    chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
-        AccumuloTable.SCAN_REF.tableId(), null, context);
-
-    String scanRefTableDefaultTabletDirUri = fs.choose(chooserEnv, context.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + AccumuloTable.SCAN_REF.tableId()
-        + Path.SEPARATOR + MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+            + SystemTables.METADATA.tableId() + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDirUri, defaultMetadataTabletDirUri, tableMetadataTabletDirUri,
-        scanRefTableDefaultTabletDirUri);
-    InitialTablet scanRefTablet = createScanRefTablet(context);
+    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
+        fateTableDefaultTabletDirUri, scanRefTableDefaultTabletDirUri);
 
-    // populate the metadata tablet with info about scan ref tablets
+    // For a new system mark the fate tablet and scan ref tablet as always mergeable.
+    // Because this is a new system we can just use 0 for the time as that is what the Manager
+    // will initialize with when starting
+    var always = TabletMergeabilityMetadata.always(SteadyTime.from(Duration.ZERO));
+    InitialTablet fateTablet = createFateRefTablet(context, always);
+    InitialTablet scanRefTablet = createScanRefTablet(context, always);
+
+    // populate the metadata tablet with info about the fate and scan ref tablets
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
-    createMetadataFile(fs, metadataFileName, scanRefTablet);
+    createMetadataFile(fs, metadataFileName, scanRefTablet.tableId, fateTablet, scanRefTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
-    InitialTablet tablesTablet =
-        new InitialTablet(AccumuloTable.METADATA.tableId(), TABLE_TABLETS_TABLET_DIR, null,
-            SPLIT_POINT, StoredTabletFile.of(new Path(metadataFileName)).getMetadata());
-    InitialTablet defaultTablet = new InitialTablet(AccumuloTable.METADATA.tableId(),
-        defaultMetadataTabletDirName, SPLIT_POINT, null);
-    createMetadataFile(fs, rootTabletFileUri, tablesTablet, defaultTablet);
+    // For the default tablet we want to make that mergeable, but don't make the TabletsSection
+    // tablet mergeable. This will prevent tablets from each either from being auto merged
+    InitialTablet tablesTablet = new InitialTablet(SystemTables.METADATA.tableId(),
+        TABLE_TABLETS_TABLET_DIR, null, SPLIT_POINT, TabletMergeabilityMetadata.never(),
+        StoredTabletFile.of(new Path(metadataFileName)).getMetadataPath());
+    InitialTablet defaultTablet = new InitialTablet(SystemTables.METADATA.tableId(),
+        defaultMetadataTabletDirName, SPLIT_POINT, null, always);
+    createMetadataFile(fs, rootTabletFileUri, tablesTablet.tableId, tablesTablet, defaultTablet);
   }
 
   private void createDirectories(VolumeManager fs, String... dirs) throws IOException {
@@ -186,16 +201,16 @@ public class FileSystemInitializer {
 
   private void initSystemTablesConfig(final ServerContext context)
       throws IOException, InterruptedException, KeeperException {
-    setTableProperties(context, AccumuloTable.ROOT.tableId(), initConfig.getRootTableConf());
-    setTableProperties(context, AccumuloTable.ROOT.tableId(), initConfig.getRootMetaConf());
-    setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getRootMetaConf());
-    setTableProperties(context, AccumuloTable.METADATA.tableId(), initConfig.getMetaTableConf());
+    setTableProperties(context, SystemTables.ROOT.tableId(), initConfig.getRootTableConf());
+    setTableProperties(context, SystemTables.ROOT.tableId(), initConfig.getRootMetaConf());
+    setTableProperties(context, SystemTables.METADATA.tableId(), initConfig.getRootMetaConf());
+    setTableProperties(context, SystemTables.METADATA.tableId(), initConfig.getMetaTableConf());
   }
 
   private void setTableProperties(final ServerContext context, TableId tableId,
       HashMap<String,String> props) {
     var propStore = context.getPropStore();
-    TablePropKey tablePropKey = TablePropKey.of(context, tableId);
+    TablePropKey tablePropKey = TablePropKey.of(tableId);
     if (propStore.exists(tablePropKey)) {
       propStore.putAll(tablePropKey, props);
     } else {
@@ -203,7 +218,7 @@ public class FileSystemInitializer {
     }
   }
 
-  private void createMetadataFile(VolumeManager volmanager, String fileName,
+  private void createMetadataFile(VolumeManager volmanager, String fileName, TableId tid,
       InitialTablet... initialTablets) throws IOException {
     AccumuloConfiguration conf = initConfig.getSiteConf();
     ReferencedTabletFile file = ReferencedTabletFile.of(new Path(fileName));
@@ -211,7 +226,7 @@ public class FileSystemInitializer {
 
     CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);
 
-    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
+    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder().forTable(tid)
         .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
@@ -227,10 +242,22 @@ public class FileSystemInitializer {
     tabletWriter.close();
   }
 
-  public InitialTablet createScanRefTablet(ServerContext context) throws IOException {
-    setTableProperties(context, AccumuloTable.SCAN_REF.tableId(), initConfig.getScanRefTableConf());
+  public InitialTablet createScanRefTablet(ServerContext context,
+      TabletMergeabilityMetadata mergeability) throws IOException {
+    setTableProperties(context, SystemTables.SCAN_REF.tableId(), initConfig.getScanRefTableConf());
 
-    return new InitialTablet(AccumuloTable.SCAN_REF.tableId(),
-        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, null, null);
+    return new InitialTablet(SystemTables.SCAN_REF.tableId(),
+        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, null, null,
+        mergeability);
   }
+
+  public InitialTablet createFateRefTablet(ServerContext context,
+      TabletMergeabilityMetadata mergeability) throws IOException {
+    setTableProperties(context, SystemTables.FATE.tableId(), initConfig.getFateTableConf());
+
+    return new InitialTablet(SystemTables.FATE.tableId(),
+        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME, null, null,
+        mergeability);
+  }
+
 }

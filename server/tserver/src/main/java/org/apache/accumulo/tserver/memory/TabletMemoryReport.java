@@ -27,15 +27,13 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 public class TabletMemoryReport implements Cloneable {
 
   private final Tablet tablet;
-  private final long lastCommitTime;
   private final long memTableSize;
   private final long minorCompactingMemTableSize;
   private final Timer firstWriteTimer;
 
-  public TabletMemoryReport(Tablet tablet, long lastCommitTime, long memTableSize,
-      long minorCompactingMemTableSize, Timer firstWriteTimer) {
+  public TabletMemoryReport(Tablet tablet, long memTableSize, long minorCompactingMemTableSize,
+      Timer firstWriteTimer) {
     this.tablet = tablet;
-    this.lastCommitTime = lastCommitTime;
     this.memTableSize = memTableSize;
     this.minorCompactingMemTableSize = minorCompactingMemTableSize;
     this.firstWriteTimer = firstWriteTimer;
@@ -47,10 +45,6 @@ public class TabletMemoryReport implements Cloneable {
 
   public Tablet getTablet() {
     return tablet;
-  }
-
-  public long getLastCommitTime() {
-    return lastCommitTime;
   }
 
   public long getElapsedSinceFirstWrite(TimeUnit unit) {

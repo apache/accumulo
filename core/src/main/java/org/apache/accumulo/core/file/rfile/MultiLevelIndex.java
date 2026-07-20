@@ -140,8 +140,8 @@ public class MultiLevelIndex {
     protected int[] offsets;
     protected byte[] data;
 
-    protected SeekableByteArrayInputStream sbais;
-    protected DataInputStream dis;
+    protected final SeekableByteArrayInputStream sbais;
+    protected final DataInputStream dis;
     protected int offsetsOffset;
     protected int indexOffset;
     protected int numOffsets;
@@ -362,7 +362,7 @@ public class MultiLevelIndex {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
-        ArrayList<Integer> oal = new ArrayList<>();
+        ArrayList<Integer> oal = new ArrayList<>(size);
 
         for (int i = 0; i < size; i++) {
           IndexEntry ie = new IndexEntry(false);

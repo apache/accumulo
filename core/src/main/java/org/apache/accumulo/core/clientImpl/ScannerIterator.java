@@ -43,6 +43,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -128,6 +129,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
 
   void close() {
+    // setting this so that some errors can be ignored
+    scanState.closeInitiated = true;
     // run actual close operation in the background so this does not block.
     context.executeCleanupTask(() -> {
       synchronized (scanState) {
@@ -153,11 +156,12 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
     List<KeyValue> batch;
 
+    Timer scanTimer = Timer.startNew();
     do {
       synchronized (scanState) {
         // this is synchronized so its mutually exclusive with closing
         Preconditions.checkState(!closed.get(), "Scanner was closed");
-        batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
+        batch = ThriftScanner.scan(scanState.context, scanState, timeOut, scanTimer);
       }
     } while (batch != null && batch.isEmpty());
 
@@ -185,6 +189,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       throw new IllegalStateException(ee);
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
         | ScanTimedOutException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
 
@@ -209,8 +216,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     if (ee.getCause() instanceof IsolationException) {
       throw new IsolationException(ee);
     }
-    if (ee.getCause() instanceof TableDeletedException) {
-      TableDeletedException cause = (TableDeletedException) ee.getCause();
+    if (ee.getCause() instanceof TableDeletedException cause) {
       throw new TableDeletedException(cause.getTableId(), cause);
     }
     if (ee.getCause() instanceof TableOfflineException) {

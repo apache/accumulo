@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -56,15 +54,14 @@ public class DeleteNamespaceCommand extends Command {
     boolean resetContext = false;
     String currentTable = shellState.getTableName();
 
-    NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), namespace);
-    List<String> tables = Namespaces.getTableNames(shellState.getContext(), namespaceId);
+    NamespaceId namespaceId = shellState.getContext().getNamespaceId(namespace);
+    Set<String> tables = shellState.getContext().getTableMapping(namespaceId)
+        .createQualifiedNameToIdMap(namespace).keySet();
     resetContext = tables.contains(currentTable);
 
     if (force) {
-      for (String table : shellState.getAccumuloClient().tableOperations().list()) {
-        if (table.startsWith(namespace + ".")) {
-          shellState.getAccumuloClient().tableOperations().delete(table);
-        }
+      for (String table : tables) {
+        shellState.getAccumuloClient().tableOperations().delete(table);
       }
     }
 
