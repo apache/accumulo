@@ -266,8 +266,10 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile,
-      long fileSize, Collection<KeyExtent> extents, FileSystem ns, Cache<String,Long> fileLenCache,
-      CryptoService cs) throws IOException {
+      FileStatus status, Collection<KeyExtent> extents, FileSystem ns,
+      Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
+
+    final long fileSize = status.getLen();
 
     if (extents.size() == 1) {
       return Collections.singletonMap(extents.iterator().next(), fileSize);
@@ -282,7 +284,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     Text row = new Text();
 
     FileSKVIterator index = FileOperations.getInstance().newIndexReaderBuilder()
-        .forFile(mapFile.toString(), ns, ns.getConf(), cs).withTableConfiguration(acuConf)
+        .forFile(mapFile.toString(), ns, ns.getConf(), cs, status).withTableConfiguration(acuConf)
         .withFileLenCache(fileLenCache).build();
 
     try {
@@ -365,9 +367,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
       KeyExtentCache keyExtentCache, Path file, FileSystem fs, Cache<String,Long> fileLenCache,
-      CryptoService cs) throws IOException {
+      CryptoService cs, FileStatus status) throws IOException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(file.toString(), fs, fs.getConf(), cs)
+        .forFile(file.toString(), fs, fs.getConf(), cs, status)
         .withTableConfiguration(context.getConfiguration()).withFileLenCache(fileLenCache)
         .seekToBeginning().build()) {
 
@@ -574,12 +576,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       CompletableFuture<Map<KeyExtent,Bulk.FileInfo>> future = CompletableFuture.supplyAsync(() -> {
         try {
           long t1 = System.currentTimeMillis();
-          List<KeyExtent> extents =
-              findOverlappingTablets(context, extentCache, filePath, fs, fileLensCache, cs);
+          List<KeyExtent> extents = findOverlappingTablets(context, extentCache, filePath, fs,
+              fileLensCache, cs, fileStatus);
           // make sure file isn't going to too many tablets
           checkTabletCount(maxTablets, extents.size(), filePath.toString());
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
-              fileStatus.getLen(), extents, fs, fileLensCache, cs);
+              fileStatus, extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
             pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 
@@ -191,12 +192,14 @@ public abstract class FileOperations {
     public final Set<ByteSequence> columnFamilies;
     public final boolean inclusive;
     public final boolean dropCacheBehind;
+    public final FileStatus status;
 
     public FileOptions(TableId tableId, AccumuloConfiguration tableConfiguration, String filename,
         FileSystem fs, Configuration fsConf, RateLimiter rateLimiter, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
-        Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
+        Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind,
+        FileStatus status) {
       this.tableId = tableId;
       this.tableConfiguration = tableConfiguration;
       this.filename = filename;
@@ -214,6 +217,7 @@ public abstract class FileOperations {
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
       this.dropCacheBehind = dropCacheBehind;
+      this.status = status;
     }
 
     public TableId getTableId() {
@@ -293,6 +297,7 @@ public abstract class FileOperations {
     private RateLimiter rateLimiter;
     private CryptoService cryptoService;
     private boolean dropCacheBehind = false;
+    private FileStatus status;
 
     protected FileHelper table(TableId tid) {
       this.tableId = tid;
@@ -334,31 +339,36 @@ public abstract class FileOperations {
       return this;
     }
 
+    protected FileHelper fileStatus(FileStatus status) {
+      this.status = status;
+      return this;
+    }
+
     protected FileOptions toWriterBuilderOptions(String compression,
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter,
           compression, outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null,
-          null, true, dropCacheBehind);
+          null, true, dropCacheBehind, status);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning) {
       return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter, null,
           null, false, cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache,
-          seekToBeginning, cryptoService, null, null, true, dropCacheBehind);
+          seekToBeginning, cryptoService, null, null, true, dropCacheBehind, status);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter, null,
           null, false, NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true,
-          dropCacheBehind);
+          dropCacheBehind, status);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
       return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter, null,
           null, false, NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive,
-          dropCacheBehind);
+          dropCacheBehind, status);
     }
 
     protected AccumuloConfiguration getTableConfiguration() {
@@ -441,6 +451,12 @@ public abstract class FileOperations {
       return this;
     }
 
+    public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+        CryptoService cs, FileStatus status) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
+      return this;
+    }
+
     @Override
     public ReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
@@ -509,6 +525,12 @@ public abstract class FileOperations {
       return this;
     }
 
+    public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
+        Configuration fsConf, CryptoService cs, FileStatus status) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
+      return this;
+    }
+
     @Override
     public IndexReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
@@ -538,6 +560,12 @@ public abstract class FileOperations {
     public ScanReaderTableConfiguration forFile(String filename, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
       filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
+
+    public ScanReaderTableConfiguration forFile(String filename, FileSystem fs,
+        Configuration fsConf, CryptoService cs, FileStatus status) {
+      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
       return this;
     }
 
