@@ -132,7 +132,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     createRecoveryDir(logs, dirs, true);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, false)) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(context, pathsToResolvedLogs(dirs), null, null, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
         assertEquals(1, entry.getKey().getTabletId(), "TabletId does not match");
@@ -159,7 +160,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     createRecoveryDir(logs, dirs, false);
 
     assertThrows(IOException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, false),
+        () -> new RecoveryLogsIterator(context, pathsToResolvedLogs(dirs), null, null, false),
         "Finish marker should not be found");
   }
 
@@ -168,9 +169,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     String destPath = workDir + "/test.rf";
     fs.create(new Path(destPath));
 
-    assertThrows(
-        IOException.class, () -> new RecoveryLogsIterator(context,
-            Collections.singletonList(new Path(destPath)), null, null, false),
+    assertThrows(IOException.class,
+        () -> new RecoveryLogsIterator(context,
+            Collections.singletonList(ResolvedSortedLog.fromSortedLogDir(new Path(destPath), fs)),
+            null, null, false),
         "Finish marker should not be found for a single file.");
   }
 
@@ -192,7 +194,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     createRecoveryDir(logs, dirs, true);
 
     assertThrows(IllegalStateException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, true),
+        () -> new RecoveryLogsIterator(context, pathsToResolvedLogs(dirs), null, null, true),
         "First log entry is not OPEN so exception should be thrown.");
   }
 
@@ -219,7 +221,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     createRecoveryDir(logs, dirs, true);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, true)) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(context, pathsToResolvedLogs(dirs), null, null, true)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
         assertNotNull(entry.getKey());
@@ -247,5 +250,13 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
       dirs.add(new Path(destPath));
     }
+  }
+
+  private List<ResolvedSortedLog> pathsToResolvedLogs(List<Path> dirs) throws IOException {
+    List<ResolvedSortedLog> resolvedLogs = new ArrayList<>();
+    for (Path dir : dirs) {
+      resolvedLogs.add(ResolvedSortedLog.fromSortedLogDir(dir, fs));
+    }
+    return resolvedLogs;
   }
 }

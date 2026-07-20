@@ -48,6 +48,7 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
+import org.apache.accumulo.tserver.log.ResolvedSortedLog;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -173,8 +174,9 @@ public class LogReader implements KeywordExecutable {
         } else {
           // read the log entries in a sorted RFile. This has to be a directory that contains the
           // finished file.
-          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
-              null, false)) {
+          try (var rli = new RecoveryLogsIterator(context,
+              Collections.singletonList(ResolvedSortedLog.fromSortedLogDir(path, fs)), null, null,
+              false)) {
             while (rli.hasNext()) {
               Entry<LogFileKey,LogFileValue> entry = rli.next();
               printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
