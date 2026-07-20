@@ -70,7 +70,8 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       String auths = options.get(AUTHS);
       if (auths == null || auths.isEmpty()) {
         this.accessEvaluator = EMPTY_EVALUATOR;
-      } else if (!auths.contains(Authorizations.HEADER)) {
+      } else if (!auths.startsWith(Authorizations.HEADER)) {
+        // the old serialization format does not support multiple auth sets, so treat the whole thing as one set
         this.accessEvaluator = BytesAccess.newEvaluator(new Authorizations(auths.getBytes(UTF_8)));
       } else {
         String[] authParts = auths.split(Authorizations.HEADER);
