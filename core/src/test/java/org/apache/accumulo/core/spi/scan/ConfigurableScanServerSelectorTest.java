@@ -743,7 +743,7 @@ public class ConfigurableScanServerSelectorTest {
   }
 
   /**
-   * Test that a NaN server percentage value throws the expected exception 
+   * Test that a NaN server percentage value throws the expected exception
    */
   @Test
   public void testInfiniteServerPercentage() {
