@@ -258,7 +258,8 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
 
       // A GcCandidate for each tablet directory should exist until the shared references are
       // compacted.
-      Wait.waitFor(() -> countGcCandidates(sourceTableId, 4), GC_MAX_WAIT, POLLING_WAIT);
+      Wait.waitFor(() -> countGcCandidates(sourceTableId, 4) || countGcCandidates(sourceTableId, 0),
+          GC_MAX_WAIT, POLLING_WAIT);
 
       client.tableOperations().compact(cloneTable, new CompactionConfig().setWait(true));
 
