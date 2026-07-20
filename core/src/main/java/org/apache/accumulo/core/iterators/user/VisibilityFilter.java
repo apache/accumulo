@@ -71,7 +71,8 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       if (auths == null || auths.isEmpty()) {
         this.accessEvaluator = EMPTY_EVALUATOR;
       } else if (!auths.startsWith(Authorizations.HEADER)) {
-        // the old serialization format does not support multiple auth sets, so treat the whole thing as one set
+        // the old serialization format does not support multiple auth sets, so treat the whole
+        // thing as one set
         this.accessEvaluator = BytesAccess.newEvaluator(new Authorizations(auths.getBytes(UTF_8)));
       } else {
         String[] authParts = auths.split(Authorizations.HEADER);
@@ -160,14 +161,11 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
     io.addNamedOption(FILTER_INVALID_ONLY,
         "if 'true', the iterator is instructed to ignore the authorizations and"
             + " only filter invalid visibility labels (default: false)");
-    io.addNamedOption(AUTHS, "The set of Authorizations to use when filtering (default: empty"
-        + " string, accepts only entries visible by all). The value can"
-        + " either be of the older form (\"auth1,auth2\") which only supports"
-        + " a single Authorizations object, or the newer form which uses " + Authorizations.HEADER
-        + " concatenated with Base64 encoded comma-separated authorization tokens."
-        + "The latter case supports one or more Authorizations (\"" + Authorizations.HEADER
-        + "Base64(auth1,auth2)\") or (\"" + Authorizations.HEADER + "Base64(auth1,auth2)"
-        + Authorizations.HEADER + "auth2,auth3\")");
+    io.addNamedOption(AUTHS, "The concatenated serialized set(s) of Authorizations used to "
+        + "filter out Key-Value pairs. Default value is an empty string which allows all "
+        + "pairs to pass through the filter. The value can be set programmatically using "
+        + "the setAuthorizations method or manually using the output of the Authorizations.serialize() "
+        + "method (concatenated with no separator if multiple Authorizations).");
     return io;
   }
 

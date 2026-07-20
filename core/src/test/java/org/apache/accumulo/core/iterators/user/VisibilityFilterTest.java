@@ -289,12 +289,4 @@ public class VisibilityFilterTest {
     Key k = new Key("row", "cf", "cq", "abc");
     assertTrue(copyFilter.accept(k, new Value()));
   }
-
-  @Test
-  public void testAuthorizationSerialization() {
-    String auth = new Authorizations("abc", "def").serialize();
-    System.out.println(auth);
-
-  }
-
 }
