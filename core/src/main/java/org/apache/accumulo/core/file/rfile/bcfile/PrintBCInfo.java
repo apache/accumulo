@@ -50,8 +50,9 @@ public class PrintBCInfo {
 
   public void printMetaBlockInfo() throws IOException {
     FileStatus status = fs.getFileStatus(path);
-    FSDataInputStream fsin = FileOperations.openFile(fs, path, status);
-    try (BCFile.Reader bcfr = new BCFile.Reader(fsin, status.getLen(), conf, cryptoService)) {
+
+    try (FSDataInputStream fsin = FileOperations.openFile(fs, path, status);
+        BCFile.Reader bcfr = new BCFile.Reader(fsin, status.getLen(), conf, cryptoService)) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 
