@@ -28,7 +28,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonPathCapabilities;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LeaseRecoverable;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.fs.viewfs.ViewFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +69,8 @@ public class HadoopLogCloser implements LogCloser {
         ns.append(source).close();
         log.info("Recovered lease on {} using append", source);
       }
+    } else if (ns instanceof LocalFileSystem || ns instanceof RawLocalFileSystem) {
+      // ignore, don't throw an exception
     } else {
       throw new IllegalStateException(
           "Don't know how to recover a lease for " + ns.getClass().getName());
