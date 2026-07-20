@@ -54,21 +54,24 @@ public class WriteLotsIT extends AccumuloClusterHarness {
       final int THREADS = 5;
       ThreadPoolExecutor tpe = new ThreadPoolExecutor(0, THREADS, 0, TimeUnit.SECONDS,
           new ArrayBlockingQueue<>(THREADS));
-      for (int i = 0; i < THREADS; i++) {
-        final int index = i;
-        Runnable r = () -> {
-          try {
-            IngestParams ingestParams = new IngestParams(getClientProps(), tableName, 10_000);
-            ingestParams.startRow = index * 10000;
-            TestIngest.ingest(c, ingestParams);
-          } catch (Exception ex) {
-            ref.set(ex);
-          }
-        };
-        tpe.execute(r);
+      try {
+        for (int i = 0; i < THREADS; i++) {
+          final int index = i;
+          Runnable r = () -> {
+            try {
+              IngestParams ingestParams = new IngestParams(getClientProps(), tableName, 10_000);
+              ingestParams.startRow = index * 10000;
+              TestIngest.ingest(c, ingestParams);
+            } catch (Exception ex) {
+              ref.set(ex);
+            }
+          };
+          tpe.execute(r);
+        }
+      } finally {
+        tpe.shutdown();
+        tpe.awaitTermination(90, TimeUnit.SECONDS);
       }
-      tpe.shutdown();
-      tpe.awaitTermination(90, TimeUnit.SECONDS);
       if (ref.get() != null) {
         throw ref.get();
       }

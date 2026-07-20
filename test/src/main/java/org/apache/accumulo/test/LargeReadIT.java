@@ -127,52 +127,57 @@ public class LargeReadIT extends AccumuloClusterHarness {
 
       final int numTasks = 64;
       var executor = Executors.newFixedThreadPool(numTasks);
-      CountDownLatch startLatch = new CountDownLatch(numTasks);
-      assertTrue(numTasks >= startLatch.getCount(),
-          "Not enough tasks/threads to satisfy latch count - deadlock risk");
-      Callable<Long> scanTask = () -> {
-        startLatch.countDown();
-        startLatch.await();
-        try (var scanner = client.createScanner(tableName)) {
-          scannerConfigurer.accept(scanner);
-          return scanner.stream().count();
+      try {
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
+        Callable<Long> scanTask = () -> {
+          startLatch.countDown();
+          startLatch.await();
+          try (var scanner = client.createScanner(tableName)) {
+            scannerConfigurer.accept(scanner);
+            return scanner.stream().count();
+          }
+        };
+
+        // Run lots of concurrent task that should only read the small data, if they read the big
+        // column family then it will exceed the tablet server memory and cause it to die and the
+        // test to timeout.
+        var tasks =
+            Stream.iterate(scanTask, t -> t).limit(numTasks * 5).collect(Collectors.toList());
+        assertEquals(numTasks * 5, tasks.size());
+        for (var future : executor.invokeAll(tasks)) {
+          assertEquals(100, future.get());
         }
-      };
 
-      // Run lots of concurrent task that should only read the small data, if they read the big
-      // column family then it will exceed the tablet server memory and cause it to die and the test
-      // to timeout.
-      var tasks = Stream.iterate(scanTask, t -> t).limit(numTasks * 5).collect(Collectors.toList());
-      assertEquals(numTasks * 5, tasks.size());
-      for (var future : executor.invokeAll(tasks)) {
-        assertEquals(100, future.get());
-      }
+        // expected data to be in memory for this part of the test, so verify that
+        var ctx = getCluster().getServerContext();
+        try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(tableName))
+            .fetch(TabletMetadata.ColumnType.FILES).build()) {
+          assertEquals(0, tablets.stream().count());
+        }
 
-      // expected data to be in memory for this part of the test, so verify that
-      var ctx = getCluster().getServerContext();
-      try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(tableName))
-          .fetch(TabletMetadata.ColumnType.FILES).build()) {
-        assertEquals(0, tablets.stream().count());
-      }
+        // flush data and verify
+        client.tableOperations().flush(tableName, null, null, true);
+        try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(tableName))
+            .fetch(TabletMetadata.ColumnType.FILES).build()) {
+          assertEquals(1, tablets.stream().count());
+        }
 
-      // flush data and verify
-      client.tableOperations().flush(tableName, null, null, true);
-      try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(tableName))
-          .fetch(TabletMetadata.ColumnType.FILES).build()) {
-        assertEquals(1, tablets.stream().count());
-      }
+        // Run the scans again, reading from files instead of in memory map... verify the large data
+        // is not brought into memory from the file, which would kill the tablet server. The test
+        // was created because of a bug in the native map code, but can also check the rfile code
+        // for a similar problem.
+        for (var future : executor.invokeAll(tasks)) {
+          assertEquals(100, future.get());
+        }
 
-      // Run the scans again, reading from files instead of in memory map... verify the large data
-      // is not brought into memory from the file, which would kill the tablet server. The test was
-      // created because of a bug in the native map code, but can also check the rfile code for a
-      // similar problem.
-      for (var future : executor.invokeAll(tasks)) {
-        assertEquals(100, future.get());
-      }
-
-      // this test assumes the first key in the tablet is the big one, verify this assumption
-      try (var scanner = client.createScanner(tableName)) {
-        assertEquals(10_000_000, scanner.iterator().next().getValue().getSize());
+        // this test assumes the first key in the tablet is the big one, verify this assumption
+        try (var scanner = client.createScanner(tableName)) {
+          assertEquals(10_000_000, scanner.iterator().next().getValue().getSize());
+        }
+      } finally {
+        executor.shutdown();
       }
     }
   }

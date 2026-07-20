@@ -510,44 +510,48 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     };
 
     ExecutorService service = Executors.newFixedThreadPool(10);
-    for (int i = 0; i < 10; i++) {
-      service.execute(task);
+    try {
+      for (int i = 0; i < 10; i++) {
+        service.execute(task);
+      }
+
+      // Wait until all threads are reading some data
+      latch.await();
+
+      // getClusterControl().stopAllServers(ServerType.TABLET_SERVER)
+      // could potentially send a kill -9 to the process. Shut the tablet
+      // servers down in a more graceful way.
+      final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+      ((ClientContext) client).getTabletLocationCache(tid).binRanges((ClientContext) client,
+          Collections.singletonList(TabletsSection.getRange()), binnedRanges);
+      binnedRanges.keySet().forEach((location) -> {
+        HostAndPort address = HostAndPort.fromString(location);
+        String addressWithSession = address.toString();
+        var zLockPath = getCluster().getServerContext().getServerPaths()
+            .createTabletServerPath(ResourceGroupId.DEFAULT, address);
+        long sessionId =
+            ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
+        if (sessionId != 0) {
+          addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
+        }
+
+        final String finalAddress = addressWithSession;
+        System.out.println("Attempting to shutdown TabletServer at: " + address);
+        try {
+          ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
+              c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
+                  getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        } catch (AccumuloException | AccumuloSecurityException e) {
+          fail("Error shutting down TabletServer", e);
+        }
+
+      });
+
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 0);
+    } finally {
+      service.shutdownNow();
     }
-
-    // Wait until all threads are reading some data
-    latch.await();
-
-    // getClusterControl().stopAllServers(ServerType.TABLET_SERVER)
-    // could potentially send a kill -9 to the process. Shut the tablet
-    // servers down in a more graceful way.
-    final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-    ((ClientContext) client).getTabletLocationCache(tid).binRanges((ClientContext) client,
-        Collections.singletonList(TabletsSection.getRange()), binnedRanges);
-    binnedRanges.keySet().forEach((location) -> {
-      HostAndPort address = HostAndPort.fromString(location);
-      String addressWithSession = address.toString();
-      var zLockPath = getCluster().getServerContext().getServerPaths()
-          .createTabletServerPath(ResourceGroupId.DEFAULT, address);
-      long sessionId =
-          ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-      if (sessionId != 0) {
-        addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
-      }
-
-      final String finalAddress = addressWithSession;
-      System.out.println("Attempting to shutdown TabletServer at: " + address);
-      try {
-        ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-            c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        fail("Error shutting down TabletServer", e);
-      }
-
-    });
-
-    Wait.waitFor(
-        () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 0);
 
     // restart the tablet server for the other tests. Need to call stopAllServers
     // to clear out the process list because we shutdown the TabletServer outside

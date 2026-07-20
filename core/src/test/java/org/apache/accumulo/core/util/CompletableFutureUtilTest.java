@@ -62,40 +62,44 @@ public class CompletableFutureUtilTest {
   @Test
   public void testIterateUntil() throws Exception {
     ExecutorService es = Executors.newFixedThreadPool(1);
-    Function<Integer,CompletableFuture<Integer>> step =
-        n -> CompletableFuture.supplyAsync(() -> n - 1, es);
-    Predicate<Integer> isDone = n -> n == 0;
-    // The call stack should overflow before 10,000 calls, so this
-    // effectively tests whether iterateUntil avoids stack overflows
-    // when given async futures.
-    for (int n : new int[] {0, 1, 2, 3, 100, 10_000}) {
-      assertEquals(0, CompletableFutureUtil.iterateUntil(step, isDone, n).get());
-    }
-    // Test throwing an exception in the step function.
-    {
-      Function<Integer,CompletableFuture<Integer>> badStep = n -> {
-        throw new RuntimeException();
-      };
-      assertThrows(ExecutionException.class,
-          () -> CompletableFutureUtil.iterateUntil(badStep, isDone, 100).get());
-    }
-    // Test throwing an exception in the future returned by the step
-    // function.
-    {
-      Function<Integer,CompletableFuture<Integer>> badStep =
-          n -> CompletableFuture.supplyAsync(() -> {
-            throw new RuntimeException();
-          }, es);
-      assertThrows(ExecutionException.class,
-          () -> CompletableFutureUtil.iterateUntil(badStep, isDone, 100).get());
-    }
-    // Test throwing an exception in the predicate.
-    {
-      Predicate<Integer> badIsDone = n -> {
-        throw new RuntimeException();
-      };
-      assertThrows(ExecutionException.class,
-          () -> CompletableFutureUtil.iterateUntil(step, badIsDone, 100).get());
+    try {
+      Function<Integer,CompletableFuture<Integer>> step =
+          n -> CompletableFuture.supplyAsync(() -> n - 1, es);
+      Predicate<Integer> isDone = n -> n == 0;
+      // The call stack should overflow before 10,000 calls, so this
+      // effectively tests whether iterateUntil avoids stack overflows
+      // when given async futures.
+      for (int n : new int[] {0, 1, 2, 3, 100, 10_000}) {
+        assertEquals(0, CompletableFutureUtil.iterateUntil(step, isDone, n).get());
+      }
+      // Test throwing an exception in the step function.
+      {
+        Function<Integer,CompletableFuture<Integer>> badStep = n -> {
+          throw new RuntimeException();
+        };
+        assertThrows(ExecutionException.class,
+            () -> CompletableFutureUtil.iterateUntil(badStep, isDone, 100).get());
+      }
+      // Test throwing an exception in the future returned by the step
+      // function.
+      {
+        Function<Integer,CompletableFuture<Integer>> badStep =
+            n -> CompletableFuture.supplyAsync(() -> {
+              throw new RuntimeException();
+            }, es);
+        assertThrows(ExecutionException.class,
+            () -> CompletableFutureUtil.iterateUntil(badStep, isDone, 100).get());
+      }
+      // Test throwing an exception in the predicate.
+      {
+        Predicate<Integer> badIsDone = n -> {
+          throw new RuntimeException();
+        };
+        assertThrows(ExecutionException.class,
+            () -> CompletableFutureUtil.iterateUntil(step, badIsDone, 100).get());
+      }
+    } finally {
+      es.shutdown();
     }
   }
 }

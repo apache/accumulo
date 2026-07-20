@@ -320,8 +320,9 @@ public class ScanServerIT extends SharedMiniClusterBase {
           var e = assertThrows(ExecutionException.class, () -> f.get());
           assertTrue(e.getCause() instanceof AssertionError);
         });
-      } // when the scanner is closed, all open sessions should be closed
-      executor.shutdown();
+      } finally { // when the scanner is closed, all open sessions should be closed
+        executor.shutdown();
+      }
     }
   }
 

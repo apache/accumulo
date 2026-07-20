@@ -65,13 +65,13 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
+    int numDeleteOps = 20;
+
+    ExecutorService es = Executors.newFixedThreadPool(numDeleteOps);
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(NUM_TABLES);
-
-      int numDeleteOps = 20;
-
-      ExecutorService es = Executors.newFixedThreadPool(numDeleteOps);
 
       int count = 0;
       for (final String table : tables) {
@@ -119,19 +119,21 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
 
-      es.shutdown();
+    } finally {
+      es.shutdownNow();
     }
   }
 
   @Test
   public void testConcurrentFateOpsWithDelete() throws Exception {
+
+    int numOperations = 8;
+
+    ExecutorService es = Executors.newFixedThreadPool(numOperations);
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(NUM_TABLES);
-
-      int numOperations = 8;
-
-      ExecutorService es = Executors.newFixedThreadPool(numOperations);
 
       int count = 0;
       for (final String table : tables) {
@@ -227,7 +229,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
 
-      es.shutdown();
+    } finally {
+      es.shutdownNow();
     }
   }
 

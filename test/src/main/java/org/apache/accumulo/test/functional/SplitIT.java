@@ -385,68 +385,69 @@ public class SplitIT extends AccumuloClusterHarness {
 
       log.debug("Creating futures that add random splits to the table");
       ExecutorService es = Executors.newFixedThreadPool(10);
-      final int totalFutures = 100;
-      final int splitsPerFuture = 4;
-      final Set<Text> totalSplits = new ConcurrentSkipListSet<>();
-      List<Callable<Void>> tasks = new ArrayList<>(totalFutures);
-      for (int i = 0; i < totalFutures; i++) {
-        final Pair<Integer,Integer> splitBounds = getRandomSplitBounds(numRows);
-        final TreeSet<Text> splits = TestIngest.getSplitPoints(splitBounds.getFirst().longValue(),
-            splitBounds.getSecond().longValue(), splitsPerFuture);
-        tasks.add(() -> {
-          c.tableOperations().addSplits(tableName, splits);
-          totalSplits.addAll(splits);
-          return null;
-        });
-      }
+      try {
+        final int totalFutures = 100;
+        final int splitsPerFuture = 4;
+        final Set<Text> totalSplits = new ConcurrentSkipListSet<>();
+        List<Callable<Void>> tasks = new ArrayList<>(totalFutures);
+        for (int i = 0; i < totalFutures; i++) {
+          final Pair<Integer,Integer> splitBounds = getRandomSplitBounds(numRows);
+          final TreeSet<Text> splits = TestIngest.getSplitPoints(splitBounds.getFirst().longValue(),
+              splitBounds.getSecond().longValue(), splitsPerFuture);
+          tasks.add(() -> {
+            c.tableOperations().addSplits(tableName, splits);
+            totalSplits.addAll(splits);
+            return null;
+          });
+        }
 
-      log.debug("Submitting futures");
-      List<Future<Void>> futures =
-          tasks.parallelStream().map(es::submit).collect(Collectors.toList());
+        log.debug("Submitting futures");
+        List<Future<Void>> futures =
+            tasks.parallelStream().map(es::submit).collect(Collectors.toList());
 
-      Set<Text> splitsAfterOffline = null;
-      if (offlineTable) {
-        // run offline concurrently with split operation
-        c.tableOperations().offline(tableName, true);
-        splitsAfterOffline = Set.copyOf(c.tableOperations().listSplits(tableName));
-      }
+        Set<Text> splitsAfterOffline = null;
+        if (offlineTable) {
+          // run offline concurrently with split operation
+          c.tableOperations().offline(tableName, true);
+          splitsAfterOffline = Set.copyOf(c.tableOperations().listSplits(tableName));
+        }
 
-      log.debug("Waiting for futures to complete");
-      for (Future<?> f : futures) {
-        try {
-          f.get();
-        } catch (ExecutionException ee) {
-          if (offlineTable && ee.getMessage().contains("is offline")) {
-            // Some exceptions are expected when concurrently taking the table offline.
-            log.debug(ee.getMessage());
-          } else {
-            throw ee;
+        log.debug("Waiting for futures to complete");
+        for (Future<?> f : futures) {
+          try {
+            f.get();
+          } catch (ExecutionException ee) {
+            if (offlineTable && ee.getMessage().contains("is offline")) {
+              // Some exceptions are expected when concurrently taking the table offline.
+              log.debug(ee.getMessage());
+            } else {
+              throw ee;
+            }
           }
         }
+
+        if (offlineTable) {
+          // The splits seen immediately after offline() call should not change after all the
+          // futures complete. This ensures that nothing changes in the tablet after the
+          // offline+wait call returns.
+          assertEquals(splitsAfterOffline, new HashSet<>(c.tableOperations().listSplits(tableName)),
+              "Splits changed after offline");
+
+          // table will be scanned for verification, so bring it online
+          c.tableOperations().online(tableName);
+        } else {
+          assertFalse(totalSplits.isEmpty());
+        }
+
+        log.debug("Checking that {} splits were created ", totalSplits.size());
+        assertEquals(totalSplits, new HashSet<>(c.tableOperations().listSplits(tableName)),
+            "Did not see expected splits");
+
+        log.debug("Verifying {} rows ingested into {}", numRows, tableName);
+        VerifyIngest.verifyIngest(c, params);
+      } finally {
+        es.shutdown();
       }
-
-      if (offlineTable) {
-        // The splits seen immediately after offline() call should not change after all the futures
-        // complete. This ensures that nothing changes in the tablet after the offline+wait call
-        // returns.
-        assertEquals(splitsAfterOffline, new HashSet<>(c.tableOperations().listSplits(tableName)),
-            "Splits changed after offline");
-
-        // table will be scanned for verification, so bring it online
-        c.tableOperations().online(tableName);
-      } else {
-        assertFalse(totalSplits.isEmpty());
-      }
-
-      log.debug("Checking that {} splits were created ", totalSplits.size());
-      assertEquals(totalSplits, new HashSet<>(c.tableOperations().listSplits(tableName)),
-          "Did not see expected splits");
-
-      log.debug("Verifying {} rows ingested into {}", numRows, tableName);
-      VerifyIngest.verifyIngest(c, params);
-
-      es.shutdown();
-
     }
   }
 
