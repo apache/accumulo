@@ -48,8 +48,8 @@ public class EscalatingLoggerTest {
     // Programatically modify the Log4j2 Logging configuration to add an appender
     LoggerContext ctx = LoggerContext.getContext(false);
     Configuration cfg = ctx.getConfiguration();
-    PatternLayout layout = PatternLayout.newBuilder().withConfiguration(cfg)
-        .withPattern(PatternLayout.SIMPLE_CONVERSION_PATTERN).build();
+    PatternLayout layout = PatternLayout.newBuilder().setConfiguration(cfg)
+        .setPattern(PatternLayout.SIMPLE_CONVERSION_PATTERN).build();
     Appender appender = WriterAppender.createAppender(layout, null, writer,
         "EscalatingLoggerTestAppender", false, true);
     appender.start();
