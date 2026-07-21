@@ -105,6 +105,9 @@ public abstract class FileOperations {
     } catch (CancellationException e) {
       throw new IOException("Cancelled while opening file: " + path, e);
     } catch (ExecutionException e) {
+      if (e.getCause() instanceof IOException) {
+        throw (IOException) e.getCause();
+      }
       throw new IOException("Error trying to open file: " + path, e);
     }
   }
