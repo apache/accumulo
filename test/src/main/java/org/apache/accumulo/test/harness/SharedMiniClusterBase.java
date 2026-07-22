@@ -32,8 +32,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.cluster.ClusterUsers;
+import org.apache.accumulo.server.cluster.ClusterUser;
+import org.apache.accumulo.server.cluster.ClusterUsers;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
