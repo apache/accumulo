@@ -27,8 +27,4 @@
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
-  <Match>
-    <!-- More convenient to ignore these everywhere, because it's very common in deprecated code -->
-    <Bug pattern="USO_UNSAFE_STATIC_METHOD_SYNCHRONIZATION" />
-  </Match>
 </FindBugsFilter>
