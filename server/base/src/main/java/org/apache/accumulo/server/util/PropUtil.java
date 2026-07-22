@@ -38,8 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public final class PropUtil {
 
-  private static final Logger CONFIG_LOG =
-      LoggerFactory.getLogger("org.apache.accumulo.configuration");
+  private static final Logger CONFIG_LOG = LoggerFactory.getLogger("org.apache.accumulo.CONFIG");
 
   private PropUtil() {}
 
