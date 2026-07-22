@@ -49,6 +49,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 class AssignmentHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AssignmentHandler.class);
   private static final String METADATA_ISSUE = "Saw metadata issue when loading tablet : ";
@@ -67,6 +69,7 @@ class AssignmentHandler implements Runnable {
   }
 
   @Override
+  @SuppressFBWarnings("USO_UNSAFE_OBJECT_SYNCHRONIZATION")
   public void run() {
     synchronized (server.unopenedTablets) {
       synchronized (server.openingTablets) {

@@ -168,6 +168,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -451,6 +452,7 @@ public class TabletServer extends AbstractServer
     }
 
     @Override
+    @SuppressFBWarnings("USO_UNSAFE_OBJECT_SYNCHRONIZATION")
     public void run() {
       while (true) {
         try {
