@@ -60,6 +60,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.InMemoryMap;
+import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -276,8 +277,8 @@ public abstract class TabletBase {
     }
   }
 
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
-      throws IOException {
+  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams,
+      int duplicatesToSkip) throws IOException {
 
     // log.info("In nextBatch..");
 
@@ -297,9 +298,33 @@ public abstract class TabletBase {
     long resultBytes = 0L;
 
     long maxResultsSize = getTableConfiguration().getAsBytes(Property.TABLE_SCAN_MAXMEM);
+    int duplicateBatchMultiplier =
+        getTableConfiguration().getCount(Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER);
+    if (duplicateBatchMultiplier < 1) {
+      duplicateBatchMultiplier = 1;
+    }
+    long maxResultsSizeWithDuplicates = maxResultsSize;
+    long maxEntriesWithDuplicates = scanParams.getMaxEntries();
+    if (duplicateBatchMultiplier > 1) {
+      try {
+        maxResultsSizeWithDuplicates =
+            Math.multiplyExact(maxResultsSize, (long) duplicateBatchMultiplier);
+      } catch (ArithmeticException e) {
+        maxResultsSizeWithDuplicates = Long.MAX_VALUE;
+        // TODO maybe log that this happened? Deduped somehow?
+      }
+      try {
+        maxEntriesWithDuplicates =
+            Math.multiplyExact(scanParams.getMaxEntries(), (long) duplicateBatchMultiplier);
+      } catch (ArithmeticException e) {
+        maxEntriesWithDuplicates = Long.MAX_VALUE;
+        // TODO maybe log that this happened? Deduped somehow?
+      }
+    }
 
     Key continueKey = null;
-    boolean skipContinueKey = false;
+    boolean skipContinueKey = true;
+    boolean resumeOnSameKey = false;
 
     YieldCallback<Key> yield = new YieldCallback<>();
 
@@ -314,6 +339,17 @@ public abstract class TabletBase {
       iter.seek(range, LocalityGroupUtil.families(scanParams.getColumnSet()), true);
     }
 
+    skipReturnedDuplicates(iter, duplicatesToSkip, range);
+
+    Key rangeStartKey = range.getStartKey();
+    Key currentKey = null;
+    boolean resumingOnSameKey =
+        iter.hasTop() && rangeStartKey != null && rangeStartKey.equals(iter.getTopKey());
+    int previousDuplicates = resumingOnSameKey ? duplicatesToSkip : 0;
+    int duplicatesReturnedForCurrentKey = 0;
+    Key cutKey = null;
+    boolean cutPending = false;
+
     while (iter.hasTop()) {
       if (yield.hasYielded()) {
         throw new IOException(
@@ -321,25 +357,55 @@ public abstract class TabletBase {
       }
       value = iter.getTopValue();
       key = iter.getTopKey();
+      if (cutPending && !key.equals(cutKey)) {
+        continueKey = copyResumeKey(cutKey);
+        resumeOnSameKey = true;
+        skipContinueKey = false;
+        break;
+      }
+      if (!key.equals(currentKey)) {
+        currentKey = copyResumeKey(key);
+        if (resumingOnSameKey && key.equals(rangeStartKey)) {
+          duplicatesReturnedForCurrentKey = previousDuplicates;
+        } else {
+          duplicatesReturnedForCurrentKey = 0;
+          resumingOnSameKey = false;
+        }
+      }
 
       KVEntry kvEntry = new KVEntry(key, value); // copies key and value
       results.add(kvEntry);
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
+      duplicatesReturnedForCurrentKey++;
+
+      if (cutPending && (resultSize >= maxResultsSizeWithDuplicates
+          || results.size() >= maxEntriesWithDuplicates)) {
+        throw new IllegalStateException("Duplicate key run exceeded scan batch growth limit for "
+            + cutKey + ". Increase " + Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey()
+            + " or reduce duplicates for this key.");
+      }
+
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
       if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
-        continueKey = new Key(key);
-        skipContinueKey = true;
-        break;
+        if (!cutPending) {
+          cutPending = true;
+          cutKey = currentKey;
+        } else if (timesUp) {
+          throw new IllegalStateException("Duplicate key run exceeded scan batch timeout for "
+              + cutKey + ". Increase " + Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey()
+              + " or batch timeout, or reduce duplicates for this key.");
+        }
       }
 
       iter.next();
     }
 
     if (yield.hasYielded()) {
-      continueKey = new Key(yield.getPositionAndReset());
+      continueKey = copyResumeKey(yield.getPositionAndReset());
+      resumeOnSameKey = false;
       skipContinueKey = true;
       if (!range.contains(continueKey)) {
         throw new IOException("Underlying iterator yielded to a position outside of its range: "
@@ -362,7 +428,9 @@ public abstract class TabletBase {
       }
     }
 
-    return new Batch(skipContinueKey, results, continueKey, resultBytes);
+    int duplicatesToSkipForNextBatch = resumeOnSameKey ? duplicatesReturnedForCurrentKey : 0;
+    return new Batch(skipContinueKey, results, continueKey, resultBytes,
+        duplicatesToSkipForNextBatch);
   }
 
   private Tablet.LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
@@ -515,7 +583,8 @@ public abstract class TabletBase {
 
   private void addUnfinishedRange(Tablet.LookupResult lookupResult, Range range, Key key) {
     if (range.getEndKey() == null || key.compareTo(range.getEndKey()) < 0) {
-      Range nlur = new Range(new Key(key), false, range.getEndKey(), range.isEndKeyInclusive());
+      Key copy = copyResumeKey(key);
+      Range nlur = new Range(copy, false, range.getEndKey(), range.isEndKeyInclusive());
       lookupResult.unfinishedRanges.add(nlur);
     }
   }
@@ -525,5 +594,31 @@ public abstract class TabletBase {
     this.server.getScanMetrics().incrementQueryResultCount(size);
     this.queryResultBytes.addAndGet(numBytes);
     this.server.getScanMetrics().incrementQueryResultBytes(numBytes);
+  }
+
+  private Key copyResumeKey(Key key) {
+    if (key instanceof MemKey) {
+      MemKey memKey = (MemKey) key;
+      return new MemKey(memKey, memKey.getKVCount());
+    }
+    return new Key(key);
+  }
+
+  private void skipReturnedDuplicates(SortedKeyValueIterator<Key,Value> iter, int duplicatesToSkip,
+      Range range) throws IOException {
+    if (duplicatesToSkip <= 0 || !range.isStartKeyInclusive()) {
+      return;
+    }
+
+    Key startKey = range.getStartKey();
+    if (startKey == null) {
+      return;
+    }
+
+    int skipped = 0;
+    while (skipped < duplicatesToSkip && iter.hasTop() && iter.getTopKey().equals(startKey)) {
+      iter.next();
+      skipped++;
+    }
   }
 }
