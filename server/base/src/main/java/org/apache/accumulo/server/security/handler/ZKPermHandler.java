@@ -59,6 +59,7 @@ public class ZKPermHandler implements PermissionHandler {
   private String ZKTablePath;
   private String ZKNamespacePath;
   private ZooCache zooCache;
+  private final Object zooCacheLock = new Object();
   private final String ZKUserSysPerms = "/System";
   private final String ZKUserTablePerms = "/Tables";
   private final String ZKUserNamespacePerms = "/Namespaces";
@@ -191,7 +192,7 @@ public class ZKPermHandler implements PermissionHandler {
       }
 
       if (perms.add(permission)) {
-        synchronized (zooCache) {
+        synchronized (zooCacheLock) {
           zooCache.clear();
           zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms,
               ZKSecurityTool.convertSystemPermissions(perms), NodeExistsPolicy.OVERWRITE);
@@ -220,7 +221,7 @@ public class ZKPermHandler implements PermissionHandler {
 
     try {
       if (tablePerms.add(permission)) {
-        synchronized (zooCache) {
+        synchronized (zooCacheLock) {
           zooCache.clear(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
           zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
               ZKSecurityTool.convertTablePermissions(tablePerms), NodeExistsPolicy.OVERWRITE);
@@ -250,7 +251,7 @@ public class ZKPermHandler implements PermissionHandler {
 
     try {
       if (namespacePerms.add(permission)) {
-        synchronized (zooCache) {
+        synchronized (zooCacheLock) {
           zooCache.clear(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace);
           zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               ZKSecurityTool.convertNamespacePermissions(namespacePerms),
@@ -281,7 +282,7 @@ public class ZKPermHandler implements PermissionHandler {
 
     try {
       if (sysPerms.remove(permission)) {
-        synchronized (zooCache) {
+        synchronized (zooCacheLock) {
           zooCache.clear();
           zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms,
               ZKSecurityTool.convertSystemPermissions(sysPerms), NodeExistsPolicy.OVERWRITE);
@@ -367,7 +368,7 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public void cleanTablePermissions(String table) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zooCache.clear();
         for (String user : zooCache.getChildren(ZKUserPath)) {
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
@@ -387,7 +388,7 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public void cleanNamespacePermissions(String namespace) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zooCache.clear();
         for (String user : zooCache.getChildren(ZKUserPath)) {
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
@@ -471,7 +472,7 @@ public class ZKPermHandler implements PermissionHandler {
    */
   private void createTablePerm(String user, TableId table, Set<TablePermission> perms)
       throws KeeperException, InterruptedException {
-    synchronized (zooCache) {
+    synchronized (zooCacheLock) {
       zooCache.clear();
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
           ZKSecurityTool.convertTablePermissions(perms), NodeExistsPolicy.FAIL);
@@ -484,7 +485,7 @@ public class ZKPermHandler implements PermissionHandler {
    */
   private void createNamespacePerm(String user, NamespaceId namespace,
       Set<NamespacePermission> perms) throws KeeperException, InterruptedException {
-    synchronized (zooCache) {
+    synchronized (zooCacheLock) {
       zooCache.clear();
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace,
           ZKSecurityTool.convertNamespacePermissions(perms), NodeExistsPolicy.FAIL);
@@ -494,7 +495,7 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserSysPerms, NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms, NodeMissingPolicy.SKIP);
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserNamespacePerms, NodeMissingPolicy.SKIP);

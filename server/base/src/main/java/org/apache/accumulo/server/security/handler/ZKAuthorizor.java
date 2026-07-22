@@ -45,6 +45,7 @@ public class ZKAuthorizor implements Authorizor {
   private ServerContext context;
   private String ZKUserPath;
   private ZooCache zooCache;
+  private final Object zooCacheLock = new Object();
 
   @Override
   public void initialize(ServerContext context) {
@@ -109,7 +110,7 @@ public class ZKAuthorizor implements Authorizor {
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         ZooReaderWriter zoo = context.getZooReaderWriter();
         zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
         zooCache.clear(ZKUserPath + "/" + user);
@@ -132,7 +133,7 @@ public class ZKAuthorizor implements Authorizor {
   public void changeAuthorizations(String user, Authorizations authorizations)
       throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zooCache.clear();
         context.getZooReaderWriter().putPersistentData(ZKUserPath + "/" + user + ZKUserAuths,
             ZKSecurityTool.convertAuthorizations(authorizations), NodeExistsPolicy.OVERWRITE);
