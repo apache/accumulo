@@ -20,6 +20,9 @@ package org.apache.accumulo.test;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -39,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -60,6 +64,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -70,6 +75,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -79,6 +86,8 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
+import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.manager.tableOps.namespace.delete.DeleteNamespace;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.commons.lang3.StringUtils;
@@ -266,6 +275,23 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     assertTrue(c.namespaceOperations().exists(namespace));
     assertTrue(c.tableOperations().exists(tableName1));
     assertThrows(NamespaceNotEmptyException.class, () -> c.namespaceOperations().delete(namespace));
+  }
+
+  @Test
+  public void deleteNamespaceFateOpRejectsNonEmptyNamespace() throws Exception {
+    String tableName = namespace + ".1";
+    c.namespaceOperations().create(namespace);
+    c.tableOperations().create(tableName);
+
+    var context = getCluster().getServerContext();
+    FateEnv env = createMock(FateEnv.class);
+    expect(env.getContext()).andReturn(context).anyTimes();
+    replay(env);
+
+    var e = assertThrows(AcceptableThriftTableOperationException.class,
+        () -> new DeleteNamespace(context.getNamespaceId(namespace))
+            .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), env));
+    assertEquals(TableOperationExceptionType.NAMESPACE_NOTEMPTY, e.getType());
   }
 
   @Test
