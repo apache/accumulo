@@ -30,6 +30,10 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.junit.jupiter.api.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "NP_NULL_PARAM_DEREF_NONVIRTUAL",
+    justification = "Test code is testing that a NPE is thrown")
 public class ZooAclUtilTest {
 
   @Test
