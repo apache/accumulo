@@ -111,6 +111,7 @@ public class FileManager {
   private final long slowFilePermitMillis;
 
   private final ServerContext context;
+  private final Object lock = new Object();
 
   private class IdleFileCloser implements Runnable {
 
@@ -123,7 +124,7 @@ public class FileManager {
 
       // determine which files to close in a sync block, and then close the
       // files outside of the sync block
-      synchronized (FileManager.this) {
+      synchronized (lock) {
         Iterator<Entry<String,List<OpenReader>>> iter = openFiles.entrySet().iterator();
         while (iter.hasNext()) {
           Entry<String,List<OpenReader>> entry = iter.next();
