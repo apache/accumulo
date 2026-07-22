@@ -18,6 +18,13 @@
  */
 package org.apache.accumulo.server.util.adminCommand;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,6 +86,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
 
 @AutoService(KeywordExecutable.class)
 public class Fate extends ServerKeywordExecutable<FateOpts> {
@@ -152,6 +160,14 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     @Parameter(names = {"-i", "--info"},
         description = "Includes detailed transaction information when printing")
     boolean printDetails;
+
+    @Parameter(names = {"-n", "--num-splits"},
+        description = "Generate N split points for the fate table and print to stdout. N must be >= 1.")
+    int numSplits = -1;
+
+    @Parameter(names = {"-sf", "--splitsFile"},
+        description = "Write split points to a file. Used with -n or --num-splits.")
+    String splitsFile = null;
   }
 
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
@@ -218,6 +234,10 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     Map<FateInstanceType,ReadOnlyFateStore<Fate>> readOnlyFateStores = null;
 
     try {
+      if (options.numSplits > 0) {
+        preSplitFateTable(options);
+        return;
+      }
       if (options.cancel) {
         cancelSubmittedFateTxs(context, options.fateIdList);
       } else if (options.fail) {
@@ -265,6 +285,39 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
         adminLock.unlock();
       }
     }
+  }
+
+  private void preSplitFateTable(FateOpts options) throws Exception {
+    List<String> splits = generateSplits(options.numSplits);
+
+    if (options.splitsFile != null) {
+      Path splitsPath = Path.of(options.splitsFile);
+      try (var out = Files.newOutputStream(splitsPath);
+          var osw = new OutputStreamWriter(out, UTF_8); var bw = new BufferedWriter(osw);
+          var writer = new PrintWriter(bw)) {
+        splits.forEach(writer::println);
+      }
+      System.out.println("Wrote " + splits.size() + " split point(s) to " + options.splitsFile);
+    } else {
+      splits.forEach(System.out::println);
+    }
+  }
+
+  static List<String> generateSplits(int numSplits) {
+    Preconditions.checkArgument(numSplits >= 1,
+        "Number of splits must be greater than 1. Specifying 0 would generate no splits and leave the table unchanged.");
+
+    // Same logic as in FateManager.getDesiredPartitions()
+    // Work w/ 60 bit unsigned integers to partition the space and then shift over by 4. Used 60
+    // bits instead of 63 so it nicely aligns w/ hex in the uuid.
+    long jump = (1L << 60) / (numSplits + 1);
+    List<String> splits = new ArrayList<>(numSplits);
+    for (int i = 1; i <= numSplits; i++) {
+      long start = (i * jump) << 4;
+      splits.add(new UUID(start, 0).toString());
+    }
+
+    return Collections.unmodifiableList(splits);
   }
 
   private FateStores createFateStores(ServerContext context, ZooSession zk, ServiceLock adminLock)
@@ -322,6 +375,13 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     if ((cmd.cancel || cmd.fail || cmd.delete) && cmd.fateIdList.isEmpty()) {
       throw new IllegalArgumentException(
           "At least one txId required when using cancel, fail or delete");
+    }
+    if (cmd.numSplits == 0) {
+      throw new IllegalArgumentException(
+          "-n / --num-splits must be >= 1. Specifying 0 generates no splits and leaves the table unchanged.");
+    }
+    if (cmd.splitsFile != null && cmd.numSplits < 0) {
+      throw new IllegalArgumentException("-sf requires -n to also be specified.");
     }
   }
 
