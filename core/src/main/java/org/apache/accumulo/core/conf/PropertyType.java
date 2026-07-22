@@ -21,6 +21,8 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
@@ -38,6 +40,8 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.commons.lang3.Range;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.Compressor;
 import org.slf4j.Logger;
@@ -114,7 +118,7 @@ public enum PropertyType {
           + " '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
 
-  PATH("path", x -> true,
+  PATH("path", new ValidPath(),
       "A string that represents a filesystem path, which can be either relative"
           + " or absolute to some directory. The filesystem depends on the property. "
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
@@ -155,7 +159,7 @@ public enum PropertyType {
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", x -> true, "A valid URI"),
+  URI("uri", new ValidUri(), "A valid URI"),
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
@@ -212,6 +216,38 @@ public enum PropertyType {
   }
 
   /**
+   * Validate that the provided string is a valid hadoop path. Path must exist and be a valid
+   * file/directory
+   */
+  private static class ValidPath implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidPath.class);
+
+    @Override
+    public boolean test(String path) {
+      Configuration conf = new Configuration();
+      Path hadoopPath = new Path(path);
+
+      try {
+        FileSystem fs = hadoopPath.getFileSystem(conf);
+        // Check if path exists
+        if (fs.exists(hadoopPath)) {
+          // Check if path is a valid directory
+          if (fs.getFileStatus(hadoopPath).isFile() || fs.getFileStatus(hadoopPath).isDirectory()) {
+            return true;
+          }
+          log.error("provided path is not a file or directory");
+          return false;
+        }
+        log.error("provided path does not exist");
+        return false;
+      } catch (IOException e) {
+        log.error("provided path is not valid");
+        return false;
+      }
+    }
+  }
+
+  /**
    * Validate that the provided string can be parsed into a json object. This implementation uses
    * jackson databind because it is less permissive that GSON for what is considered valid. This
    * implementation cannot guarantee that the json is valid for the target usage. That would require
@@ -242,6 +278,24 @@ public enum PropertyType {
         return true;
       } catch (IOException e) {
         log.error("provided json string resulted in an error", e);
+        return false;
+      }
+    }
+  }
+
+  private static class ValidUri implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidUri.class);
+
+    @Override
+    public boolean test(String uri) {
+      if (uri == null) {
+        return false;
+      }
+      try {
+        new URI(uri);
+        return true;
+      } catch (URISyntaxException e) {
+        log.error("provided uri string is not valid");
         return false;
       }
     }
@@ -306,7 +360,6 @@ public enum PropertyType {
         }
       }
     }
-
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("\\D*$"); // match non-digits at end

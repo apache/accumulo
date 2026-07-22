@@ -1570,15 +1570,15 @@ public enum Property {
    * @return Set<Property>
    */
   public static Set<Property> getRequiredProperties() {
-      return Set.of(Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT,
-              Property.INSTANCE_SECRET, Property.INSTANCE_VOLUMES, Property.GENERAL_THREADPOOL_SIZE,
-              Property.GENERAL_DELEGATION_TOKEN_LIFETIME,
-              Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL, Property.GENERAL_IDLE_PROCESS_INTERVAL,
-              Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
-              Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, Property.MANAGER_CLIENTPORT,
-              Property.TSERV_CLIENTPORT, Property.GC_CYCLE_START, Property.GC_CYCLE_DELAY,
-              Property.GC_PORT, Property.MONITOR_PORT, Property.TABLE_MAJC_RATIO,
-              Property.TABLE_SPLIT_THRESHOLD);
+    return Set.of(Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_SECRET,
+        Property.INSTANCE_VOLUMES, Property.GENERAL_THREADPOOL_SIZE,
+        Property.GENERAL_DELEGATION_TOKEN_LIFETIME,
+        Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL, Property.GENERAL_IDLE_PROCESS_INTERVAL,
+        Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
+        Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, Property.MANAGER_CLIENTPORT,
+        Property.TSERV_CLIENTPORT, Property.GC_CYCLE_START, Property.GC_CYCLE_DELAY,
+        Property.GC_PORT, Property.MONITOR_PORT, Property.TABLE_MAJC_RATIO,
+        Property.TABLE_SPLIT_THRESHOLD);
   }
 
   private void precomputeAnnotations() {
