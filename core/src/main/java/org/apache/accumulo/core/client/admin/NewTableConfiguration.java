@@ -132,7 +132,19 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Return value indicating whether table is to be created in offline or online mode.
+   * Create the new table in a locked state.
+   *
+   * @return this
+   *
+   * @since 4.0.0
+   */
+  public NewTableConfiguration createLocked() {
+    this.initialTableState = InitialTableState.LOCKED;
+    return this;
+  }
+
+  /**
+   * Return value indicating whether table is to be created in offline, online or locked mode.
    *
    * @since 2.0.0
    */

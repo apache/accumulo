@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 public class IllegalTableTransitionExceptionTest {
 
   private final TableState oldState = TableState.ONLINE;
-  private final TableState newState = TableState.OFFLINE;
+  private final TableState newState = TableState.LOCKED;
   private final String defaultMsg =
       "Error transitioning from " + oldState + " state to " + newState + " state";
 
