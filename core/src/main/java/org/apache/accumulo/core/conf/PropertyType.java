@@ -225,8 +225,6 @@ public enum PropertyType {
         return true;
       } else if (new Path(path.trim()).isAbsolute()) {
         return true;
-      } else if (path.matches("[A-Za-z]+/?[A-Za-z]+")) {
-        return true;
       } else if (path.matches("/?[A-Za-z+/?]+")) {
         return true;
       }
