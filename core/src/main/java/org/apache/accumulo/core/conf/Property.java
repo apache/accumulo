@@ -1567,7 +1567,7 @@ public enum Property {
   /**
    * Gets the defined required properties
    *
-   * @return Set<Property>
+   * @return Set{@literal <Property>}
    */
   public static Set<Property> getRequiredProperties() {
     return Set.of(Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_SECRET,

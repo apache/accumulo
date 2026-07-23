@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.gson.JsonParser;
 
 /**
@@ -223,17 +224,11 @@ public enum PropertyType {
     public boolean test(String path) {
       if (path == null || path.trim().isEmpty()) {
         return true;
-      }
-      // path is absolute
-      else if (new Path(path.trim()).isAbsolute()) {
+      } else if (new Path(path.trim()).isAbsolute()) {
         return true;
-      }
-      // path with one .../...
-      else if (path.matches("[A-Za-z]+/?[A-Za-z]+")) {
+      } else if (path.matches("[A-Za-z]+/?[A-Za-z]+")) {
         return true;
-      }
-      // path with /.../.../
-      else if (path.matches("/?[A-Za-z+/?]+")) {
+      } else if (path.matches("/?[A-Za-z+/?]+")) {
         return true;
       }
       log.error("provided path is not valid");
@@ -485,9 +480,10 @@ public enum PropertyType {
       // Predicates.and(Predicates.notNull(), ...),
       // or we can stop assuming that null is always okay for a Matches predicate, and do that
       // explicitly with Predicates.or(Predicates.isNull(), ...)
+
+      final Predicate<String> notNullPredicate = Predicates.notNull();
       return input == null || pattern.matcher(input).matches();
     }
-
   }
 
   public static class PortRange extends Matches {
