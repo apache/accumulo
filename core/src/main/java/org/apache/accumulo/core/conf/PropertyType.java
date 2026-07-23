@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.gson.JsonParser;
 
 /**
@@ -475,13 +474,6 @@ public enum PropertyType {
 
     @Override
     public boolean test(final String input) {
-      // TODO when the input is null, it just means that the property wasn't set
-      // we can add checks for not null for required properties with
-      // Predicates.and(Predicates.notNull(), ...),
-      // or we can stop assuming that null is always okay for a Matches predicate, and do that
-      // explicitly with Predicates.or(Predicates.isNull(), ...)
-
-      final Predicate<String> notNullPredicate = Predicates.notNull();
       return input == null || pattern.matcher(input).matches();
     }
   }
