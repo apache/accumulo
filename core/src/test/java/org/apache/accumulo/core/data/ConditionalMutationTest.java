@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -193,8 +194,19 @@ public class ConditionalMutationTest {
     assertTrue(pp.contains("update: name:last value doe"));
     assertTrue(pp.contains("update: name:first value john"));
     iters = c1.getIterators();
-    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER + " value: " + VALUE
-        + " iterator: '" + iters[0] + "' '" + iters[1] + "'"));
+    assertTrue(pp.contains("condition: " + FAMILY + ":" + QUALIFIER + " value: " + VALUE));
+    String iterSection = pp.substring(pp.indexOf("iterator:"));
+    for (IteratorSetting iter : iters) {
+      Map<String,String> props = iter.getOptions();
+
+      assertTrue(iterSection.contains("name:" + iter.getName()));
+      assertTrue(iterSection.contains("class:" + iter.getIteratorClass()));
+      assertTrue(iterSection.contains("priority:" + iter.getPriority()));
+
+      for (Map.Entry<String,String> e : props.entrySet()) {
+        assertTrue(iterSection.contains(e.getKey() + "=" + e.getValue()));
+      }
+    }
 
     // all conditions together
     c1 = new Condition(FAMILY2, QUALIFIER2).setValue(VALUE).setVisibility(CVIS2)
@@ -208,8 +220,20 @@ public class ConditionalMutationTest {
     assertTrue(pp.contains("update: name:first value john"));
     iters = c1.getIterators();
     assertTrue(pp.contains("condition: " + FAMILY2 + ":" + QUALIFIER2 + " value: " + VALUE
-        + " visibility: '" + c1.getVisibility() + "' timestamp: '" + TIMESTAMP + "' iterator: '"
-        + iters[0] + "'"));
+        + " visibility: '" + c1.getVisibility() + "' timestamp: '" + TIMESTAMP));
+
+    iterSection = pp.substring(pp.indexOf("iterator:"));
+    for (IteratorSetting iter : iters) {
+      Map<String,String> props = iter.getOptions();
+
+      assertTrue(iterSection.contains("name:" + iter.getName()));
+      assertTrue(iterSection.contains("class:" + iter.getIteratorClass()));
+      assertTrue(iterSection.contains("priority:" + iter.getPriority()));
+
+      for (Map.Entry<String,String> e : props.entrySet()) {
+        assertTrue(iterSection.contains(e.getKey() + "=" + e.getValue()));
+      }
+    }
   }
 
   @Test
