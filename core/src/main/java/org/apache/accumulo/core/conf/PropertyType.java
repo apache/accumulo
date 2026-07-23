@@ -21,6 +21,8 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
@@ -114,7 +116,7 @@ public enum PropertyType {
           + " '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
 
-  PATH("path", x -> true,
+  PATH("path", new ValidPath(),
       "A string that represents a filesystem path, which can be either relative"
           + " or absolute to some directory. The filesystem depends on the property. "
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
@@ -155,7 +157,7 @@ public enum PropertyType {
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", x -> true, "A valid URI"),
+  URI("uri", new ValidUri(), "A valid URI"),
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
@@ -212,6 +214,46 @@ public enum PropertyType {
   }
 
   /**
+   * Validate that the provided string is a valid path.
+   */
+  private static class ValidPath implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidPath.class);
+
+    @Override
+    public boolean test(String path) {
+      if (path == null || path.trim().isEmpty()) {
+        return true;
+      } else if (new Path(path.trim()).isAbsolute()) {
+        return true;
+      } else if (path.matches("/?[A-Za-z+/?]+")) {
+        return true;
+      }
+      log.error("provided path is not valid");
+      return false;
+    }
+  }
+
+  // SECOND VERSION OF ValidPath, leaving while waiting for clarification on the expected validation
+  /**
+   * Validate that the provided string is a valid hadoop path. Path must exist and be a valid
+   * file/directory
+   */
+  /*
+   * private static class ValidPath implements Predicate<String> { private static final Logger log =
+   * LoggerFactory.getLogger(ValidPath.class);
+   *
+   * @Override public boolean test(String path) { Configuration conf = new Configuration(); Path
+   * hadoopPath = new Path(path);
+   *
+   * try { FileSystem fs = hadoopPath.getFileSystem(conf); // Check if path exists if
+   * (fs.exists(hadoopPath)) { // Check if path is a valid directory if
+   * (fs.getFileStatus(hadoopPath).isFile() || fs.getFileStatus(hadoopPath).isDirectory()) { return
+   * true; } log.error("provided path is not a file or directory"); return false; }
+   * log.error("provided path does not exist"); return false; } catch (IOException e) {
+   * log.error("provided path is not valid"); return false; } } }
+   */
+
+  /**
    * Validate that the provided string can be parsed into a json object. This implementation uses
    * jackson databind because it is less permissive that GSON for what is considered valid. This
    * implementation cannot guarantee that the json is valid for the target usage. That would require
@@ -242,6 +284,24 @@ public enum PropertyType {
         return true;
       } catch (IOException e) {
         log.error("provided json string resulted in an error", e);
+        return false;
+      }
+    }
+  }
+
+  private static class ValidUri implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidUri.class);
+
+    @Override
+    public boolean test(String uri) {
+      if (uri == null) {
+        return true;
+      }
+      try {
+        new URI(uri);
+        return true;
+      } catch (URISyntaxException e) {
+        log.error("provided uri string is not valid");
         return false;
       }
     }
@@ -306,7 +366,6 @@ public enum PropertyType {
         }
       }
     }
-
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("\\D*$"); // match non-digits at end
@@ -413,14 +472,8 @@ public enum PropertyType {
 
     @Override
     public boolean test(final String input) {
-      // TODO when the input is null, it just means that the property wasn't set
-      // we can add checks for not null for required properties with
-      // Predicates.and(Predicates.notNull(), ...),
-      // or we can stop assuming that null is always okay for a Matches predicate, and do that
-      // explicitly with Predicates.or(Predicates.isNull(), ...)
       return input == null || pattern.matcher(input).matches();
     }
-
   }
 
   public static class PortRange extends Matches {
