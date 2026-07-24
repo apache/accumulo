@@ -35,7 +35,6 @@ import org.apache.accumulo.core.replication.thrift.ReplicationCoordinatorExcepti
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
-import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,19 +51,22 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
   private final ZooReader reader;
   private final AuditedSecurityOperation security;
 
+  @Deprecated
   public ManagerReplicationCoordinator(Manager manager) {
     this(manager, manager.getContext().getZooReader());
   }
 
+  @Deprecated
   protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {
     this.manager = manager;
     this.reader = reader;
     this.security = manager.getContext().getSecurityOperation();
   }
 
+  @Deprecated
   @Override
   public String getServicerAddress(String remoteTableId, TCredentials creds)
-      throws ReplicationCoordinatorException, TException {
+      throws ReplicationCoordinatorException {
     try {
       security.authenticateUser(manager.getContext().rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
@@ -99,6 +101,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
     return replServiceAddr;
   }
 
+  @Deprecated
   protected TServerInstance getRandomTServer(Set<TServerInstance> tservers, int offset) {
     checkArgument(tservers.size() > offset, "Must provide an offset less than the size of the set");
     Iterator<TServerInstance> iter = tservers.iterator();

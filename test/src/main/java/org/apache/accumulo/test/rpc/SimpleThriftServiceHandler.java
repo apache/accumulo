@@ -46,7 +46,7 @@ public class SimpleThriftServiceHandler implements SimpleThriftService.Iface {
   }
 
   @Override
-  public void echoPassVoid(String value) throws TException {
+  public void echoPassVoid(String value) {
     setProp("echoPassVoid", value);
   }
 
