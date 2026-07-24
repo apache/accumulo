@@ -45,7 +45,7 @@ are configured correctly and securely or are otherwise trusted.
 
   * Network, to include network encryption components
   * DNS
-  * Operating Systems and related compute hardware
+  * Operating Systems and related computer hardware
   * ZooKeeper and HCFS storage configured for Accumulo's use
   * Persons or processes that can log into an environment (bare-metal or container)
     where Accumulo, ZooKeeper, or HCFS-related processes are running
