@@ -18,7 +18,13 @@
     under the License.
 
 -->
+# Security Policy
 
+## Supported Versions
+
+Security fixes are provided for [currently maintained release lines](https://accumulo.apache.org/versioning). Users should run the latest
+patch release in a maintained line. See the [Accumulo downloads page](https://accumulo.apache.org/downloads/)
+for current releases and maintenance status.
 ## Reporting a vulnerability
 
 If after reading this document you believe you have found a vulnerability or are unsure,
