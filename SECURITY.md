@@ -64,7 +64,7 @@ server-side. Additional enforcement mechanisms may be implemented in the client,
 but are not required. Accumulo's security relevant requirements are below:
 
   * To authenticate users at the RPC layer
-  * To authorize the users action against the relevant permission, if applicable, at the RPC layer
+  * To authorize the user's action against the relevant permission, if applicable, at the RPC layer
   * To ensure that a user can only use Authorizations that they are assigned in a Scanner/BatchScanner
   * To ensure that Key-Value pairs returned in a Scanner/BatchScanner are allowed given the scan Authorizations
   * To ensure that files are encrypted/decrypted appropriately, if configured
