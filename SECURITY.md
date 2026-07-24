@@ -36,8 +36,8 @@ Accumulo is designed to use Apache ZooKeeper for locking and coordination
 and one or more Hadoop Compatible File System (HCFS) implementations 
 (HDFS, S3, local disk, etc.) for storage. Accumulo users could be humans 
 or machines connecting to Accumulo server processes from any location. 
-Please see the Security section of the User Manual for information 
-regarding:
+Please see the Security section of the User Manual (found at https://accumulo.apache.org/) 
+for information regarding:
 
   * User authentication
   * Authorizing actions and our permission scheme
