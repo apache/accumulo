@@ -53,6 +53,7 @@ are configured correctly and securely or are otherwise trusted.
   * The JVM classpath for Accumulo processes (configured in accumulo-env.sh or similar mechanism)
   * User provided code that runs in the server process via an Accumulo SPI
   * User configured JVM agents
+  * Bulk-imported user created RFiles (these bypass server-side checks that are performed during live ingest)
   
 ## Accumulo Security Boundary and Responsibilities
 
