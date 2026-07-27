@@ -228,7 +228,18 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
-    final THsHaServer server = new THsHaServer(options);
+    final THsHaServer server = new THsHaServer(options) {
+      @Override
+      public void stop() {
+        super.stop();
+        try {
+          getInvoker().shutdownNow();
+        } catch (Exception e) {
+          log.error("Unable to call shutdownNow", e);
+        }
+      }
+    };
+
     server.setServerEventHandler(new ThriftServerEventHandler());
 
     return new ServerAddress(server, address);
