@@ -30,7 +30,7 @@ import org.apache.commons.lang3.StringUtils;
  * benchmarks against "unsecure" Accumulo use the same type of Thrift server.
  */
 public enum ThriftServerType {
-  CUSTOM_HS_HA("custom_hs_ha"),
+  HS_HA("hs_ha"),
   THREADPOOL("threadpool"),
   SSL("ssl"),
   SASL("sasl"),
@@ -55,6 +55,6 @@ public enum ThriftServerType {
   }
 
   public static ThriftServerType getDefault() {
-    return CUSTOM_HS_HA;
+    return HS_HA;
   }
 }

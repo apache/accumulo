@@ -593,7 +593,7 @@ public class TServerUtils {
             yield createThreadedSelectorServer(address, processor, protocolFactory, numThreads,
                 threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
           }
-          case CUSTOM_HS_HA -> {
+          case HS_HA -> {
             log.debug("Instantiating unsecure custom half-async Thrift server");
             yield createNonBlockingServer(address, processor, protocolFactory, numThreads,
                 threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
