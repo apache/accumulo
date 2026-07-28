@@ -60,8 +60,8 @@ public class ThriftMaxFrameSizeIT {
   }
 
   @Nested
-  class CustomHsHaNestedIT extends TestMaxFrameSize {
-    CustomHsHaNestedIT() {
+  class HsHaNestedIT extends TestMaxFrameSize {
+    HsHaNestedIT() {
       serverType = ThriftServerType.HS_HA;
     }
   }
