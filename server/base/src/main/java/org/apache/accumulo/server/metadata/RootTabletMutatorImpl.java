@@ -98,13 +98,12 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
 
     try {
       context.getZooCache().clear(RootTable.ZROOT_TABLET);
-      // Avoid race condition, wait for ZROOT_TABLET to clear before attempting another
+
+      // In order to avoid race condition, wait for ZROOT_TABLET to clear before attempting another
       // clear() below.
-      final Object lock = new Object();
       while (context.getZooCache().get(RootTable.ZROOT_TABLET).length != 0) {
-        lock.wait();
+        Thread.sleep(100);
       }
-      lock.notifyAll();
 
       context.getZooSession().asReaderWriter().mutateExisting(RootTable.ZROOT_TABLET, currVal -> {
         String currJson = new String(currVal, UTF_8);
