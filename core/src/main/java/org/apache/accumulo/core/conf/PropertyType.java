@@ -233,26 +233,6 @@ public enum PropertyType {
     }
   }
 
-  // SECOND VERSION OF ValidPath, leaving while waiting for clarification on the expected validation
-  /**
-   * Validate that the provided string is a valid hadoop path. Path must exist and be a valid
-   * file/directory
-   */
-  /*
-   * private static class ValidPath implements Predicate<String> { private static final Logger log =
-   * LoggerFactory.getLogger(ValidPath.class);
-   *
-   * @Override public boolean test(String path) { Configuration conf = new Configuration(); Path
-   * hadoopPath = new Path(path);
-   *
-   * try { FileSystem fs = hadoopPath.getFileSystem(conf); // Check if path exists if
-   * (fs.exists(hadoopPath)) { // Check if path is a valid directory if
-   * (fs.getFileStatus(hadoopPath).isFile() || fs.getFileStatus(hadoopPath).isDirectory()) { return
-   * true; } log.error("provided path is not a file or directory"); return false; }
-   * log.error("provided path does not exist"); return false; } catch (IOException e) {
-   * log.error("provided path is not valid"); return false; } } }
-   */
-
   /**
    * Validate that the provided string can be parsed into a json object. This implementation uses
    * jackson databind because it is less permissive that GSON for what is considered valid. This
@@ -289,6 +269,9 @@ public enum PropertyType {
     }
   }
 
+  /**
+   * Validate that the provided string can be used to create a valid URI.
+   */
   private static class ValidUri implements Predicate<String> {
     private static final Logger log = LoggerFactory.getLogger(ValidUri.class);
 

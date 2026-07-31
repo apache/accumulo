@@ -1565,7 +1565,9 @@ public enum Property {
   }
 
   /**
-   * Gets the defined required properties
+   * Gets the set of required properties. Each property was arbitrarily/manually identified to be
+   * required, either by default or because they are required to run a system. If one of these
+   * properties is not configured, the required properties check will fail.
    *
    * @return Set{@literal <Property>}
    */
