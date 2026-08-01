@@ -155,6 +155,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
           Thread.currentThread().interrupt();
           continue;
         }
+        work.ensureCapacity(work.size() + workQueue.size());
         workQueue.drainTo(work);
 
         Optional<Boolean> shouldHSync = Optional.empty();
@@ -604,7 +605,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   public LoggerOperation logManyTablets(Collection<TabletMutations> mutations) throws IOException {
     Durability durability = Durability.NONE;
-    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
+    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>(mutations.size());
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
       key.setEvent(MANY_MUTATIONS);

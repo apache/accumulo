@@ -163,7 +163,6 @@ public class MetadataTableUtil {
 
   public static Pair<List<LogEntry>,SortedMap<StoredTabletFile,DataFileValue>>
       getFileAndLogEntries(ServerContext context, KeyExtent extent) throws IOException {
-    ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<StoredTabletFile,DataFileValue> sizes = new TreeMap<>();
 
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
@@ -172,7 +171,7 @@ public class MetadataTableUtil {
       throw new IllegalStateException("Tablet " + extent + " not found in metadata");
     }
 
-    result.addAll(tablet.getLogs());
+    ArrayList<LogEntry> result = new ArrayList<>(tablet.getLogs());
 
     tablet.getFilesMap().forEach(sizes::put);
 

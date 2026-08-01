@@ -335,6 +335,9 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           ((MiniAccumuloClusterImpl) getCluster()).getClusterControl()
               .killProcess(ServerType.TABLET_SERVER, proc);
         } catch (ProcessNotFoundException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new RuntimeException("Error killing process: " + proc, e);
         }
       });

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -198,33 +197,31 @@ public class CompressionTest {
 
         final int numTasks = 32;
         ExecutorService service = Executors.newFixedThreadPool(numTasks);
+        try {
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
-        CountDownLatch startLatch = new CountDownLatch(numTasks);
-        assertTrue(numTasks >= startLatch.getCount(),
-            "Not enough tasks/threads to satisfy latch count - deadlock risk");
+          ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
+          CountDownLatch startLatch = new CountDownLatch(numTasks);
+          assertTrue(numTasks >= startLatch.getCount(),
+              "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        for (int i = 0; i < numTasks; i++) {
-          results.add(service.submit(() -> {
-            startLatch.countDown();
-            startLatch.await();
-            assertNotNull(al.getCodec(), al + " should not be null");
-            return true;
-          }));
-        }
-        assertEquals(numTasks, results.size());
+          for (int i = 0; i < numTasks; i++) {
+            results.add(service.submit(() -> {
+              startLatch.countDown();
+              startLatch.await();
+              assertNotNull(al.getCodec(), al + " should not be null");
+              return true;
+            }));
+          }
+          assertEquals(numTasks, results.size());
 
-        service.shutdown();
+          assertNotNull(codec, al + " should not be null");
 
-        assertNotNull(codec, al + " should not be null");
-
-        while (!service.awaitTermination(1, SECONDS)) {
-          // wait
-        }
-
-        for (Future<Boolean> result : results) {
-          assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread pool");
+          for (Future<Boolean> result : results) {
+            assertTrue(result.get(),
+                al + " resulted in a failed call to getcodec within the thread pool");
+          }
+        } finally {
+          service.shutdown();
         }
         somethingGotTested = true;
       }
@@ -247,32 +244,30 @@ public class CompressionTest {
 
         final int numTasks = 32;
         ExecutorService service = Executors.newFixedThreadPool(numTasks);
+        try {
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
-        CountDownLatch startLatch = new CountDownLatch(numTasks);
-        assertTrue(numTasks >= startLatch.getCount(),
-            "Not enough tasks/threads to satisfy latch count - deadlock risk");
+          ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
+          CountDownLatch startLatch = new CountDownLatch(numTasks);
+          assertTrue(numTasks >= startLatch.getCount(),
+              "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        for (int i = 0; i < numTasks; i++) {
+          for (int i = 0; i < numTasks; i++) {
 
-          results.add(service.submit(() -> {
-            startLatch.countDown();
-            startLatch.await();
-            assertNotNull(al.getCodec(), al + " should have a non-null codec");
-            return true;
-          }));
-        }
-        assertEquals(numTasks, results.size());
+            results.add(service.submit(() -> {
+              startLatch.countDown();
+              startLatch.await();
+              assertNotNull(al.getCodec(), al + " should have a non-null codec");
+              return true;
+            }));
+          }
+          assertEquals(numTasks, results.size());
 
-        service.shutdown();
-
-        while (!service.awaitTermination(1, SECONDS)) {
-          // wait
-        }
-
-        for (Future<Boolean> result : results) {
-          assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread pool");
+          for (Future<Boolean> result : results) {
+            assertTrue(result.get(),
+                al + " resulted in a failed call to getcodec within the thread pool");
+          }
+        } finally {
+          service.shutdown();
         }
         somethingGotTested = true;
       }
@@ -295,37 +290,37 @@ public class CompressionTest {
 
         final int numTasks = 32;
         ExecutorService service = Executors.newFixedThreadPool(numTasks);
+        try {
 
-        ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);
+          ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);
 
-        CountDownLatch startLatch = new CountDownLatch(numTasks);
-        assertTrue(numTasks >= startLatch.getCount(),
-            "Not enough tasks/threads to satisfy latch count - deadlock risk");
+          CountDownLatch startLatch = new CountDownLatch(numTasks);
+          assertTrue(numTasks >= startLatch.getCount(),
+              "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        // keep track of the system's identity hashcodes.
+          // keep track of the system's identity hashcodes.
 
-        for (int i = 0; i < numTasks; i++) {
-          list.add(() -> {
-            startLatch.countDown();
-            startLatch.await();
-            CompressionCodec codec = al.getCodec();
-            assertNotNull(codec, al + " resulted in a non-null codec");
-            return System.identityHashCode(codec);
-          });
+          for (int i = 0; i < numTasks; i++) {
+            list.add(() -> {
+              startLatch.countDown();
+              startLatch.await();
+              CompressionCodec codec = al.getCodec();
+              assertNotNull(codec, al + " resulted in a non-null codec");
+              return System.identityHashCode(codec);
+            });
+          }
+          assertEquals(numTasks, list.size());
+
+          final HashSet<Integer> hashCodes = new HashSet<>();
+          for (Future<Integer> result : service.invokeAll(list)) {
+            hashCodes.add(result.get());
+          }
+          assertEquals(1, hashCodes.size(), al + " created too many codecs");
+
+        } finally {
+          service.shutdown();
         }
-        assertEquals(numTasks, list.size());
 
-        final HashSet<Integer> hashCodes = new HashSet<>();
-        for (Future<Integer> result : service.invokeAll(list)) {
-          hashCodes.add(result.get());
-        }
-        assertEquals(1, hashCodes.size(), al + " created too many codecs");
-
-        service.shutdown();
-
-        while (!service.awaitTermination(1, SECONDS)) {
-          // wait
-        }
         somethingGotTested = true;
       }
     }

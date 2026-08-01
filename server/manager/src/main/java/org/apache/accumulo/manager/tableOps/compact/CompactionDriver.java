@@ -316,6 +316,9 @@ public class CompactionDriver extends AbstractFateOperation {
         }
       }
     } catch (InterruptedException | KeeperException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
 

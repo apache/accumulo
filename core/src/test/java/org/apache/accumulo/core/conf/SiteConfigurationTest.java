@@ -39,7 +39,8 @@ public class SiteConfigurationTest {
   @Test
   public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
       throws SecurityException {
-    URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
+    URL keystore =
+        SiteConfigurationTest.class.getResource("/org/apache/accumulo/core/site-cfg.jceks");
     assertNotNull(keystore);
     String credProvPath = "jceks://file" + Path.of(keystore.getFile()).toAbsolutePath();
 
@@ -68,7 +69,8 @@ public class SiteConfigurationTest {
   @Test
   public void testFile() {
     System.setProperty("DIR", "/tmp/test/dir");
-    URL propsUrl = getClass().getClassLoader().getResource("accumulo2.properties");
+    URL propsUrl =
+        getClass().getClassLoader().getResource("org/apache/accumulo/core/accumulo2.properties");
     var conf = new SiteConfiguration.Builder().fromUrl(propsUrl).build();
     assertEquals("myhost123:2181", conf.get(Property.INSTANCE_ZK_HOST));
     assertEquals("mysecret", conf.get(Property.INSTANCE_SECRET));

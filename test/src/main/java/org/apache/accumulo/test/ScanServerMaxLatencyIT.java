@@ -150,14 +150,14 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
       // The write task should still be running unless they experienced an exception.
       assertTrue(futures.stream().noneMatch(Future::isDone));
 
-      executor.shutdownNow();
-      executor.awaitTermination(600, TimeUnit.SECONDS);
-
       assertEquals(-1, readMaxElapsed(client, EVENTUAL, table2));
       // Now that nothing is writing its expected that max read by an immediate scan will see any
       // data an eventual scan would see.
       assertTrue(
           readMaxElapsed(client, IMMEDIATE, table1) >= readMaxElapsed(client, EVENTUAL, table1));
+    } finally {
+      executor.shutdownNow();
+      executor.awaitTermination(600, TimeUnit.SECONDS);
     }
   }
 

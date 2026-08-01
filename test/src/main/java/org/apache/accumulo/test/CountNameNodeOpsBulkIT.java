@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -124,66 +123,69 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       fs.mkdirs(base);
 
       ExecutorService es = Executors.newFixedThreadPool(5);
-      List<Future<String>> futures = new ArrayList<>();
-      for (int i = 0; i < 10; i++) {
-        final int which = i;
-        futures.add(es.submit(() -> {
-          Path files = new Path(base, "files" + which);
-          fs.mkdirs(files);
-          for (int i1 = 0; i1 < 100; i1++) {
-            FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-                .forFile(
-                    UnreferencedTabletFile.of(fs,
-                        new Path(files + "/bulk_" + i1 + "." + RFile.EXTENSION)),
-                    fs, fs.getConf(), NoCryptoServiceFactory.NONE)
-                .withTableConfiguration(DefaultConfiguration.getInstance()).build();
-            writer.startDefaultLocalityGroup();
-            for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value());
+      try {
+        List<Future<String>> futures = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+          final int which = i;
+          futures.add(es.submit(() -> {
+            Path files = new Path(base, "files" + which);
+            fs.mkdirs(files);
+            for (int i1 = 0; i1 < 100; i1++) {
+              FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
+                  .forFile(
+                      UnreferencedTabletFile.of(fs,
+                          new Path(files + "/bulk_" + i1 + "." + RFile.EXTENSION)),
+                      fs, fs.getConf(), NoCryptoServiceFactory.NONE)
+                  .withTableConfiguration(DefaultConfiguration.getInstance()).build();
+              writer.startDefaultLocalityGroup();
+              for (int j = 0x100; j < 0xfff; j += 3) {
+                writer.append(new Key(Integer.toHexString(j)), new Value());
+              }
+              writer.close();
             }
-            writer.close();
-          }
-          return files.toString();
-        }));
-      }
-      List<String> dirs = new ArrayList<>();
-      for (Future<String> f : futures) {
-        dirs.add(f.get());
-      }
-      log.info("Importing");
-      long startOps = getStat(getStats(), "FileInfoOps");
-      long now = System.currentTimeMillis();
-      List<Future<Object>> errs = new ArrayList<>();
-      for (String dir : dirs) {
-        errs.add(es.submit(() -> {
-          c.tableOperations().importDirectory(dir).to(tableName).load();
-          return null;
-        }));
-      }
-      for (Future<Object> err : errs) {
-        err.get();
-      }
-      es.shutdown();
-      es.awaitTermination(2, MINUTES);
-      log.info(
-          String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
-      Thread.sleep(SECONDS.toMillis(30));
-      Map<?,?> map = getStats();
-      map.forEach((k, v) -> {
-        try {
-          if (v != null && Double.parseDouble(v.toString()) > 0.0) {
-            log.debug("{}:{}", k, v);
-          }
-        } catch (NumberFormatException e) {
-          // only looking for numbers
+            return files.toString();
+          }));
         }
-      });
-      long getFileInfoOpts = getStat(map, "FileInfoOps") - startOps;
-      log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
-      // counts for old bulk import:
-      // Expected number of FileInfoOps was between 1000 and 2100
-      // new bulk import is way better :)
-      assertEquals(20, getFileInfoOpts, "unexpected number of FileInfoOps");
+        List<String> dirs = new ArrayList<>();
+        for (Future<String> f : futures) {
+          dirs.add(f.get());
+        }
+        log.info("Importing");
+        long startOps = getStat(getStats(), "FileInfoOps");
+        long now = System.currentTimeMillis();
+        List<Future<Object>> errs = new ArrayList<>();
+        for (String dir : dirs) {
+          errs.add(es.submit(() -> {
+            c.tableOperations().importDirectory(dir).to(tableName).load();
+            return null;
+          }));
+        }
+        for (Future<Object> err : errs) {
+          err.get();
+        }
+        log.info(
+            String.format("Completed in %.2f seconds", (System.currentTimeMillis() - now) / 1000.));
+        Thread.sleep(SECONDS.toMillis(30));
+        Map<?,?> map = getStats();
+        map.forEach((k, v) -> {
+          try {
+            if (v != null && Double.parseDouble(v.toString()) > 0.0) {
+              log.debug("{}:{}", k, v);
+            }
+          } catch (NumberFormatException e) {
+            // only looking for numbers
+          }
+        });
+        long getFileInfoOpts = getStat(map, "FileInfoOps") - startOps;
+        log.info("New bulk import used {} opts, vs old using 2060", getFileInfoOpts);
+        // counts for old bulk import:
+        // Expected number of FileInfoOps was between 1000 and 2100
+        // new bulk import is way better :)
+        assertEquals(20, getFileInfoOpts, "unexpected number of FileInfoOps");
+
+      } finally {
+        es.shutdown();
+      }
     }
   }
 }

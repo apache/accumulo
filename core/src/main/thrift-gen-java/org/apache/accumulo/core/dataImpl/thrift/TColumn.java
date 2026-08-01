@@ -163,7 +163,7 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public byte[] getColumnFamily() {
-    setColumnFamily(org.apache.thrift.TBaseHelper.rightSize(columnFamily));
+    this.columnFamily = org.apache.thrift.TBaseHelper.rightSize(columnFamily);
     return columnFamily == null ? null : columnFamily.array();
   }
 
@@ -197,7 +197,7 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public byte[] getColumnQualifier() {
-    setColumnQualifier(org.apache.thrift.TBaseHelper.rightSize(columnQualifier));
+    this.columnQualifier = org.apache.thrift.TBaseHelper.rightSize(columnQualifier);
     return columnQualifier == null ? null : columnQualifier.array();
   }
 
@@ -231,7 +231,7 @@ public class TColumn implements org.apache.thrift.TBase<TColumn, TColumn._Fields
   }
 
   public byte[] getColumnVisibility() {
-    setColumnVisibility(org.apache.thrift.TBaseHelper.rightSize(columnVisibility));
+    this.columnVisibility = org.apache.thrift.TBaseHelper.rightSize(columnVisibility);
     return columnVisibility == null ? null : columnVisibility.array();
   }
 

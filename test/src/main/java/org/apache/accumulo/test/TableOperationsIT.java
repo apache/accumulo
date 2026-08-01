@@ -212,44 +212,46 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     final int initialTableSize = accumuloClient.tableOperations().list().size();
     final int numTasks = 10;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+    try {
 
-    for (String tablename : getUniqueNames(30)) {
-      CountDownLatch startSignal = new CountDownLatch(numTasks);
-      List<Future<Boolean>> futureList = new ArrayList<>(numTasks);
+      for (String tablename : getUniqueNames(30)) {
+        CountDownLatch startSignal = new CountDownLatch(numTasks);
+        List<Future<Boolean>> futureList = new ArrayList<>(numTasks);
 
-      for (int j = 0; j < numTasks; j++) {
-        Future<Boolean> future = pool.submit(() -> {
-          boolean result;
-          try {
-            startSignal.countDown();
-            startSignal.await();
-            accumuloClient.tableOperations().create(tablename);
-            result = true;
-          } catch (TableExistsException e) {
-            result = false;
-          }
-          return result;
-        });
-        futureList.add(future);
-      }
-
-      int taskSucceeded = 0;
-      int taskFailed = 0;
-      for (Future<Boolean> result : futureList) {
-        if (result.get() == true) {
-          taskSucceeded++;
-        } else {
-          taskFailed++;
+        for (int j = 0; j < numTasks; j++) {
+          Future<Boolean> future = pool.submit(() -> {
+            boolean result;
+            try {
+              startSignal.countDown();
+              startSignal.await();
+              accumuloClient.tableOperations().create(tablename);
+              result = true;
+            } catch (TableExistsException e) {
+              result = false;
+            }
+            return result;
+          });
+          futureList.add(future);
         }
+
+        int taskSucceeded = 0;
+        int taskFailed = 0;
+        for (Future<Boolean> result : futureList) {
+          if (result.get() == true) {
+            taskSucceeded++;
+          } else {
+            taskFailed++;
+          }
+        }
+
+        assertEquals(1, taskSucceeded);
+        assertEquals(9, taskFailed);
       }
 
-      assertEquals(1, taskSucceeded);
-      assertEquals(9, taskFailed);
+      assertEquals(30, accumuloClient.tableOperations().list().size() - initialTableSize);
+    } finally {
+      pool.shutdown();
     }
-
-    assertEquals(30, accumuloClient.tableOperations().list().size() - initialTableSize);
-
-    pool.shutdown();
   }
 
   @Test
@@ -913,26 +915,28 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     Set<TableId> hash = new HashSet<>();
 
     ExecutorService pool = Executors.newFixedThreadPool(64);
+    try {
 
-    for (int i = 0; i < 1000; i++) {
-      int finalI = i;
+      for (int i = 0; i < 1000; i++) {
+        int finalI = i;
 
-      Future<TableId> future = pool.submit(() -> {
-        TableId tableId = null;
+        Future<TableId> future = pool.submit(() -> {
+          TableId tableId = null;
 
-        tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
+          tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
 
-        return tableId;
-      });
+          return tableId;
+        });
 
-      futureList.add(future);
+        futureList.add(future);
+      }
+
+      for (Future<TableId> tab : futureList) {
+        hash.add(tab.get());
+      }
+    } finally {
+      pool.shutdown();
     }
-
-    for (Future<TableId> tab : futureList) {
-      hash.add(tab.get());
-    }
-
-    pool.shutdown();
 
     assertEquals(1000, hash.size());
   }

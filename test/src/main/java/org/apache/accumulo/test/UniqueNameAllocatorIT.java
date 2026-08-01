@@ -69,53 +69,58 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
     Set<String> namesSeen = ConcurrentHashMap.newKeySet();
 
     var executorService = Executors.newCachedThreadPool();
-    final int numLargeTasks = 64;
-    final int numSmallTasks = 10;
-    final int numTasks = numLargeTasks + numSmallTasks;
-    List<Future<Integer>> futures = new ArrayList<>(numTasks);
-    // start a portion of threads at the same time
-    CountDownLatch startLatch = new CountDownLatch(32);
-    assertTrue(numTasks >= startLatch.getCount(),
-        "Not enough tasks to satisfy latch count - deadlock risk");
+    try {
+      final int numLargeTasks = 64;
+      final int numSmallTasks = 10;
+      final int numTasks = numLargeTasks + numSmallTasks;
+      List<Future<Integer>> futures = new ArrayList<>(numTasks);
+      // start a portion of threads at the same time
+      CountDownLatch startLatch = new CountDownLatch(32);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-    // create threads that are allocating large random chunks
-    for (int i = 0; i < numLargeTasks; i++) {
-      var future = executorService.submit(() -> {
-        startLatch.countDown();
-        startLatch.await();
-        int added = 0;
-        while (namesSeen.size() < 1_000_000) {
-          var allocator = allocators[random.nextInt(allocators.length)];
-          int needed = Math.max(1, random.nextInt(999));
-          allocate(allocator, needed, namesSeen);
-          added += needed;
-        }
-        return added;
-      });
-      futures.add(future);
-    }
+      // create threads that are allocating large random chunks
+      for (int i = 0; i < numLargeTasks; i++) {
+        var future = executorService.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
+          int added = 0;
+          while (namesSeen.size() < 1_000_000) {
+            var allocator = allocators[random.nextInt(allocators.length)];
+            int needed = Math.max(1, random.nextInt(999));
+            allocate(allocator, needed, namesSeen);
+            added += needed;
+          }
+          return added;
+        });
+        futures.add(future);
+      }
 
-    // create threads that are always allocating a small amount
-    for (int i = 1; i <= numSmallTasks; i++) {
-      int needed = i;
-      var future = executorService.submit(() -> {
-        startLatch.countDown();
-        startLatch.await();
-        int added = 0;
-        while (namesSeen.size() < 1_000_000) {
-          var allocator = allocators[random.nextInt(allocators.length)];
-          allocate(allocator, needed, namesSeen);
-          added += needed;
-        }
-        return added;
-      });
-      futures.add(future);
-    }
-    assertEquals(numTasks, futures.size());
+      // create threads that are always allocating a small amount
+      for (int i = 1; i <= numSmallTasks; i++) {
+        int needed = i;
+        var future = executorService.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
+          int added = 0;
+          while (namesSeen.size() < 1_000_000) {
+            var allocator = allocators[random.nextInt(allocators.length)];
+            allocate(allocator, needed, namesSeen);
+            added += needed;
+          }
+          return added;
+        });
+        futures.add(future);
+      }
+      assertEquals(numTasks, futures.size());
 
-    for (var future : futures) {
-      // expect all threads to add some names
-      assertTrue(future.get() > 0);
+      for (var future : futures) {
+        // expect all threads to add some names
+        assertTrue(future.get() > 0);
+      }
+
+    } finally {
+      executorService.shutdownNow();
     }
 
     assertThrows(IllegalArgumentException.class, () -> allocators[0].getNextNames(-1));

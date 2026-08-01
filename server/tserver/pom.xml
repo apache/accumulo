@@ -141,8 +141,8 @@
               <licenseSet>
                 <inlineHeader>${accumulo.build.license.header}</inlineHeader>
                 <excludes>
-                  <exclude>src/test/resources/*.walog</exclude>
-                  <exclude>src/test/resources/walog-from-14/*</exclude>
+                  <exclude>src/test/resources/org/apache/accumulo/tserver/*.walog</exclude>
+                  <exclude>src/test/resources/org/apache/accumulo/tserver/walog-from-14/*</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -153,8 +153,8 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/test/resources/*.walog</exclude>
-              <exclude>src/test/resources/walog-from-14/*</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/tserver/*.walog</exclude>
+              <exclude>src/test/resources/org/apache/accumulo/tserver/walog-from-14/*</exclude>
             </excludes>
           </configuration>
         </plugin>

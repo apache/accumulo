@@ -150,7 +150,7 @@ public class TRowRange implements org.apache.thrift.TBase<TRowRange, TRowRange._
   }
 
   public byte[] getStartRow() {
-    setStartRow(org.apache.thrift.TBaseHelper.rightSize(startRow));
+    this.startRow = org.apache.thrift.TBaseHelper.rightSize(startRow);
     return startRow == null ? null : startRow.array();
   }
 
@@ -184,7 +184,7 @@ public class TRowRange implements org.apache.thrift.TBase<TRowRange, TRowRange._
   }
 
   public byte[] getEndRow() {
-    setEndRow(org.apache.thrift.TBaseHelper.rightSize(endRow));
+    this.endRow = org.apache.thrift.TBaseHelper.rightSize(endRow);
     return endRow == null ? null : endRow.array();
   }
 

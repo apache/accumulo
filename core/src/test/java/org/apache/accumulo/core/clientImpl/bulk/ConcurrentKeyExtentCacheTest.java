@@ -81,7 +81,7 @@ public class ConcurrentKeyExtentCacheTest {
       try {
         Thread.sleep(3);
       } catch (InterruptedException ex) {
-        // ignore exception
+        Thread.currentThread().interrupt();
       }
       return extents.subList(index, extents.size()).stream().limit(73);
     }

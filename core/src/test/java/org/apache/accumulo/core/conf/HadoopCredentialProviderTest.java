@@ -51,8 +51,8 @@ public class HadoopCredentialProviderTest {
 
   private static final Configuration hadoopConf = new Configuration();
 
-  private static final String populatedKeyStoreName = "/accumulo.jceks";
-  private static final String emptyKeyStoreName = "/empty.jceks";
+  private static final String populatedKeyStoreName = "/org/apache/accumulo/core/accumulo.jceks";
+  private static final String emptyKeyStoreName = "/org/apache/accumulo/core/empty.jceks";
   private static File emptyKeyStore;
   private static File populatedKeyStore;
 
@@ -180,13 +180,13 @@ public class HadoopCredentialProviderTest {
 
       // One namenode, One configuration
       Configuration dfsConfiguration = dfsCluster.getConfiguration(0);
-      Path destPath = new Path("/accumulo.jceks");
+      Path destPath = new Path("/org/apache/accumulo/core/accumulo.jceks");
       FileSystem dfs = dfsCluster.getFileSystem();
       // Put the populated keystore in hdfs
       dfs.copyFromLocalFile(new Path(populatedKeyStore.toURI()), destPath);
 
       Configuration cpConf = dfsConfiguration;
-      HadoopCredentialProvider.setPath(cpConf, "jceks://hdfs/accumulo.jceks");
+      HadoopCredentialProvider.setPath(cpConf, "jceks://hdfs/" + destPath);
 
       // The values in the keystore
       Map<String,String> expectations = new HashMap<>();

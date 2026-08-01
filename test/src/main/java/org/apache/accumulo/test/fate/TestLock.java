@@ -79,6 +79,9 @@ public class TestLock {
       zrw.putPersistentData(parentLockPath, new byte[0], NodeExistsPolicy.SKIP);
       zrw.putPersistentData(lockPath, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }
 

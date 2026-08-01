@@ -426,6 +426,7 @@ public class Fate<T> extends FateClient<T> {
               anyFateExecutorIsAlive(), deadResCleanerIsAlive());
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }

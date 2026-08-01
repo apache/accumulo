@@ -129,7 +129,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   private static final int MAX_ELEMENTS_TO_LOG = 10;
 
   private static List<String> truncate(Collection<?> list) {
-    List<String> result = new ArrayList<>();
+    List<String> result =
+        new ArrayList<>(list.size() > MAX_ELEMENTS_TO_LOG ? MAX_ELEMENTS_TO_LOG + 1 : list.size());
     int i = 0;
     for (Object obj : list) {
       if (i++ > MAX_ELEMENTS_TO_LOG) {

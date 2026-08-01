@@ -302,6 +302,9 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
       zrw.putPersistentData(parentLockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
       zrw.putPersistentData(lockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }
 

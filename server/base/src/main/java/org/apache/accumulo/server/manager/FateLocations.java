@@ -90,6 +90,9 @@ public class FateLocations {
       zoo.putPersistentData(Constants.ZMANAGER_FATE_ASSIGNMENTS, serialize(assignments),
           nodeExistsPolicy);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Unable to set fate locations in zookeeper", e);
     }
   }
@@ -100,6 +103,9 @@ public class FateLocations {
       context.getZooSession().setData(Constants.ZMANAGER_FATE_ASSIGNMENTS, serialize(assignments),
           -1);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Unable to set fate locations in zookeeper", e);
     }
   }

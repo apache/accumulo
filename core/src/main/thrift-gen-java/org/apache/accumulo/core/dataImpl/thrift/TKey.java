@@ -192,7 +192,7 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public byte[] getRow() {
-    setRow(org.apache.thrift.TBaseHelper.rightSize(row));
+    this.row = org.apache.thrift.TBaseHelper.rightSize(row);
     return row == null ? null : row.array();
   }
 
@@ -226,7 +226,7 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public byte[] getColFamily() {
-    setColFamily(org.apache.thrift.TBaseHelper.rightSize(colFamily));
+    this.colFamily = org.apache.thrift.TBaseHelper.rightSize(colFamily);
     return colFamily == null ? null : colFamily.array();
   }
 
@@ -260,7 +260,7 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public byte[] getColQualifier() {
-    setColQualifier(org.apache.thrift.TBaseHelper.rightSize(colQualifier));
+    this.colQualifier = org.apache.thrift.TBaseHelper.rightSize(colQualifier);
     return colQualifier == null ? null : colQualifier.array();
   }
 
@@ -294,7 +294,7 @@ public class TKey implements org.apache.thrift.TBase<TKey, TKey._Fields>, java.i
   }
 
   public byte[] getColVisibility() {
-    setColVisibility(org.apache.thrift.TBaseHelper.rightSize(colVisibility));
+    this.colVisibility = org.apache.thrift.TBaseHelper.rightSize(colVisibility);
     return colVisibility == null ? null : colVisibility.array();
   }
 

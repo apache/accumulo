@@ -88,31 +88,33 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int numTasks = 16;
     final int numIterations = 8;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+    try {
 
-    for (String targetTableName : getUniqueNames(numIterations)) {
-      List<String> sourceTableNames = new ArrayList<>();
-      for (int i = 0; i < numTasks; i++) {
-        String sourceTable = targetTableName + "_source_" + i;
-        client.tableOperations().create(sourceTable);
-        sourceTableNames.add(sourceTable);
+      for (String targetTableName : getUniqueNames(numIterations)) {
+        List<String> sourceTableNames = new ArrayList<>();
+        for (int i = 0; i < numTasks; i++) {
+          String sourceTable = targetTableName + "_source_" + i;
+          client.tableOperations().create(sourceTable);
+          sourceTableNames.add(sourceTable);
+        }
+
+        int tableCountBefore = client.tableOperations().list().size();
+
+        int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
+          client.tableOperations().clone(sourceTableNames.get(index), targetTableName, true,
+              Map.of(), Set.of());
+          return true;
+        });
+
+        assertEquals(1, successCount, "Expected only one clone operation to succeed");
+        assertTrue(client.tableOperations().exists(targetTableName),
+            "Expected target table " + targetTableName + " to exist");
+        assertEquals(tableCountBefore + 1, client.tableOperations().list().size(),
+            "Expected only one new table after clone");
       }
-
-      int tableCountBefore = client.tableOperations().list().size();
-
-      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
-        client.tableOperations().clone(sourceTableNames.get(index), targetTableName, true, Map.of(),
-            Set.of());
-        return true;
-      });
-
-      assertEquals(1, successCount, "Expected only one clone operation to succeed");
-      assertTrue(client.tableOperations().exists(targetTableName),
-          "Expected target table " + targetTableName + " to exist");
-      assertEquals(tableCountBefore + 1, client.tableOperations().list().size(),
-          "Expected only one new table after clone");
+    } finally {
+      pool.shutdown();
     }
-
-    pool.shutdown();
   }
 
   /**
@@ -123,29 +125,31 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int numTasks = 16;
     final int numIterations = 10;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+    try {
 
-    for (String targetTableName : getUniqueNames(numIterations)) {
-      List<String> sourceTableNames = new ArrayList<>();
-      for (int i = 0; i < numTasks; i++) {
-        String sourceTable = targetTableName + "_rename_source_" + i;
-        client.tableOperations().create(sourceTable);
-        sourceTableNames.add(sourceTable);
+      for (String targetTableName : getUniqueNames(numIterations)) {
+        List<String> sourceTableNames = new ArrayList<>();
+        for (int i = 0; i < numTasks; i++) {
+          String sourceTable = targetTableName + "_rename_source_" + i;
+          client.tableOperations().create(sourceTable);
+          sourceTableNames.add(sourceTable);
+        }
+
+        int tableCountBefore = client.tableOperations().list().size();
+
+        int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
+          client.tableOperations().rename(sourceTableNames.get(index), targetTableName);
+          return true;
+        });
+
+        assertEquals(1, successCount, "Expected only one rename operation to succeed");
+        assertTrue(client.tableOperations().exists(targetTableName),
+            "Expected target table " + targetTableName + " to exist");
+        assertEquals(tableCountBefore, client.tableOperations().list().size());
       }
-
-      int tableCountBefore = client.tableOperations().list().size();
-
-      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
-        client.tableOperations().rename(sourceTableNames.get(index), targetTableName);
-        return true;
-      });
-
-      assertEquals(1, successCount, "Expected only one rename operation to succeed");
-      assertTrue(client.tableOperations().exists(targetTableName),
-          "Expected target table " + targetTableName + " to exist");
-      assertEquals(tableCountBefore, client.tableOperations().list().size());
+    } finally {
+      pool.shutdown();
     }
-
-    pool.shutdown();
   }
 
   /**
@@ -157,36 +161,38 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int numTasks = 16;
     final int numIterations = 4;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
-    String[] targetTableNames = getUniqueNames(numIterations);
-    var ntc = new NewTableConfiguration().createOffline();
+    try {
+      String[] targetTableNames = getUniqueNames(numIterations);
+      var ntc = new NewTableConfiguration().createOffline();
 
-    for (String importTableName : targetTableNames) {
-      // Create separate source tables and export directories for each thread
-      List<String> exportDirs = new ArrayList<>(numTasks);
-      for (int i = 0; i < numTasks; i++) {
-        String sourceTableName = importTableName + "_export_source_" + i;
-        client.tableOperations().create(sourceTableName, ntc);
-        String exportDir = getCluster().getTemporaryPath() + "/export_" + sourceTableName;
-        client.tableOperations().exportTable(sourceTableName, exportDir);
-        exportDirs.add(exportDir);
+      for (String importTableName : targetTableNames) {
+        // Create separate source tables and export directories for each thread
+        List<String> exportDirs = new ArrayList<>(numTasks);
+        for (int i = 0; i < numTasks; i++) {
+          String sourceTableName = importTableName + "_export_source_" + i;
+          client.tableOperations().create(sourceTableName, ntc);
+          String exportDir = getCluster().getTemporaryPath() + "/export_" + sourceTableName;
+          client.tableOperations().exportTable(sourceTableName, exportDir);
+          exportDirs.add(exportDir);
+        }
+
+        int tableCountBefore = client.tableOperations().list().size();
+
+        // All threads attempt to import to the same target table name
+        int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
+          client.tableOperations().importTable(importTableName, exportDirs.get(index));
+          return true;
+        });
+
+        assertEquals(1, successCount, "Expected only one import operation to succeed");
+        assertTrue(client.tableOperations().exists(importTableName),
+            "Expected import table " + importTableName + " to exist");
+        assertEquals(tableCountBefore + 1, client.tableOperations().list().size(),
+            "Expected +1 table count for import operation");
       }
-
-      int tableCountBefore = client.tableOperations().list().size();
-
-      // All threads attempt to import to the same target table name
-      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
-        client.tableOperations().importTable(importTableName, exportDirs.get(index));
-        return true;
-      });
-
-      assertEquals(1, successCount, "Expected only one import operation to succeed");
-      assertTrue(client.tableOperations().exists(importTableName),
-          "Expected import table " + importTableName + " to exist");
-      assertEquals(tableCountBefore + 1, client.tableOperations().list().size(),
-          "Expected +1 table count for import operation");
+    } finally {
+      pool.shutdown();
     }
-
-    pool.shutdown();
   }
 
   /**
@@ -199,94 +205,96 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int numTasks = operationsPerType * 3;
     final int numIterations = 4;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
-    String[] expectedTableNames = getUniqueNames(numIterations);
+    try {
+      String[] expectedTableNames = getUniqueNames(numIterations);
 
-    for (String targetTableName : expectedTableNames) {
-      List<String> cloneSourceTables = new ArrayList<>();
-      List<String> renameSourceTables = new ArrayList<>();
-      for (int i = 0; i < operationsPerType; i++) {
-        String cloneSource = targetTableName + "_clone_src_" + i;
-        client.tableOperations().create(cloneSource);
-        cloneSourceTables.add(cloneSource);
+      for (String targetTableName : expectedTableNames) {
+        List<String> cloneSourceTables = new ArrayList<>();
+        List<String> renameSourceTables = new ArrayList<>();
+        for (int i = 0; i < operationsPerType; i++) {
+          String cloneSource = targetTableName + "_clone_src_" + i;
+          client.tableOperations().create(cloneSource);
+          cloneSourceTables.add(cloneSource);
 
-        String renameSource = targetTableName + "_rename_src_" + i;
-        client.tableOperations().create(renameSource);
-        renameSourceTables.add(renameSource);
-      }
+          String renameSource = targetTableName + "_rename_src_" + i;
+          client.tableOperations().create(renameSource);
+          renameSourceTables.add(renameSource);
+        }
 
-      int tableCountBefore = client.tableOperations().list().size();
+        int tableCountBefore = client.tableOperations().list().size();
 
-      List<Future<Boolean>> futures = new ArrayList<>();
-      CountDownLatch startSignal = new CountDownLatch(numTasks);
-      AtomicReference<String> successfulOperation = new AtomicReference<>();
+        List<Future<Boolean>> futures = new ArrayList<>();
+        CountDownLatch startSignal = new CountDownLatch(numTasks);
+        AtomicReference<String> successfulOperation = new AtomicReference<>();
 
-      for (int i = 0; i < operationsPerType; i++) {
-        futures.add(pool.submit(() -> {
-          try {
-            startSignal.countDown();
-            startSignal.await();
-            client.tableOperations().create(targetTableName);
-            successfulOperation.set("create");
-            return true;
-          } catch (TableExistsException e) {
-            return false;
+        for (int i = 0; i < operationsPerType; i++) {
+          futures.add(pool.submit(() -> {
+            try {
+              startSignal.countDown();
+              startSignal.await();
+              client.tableOperations().create(targetTableName);
+              successfulOperation.set("create");
+              return true;
+            } catch (TableExistsException e) {
+              return false;
+            }
+          }));
+
+          final int index = i;
+
+          futures.add(pool.submit(() -> {
+            try {
+              startSignal.countDown();
+              startSignal.await();
+              client.tableOperations().rename(renameSourceTables.get(index), targetTableName);
+              successfulOperation.set("rename");
+              return true;
+            } catch (TableExistsException e) {
+              return false;
+            }
+          }));
+
+          futures.add(pool.submit(() -> {
+            try {
+              startSignal.countDown();
+              startSignal.await();
+              client.tableOperations().clone(cloneSourceTables.get(index), targetTableName, true,
+                  Map.of(), Set.of());
+              successfulOperation.set("clone");
+              return true;
+            } catch (TableExistsException e) {
+              return false;
+            }
+          }));
+        }
+
+        assertEquals(numTasks, futures.size(),
+            "Actual created task count did not match expected count");
+
+        int successCount = 0;
+        for (Future<Boolean> future : futures) {
+          if (future.get()) {
+            successCount++;
           }
-        }));
+        }
 
-        final int index = i;
+        assertEquals(1, successCount, "Expected only one operation to succeed");
 
-        futures.add(pool.submit(() -> {
-          try {
-            startSignal.countDown();
-            startSignal.await();
-            client.tableOperations().rename(renameSourceTables.get(index), targetTableName);
-            successfulOperation.set("rename");
-            return true;
-          } catch (TableExistsException e) {
-            return false;
-          }
-        }));
+        int tableCountAfter = client.tableOperations().list().size();
+        assertTrue(client.tableOperations().exists(targetTableName),
+            "Expected target table " + targetTableName + " to exist");
 
-        futures.add(pool.submit(() -> {
-          try {
-            startSignal.countDown();
-            startSignal.await();
-            client.tableOperations().clone(cloneSourceTables.get(index), targetTableName, true,
-                Map.of(), Set.of());
-            successfulOperation.set("clone");
-            return true;
-          } catch (TableExistsException e) {
-            return false;
-          }
-        }));
-      }
-
-      assertEquals(numTasks, futures.size(),
-          "Actual created task count did not match expected count");
-
-      int successCount = 0;
-      for (Future<Boolean> future : futures) {
-        if (future.get()) {
-          successCount++;
+        String operation = successfulOperation.get();
+        if ("create".equals(operation) || "clone".equals(operation)) {
+          assertEquals(tableCountBefore + 1, tableCountAfter,
+              "Expected +1 table count for " + operation);
+        } else if ("rename".equals(operation)) {
+          assertEquals(tableCountBefore, tableCountAfter, "Expected same table count for rename");
         }
       }
-
-      assertEquals(1, successCount, "Expected only one operation to succeed");
-
-      int tableCountAfter = client.tableOperations().list().size();
-      assertTrue(client.tableOperations().exists(targetTableName),
-          "Expected target table " + targetTableName + " to exist");
-
-      String operation = successfulOperation.get();
-      if ("create".equals(operation) || "clone".equals(operation)) {
-        assertEquals(tableCountBefore + 1, tableCountAfter,
-            "Expected +1 table count for " + operation);
-      } else if ("rename".equals(operation)) {
-        assertEquals(tableCountBefore, tableCountAfter, "Expected same table count for rename");
-      }
+    } finally {
+      pool.shutdown();
     }
-
-    pool.shutdown();
   }
 
   /**
@@ -298,30 +306,32 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int numTasks = 16;
     final int numIterations = 16;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
-    String[] targetNamespaceNames = getUniqueNames(numIterations);
+    try {
+      String[] targetNamespaceNames = getUniqueNames(numIterations);
 
-    for (String namespaceName : targetNamespaceNames) {
-      Set<String> namespacesBefore = client.namespaceOperations().list();
+      for (String namespaceName : targetNamespaceNames) {
+        Set<String> namespacesBefore = client.namespaceOperations().list();
 
-      int successCount = runConcurrentNamespaceOperation(pool, numTasks, (index) -> {
-        client.namespaceOperations().create(namespaceName);
-        return true;
-      });
+        int successCount = runConcurrentNamespaceOperation(pool, numTasks, (index) -> {
+          client.namespaceOperations().create(namespaceName);
+          return true;
+        });
 
-      assertEquals(1, successCount, "Expected only one create operation to succeed");
-      assertTrue(client.namespaceOperations().exists(namespaceName),
-          "Expected namespace " + namespaceName + " to exist");
+        assertEquals(1, successCount, "Expected only one create operation to succeed");
+        assertTrue(client.namespaceOperations().exists(namespaceName),
+            "Expected namespace " + namespaceName + " to exist");
 
-      Set<String> namespacesAfter = client.namespaceOperations().list();
-      Set<String> newNamespaces = new HashSet<>(namespacesAfter);
-      newNamespaces.removeAll(namespacesBefore);
-      assertEquals(Set.of(namespaceName), newNamespaces,
-          "Expected exactly one new namespace: " + namespaceName);
+        Set<String> namespacesAfter = client.namespaceOperations().list();
+        Set<String> newNamespaces = new HashSet<>(namespacesAfter);
+        newNamespaces.removeAll(namespacesBefore);
+        assertEquals(Set.of(namespaceName), newNamespaces,
+            "Expected exactly one new namespace: " + namespaceName);
 
-      client.namespaceOperations().delete(namespaceName);
+        client.namespaceOperations().delete(namespaceName);
+      }
+    } finally {
+      pool.shutdown();
     }
-
-    pool.shutdown();
   }
 
   /**
@@ -333,45 +343,47 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int numTasks = 16;
     final int numIterations = 8;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
-    String[] targetNamespaceNames = getUniqueNames(numIterations);
+    try {
+      String[] targetNamespaceNames = getUniqueNames(numIterations);
 
-    for (String targetNamespaceName : targetNamespaceNames) {
-      // multiple source namespaces for rename ops
-      List<String> sourceNamespaces = new ArrayList<>();
-      for (int i = 0; i < numTasks; i++) {
-        String sourceNamespace = targetNamespaceName + "_source_" + i;
-        client.namespaceOperations().create(sourceNamespace);
-        sourceNamespaces.add(sourceNamespace);
-      }
+      for (String targetNamespaceName : targetNamespaceNames) {
+        // multiple source namespaces for rename ops
+        List<String> sourceNamespaces = new ArrayList<>();
+        for (int i = 0; i < numTasks; i++) {
+          String sourceNamespace = targetNamespaceName + "_source_" + i;
+          client.namespaceOperations().create(sourceNamespace);
+          sourceNamespaces.add(sourceNamespace);
+        }
 
-      Set<String> namespacesBefore = client.namespaceOperations().list();
+        Set<String> namespacesBefore = client.namespaceOperations().list();
 
-      int successCount = runConcurrentNamespaceOperation(pool, numTasks, (index) -> {
-        client.namespaceOperations().rename(sourceNamespaces.get(index), targetNamespaceName);
-        return true;
-      });
+        int successCount = runConcurrentNamespaceOperation(pool, numTasks, (index) -> {
+          client.namespaceOperations().rename(sourceNamespaces.get(index), targetNamespaceName);
+          return true;
+        });
 
-      assertEquals(1, successCount, "Expected only one rename operation to succeed");
-      assertTrue(client.namespaceOperations().exists(targetNamespaceName),
-          "Expected target namespace " + targetNamespaceName + " to exist");
+        assertEquals(1, successCount, "Expected only one rename operation to succeed");
+        assertTrue(client.namespaceOperations().exists(targetNamespaceName),
+            "Expected target namespace " + targetNamespaceName + " to exist");
 
-      Set<String> namespacesAfter = client.namespaceOperations().list();
-      assertEquals(namespacesBefore.size(), namespacesAfter.size(),
-          "Expected same namespace count (rename operation)");
-      assertTrue(namespacesAfter.contains(targetNamespaceName),
-          "Expected target namespace in final list");
+        Set<String> namespacesAfter = client.namespaceOperations().list();
+        assertEquals(namespacesBefore.size(), namespacesAfter.size(),
+            "Expected same namespace count (rename operation)");
+        assertTrue(namespacesAfter.contains(targetNamespaceName),
+            "Expected target namespace in final list");
 
-      for (String sourceNamespace : sourceNamespaces) {
-        if (client.namespaceOperations().exists(sourceNamespace)) {
-          client.namespaceOperations().delete(sourceNamespace);
+        for (String sourceNamespace : sourceNamespaces) {
+          if (client.namespaceOperations().exists(sourceNamespace)) {
+            client.namespaceOperations().delete(sourceNamespace);
+          }
+        }
+        if (client.namespaceOperations().exists(targetNamespaceName)) {
+          client.namespaceOperations().delete(targetNamespaceName);
         }
       }
-      if (client.namespaceOperations().exists(targetNamespaceName)) {
-        client.namespaceOperations().delete(targetNamespaceName);
-      }
+    } finally {
+      pool.shutdown();
     }
-
-    pool.shutdown();
   }
 
   private int runConcurrentTableOperation(ExecutorService pool, int numTasks,

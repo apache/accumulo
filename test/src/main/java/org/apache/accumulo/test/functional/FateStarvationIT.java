@@ -89,31 +89,35 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       int numTasks = 100;
       List<Future<?>> futures = new ArrayList<>(numTasks);
       var executor = Executors.newCachedThreadPool();
-      // wait for a portion of the tasks to be ready
-      CountDownLatch startLatch = new CountDownLatch(32);
-      assertTrue(numTasks >= startLatch.getCount(),
-          "Not enough tasks to satisfy latch count - deadlock risk");
+      try {
+        // wait for a portion of the tasks to be ready
+        CountDownLatch startLatch = new CountDownLatch(32);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks to satisfy latch count - deadlock risk");
 
-      for (int i = 0; i < numTasks; i++) {
-        int idx1 = RANDOM.get().nextInt(splits.size() - 1);
-        int idx2 = RANDOM.get().nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
+        for (int i = 0; i < numTasks; i++) {
+          int idx1 = RANDOM.get().nextInt(splits.size() - 1);
+          int idx2 = RANDOM.get().nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
 
-        var future = executor.submit(() -> {
-          startLatch.countDown();
-          startLatch.await();
-          c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, true);
-          return null;
-        });
+          var future = executor.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
+            c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, true);
+            return null;
+          });
 
-        futures.add(future);
-      }
-      assertEquals(numTasks, futures.size());
+          futures.add(future);
+        }
+        assertEquals(numTasks, futures.size());
 
-      log.debug("Started compactions");
+        log.debug("Started compactions");
 
-      // wait for all compactions to complete
-      for (var future : futures) {
-        future.get();
+        // wait for all compactions to complete
+        for (var future : futures) {
+          future.get();
+        }
+      } finally {
+        executor.shutdown();
       }
 
       FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());

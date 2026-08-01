@@ -233,6 +233,7 @@ final class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
+    readers.ensureCapacity(absFiles.size());
     for (StoredTabletFile file : absFiles) {
       var cs = CryptoFactoryLoader.getServiceForClientWithTable(systemConf, tableConf, tableId);
       FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getNormalizedPathStr(), conf);

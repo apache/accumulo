@@ -173,7 +173,7 @@ public class TAuthenticationKey implements org.apache.thrift.TBase<TAuthenticati
   }
 
   public byte[] getSecret() {
-    setSecret(org.apache.thrift.TBaseHelper.rightSize(secret));
+    this.secret = org.apache.thrift.TBaseHelper.rightSize(secret);
     return secret == null ? null : secret.array();
   }
 

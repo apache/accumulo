@@ -323,13 +323,13 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     // truncate the ranges to within the tablets... this makes it easier to know what work
     // needs to be redone when failures occurs and tablets have merged or split
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>(binnedRanges.size(), 1.0f);
     for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
-      Map<KeyExtent,List<Range>> tabletMap = new HashMap<>();
+      Map<KeyExtent,List<Range>> tabletMap = new HashMap<>(entry.getValue().size(), 1.0f);
       binnedRanges2.put(entry.getKey(), tabletMap);
       for (Entry<KeyExtent,List<Range>> tabletRanges : entry.getValue().entrySet()) {
         Range tabletRange = tabletRanges.getKey().toDataRange();
-        List<Range> clippedRanges = new ArrayList<>();
+        List<Range> clippedRanges = new ArrayList<>(tabletRanges.getValue().size());
         tabletMap.put(tabletRanges.getKey(), clippedRanges);
         for (Range range : tabletRanges.getValue()) {
           clippedRanges.add(tabletRange.clip(range));
@@ -367,7 +367,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     failSleepTime = Math.min(5000, failSleepTime * 2);
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-    List<Range> allRanges = new ArrayList<>();
+    List<Range> allRanges = new ArrayList<>(failures.values().stream().mapToInt(List::size).sum());
 
     for (List<Range> ranges : failures.values()) {
       allRanges.addAll(ranges);
@@ -583,7 +583,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     List<String> locations = new ArrayList<>(binnedRanges.keySet());
     Collections.shuffle(locations);
 
-    List<QueryTask> queryTasks = new ArrayList<>();
+    List<QueryTask> queryTasks = new ArrayList<>(locations.size());
 
     for (final String tsLocation : locations) {
 
@@ -663,10 +663,10 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
       AccumuloSecurityException, InvalidTabletHostingRequestException {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
-    Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
-    Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>();
+    Map<KeyExtent,String> extentToTserverMap = new HashMap<>(ranges.size());
+    Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>(ranges.size());
 
-    Set<TabletIdImpl> tabletIds = new HashSet<>();
+    Set<TabletIdImpl> tabletIds = new HashSet<>(ranges.size());
 
     List<Range> failures = clientTabletCache.findTablets(context, ranges, (cachedTablet, range) -> {
       if (cachedTablet.getTserverLocation().isPresent()) {
@@ -712,7 +712,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     var actions = ecsm.selectServers(params);
 
-    Map<String,BatchAttemptReporter> reporters = new HashMap<>();
+    Map<String,BatchAttemptReporter> reporters = new HashMap<>(tabletIds.size());
 
     failures = new ArrayList<>();
 
@@ -888,7 +888,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     // copy requested to unscanned map. we will remove ranges as they are scanned in trackScanning()
     for (Entry<KeyExtent,List<Range>> entry : requested.entrySet()) {
-      ArrayList<Range> ranges = new ArrayList<>();
+      ArrayList<Range> ranges = new ArrayList<>(entry.getValue().size());
       for (Range range : entry.getValue()) {
         ranges.add(new Range(range));
       }

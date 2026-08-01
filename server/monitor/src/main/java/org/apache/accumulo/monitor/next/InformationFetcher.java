@@ -438,6 +438,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         FateStatus status = admin.getStatus(stores, zk, zTableLocksPath, null, null, null, false);
         summary.processFateTransactions(status.getTransactions());
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     }
@@ -649,6 +652,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     try {
       this.readOnlyMFS = new MetaFateStore<>(ctx.getZooSession(), null, null);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception creating MetaFateStore", e);
     }
     this.readOnlyUFS = new UserFateStore<>(ctx, SystemTables.FATE.tableName(), null, null);
@@ -721,6 +727,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     try {
       countThread.join(30_000);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new RuntimeException(
           "Interrupted while waiting for thread counting metadata tablet locations");
     }

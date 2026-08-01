@@ -100,6 +100,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
         try {
           Thread.sleep(SLEEP_TIME);
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException("Interrupted during sleep", ex);
         }
       }

@@ -236,8 +236,8 @@ public class Mutation implements Writable {
    * @param tmutation Thrift mutation
    */
   public Mutation(TMutation tmutation) {
-    this.row = ByteBufferUtil.toBytes(tmutation.bufferForRow());
-    this.data = ByteBufferUtil.toBytes(tmutation.bufferForData());
+    this.row = tmutation.getRow();
+    this.data = tmutation.getData();
     this.entries = tmutation.getEntries();
     this.values = ByteBufferUtil.toBytesList(tmutation.getValues());
 
@@ -1403,8 +1403,8 @@ public class Mutation implements Writable {
 
     boolean valuesPresent = (first & 0x01) == 0x01;
     if (valuesPresent) {
-      values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
+      values = new ArrayList<>(numValues);
       for (int i = 0; i < numValues; i++) {
         len = WritableUtils.readVInt(in);
         byte[] val = new byte[len];
@@ -1443,8 +1443,8 @@ public class Mutation implements Writable {
     List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
     if (valuesPresent) {
-      localValues = new ArrayList<>();
       int numValues = in.readInt();
+      localValues = new ArrayList<>(numValues);
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
         byte[] val = new byte[len];

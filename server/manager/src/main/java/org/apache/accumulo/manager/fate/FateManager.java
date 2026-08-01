@@ -189,6 +189,7 @@ public class FateManager {
         assignmentThread.join();
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
     // Try to set every assistant manager to an empty set of partitions. This will cause them all to
@@ -221,6 +222,9 @@ public class FateManager {
           try {
             yield new MetaFateStore<>(context.getZooSession(), null, null);
           } catch (KeeperException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new IllegalStateException(e);
           }
         }
@@ -236,6 +240,7 @@ public class FateManager {
           try {
             Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
           }
         }

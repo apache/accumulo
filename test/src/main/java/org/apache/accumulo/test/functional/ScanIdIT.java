@@ -63,6 +63,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,9 +95,19 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private static final int NUM_BATCH_SCANNERS = 1;
   private static final int NUM_TOTAL_SCANNERS = NUM_SINGLE_SCANNERS + NUM_BATCH_SCANNERS;
   private static final int NUM_DATA_ROWS = 100;
-  private static final ExecutorService pool = Executors.newFixedThreadPool(NUM_TOTAL_SCANNERS);
+  private static ExecutorService pool;
   private static final AtomicBoolean testInProgress = new AtomicBoolean(true);
   private static final Map<Integer,Value> resultsByWorker = new ConcurrentHashMap<>();
+
+  @BeforeAll
+  public static void setup() {
+    pool = Executors.newFixedThreadPool(NUM_TOTAL_SCANNERS);
+  }
+
+  @AfterAll
+  public static void teardown() {
+    pool.shutdownNow();
+  }
 
   @Override
   protected Duration defaultTimeout() {
