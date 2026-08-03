@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.util.Objects;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -54,11 +55,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TestUpgradePathForWALogs extends WithTestNames {
 
   // older logs no longer compatible
-  private static final String WALOG_FROM_15 = "walog-from-15.walog";
+  private static final String WALOG_FROM_15 = "org/apache/accumulo/tserver/walog-from-15.walog";
   // logs from versions 1.6 through 1.10 should be the same
-  private static final String WALOG_FROM_16 = "walog-from-16.walog";
+  private static final String WALOG_FROM_16 = "org/apache/accumulo/tserver/walog-from-16.walog";
   // logs from 2.0 were changed for improved crypto
-  private static final String WALOG_FROM_20 = "walog-from-20.walog";
+  private static final String WALOG_FROM_20 = "org/apache/accumulo/tserver/walog-from-20.walog";
 
   private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
@@ -108,72 +109,61 @@ public class TestUpgradePathForWALogs extends WithTestNames {
    */
   @Test
   public void testUpgradeOf15WALog() throws IOException {
-    String walogToTest = WALOG_FROM_15;
-    String testPath = perTestTempSubDir.toAbsolutePath().toString();
+    java.nio.file.Path testPath = perTestTempSubDir.toAbsolutePath();
+    copyWalogToTestDir(WALOG_FROM_15);
 
-    try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
-        OutputStream walogInHDFStream =
-            Files.newOutputStream(perTestTempSubDir.resolve(walogToTest))) {
-      walogStream.transferTo(walogInHDFStream);
-      walogInHDFStream.flush();
-      walogInHDFStream.close();
+    LogSorter logSorter = new LogSorter(server);
+    LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      LogSorter logSorter = new LogSorter(server);
-      LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
-
-      assertThrows(IllegalArgumentException.class,
-          () -> logProcessor.sort(context.getVolumeManager(), "/" + WALOG_FROM_15,
-              new Path("file://" + testPath + "/" + WALOG_FROM_15),
-              "file://" + testPath + "/manyMaps"));
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> logProcessor.sort(context.getVolumeManager(), "/" + WALOG_FROM_15,
+            new Path(testPath.toUri() + WALOG_FROM_15), testPath.toUri() + "manyMaps"));
   }
 
   @Test
   public void testBasic16WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_16;
-    String testPath = perTestTempSubDir.toAbsolutePath().toString();
-    String destPath = "file://" + testPath + "/manyMaps";
+    java.nio.file.Path testPath = perTestTempSubDir.toAbsolutePath();
+    String destPath = testPath.toUri() + "manyMaps";
+    copyWalogToTestDir(walogToTest);
 
-    try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
-        OutputStream walogInHDFStream =
-            Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
-      walogStream.transferTo(walogInHDFStream);
-      walogInHDFStream.flush();
-      walogInHDFStream.close();
+    assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
 
-      assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+    LogSorter logSorter = new LogSorter(server);
+    LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      LogSorter logSorter = new LogSorter(server);
-      LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
+    logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
+        new Path(testPath.toUri() + walogToTest), destPath);
 
-      logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
-          new Path("file://" + testPath + "/" + walogToTest), destPath);
-
-      assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
-    }
+    assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
   }
 
   @Test
   public void testBasic20WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_20;
-    String testPath = perTestTempSubDir.toAbsolutePath().toString();
-    String destPath = "file://" + testPath + "/manyMaps";
+    java.nio.file.Path testPath = perTestTempSubDir.toAbsolutePath();
+    String destPath = testPath.toUri() + "manyMaps";
+    copyWalogToTestDir(walogToTest);
 
-    try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
-        OutputStream walogInHDFStream =
-            Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
+    assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+
+    LogSorter logSorter = new LogSorter(server);
+    LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
+    logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
+        new Path(testPath.toUri() + walogToTest), destPath);
+
+    assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+  }
+
+  private void copyWalogToTestDir(String walogToTest) throws IOException {
+    var walogPath = perTestTempSubDir.resolve(walogToTest);
+    Files.createDirectories(Objects.requireNonNull(walogPath.getParent()));
+
+    try (
+        InputStream walogStream =
+            Objects.requireNonNull(getClass().getResourceAsStream("/" + walogToTest));
+        OutputStream walogInHDFStream = Files.newOutputStream(walogPath)) {
       walogStream.transferTo(walogInHDFStream);
-      walogInHDFStream.flush();
-      walogInHDFStream.close();
-
-      assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
-
-      LogSorter logSorter = new LogSorter(server);
-      LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
-      logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
-          new Path("file://" + testPath + "/" + walogToTest), destPath);
-
-      assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
     }
   }
 

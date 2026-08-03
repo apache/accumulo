@@ -64,37 +64,41 @@ public class UniqueNameAllocatorTest {
   public void testConcurrent() throws Exception {
     NameIterator iter = new NameIterator(0, 10_000);
     var executor = Executors.newCachedThreadPool();
+    try {
 
-    // start 100 threads each consuming 100 names
-    List<Future<String[]>> futures = new ArrayList<>(100);
-    for (int i = 0; i < 100; i++) {
-      var future = executor.submit(() -> {
-        String[] names = new String[100];
-        for (int j = 0; j < 100; j++) {
-          assertTrue(iter.hasNext());
-          names[j] = iter.next();
-        }
-        return names;
-      });
-      futures.add(future);
-    }
-
-    // verify 10_000 unique names were generated
-    TreeSet<String> allNames = new TreeSet<>();
-    for (var future : futures) {
-      String[] names = future.get();
-      for (String name : names) {
-        assertTrue(allNames.add(name));
+      // start 100 threads each consuming 100 names
+      List<Future<String[]>> futures = new ArrayList<>(100);
+      for (int i = 0; i < 100; i++) {
+        var future = executor.submit(() -> {
+          String[] names = new String[100];
+          for (int j = 0; j < 100; j++) {
+            assertTrue(iter.hasNext());
+            names[j] = iter.next();
+          }
+          return names;
+        });
+        futures.add(future);
       }
-    }
 
-    // everything should be consumed from the iterator
-    assertFalse(iter.hasNext());
+      // verify 10_000 unique names were generated
+      TreeSet<String> allNames = new TreeSet<>();
+      for (var future : futures) {
+        String[] names = future.get();
+        for (String name : names) {
+          assertTrue(allNames.add(name));
+        }
+      }
 
-    // verify order of names
-    long expected = 0;
-    for (String name : allNames) {
-      assertEquals(expected++, Long.parseLong(name, 36));
+      // everything should be consumed from the iterator
+      assertFalse(iter.hasNext());
+
+      // verify order of names
+      long expected = 0;
+      for (String name : allNames) {
+        assertEquals(expected++, Long.parseLong(name, 36));
+      }
+    } finally {
+      executor.shutdown();
     }
   }
 }

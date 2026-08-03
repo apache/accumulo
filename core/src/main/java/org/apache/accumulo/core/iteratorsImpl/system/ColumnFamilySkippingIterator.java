@@ -117,8 +117,7 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
     if (columnFamilies instanceof Set<?>) {
       colFamSet = (Set<ByteSequence>) columnFamilies;
     } else {
-      colFamSet = new HashSet<>();
-      colFamSet.addAll(columnFamilies);
+      colFamSet = new HashSet<>(columnFamilies);
     }
 
     if (inclusive) {

@@ -188,8 +188,8 @@ public class IteratorConfigUtil {
       List<IteratorSetting> iterators, IteratorEnvironment env)
       throws IOException, ReflectiveOperationException {
 
-    List<IterInfo> ssiList = new ArrayList<>();
-    Map<String,Map<String,String>> ssio = new HashMap<>();
+    List<IterInfo> ssiList = new ArrayList<>(iterators.size());
+    Map<String,Map<String,String>> ssio = new HashMap<>(iterators.size());
 
     for (IteratorSetting is : iterators) {
       ssiList.add(new IterInfo(is.getPriority(), is.getIteratorClass(), is.getName()));

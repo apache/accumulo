@@ -156,6 +156,9 @@ public class ServiceLock implements Watcher {
       watchingBasePath = true;
       this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Error setting initial watch", ex);
       throw new IllegalStateException(ex);
     }

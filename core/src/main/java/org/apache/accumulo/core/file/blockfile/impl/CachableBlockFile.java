@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
@@ -42,12 +43,14 @@ import org.apache.accumulo.core.trace.ScanInstrumentation;
 import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.base.Preconditions;
 
 /**
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
@@ -82,13 +85,22 @@ public class CachableBlockFile {
     }
 
     public CachableBuilder fsPath(FileSystem fs, Path dataFile) {
-      return fsPath(fs, dataFile, false);
+      return fsPath(fs, dataFile, false, null);
     }
 
-    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind) {
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile, FileStatus status) {
+      return fsPath(fs, dataFile, false, status);
+    }
+
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind,
+        FileStatus status) {
+      Preconditions.checkState(this.inputSupplier == null,
+          "file input already set via call to input()");
+      Preconditions.checkState(this.lengthSupplier == null,
+          "file length already set via call to length()");
       this.cacheId = pathToCacheId(dataFile);
       this.inputSupplier = () -> {
-        FSDataInputStream is = fs.open(dataFile);
+        FSDataInputStream is = FileOperations.openFile(fs, dataFile, status);
         if (dropCacheBehind) {
           // Tell the DataNode that the write ahead log does not need to be cached in the OS page
           // cache
@@ -104,17 +116,22 @@ public class CachableBlockFile {
         }
         return is;
       };
-      this.lengthSupplier = () -> fs.getFileStatus(dataFile).getLen();
+      this.lengthSupplier =
+          () -> status == null ? fs.getFileStatus(dataFile).getLen() : status.getLen();
       return this;
     }
 
     public CachableBuilder input(FSDataInputStream is, String cacheId) {
+      Preconditions.checkState(this.inputSupplier == null,
+          "file input already set via call to fsPath()");
       this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
     }
 
     public CachableBuilder length(long len) {
+      Preconditions.checkState(this.lengthSupplier == null,
+          "file length already set via call to fsPath()");
       this.lengthSupplier = () -> len;
       return this;
     }

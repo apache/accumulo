@@ -248,6 +248,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
     try {
       zapDirectory(zoo, path, ops);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }

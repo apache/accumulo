@@ -268,6 +268,7 @@ public class CompactionCoordinator
       try {
         localThread.join();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.error("Exception stopping compaction coordinator thread", e);
       }
     }
@@ -309,6 +310,7 @@ public class CompactionCoordinator
     try {
       shutdown.await();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.warn("Interrupted waiting for shutdown latch.", e);
     }
 

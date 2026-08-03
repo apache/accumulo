@@ -149,6 +149,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
     String table = getUniqueNames(1)[0];
 
+    var executor = Executors.newCachedThreadPool();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
       var splits = new TreeSet<Text>();
@@ -169,8 +170,6 @@ public class ZombieScanIT extends ConfigurableMacBase {
       // Flush the data otherwise when the tablet attempts to close with an active scan reading from
       // the in memory map it will wait for 15 seconds for the scan
       c.tableOperations().flush(table, null, null, true);
-
-      var executor = Executors.newCachedThreadPool();
 
       // start two zombie scans that should never return using a normal scanner
       List<Future<String>> futures = new ArrayList<>();
@@ -252,6 +251,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       // simple enough to include
       assertValidScanIds(c);
 
+    } finally {
       executor.shutdownNow();
     }
 
@@ -273,11 +273,10 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
 
+    var executor = Executors.newCachedThreadPool();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
 
       c.tableOperations().create(table);
-
-      var executor = Executors.newCachedThreadPool();
 
       // start four stuck scans that should never return data
       List<Future<String>> futures = new ArrayList<>();
@@ -337,6 +336,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
       assertEquals(6, countActiveScans(c, serverType, table));
 
+    } finally {
       executor.shutdownNow();
     }
   }

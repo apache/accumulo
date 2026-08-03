@@ -155,27 +155,30 @@ public class FunctionalTestUtils {
   public static void createRFiles(final AccumuloClient c, final FileSystem fs, String path,
       int rows, int splits, int threads) throws Exception {
     fs.delete(new Path(path), true);
-    ExecutorService threadPool = Executors.newFixedThreadPool(threads);
     final AtomicBoolean fail = new AtomicBoolean(false);
-    for (int i = 0; i < rows; i += rows / splits) {
-      TestIngest.IngestParams params = new TestIngest.IngestParams(c.properties());
-      params.outputFile = String.format("%s/mf%s", path, i);
-      params.random = 56;
-      params.timestamp = 1;
-      params.dataSize = 50;
-      params.rows = rows / splits;
-      params.startRow = i;
-      params.cols = 1;
-      threadPool.execute(() -> {
-        try {
-          TestIngest.ingest(c, fs, params);
-        } catch (Exception e) {
-          fail.set(true);
-        }
-      });
+    ExecutorService threadPool = Executors.newFixedThreadPool(threads);
+    try {
+      for (int i = 0; i < rows; i += rows / splits) {
+        TestIngest.IngestParams params = new TestIngest.IngestParams(c.properties());
+        params.outputFile = String.format("%s/mf%s", path, i);
+        params.random = 56;
+        params.timestamp = 1;
+        params.dataSize = 50;
+        params.rows = rows / splits;
+        params.startRow = i;
+        params.cols = 1;
+        threadPool.execute(() -> {
+          try {
+            TestIngest.ingest(c, fs, params);
+          } catch (Exception e) {
+            fail.set(true);
+          }
+        });
+      }
+    } finally {
+      threadPool.shutdown();
+      threadPool.awaitTermination(1, TimeUnit.HOURS);
     }
-    threadPool.shutdown();
-    threadPool.awaitTermination(1, TimeUnit.HOURS);
     assertFalse(fail.get());
   }
 

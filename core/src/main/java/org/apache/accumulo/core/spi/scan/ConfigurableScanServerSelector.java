@@ -231,11 +231,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       }
 
       if (servers.endsWith("%")) {
-        // TODO check < 100
-        serversRatio = Double.parseDouble(servers.substring(0, servers.length() - 1)) / 100.0;
-        if (serversRatio < 0 || serversRatio > 1) {
+        double percent = Double.parseDouble(servers.substring(0, servers.length() - 1));
+        if (percent <= 0 || percent > 100 || !Double.isFinite(percent)) {
           throw new IllegalArgumentException("Bad servers percentage : " + servers);
         }
+        serversRatio = percent / 100.0;
         isServersPercent = true;
       } else {
         parsedServers = Integer.parseInt(servers);

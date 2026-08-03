@@ -209,6 +209,9 @@ public class FateLock implements QueueLock {
         }
       }
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
   }
@@ -233,6 +236,9 @@ public class FateLock implements QueueLock {
         }
       }
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
     return result;
@@ -252,6 +258,9 @@ public class FateLock implements QueueLock {
         // the path had other lock nodes, no big deal
       }
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
   }

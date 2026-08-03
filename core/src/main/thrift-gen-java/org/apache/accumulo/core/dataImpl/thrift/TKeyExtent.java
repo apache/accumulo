@@ -163,7 +163,7 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public byte[] getTable() {
-    setTable(org.apache.thrift.TBaseHelper.rightSize(table));
+    this.table = org.apache.thrift.TBaseHelper.rightSize(table);
     return table == null ? null : table.array();
   }
 
@@ -197,7 +197,7 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public byte[] getEndRow() {
-    setEndRow(org.apache.thrift.TBaseHelper.rightSize(endRow));
+    this.endRow = org.apache.thrift.TBaseHelper.rightSize(endRow);
     return endRow == null ? null : endRow.array();
   }
 
@@ -231,7 +231,7 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public byte[] getPrevEndRow() {
-    setPrevEndRow(org.apache.thrift.TBaseHelper.rightSize(prevEndRow));
+    this.prevEndRow = org.apache.thrift.TBaseHelper.rightSize(prevEndRow);
     return prevEndRow == null ? null : prevEndRow.array();
   }
 

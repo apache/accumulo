@@ -481,7 +481,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
    */
   @Test
   public void importV2data() throws Exception {
-    final String dataRoot = "./target/classes/v2_import_test";
+    final String dataRoot = "./target/classes/org/apache/accumulo/test/v2_import_test";
     final String dataSrc = dataRoot + "/data";
     final String importDir = dataRoot + "/import";
 

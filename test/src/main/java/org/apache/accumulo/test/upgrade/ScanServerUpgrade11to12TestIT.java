@@ -111,6 +111,9 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
       log.info("Removed constraints from table {}", tableName);
       Thread.sleep(10_000);
     } catch (AccumuloException | AccumuloSecurityException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
 

@@ -263,7 +263,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       Collections.synchronizedSet(new HashSet<>());
 
   public static List<CompactionInfo> getRunningCompactions() {
-    ArrayList<CompactionInfo> compactions = new ArrayList<>();
+    ArrayList<CompactionInfo> compactions = new ArrayList<>(runningCompactions.size());
 
     runningCompactions.forEach(compactor -> compactions.add(new CompactionInfo(compactor)));
 

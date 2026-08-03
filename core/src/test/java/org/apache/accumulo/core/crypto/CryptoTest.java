@@ -560,34 +560,38 @@ public class CryptoTest {
     byte[] cipherText = out.toByteArray();
 
     var executor = Executors.newCachedThreadPool();
+    try {
 
-    final int numTasks = 32;
-    List<Future<Boolean>> verifyFutures = new ArrayList<>(numTasks);
-    CountDownLatch startLatch = new CountDownLatch(numTasks);
-    assertTrue(numTasks >= startLatch.getCount(),
-        "Not enough tasks to satisfy latch count - deadlock risk");
+      final int numTasks = 32;
+      List<Future<Boolean>> verifyFutures = new ArrayList<>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-    FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
+      FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
 
-    // verify that each input stream returned by decrypter.decryptStream() is independent when used
-    // by multiple threads
-    for (int i = 0; i < numTasks; i++) {
-      var future = executor.submit(() -> {
-        startLatch.countDown();
-        startLatch.await();
-        try (ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
-            DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in))) {
-          byte[] dataRead = new byte[plainText.length];
-          decrypted.readFully(dataRead);
-          return Arrays.equals(plainText, dataRead);
-        }
-      });
-      verifyFutures.add(future);
-    }
-    assertEquals(numTasks, verifyFutures.size());
+      // verify that each input stream returned by decrypter.decryptStream() is independent when
+      // used by multiple threads
+      for (int i = 0; i < numTasks; i++) {
+        var future = executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
+          try (ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
+              DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in))) {
+            byte[] dataRead = new byte[plainText.length];
+            decrypted.readFully(dataRead);
+            return Arrays.equals(plainText, dataRead);
+          }
+        });
+        verifyFutures.add(future);
+      }
+      assertEquals(numTasks, verifyFutures.size());
 
-    for (var future : verifyFutures) {
-      assertTrue(future.get());
+      for (var future : verifyFutures) {
+        assertTrue(future.get());
+      }
+    } finally {
+      executor.shutdownNow();
     }
   }
 

@@ -7419,7 +7419,7 @@ public class ManagerClientService {
     }
 
     public byte[] getStartRow() {
-      setStartRow(org.apache.thrift.TBaseHelper.rightSize(startRow));
+      this.startRow = org.apache.thrift.TBaseHelper.rightSize(startRow);
       return startRow == null ? null : startRow.array();
     }
 
@@ -7453,7 +7453,7 @@ public class ManagerClientService {
     }
 
     public byte[] getEndRow() {
-      setEndRow(org.apache.thrift.TBaseHelper.rightSize(endRow));
+      this.endRow = org.apache.thrift.TBaseHelper.rightSize(endRow);
       return endRow == null ? null : endRow.array();
     }
 

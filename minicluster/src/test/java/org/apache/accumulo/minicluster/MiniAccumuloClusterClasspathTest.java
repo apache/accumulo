@@ -68,9 +68,8 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     Files.createDirectories(testDir);
 
     jarFile = tempDir.resolve("iterator.jar").toFile();
-    FileUtils.copyURLToFile(
-        requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
-        jarFile);
+    FileUtils.copyURLToFile(requireNonNull(MiniAccumuloClusterClasspathTest.class
+        .getResource("/org/apache/accumulo/minicluster/FooFilter.jar")), jarFile);
 
     MiniAccumuloConfig config =
         new MiniAccumuloConfig(testDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);

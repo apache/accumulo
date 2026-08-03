@@ -277,8 +277,9 @@ public class Tablet extends TabletBase {
       final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
-        Set<String> absPaths = new HashSet<>();
-        for (StoredTabletFile ref : metadata.getFiles()) {
+        Set<StoredTabletFile> files = metadata.getFiles();
+        Set<String> absPaths = new HashSet<>(files.size());
+        for (StoredTabletFile ref : files) {
           absPaths.add(ref.getNormalizedPathStr());
         }
 
@@ -335,7 +336,7 @@ public class Tablet extends TabletBase {
         }
       }
       // make some closed references that represent the recovered logs
-      currentLogs = new HashSet<>();
+      currentLogs = new HashSet<>(logEntries.size(), 1.0f);
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(DfsLogger.fromLogEntry(logEntry));
       }
@@ -964,6 +965,7 @@ public class Tablet extends TabletBase {
               runningScans.size());
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error("Interrupted waiting to completeClose for extent {}", extent, e);
         }
       }
@@ -1252,8 +1254,8 @@ public class Tablet extends TabletBase {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<LogEntry> unusedLogs = new HashSet<>();
 
-    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>();
-    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>(otherLogs.size());
+    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>(currentLogs.size());
 
     synchronized (this) {
       if (removingLogs) {

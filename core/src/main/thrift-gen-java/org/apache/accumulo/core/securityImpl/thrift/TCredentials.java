@@ -226,7 +226,7 @@ public class TCredentials implements org.apache.thrift.TBase<TCredentials, TCred
   }
 
   public byte[] getToken() {
-    setToken(org.apache.thrift.TBaseHelper.rightSize(token));
+    this.token = org.apache.thrift.TBaseHelper.rightSize(token);
     return token == null ? null : token.array();
   }
 

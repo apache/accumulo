@@ -195,7 +195,7 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   }
 
   public byte[] getRow() {
-    setRow(org.apache.thrift.TBaseHelper.rightSize(row));
+    this.row = org.apache.thrift.TBaseHelper.rightSize(row);
     return row == null ? null : row.array();
   }
 
@@ -229,7 +229,7 @@ public class TMutation implements org.apache.thrift.TBase<TMutation, TMutation._
   }
 
   public byte[] getData() {
-    setData(org.apache.thrift.TBaseHelper.rightSize(data));
+    this.data = org.apache.thrift.TBaseHelper.rightSize(data);
     return data == null ? null : data.array();
   }
 

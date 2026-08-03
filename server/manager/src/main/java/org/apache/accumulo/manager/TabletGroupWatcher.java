@@ -344,6 +344,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }
@@ -378,6 +379,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         try {
           wait(millis);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }

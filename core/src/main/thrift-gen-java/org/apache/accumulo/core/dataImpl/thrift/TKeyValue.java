@@ -175,7 +175,7 @@ public class TKeyValue implements org.apache.thrift.TBase<TKeyValue, TKeyValue._
   }
 
   public byte[] getValue() {
-    setValue(org.apache.thrift.TBaseHelper.rightSize(value));
+    this.value = org.apache.thrift.TBaseHelper.rightSize(value);
     return value == null ? null : value.array();
   }
 

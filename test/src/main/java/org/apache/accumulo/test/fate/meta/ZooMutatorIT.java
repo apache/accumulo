@@ -86,11 +86,10 @@ public class ZooMutatorIT extends WithTestNames {
     if (!Files.isDirectory(newFolder)) {
       Files.createDirectories(newFolder);
     }
+    final int numTasks = 16;
+    var executor = Executors.newFixedThreadPool(numTasks);
     try (var testZk = new ZooKeeperTestingServer(newFolder.toFile()); var zk = testZk.newClient()) {
       var zrw = zk.asReaderWriter();
-
-      final int numTasks = 16;
-      var executor = Executors.newFixedThreadPool(numTasks);
 
       String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
@@ -131,7 +130,6 @@ public class ZooMutatorIT extends WithTestNames {
           countCounts.put(count, countCounts.getOrDefault(count, 0) + 1);
         }
       }
-      executor.shutdown();
 
       byte[] actual = zrw.getData("/test-zm");
       int settledCount = getCount(actual);
@@ -149,6 +147,8 @@ public class ZooMutatorIT extends WithTestNames {
 
       assertEquals(settledCount + 1, countCounts.size());
       assertEquals(expected, new String(actual, UTF_8));
+    } finally {
+      executor.shutdown();
     }
   }
 

@@ -40,21 +40,26 @@ public class AssignmentWatcherTest {
   @Test
   public void testAssignmentWarning() {
     var e = (ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1);
-    var c = new ConfigurationCopy(Map.of(Property.TSERV_ASSIGNMENT_DURATION_WARNING.getKey(), "0"));
-    ServerContext context = createMock(ServerContext.class);
-    expect(context.getScheduledExecutor()).andReturn(e);
-    expect(context.getConfiguration()).andReturn(c);
+    try {
+      var c =
+          new ConfigurationCopy(Map.of(Property.TSERV_ASSIGNMENT_DURATION_WARNING.getKey(), "0"));
+      ServerContext context = createMock(ServerContext.class);
+      expect(context.getScheduledExecutor()).andReturn(e);
+      expect(context.getConfiguration()).andReturn(c);
 
-    ActiveAssignmentRunnable task = createMock(ActiveAssignmentRunnable.class);
-    expect(task.getException()).andReturn(new Exception("Assignment warning happened"));
+      ActiveAssignmentRunnable task = createMock(ActiveAssignmentRunnable.class);
+      expect(task.getException()).andReturn(new Exception("Assignment warning happened"));
 
-    var assignments = Map.of(new KeyExtent(TableId.of("1"), null, null),
-        new RunnableStartedAt(task, System.currentTimeMillis()));
-    var watcher = new AssignmentWatcher(context, assignments);
+      var assignments = Map.of(new KeyExtent(TableId.of("1"), null, null),
+          new RunnableStartedAt(task, System.currentTimeMillis()));
+      var watcher = new AssignmentWatcher(context, assignments);
 
-    replay(context, task);
-    watcher.run();
-    verify(context, task);
+      replay(context, task);
+      watcher.run();
+      verify(context, task);
+    } finally {
+      e.shutdownNow();
+    }
   }
 
 }

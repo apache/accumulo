@@ -216,8 +216,7 @@ class ScanDataSource implements DataSource {
     }
 
     var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
-        .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)
-        .withTableId(tablet.getExtent().tableId())
+        .withScope(IteratorScope.scan).withTableId(tablet.getExtent().tableId())
         .withAuthorizations(scanParams.getAuthorizations());
     if (samplerConfig != null) {
       builder.withSamplingEnabled();

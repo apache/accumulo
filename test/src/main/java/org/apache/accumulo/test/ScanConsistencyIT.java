@@ -206,7 +206,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
             }
           }
         } catch (InterruptedException e) {
-          // ignore
+          Thread.currentThread().interrupt();
         } catch (Exception e) {
           log.warn("Failed to scan metadata table", e);
         }
