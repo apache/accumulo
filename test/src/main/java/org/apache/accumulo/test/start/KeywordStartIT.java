@@ -64,6 +64,7 @@ import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.CancelCompaction;
+import org.apache.accumulo.server.util.CleanZooKeeper;
 import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindOfflineTablets;
@@ -72,6 +73,7 @@ import org.apache.accumulo.server.util.ListCompactions;
 import org.apache.accumulo.server.util.ListCompactors;
 import org.apache.accumulo.server.util.ListOnlineOnDemandTablets;
 import org.apache.accumulo.server.util.LoginProperties;
+import org.apache.accumulo.server.util.ProcessStatus;
 import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.UpgradeUtil;
@@ -254,6 +256,8 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "prop-editor", ZooPropEditor.class));
     expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zap", ZooZap.class));
     expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "cli", ZooKeeperMain.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "clean-zk", CleanZooKeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "process-status", ProcessStatus.class));
 
     Map<CommandGroup,Map<String,KeywordExecutable>> actualExecutables = getKeywordExecutables();
     SortedSet<CommandInfo> actualSet = new TreeSet<>();

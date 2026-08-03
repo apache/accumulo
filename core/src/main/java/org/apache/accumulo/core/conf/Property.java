@@ -1423,7 +1423,12 @@ public enum Property {
       "The interval at which to check for dead compactors.", "2.1.0"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
-      "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
+      "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0"),
+  GENERAL_EXPECTED_PROCESS_COUNTS("general.expected.process.counts", "", PropertyType.STRING,
+      "Declare the expected number of server processes per type and resource group. Used by the process-status utility to identify compactor and scan servers that are down."
+          + "Format: comma-separated list of <type>.<resourceGroup>=<count> entries. valid types are 'compactor' and 'sserver'."
+          + "Example: compactor.default=2, compactor.CTEST=3, sserver.default=1 ",
+      "4.0.0");
 
   private final String key;
   private final String defaultValue;
