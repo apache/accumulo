@@ -59,33 +59,44 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.CloseScannerIT;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
 
-public class ScannerIT extends ConfigurableMacBase {
+public class ScannerIT extends SharedMiniClusterBase {
+
+  private static final Logger log = LoggerFactory.getLogger(ScannerIT.class);
+
+  @BeforeAll
+  public static void start() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(
+        (cfg, coreSite) -> cfg.getClusterServerConfiguration().setNumDefaultScanServers(1));
+  }
+
+  @AfterAll
+  public static void stop() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
   }
 
-  @Override
-  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
-  }
-
   @Test
   public void testScannerReadaheadConfiguration() throws Exception {
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table);
 
       try (BatchWriter bw = c.createBatchWriter(table)) {
@@ -166,7 +177,7 @@ public class ScannerIT extends ConfigurableMacBase {
   public void testSessionCleanup(ConsistencyLevel consistency) throws Exception {
     final String tableName = getUniqueNames(1)[0] + "_" + consistency;
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
 
       accumuloClient.tableOperations().create(tableName);
 
@@ -260,7 +271,7 @@ public class ScannerIT extends ConfigurableMacBase {
     getCluster().getClusterControl().startAllServers(SCAN_SERVER);
     var random = new SecureRandom();
 
-    Properties props = getClientProperties();
+    Properties props = getClientProps();
     // configure scan server not to fallback to tablet servers
     String profiles = "[{'isDefault':true,'maxBusyTimeout':'1s', 'busyTimeoutMultiplier':8,"
         + "'timeToWaitForScanServers':10h, "
@@ -349,7 +360,7 @@ public class ScannerIT extends ConfigurableMacBase {
     getCluster().getClusterControl().startAllServers(SCAN_SERVER);
 
     final String table = getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
       try (var writer = client.createBatchWriter(table)) {
@@ -393,6 +404,7 @@ public class ScannerIT extends ConfigurableMacBase {
       } finally {
         executor.shutdownNow();
       }
+      client.tableOperations().delete(table);
     }
   }
 

@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.base.Preconditions;
 
 /**
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
@@ -93,6 +94,10 @@ public class CachableBlockFile {
 
     public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind,
         FileStatus status) {
+      Preconditions.checkState(this.inputSupplier == null,
+          "file input already set via call to input()");
+      Preconditions.checkState(this.lengthSupplier == null,
+          "file length already set via call to length()");
       this.cacheId = pathToCacheId(dataFile);
       this.inputSupplier = () -> {
         FSDataInputStream is = FileOperations.openFile(fs, dataFile, status);
@@ -117,12 +122,16 @@ public class CachableBlockFile {
     }
 
     public CachableBuilder input(FSDataInputStream is, String cacheId) {
+      Preconditions.checkState(this.inputSupplier == null,
+          "file input already set via call to fsPath()");
       this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
     }
 
     public CachableBuilder length(long len) {
+      Preconditions.checkState(this.lengthSupplier == null,
+          "file length already set via call to fsPath()");
       this.lengthSupplier = () -> len;
       return this;
     }
