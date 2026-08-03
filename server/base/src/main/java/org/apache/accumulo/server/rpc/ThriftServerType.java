@@ -46,6 +46,9 @@ public enum ThriftServerType {
     if (StringUtils.isBlank(name)) {
       return getDefault();
     }
+    if (name.trim().equalsIgnoreCase("custom_hs_ha")) {
+      return ThriftServerType.HS_HA;
+    }
     return ThriftServerType.valueOf(name.trim().toUpperCase());
   }
 
