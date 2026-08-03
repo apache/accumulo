@@ -50,7 +50,7 @@ public class DeleteIT extends AccumuloClusterHarness {
 
   public static void deleteTest(AccumuloClient c, AccumuloCluster cluster, String tableName)
       throws Exception {
-    VerifyParams params = new VerifyParams(getClientProps(), tableName, 1000);
+    VerifyParams params = new VerifyParams(c.properties(), tableName, 1000);
     params.cols = 1;
     params.random = 56;
     TestIngest.ingest(c, params);
