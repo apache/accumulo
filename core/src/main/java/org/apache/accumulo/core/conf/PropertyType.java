@@ -116,7 +116,7 @@ public enum PropertyType {
           + " '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
 
-  PATH("path", new ValidPath(),
+  PATH("path",  x -> true,
       "A string that represents a filesystem path, which can be either relative"
           + " or absolute to some directory. The filesystem depends on the property. "
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
@@ -211,26 +211,6 @@ public enum PropertyType {
     Preconditions.checkState(predicate != null,
         "Predicate was null, maybe this enum was serialized????");
     return predicate.test(value);
-  }
-
-  /**
-   * Validate that the provided string is a valid path.
-   */
-  private static class ValidPath implements Predicate<String> {
-    private static final Logger log = LoggerFactory.getLogger(ValidPath.class);
-
-    @Override
-    public boolean test(String path) {
-      if (path == null || path.trim().isEmpty()) {
-        return true;
-      } else if (new Path(path.trim()).isAbsolute()) {
-        return true;
-      } else if (path.matches("/?[A-Za-z+/?]+")) {
-        return true;
-      }
-      log.error("provided path is not valid");
-      return false;
-    }
   }
 
   /**
