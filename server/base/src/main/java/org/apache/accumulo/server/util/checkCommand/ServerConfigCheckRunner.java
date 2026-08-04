@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util.checkCommand;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
@@ -52,8 +51,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
     }
 
     log.trace("Checking that all required config properties are present");
-    Set<Property> requiredProps = Property.getRequiredProperties();
-    for (var reqProp : requiredProps) {
+    for (var reqProp : Property.REQUIRED_PROPERTIES) {
       var confPropVal = config.get(reqProp);
       // already checked that all set properties are valid, just check that it is set then we know
       // it's valid

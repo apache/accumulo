@@ -1564,25 +1564,6 @@ public enum Property {
     return replacedBy;
   }
 
-  /**
-   * Gets the set of required properties. Each property was arbitrarily/manually identified to be
-   * required, either by default or because they are required to run a system. If one of these
-   * properties is not configured, the required properties check will fail.
-   *
-   * @return Set{@literal <Property>}
-   */
-  public static Set<Property> getRequiredProperties() {
-    return Set.of(Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_SECRET,
-        Property.INSTANCE_VOLUMES, Property.GENERAL_THREADPOOL_SIZE,
-        Property.GENERAL_DELEGATION_TOKEN_LIFETIME,
-        Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL, Property.GENERAL_IDLE_PROCESS_INTERVAL,
-        Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
-        Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, Property.MANAGER_CLIENTPORT,
-        Property.TSERV_CLIENTPORT, Property.GC_CYCLE_START, Property.GC_CYCLE_DELAY,
-        Property.GC_PORT, Property.MONITOR_PORT, Property.TABLE_MAJC_RATIO,
-        Property.TABLE_SPLIT_THRESHOLD);
-  }
-
   private void precomputeAnnotations() {
     isSensitive =
         hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
@@ -1771,6 +1752,20 @@ public enum Property {
       // COMPACTION_SERVICE options
       COMPACTION_SERVICE_DEFAULT_PLANNER, COMPACTION_SERVICE_DEFAULT_MAX_OPEN,
       COMPACTION_SERVICE_DEFAULT_GROUPS));
+
+  /**
+   * The set of required properties. Each property was arbitrarily/manually identified to be
+   * required, either by default or because they are required to run a system. If one of these
+   * properties is not configured, the required properties check will fail.
+   */
+  public static final Set<Property> REQUIRED_PROPERTIES =
+      Collections.unmodifiableSet(EnumSet.of(INSTANCE_ZK_HOST, INSTANCE_ZK_TIMEOUT, INSTANCE_SECRET,
+          INSTANCE_VOLUMES, GENERAL_THREADPOOL_SIZE, GENERAL_DELEGATION_TOKEN_LIFETIME,
+          GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL, GENERAL_IDLE_PROCESS_INTERVAL,
+          GENERAL_LOW_MEM_DETECTOR_INTERVAL, GENERAL_LOW_MEM_DETECTOR_THRESHOLD,
+          GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
+          GC_CYCLE_START, GC_CYCLE_DELAY, GC_PORT, MONITOR_PORT, TABLE_MAJC_RATIO,
+          TABLE_SPLIT_THRESHOLD));
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart

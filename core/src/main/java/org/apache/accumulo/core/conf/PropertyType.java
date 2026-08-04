@@ -116,7 +116,7 @@ public enum PropertyType {
           + " '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
 
-  PATH("path",  x -> true,
+  PATH("path", x -> true,
       "A string that represents a filesystem path, which can be either relative"
           + " or absolute to some directory. The filesystem depends on the property. "
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
