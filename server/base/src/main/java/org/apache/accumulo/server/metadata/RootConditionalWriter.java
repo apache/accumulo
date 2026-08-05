@@ -89,18 +89,6 @@ public class RootConditionalWriter implements ConditionalWriter {
 
     ServerConditionalMutation scm = new ServerConditionalMutation(tcm);
 
-    try {
-      context.getZooCache().clear(RootTable.ZROOT_TABLET);
-
-      // In order to avoid race condition, wait for ZROOT_TABLET to clear before attempting another
-      // clear() below.
-      while (context.getZooCache().get(RootTable.ZROOT_TABLET).length != 0) {
-        Thread.sleep(100);
-      }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
     List<ServerConditionalMutation> okMutations = new ArrayList<>();
     List<TCMResult> results = new ArrayList<>();
 
@@ -139,10 +127,6 @@ public class RootConditionalWriter implements ConditionalWriter {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-
-    // TODO this is racy...
-    context.getZooCache().clear(RootTable.ZROOT_TABLET);
-
     return getResult(okMutations, results, mutation);
   }
 

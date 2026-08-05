@@ -97,14 +97,6 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
     }
 
     try {
-      context.getZooCache().clear(RootTable.ZROOT_TABLET);
-
-      // In order to avoid race condition, wait for ZROOT_TABLET to clear before attempting another
-      // clear() below.
-      while (context.getZooCache().get(RootTable.ZROOT_TABLET).length != 0) {
-        Thread.sleep(100);
-      }
-
       context.getZooSession().asReaderWriter().mutateExisting(RootTable.ZROOT_TABLET, currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);
@@ -113,8 +105,6 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
         log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);
         return newJson.getBytes(UTF_8);
       });
-
-      context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
       if (closeAfterMutate != null) {
         closeAfterMutate.close();
