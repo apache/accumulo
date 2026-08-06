@@ -309,12 +309,12 @@ Files (in server/monitor/src/main/resources/):
     Copyright (c) 2008-2026 SpryMedia Ltd
     Licensed under the MIT license (see above)
 
-## DataTables Buttons 2.4.2 (https://datatables.net)
+## DataTables Buttons 4.0.1 (https://datatables.net)
 
 Files (in server/monitor/src/main/resources/):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
 
-    Copyright (c) 2010-2015 SpryMedia Limited
+    Copyright (c) 2010-2026 SpryMedia Limited
     Licensed under the MIT license (see above)
 
 ## DataTables ColReorder 1.7.0 (https://datatables.net)
