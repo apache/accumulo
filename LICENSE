@@ -301,7 +301,7 @@ Files (in server/monitor/src/main/resources/):
     Copyright 2019-2024 The Bootstrap Authors
     Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
 
-## DataTables 2.1.0 (https://datatables.net)
+## DataTables 3.0.1 (https://datatables.net)
 
 Files (in server/monitor/src/main/resources/):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
