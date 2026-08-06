@@ -235,7 +235,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
 
     try {
       if (options.numSplits > 0) {
-        preSplitFateTable(options);
+        generateFateTableSplits(options);
         return;
       }
       if (options.cancel) {
@@ -287,7 +287,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     }
   }
 
-  private void preSplitFateTable(FateOpts options) throws Exception {
+  private void generateFateTableSplits(FateOpts options) throws Exception {
     List<String> splits = generateSplits(options.numSplits);
 
     if (options.splitsFile != null) {
