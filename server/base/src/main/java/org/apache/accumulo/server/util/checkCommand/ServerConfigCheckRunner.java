@@ -46,21 +46,9 @@ public class ServerConfigCheckRunner implements CheckRunner {
       var val = entry.getValue();
       if (!Property.isValidProperty(key, val)) {
         log.warn("Invalid property (key={} val={}) found in the config", key, val);
-        status &= false;
+        status = false;
       }
     }
-
-    log.trace("Checking that all required config properties are present");
-    for (var reqProp : Property.REQUIRED_PROPERTIES) {
-      var confPropVal = config.get(reqProp);
-      // already checked that all set properties are valid, just check that it is set then we know
-      // it's valid
-      if (confPropVal == null || confPropVal.isEmpty()) {
-        log.warn("Required property {} is not set!", reqProp);
-        status &= false;
-      }
-    }
-
     printCompleted(status);
     return status;
   }
