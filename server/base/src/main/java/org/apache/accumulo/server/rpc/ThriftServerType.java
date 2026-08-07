@@ -19,6 +19,8 @@
 package org.apache.accumulo.server.rpc;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The type of configured Thrift server to start. This is meant more as a developer knob to ensure
@@ -43,10 +45,13 @@ public enum ThriftServerType {
   }
 
   public static ThriftServerType get(String name) {
+    final Logger log = LoggerFactory.getLogger(ThriftServerType.class);
     if (StringUtils.isBlank(name)) {
       return getDefault();
     }
+    // check added for backwards compatibility
     if (name.trim().equalsIgnoreCase("custom_hs_ha")) {
+      log.warn("Server type custom_hs_ha is deprecated, use {}", ThriftServerType.HS_HA);
       return ThriftServerType.HS_HA;
     }
     return ThriftServerType.valueOf(name.trim().toUpperCase());
