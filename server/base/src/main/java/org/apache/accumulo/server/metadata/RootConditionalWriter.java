@@ -127,6 +127,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+    context.getZooCache().clear(RootTable.ZROOT_TABLET);
     return getResult(okMutations, results, mutation);
   }
 

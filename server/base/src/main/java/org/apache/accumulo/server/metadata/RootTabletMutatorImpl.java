@@ -106,6 +106,8 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
         return newJson.getBytes(UTF_8);
       });
 
+      context.getZooCache().clear(RootTable.ZROOT_TABLET);
+
       if (closeAfterMutate != null) {
         closeAfterMutate.close();
       }
