@@ -133,6 +133,24 @@ public class ColumnVisibility {
       children.add(child);
     }
 
+    /**
+     * Creates a new node by performing a deep copy of an existing node object
+     *
+     * @param node Node object
+     * @since 2.1.4
+     */
+    private Node(Node node) {
+      List<Node> childrenNew =
+          node.children.isEmpty() ? EMPTY : new ArrayList<>(node.children.size());
+      for (Node child : node.children) {
+        childrenNew.add(new Node(child));
+      }
+      this.type = node.type;
+      this.start = node.start;
+      this.end = node.end;
+      this.children = childrenNew;
+    }
+
     public NodeType getType() {
       return type;
     }
@@ -502,7 +520,36 @@ public class ColumnVisibility {
    * @see #ColumnVisibility(String)
    */
   public ColumnVisibility(byte[] expression) {
-    validate(expression);
+    this(expression, true);
+  }
+
+  /**
+   * Creates a column visibility for a mutation from a string already encoded in UTF-8 bytes. Allows
+   * validation to be skipped for use with accumulo-access AccessExpressions
+   *
+   * @param expression visibility expression, encoded as UTF-8 bytes
+   * @param validate enables or disables validation and parse tree generation
+   */
+  private ColumnVisibility(byte[] expression, boolean validate) {
+    if (validate) {
+      validate(expression);
+    } else {
+      this.expression = Arrays.copyOf(expression, expression.length);
+      this.node = EMPTY_NODE;
+    }
+  }
+
+  /**
+   * Creates a new column visibility by performing a deep copy of an existing column visibility
+   * object
+   *
+   * @param visibility ColumnVisibility object
+   * @since 2.1.4
+   */
+  public ColumnVisibility(ColumnVisibility visibility) {
+    byte[] incomingExpression = visibility.expression;
+    this.expression = Arrays.copyOf(incomingExpression, incomingExpression.length);
+    this.node = new Node(visibility.node);
   }
 
   @Override
@@ -592,5 +639,19 @@ public class ColumnVisibility {
     }
 
     return VisibilityEvaluator.escape(term, true);
+  }
+
+  /**
+   * Creates a column visibility for a Mutation that skips validation and does not generate a parse
+   * tree This method exists to allow users to utilize accumulo AccessExpressions in 2.1 and should
+   * not be used otherwise
+   *
+   * @param incomingExpression visibility expression, encoded as UTF-8 bytes
+   * @see #ColumnVisibility(String)
+   * @since 2.1.4
+   */
+  @Deprecated(since = "2.1.4")
+  public static ColumnVisibility fromAccessExpression(byte[] incomingExpression) {
+    return new ColumnVisibility(incomingExpression, false);
   }
 }
