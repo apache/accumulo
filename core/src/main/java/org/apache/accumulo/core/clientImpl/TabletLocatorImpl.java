@@ -21,6 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,11 +55,17 @@ import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Scheduler;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
+  private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
 
   // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
   // this purpose, but there seems to be a bug in TreeMap.tailMap with null. Therefore instead of
@@ -80,7 +87,9 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected TableId tableId;
   protected TabletLocator parent;
+  // The TreeMap supports range lookups; Caffeine tracks access and expires entries from it.
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
+  private final Cache<KeyExtent,TabletLocation> extentCache;
   protected TabletLocationObtainer locationObtainer;
   private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
@@ -158,8 +167,27 @@ public class TabletLocatorImpl extends TabletLocator {
     this.locationObtainer = tlo;
     this.lockChecker = tslc;
 
+    extentCache = Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION)
+        .scheduler(Scheduler.systemScheduler()).removalListener(this::onExtentRemoval).build();
+
     this.lastTabletRow = new Text(tableId.canonical());
     lastTabletRow.append(new byte[] {'<'}, 0, 1);
+  }
+
+  private void onExtentRemoval(KeyExtent extent, TabletLocation location, RemovalCause cause) {
+    if (cause == RemovalCause.REPLACED) {
+      return;
+    }
+
+    wLock.lock();
+    try {
+      Text endRow = extent.endRow() == null ? MAX_TEXT : extent.endRow();
+      if (metaCache.get(endRow) == location) {
+        metaCache.remove(endRow);
+      }
+    } finally {
+      wLock.unlock();
+    }
   }
 
   @Override
@@ -465,6 +493,7 @@ public class TabletLocatorImpl extends TabletLocator {
     try {
       invalidatedCount = metaCache.size();
       metaCache.clear();
+      extentCache.invalidateAll();
     } finally {
       wLock.unlock();
     }
@@ -596,6 +625,7 @@ public class TabletLocatorImpl extends TabletLocator {
       er = MAX_TEXT;
     }
     metaCache.put(er, tabletLocation);
+    extentCache.put(tabletLocation.tablet_extent, tabletLocation);
 
     if (!badExtents.isEmpty()) {
       removeOverlapping(badExtents, tabletLocation.tablet_extent);
@@ -648,9 +678,13 @@ public class TabletLocatorImpl extends TabletLocator {
     Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
 
     if (entry != null) {
-      KeyExtent ke = entry.getValue().tablet_extent;
+      TabletLocation location = extentCache.getIfPresent(entry.getValue().tablet_extent);
+      if (location == null) {
+        return null;
+      }
+      KeyExtent ke = location.tablet_extent;
       if (ke.prevEndRow() == null || ke.prevEndRow().compareTo(row) < 0) {
-        return entry.getValue();
+        return location;
       }
     }
     return null;
