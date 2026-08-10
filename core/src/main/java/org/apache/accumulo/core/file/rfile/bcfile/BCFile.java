@@ -473,6 +473,7 @@ public final class BCFile {
       private final InputStream rawInputStream;
       private final InputStream in;
       private volatile boolean closed;
+      private final Object closeLock = new Object();
 
       public <InputStreamType extends InputStream & Seekable> RBlockState(
           CompressionAlgorithm compressionAlgo, InputStreamType fsin, BlockRegion region,
@@ -523,7 +524,7 @@ public final class BCFile {
       }
 
       public void finish() throws IOException {
-        synchronized (in) {
+        synchronized (closeLock) {
           if (!closed) {
             try {
               in.close();
