@@ -168,17 +168,13 @@ public class TabletLocatorImpl extends TabletLocator {
     this.lockChecker = tslc;
 
     extentCache = Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION)
-        .scheduler(Scheduler.systemScheduler()).removalListener(this::onExtentRemoval).build();
+        .scheduler(Scheduler.systemScheduler()).evictionListener(this::onExtentEviction).build();
 
     this.lastTabletRow = new Text(tableId.canonical());
     lastTabletRow.append(new byte[] {'<'}, 0, 1);
   }
 
-  private void onExtentRemoval(KeyExtent extent, TabletLocation location, RemovalCause cause) {
-    if (cause == RemovalCause.REPLACED) {
-      return;
-    }
-
+  private void onExtentEviction(KeyExtent extent, TabletLocation location, RemovalCause cause) {
     wLock.lock();
     try {
       Text endRow = extent.endRow() == null ? MAX_TEXT : extent.endRow();
