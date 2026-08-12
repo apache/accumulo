@@ -25,12 +25,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.manager.ManagerClientServiceHandler;
+import org.apache.accumulo.manager.replication.ManagerReplicationCoordinator;
+import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
+import org.apache.thrift.TException;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -104,6 +112,7 @@ public class ThriftExceptionsCheckIT {
         if (rpcInterfaces.contains(iName)) {
           rpcServiceImpls.add(new RpcServiceAndInterface(c, loaded, i));
           LOG.trace("{} implements {}", c.getName(), iName);
+          assertTrue(i.getName().endsWith("$Iface"));
         }
       }
     }
@@ -117,11 +126,47 @@ public class ThriftExceptionsCheckIT {
   private static void checkClass(RpcServiceAndInterface tuple) {
     for (var method : tuple.loadedClass.getDeclaredMethods()) {
       try {
+        // get the exceptions declared on the interface, exclude TException, which is always present
         var interfaceMethod =
             tuple.matchingInterface.getDeclaredMethod(method.getName(), method.getParameterTypes());
         Set<String> interfaceExceptions =
             Stream.of(interfaceMethod.getExceptionTypes()).map(Class::getName)
-                .filter(n -> !n.equals("org.apache.thrift.TException")).collect(Collectors.toSet());
+                .filter(n -> !n.equals(TException.class.getName())).collect(Collectors.toSet());
+
+        // no user-declared exceptions should exist on oneway interface methods, since they won't go
+        // back to the client
+        if (isOnewayMethod(tuple, interfaceMethod)) {
+          assertTrue(interfaceExceptions.isEmpty());
+          return;
+        }
+
+        // if one of the parameters was TCredentials, we expect to throw ThriftSecurityException
+        // if the credentials fail to authenticate or the user is unauthorized
+        var hasTCredentials = new AtomicBoolean();
+        for (var t : method.getParameterTypes()) {
+          if (t.getName().equals(TCredentials.class.getName())) {
+            hasTCredentials.set(true);
+            break;
+          }
+        }
+        var throwsSecurityException = new AtomicBoolean(
+            interfaceExceptions.contains(ThriftSecurityException.class.getName()));
+        @SuppressWarnings("deprecation")
+        boolean isDeprecatedException = Set
+            .of(ManagerReplicationCoordinator.class.getName(),
+                ReplicationServicerHandler.class.getName())
+            .contains(tuple.loadedClass.getName())
+            || (tuple.loadedClass.getName().equals(ManagerClientServiceHandler.class.getName())
+                && method.getName().equals("drainReplicationTable"));
+        if (!isDeprecatedException) {
+          assertEquals(hasTCredentials.get(), throwsSecurityException.get(), () -> String.format(
+              "%s#%s should throw ThriftSecurityException if and only if it accepts a TCredentials parameter (accepts TCredentials: %s; throws ThriftSecurityException: %s",
+              tuple.info.getSimpleName(), method.getName(), hasTCredentials.get(),
+              throwsSecurityException.get()));
+        }
+
+        // check the provided implementation class for any exceptions not declared on the interface
+        // including TException, which should only exist on the interface, not implementing classes
         Set<String> implExceptions =
             Stream.of(method.getExceptionTypes()).map(Class::getName).collect(Collectors.toSet());
         implExceptions.removeAll(interfaceExceptions);
@@ -131,6 +176,22 @@ public class ThriftExceptionsCheckIT {
       } catch (NoSuchMethodException e) {
         // method does not exist in the interface, so skip it
       }
+    }
+  }
+
+  // helper to check if a method is a oneway
+  private static boolean isOnewayMethod(RpcServiceAndInterface tuple, Method method) {
+    try {
+      // get the parent class of the interface and use it to find the static inner class that
+      // represents the ProcessFunction for the RPC method, to check if that RPC method is a oneway
+      var processFunction = Class.forName(tuple.matchingInterface.getName().replaceFirst("\\$Iface",
+          "\\$Processor\\$" + method.getName()));
+      var isOnewayMethod = processFunction.getDeclaredMethod("isOneway");
+      isOnewayMethod.setAccessible(true);
+      return (boolean) isOnewayMethod
+          .invoke(processFunction.getDeclaredConstructor().newInstance());
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
   }
 
