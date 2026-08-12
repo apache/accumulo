@@ -30,7 +30,12 @@ $(function () {
       "dataSrc": "compactions"
     },
     "stateSave": true,
-    "dom": 't<"align-left"l>p',
+    "layout": {
+      "topStart": null,
+      "topEnd": null,
+      "bottomStart": "pageLength",
+      "bottomEnd": "paging"
+    },
     "columnDefs": [{
         "targets": "duration",
         "render": function (data, type, row) {
