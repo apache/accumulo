@@ -672,7 +672,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
-  @SuppressWarnings("deprecation")
+  @Deprecated
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) {
