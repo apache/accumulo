@@ -120,7 +120,7 @@ function refreshTabletTables() {
  * Initializes the tablet details table.
  */
 function initTabletsTable() {
-  tabletsTable = $('#tabletsList').DataTable({
+  tabletsTable = new DataTable('#tabletsList', {
     "stateSave": true,
     "columnDefs": [{
         "targets": "big-num",
@@ -177,7 +177,7 @@ function initTabletsTable() {
  * Initializes the tablet server rollup table.
  */
 function initTabletServersTable() {
-  tabletServersTable = $('#tabletServersList').DataTable({
+  tabletServersTable =  new DataTable('#tabletServersList', {
     "stateSave": true,
     "colReorder": true,
     "searching": false,
@@ -244,7 +244,7 @@ function initTableServerTable(tableId) {
   tabletsUrl = contextPath + 'rest-v2/tables/' + tableId + '/tablets';
   console.debug('REST url used to fetch summary data: ' + url);
 
-  tableServersTable = $('#participatingTServers').DataTable({
+  tableServersTable = new DataTable('#participatingTServers', {
     "ajax": {
       "url": url,
       "dataSrc": function (json) {

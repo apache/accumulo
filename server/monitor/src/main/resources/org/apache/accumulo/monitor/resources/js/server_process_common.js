@@ -245,7 +245,7 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
  * css class.
  */
 function createDataTable(table, storageKey) {
-  var dataTableRef = $(table).DataTable({
+  var dataTableRef = new DataTable('#table', {
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({

@@ -41,8 +41,8 @@ $(function () {
   const ecidColumnName = 'ecid';
   const durationColumnName = 'duration';
 
-  // Create a table for long running compactions
-  runningTable = $('#runningTable').DataTable({
+  // Create a table for long-running compactions
+  runningTable = new DataTable('#runningTable', {
     "autoWidth": false,
     "ajax": {
       "url": contextPath + 'rest-v2/compactions/running',
