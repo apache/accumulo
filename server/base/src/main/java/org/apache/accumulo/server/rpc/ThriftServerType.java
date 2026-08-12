@@ -40,7 +40,7 @@ public enum ThriftServerType {
 
   private final String name;
   private static final Logger log = LoggerFactory.getLogger(ThriftServerType.class);
-  
+
   private ThriftServerType(String name) {
     this.name = name;
   }
