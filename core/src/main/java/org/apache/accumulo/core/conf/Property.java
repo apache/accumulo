@@ -1683,9 +1683,8 @@ public enum Property {
         // null/empty value
         return false;
       }
-    }
-    // not required property
-    else {
+      // not required property
+    } else {
       if (!value.isEmpty()) {
         // check that value is valid
         return p.getType().isValidFormat(value);
