@@ -69,7 +69,10 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.cache.impl.CompressedBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCache;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -139,6 +142,7 @@ public class TabletServerResourceManager {
   private final BlockCache _dCache;
   private final BlockCache _iCache;
   private final BlockCache _sCache;
+  private final BlockCache _compressedDCache;
   private final ServerContext context;
 
   private Cache<String,Long> fileLenCache;
@@ -286,32 +290,68 @@ public class TabletServerResourceManager {
       throw new IllegalStateException("Error creating BlockCacheManager", e);
     }
 
-    cacheManager.start(tserver.getBlockCacheConfiguration(acuConf));
+    BlockCacheConfiguration blockCacheConf =
+        (BlockCacheConfiguration) tserver.getBlockCacheConfiguration(acuConf);
+    cacheManager.start(blockCacheConf);
 
     _iCache = cacheManager.getBlockCache(CacheType.INDEX);
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
     _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
 
+    // Build the optional secondary compressed data cache. The BlockCacheManager only manages
+    // INDEX, DATA, and SUMMARY — it has no concept of a compressed secondary cache — so we
+    // construct it directly here using the same TinyLfuBlockCache implementation, then wrap
+    // it in CompressedBlockCache so blocks are stored at compressed size.
+    long compressedCacheSize = blockCacheConf.getCompressedDataMaxSize();
+    if (compressedCacheSize > 0) {
+      // Reuse the same block-size hint that the primary data cache uses.
+      BlockCacheManager.Configuration compressedConf = new BlockCacheManager.Configuration() {
+        @Override
+        public long getMaxSize(CacheType type) {
+          return compressedCacheSize;
+        }
+
+        @Override
+        public long getBlockSize() {
+          return blockCacheConf.getBlockSize();
+        }
+
+        @Override
+        public Map<String,String> getProperties(String prefix, CacheType type) {
+          return Collections.emptyMap();
+        }
+      };
+      BlockCache underlying = new TinyLfuBlockCache(compressedConf, CacheType.DATA);
+      _compressedDCache = new CompressedBlockCache(underlying);
+      log.info("Secondary compressed data cache enabled, max size: {} bytes", compressedCacheSize);
+    } else {
+      _compressedDCache = null;
+    }
+
     long dCacheSize = _dCache == null ? 0 : _dCache.getMaxHeapSize();
     long iCacheSize = _iCache == null ? 0 : _iCache.getMaxHeapSize();
     long sCacheSize = _sCache == null ? 0 : _sCache.getMaxHeapSize();
+    long compressedCacheHeapSize = _compressedDCache == null ? 0 : compressedCacheSize;
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
       // Still check block cache sizes when using native maps.
-      if (dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime.maxMemory()) {
+      if (dCacheSize + iCacheSize + sCacheSize + compressedCacheHeapSize + totalQueueSize
+          > runtime.maxMemory()) {
         throw new IllegalArgumentException(String.format(
             "Block cache sizes %,d and mutation queue size %,d is too large for this JVM"
                 + " configuration %,d",
-            dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
+            dCacheSize + iCacheSize + sCacheSize, compressedCacheHeapSize, totalQueueSize,
+            runtime.maxMemory()));
       }
-    } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + totalQueueSize
-        > runtime.maxMemory()) {
+    } else if (maxMemory + dCacheSize + iCacheSize + sCacheSize + compressedCacheHeapSize
+        + totalQueueSize > runtime.maxMemory()) {
       throw new IllegalArgumentException(String.format(
           "Maximum tablet server"
               + " map memory %,d block cache sizes %,d and mutation queue size %,d is"
               + " too large for this JVM configuration %,d",
-          maxMemory, dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
+          maxMemory, dCacheSize + iCacheSize + sCacheSize, compressedCacheHeapSize, totalQueueSize,
+          runtime.maxMemory()));
     }
     runtime.gc();
 
@@ -708,7 +748,7 @@ public class TabletServerResourceManager {
       }
 
       return fileManager.newScanFileManager(extent,
-          new ScanCacheProvider(tableConf, scanDispatch, _iCache, _dCache));
+          new ScanCacheProvider(tableConf, scanDispatch, _iCache, _dCache, _compressedDCache));
     }
 
     // END methods that Tablets call to manage their set of open data files
@@ -883,6 +923,10 @@ public class TabletServerResourceManager {
 
   public BlockCache getSummaryCache() {
     return _sCache;
+  }
+
+  public BlockCache getCompressedDataCache() {
+    return _compressedDCache;
   }
 
   public Cache<String,Long> getFileLenCache() {

@@ -24,10 +24,17 @@ public class BasicCacheProvider implements CacheProvider {
 
   private final BlockCache indexCache;
   private final BlockCache dataCache;
+  private final BlockCache compressedDataCache;
 
   public BasicCacheProvider(BlockCache indexCache, BlockCache dataCache) {
+    this(indexCache, dataCache, null);
+  }
+
+  public BasicCacheProvider(BlockCache indexCache, BlockCache dataCache,
+      BlockCache compressedDataCache) {
     this.indexCache = indexCache;
     this.dataCache = dataCache;
+    this.compressedDataCache = compressedDataCache;
   }
 
   @Override
@@ -40,4 +47,8 @@ public class BasicCacheProvider implements CacheProvider {
     return indexCache;
   }
 
+  @Override
+  public BlockCache getCompressedDataCache() {
+    return compressedDataCache;
+  }
 }

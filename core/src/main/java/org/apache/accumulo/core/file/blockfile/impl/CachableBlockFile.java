@@ -456,6 +456,15 @@ public class CachableBlockFile {
      * It is intended that once the BlockRead object is returned to the caller, that the caller will
      * read the entire block and then call close on the BlockRead class.
      *
+     * <p>
+     * Lookup order:
+     * <ol>
+     * <li>Primary (uncompressed) data cache</li>
+     * <li>Secondary (compressed) data cache</li>
+     * <li>Disk</li>
+     * </ol>
+     * </p>
+     *
      * NOTE: In the case of multi-read threads: This method can do redundant work where an entry is
      * read from disk and other threads check the cache before it has been inserted.
      */
@@ -467,6 +476,21 @@ public class CachableBlockFile {
         CacheEntry ce = _dCache.getBlock(_lookup, new OffsetBlockLoader(blockIndex, false));
         if (ce != null) {
           return new CachedBlockRead(ce, ce.getBuffer());
+        }
+      }
+
+      // Check secondary
+      BlockCache _cCache = cacheProvider.getCompressedDataCache();
+      if (_cCache != null) {
+        String _lookup = this.cacheId + "O" + blockIndex;
+        CacheEntry ce = _cCache.getBlock(_lookup);
+        if (ce != null) {
+          // promote the block to the primary cache
+          byte[] uncompressed = ce.getBuffer();
+          if (_dCache != null) {
+            _dCache.cacheBlock(_lookup, uncompressed);
+          }
+          return new CachedBlockRead(new SimpleCacheEntry(uncompressed), uncompressed);
         }
       }
 
@@ -484,6 +508,21 @@ public class CachableBlockFile {
             _dCache.getBlock(_lookup, new RawBlockLoader(offset, compressedSize, rawSize, false));
         if (ce != null) {
           return new CachedBlockRead(ce, ce.getBuffer());
+        }
+      }
+
+      // Check secondary compressed cache
+      BlockCache _cCache = cacheProvider.getCompressedDataCache();
+      if (_cCache != null) {
+        String _lookup = this.cacheId + "R" + offset;
+        CacheEntry ce = _cCache.getBlock(_lookup);
+        if (ce != null) {
+          // promote the block to the primary cache
+          byte[] uncompressed = ce.getBuffer();
+          if (_dCache != null) {
+            _dCache.cacheBlock(_lookup, uncompressed);
+          }
+          return new CachedBlockRead(new SimpleCacheEntry(uncompressed), uncompressed);
         }
       }
 
@@ -522,6 +561,29 @@ public class CachableBlockFile {
       this.cacheProvider = cacheProvider;
     }
 
+  }
+
+  private static final class SimpleCacheEntry implements CacheEntry {
+    private final byte[] buffer;
+
+    SimpleCacheEntry(byte[] buffer) {
+      this.buffer = buffer;
+    }
+
+    @Override
+    public byte[] getBuffer() {
+      return buffer;
+    }
+
+    @Override
+    public <T extends Weighable> T getIndex(Supplier<T> supplier) {
+      return null;
+    }
+
+    @Override
+    public void indexWeightChanged() {
+      // no-op not backed by a real cache slot
+    }
   }
 
   public static class CachedBlockRead extends DataInputStream {
