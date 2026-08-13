@@ -1673,6 +1673,29 @@ public enum Property {
     return (isValidPropertyKey(key) && p.getType().isValidFormat(value));
   }
 
+  public static boolean isRequiredProperty(final Property p, final String value) {
+    // required property
+    if (p.isRequired) {
+      if (!value.isEmpty()) {
+        // check that value is valid
+        return p.getType().isValidFormat(value);
+      } else {
+        // null/empty value
+        return false;
+      }
+    }
+    // not required property
+    else {
+      if (!value.isEmpty()) {
+        // check that value is valid
+        return p.getType().isValidFormat(value);
+      } else {
+        // null/empty value
+        return true;
+      }
+    }
+  }
+
   /**
    * Checks if the given property key is valid. A valid property key is either equal to the key of
    * some defined property or has a prefix matching some prefix defined in this class.
