@@ -136,7 +136,7 @@ public class ClientOpts extends Help {
 
   public static final String OPT_USER_SHORT = "-u";
   public static final String OPT_USER_LONG = "--user";
-  public static final String OPT_PASSWORD_LONG = "--password";
+  public static final String OPT_PASSWORD = "--password";
   public static final String OPT_AUTHS_SHORT = "-auths";
   public static final String OPT_AUTHS_LONG = "--auths";
   public static final String OPT_CONFIG_FILE_SHORT = "-c";
@@ -189,7 +189,7 @@ public class ClientOpts extends Help {
   @Parameter(names = {OPT_USER_SHORT, OPT_USER_LONG}, description = "Connection user")
   public String principal = null;
 
-  @Parameter(names = OPT_PASSWORD_LONG, converter = PasswordConverter.class,
+  @Parameter(names = OPT_PASSWORD, converter = PasswordConverter.class,
       description = "connection password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>' or 'env:<variable containing"
           + " the pass>')",
