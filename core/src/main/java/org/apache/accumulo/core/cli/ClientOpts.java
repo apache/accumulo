@@ -25,10 +25,12 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
@@ -132,24 +134,62 @@ public class ClientOpts extends Help {
     }
   }
 
-  /**
-   * A catch all for older legacy options that have been dropped. Most of them were replaced with
-   * accumulo-client.properties in 2.0. Others have been dropped completely.
-   */
-  private String[] legacyClientOpts = {"-p", "-tc", "--tokenClass", "-i", "--instance",
-      "--site-file", "--keytab", "--debug", "-fake", "--mock", "--ssl", "--sasl"};
+  public static final String OPT_USER_SHORT = "-u";
+  public static final String OPT_USER_LONG = "--user";
+  public static final String OPT_PASSWORD_LONG = "--password";
+  public static final String OPT_AUTHS_SHORT = "-auths";
+  public static final String OPT_AUTHS_LONG = "--auths";
+  public static final String OPT_CONFIG_FILE_SHORT = "-c";
+  public static final String OPT_CONFIG_FILE_LONG = "--config-file";
+  public static final String OPT_OVERRIDE = "-o";
 
-  @Parameter(names = {"-p", "-tc", "--tokenClass", "-i", "--instance", "--site-file", "--keytab"},
-      hidden = true)
-  private String legacyOpts = null;
+  public static final String LEGACY_OPT_PASSWORD = "-p";
+  public static final String LEGACY_OPT_TOKEN_CLASS_SHORT = "-tc";
+  public static final String LEGACY_OPT_TOKEN_CLASS_LONG = "--tokenClass";
+  public static final String LEGACY_OPT_INSTANCE_SHORT = "-i";
+  public static final String LEGACY_OPT_INSTANCE_LONG = "--instance";
+  public static final String LEGACY_OPT_SITE_FILE = "--site-file";
+  public static final String LEGACY_OPT_KEYTAB = "--keytab";
+  public static final String LEGACY_OPT_DEBUG = "--debug";
+  public static final String LEGACY_OPT_FAKE = "--fake";
+  public static final String LEGACY_OPT_MOCK = "--mock";
+  public static final String LEGACY_OPT_SSL = "--ssl";
+  public static final String LEGACY_OPT_SASL = "--sasl";
 
-  @Parameter(names = {"--debug", "-fake", "--mock", "--ssl", "--sasl"}, hidden = true)
-  private boolean legacyOptsBoolean = false;
+  @Parameter(names = LEGACY_OPT_PASSWORD, hidden = true)
+  private String legacyPassword;
 
-  @Parameter(names = {"-u", "--user"}, description = "Connection user")
+  @Parameter(names = {LEGACY_OPT_TOKEN_CLASS_SHORT, LEGACY_OPT_TOKEN_CLASS_LONG}, hidden = true)
+  private String legacyTokenClass;
+
+  @Parameter(names = {LEGACY_OPT_INSTANCE_SHORT, LEGACY_OPT_INSTANCE_LONG}, hidden = true)
+  private String legacyInstance;
+
+  @Parameter(names = LEGACY_OPT_SITE_FILE, hidden = true)
+  private String legacySiteFile;
+
+  @Parameter(names = LEGACY_OPT_KEYTAB, hidden = true)
+  private String legacyKeytab;
+
+  @Parameter(names = LEGACY_OPT_DEBUG, hidden = true)
+  private boolean legacyDebug;
+
+  @Parameter(names = LEGACY_OPT_FAKE, hidden = true)
+  private boolean legacyFake;
+
+  @Parameter(names = LEGACY_OPT_MOCK, hidden = true)
+  private boolean legacyMock;
+
+  @Parameter(names = LEGACY_OPT_SSL, hidden = true)
+  private boolean legacySsl;
+
+  @Parameter(names = LEGACY_OPT_SASL, hidden = true)
+  private boolean legacySasl;
+
+  @Parameter(names = {OPT_USER_SHORT, OPT_USER_LONG}, description = "Connection user")
   public String principal = null;
 
-  @Parameter(names = "--password", converter = PasswordConverter.class,
+  @Parameter(names = OPT_PASSWORD_LONG, converter = PasswordConverter.class,
       description = "connection password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>' or 'env:<variable containing"
           + " the pass>')",
@@ -160,16 +200,18 @@ public class ClientOpts extends Help {
     return ClientProperty.getAuthenticationToken(getClientProps());
   }
 
-  @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
+  @Parameter(names = {OPT_AUTHS_SHORT, OPT_AUTHS_LONG}, converter = AuthConverter.class,
       description = "the authorizations to use when reading or writing")
   public Authorizations auths = Authorizations.EMPTY;
 
-  @Parameter(names = {"-c", "--config-file"}, description = "Read the given client config file. "
-      + "If omitted, the classpath will be searched for file named accumulo-client.properties")
+  @Parameter(names = {OPT_CONFIG_FILE_SHORT, OPT_CONFIG_FILE_LONG},
+      description = "Read the given client config file. "
+          + "If omitted, the classpath will be searched for file named accumulo-client.properties")
   private String clientConfigFile = null;
 
-  @Parameter(names = "-o", splitter = NullSplitter.class, description = "Overrides property in "
-      + "accumulo-client.properties. Expected format: -o <key>=<value>")
+  @Parameter(names = OPT_OVERRIDE, splitter = NullSplitter.class,
+      description = "Overrides property in "
+          + "accumulo-client.properties. Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
 
   public Map<String,String> getOverrides() {
@@ -178,26 +220,58 @@ public class ClientOpts extends Help {
 
   @Override
   public void validateArgs() {
-    if (legacyOpts != null || legacyOptsBoolean) {
-      if (legacyOpts != null) {
-        // grab the bad options
-        StringBuilder badOptions = new StringBuilder();
-        for (String badArg : legacyClientOpts) {
-          if (legacyOpts.contains(badArg)) {
-            badOptions.append(badArg).append(" ");
-          }
-        }
-        throw new IllegalArgumentException("The Client options: " + badOptions
-            + "have been dropped. Use accumulo-client.properties for any connection or token "
-            + "options. See '-c, --config-file' option.");
-      }
-      if (legacyOptsBoolean) {
-        throw new IllegalArgumentException(
-            "The Client options: --debug, -fake, --mock, --ssl, --sasl"
-                + "have been dropped. Use accumulo-client.properties for any connection or token "
-                + "options. See '-c, --config-file' option.");
-      }
+    Set<String> options = getPopulatedLegacyOptions();
+    if (!options.isEmpty()) {
+      String optionsStr = String.join(" ", options);
+      throw new IllegalArgumentException("The Client options " + optionsStr
+          + " have been dropped. Use accumulo-client.properties for any connection or"
+          + " token options. See '" + ClientOpts.OPT_CONFIG_FILE_SHORT + ", "
+          + ClientOpts.OPT_CONFIG_FILE_LONG + "' option.");
     }
+  }
+
+  /**
+   * Get the list of legacy options provided to the Accumulo client.
+   *
+   * @return the legacy options
+   */
+  private Set<String> getPopulatedLegacyOptions() {
+    Set<String> options = new LinkedHashSet<>();
+    if (legacyPassword != null) {
+      options.add(LEGACY_OPT_PASSWORD);
+    }
+    if (legacyTokenClass != null) {
+      // Add both the short and long form.
+      options.add(LEGACY_OPT_TOKEN_CLASS_SHORT);
+      options.add(LEGACY_OPT_TOKEN_CLASS_LONG);
+    }
+    if (legacyInstance != null) {
+      // Add both the short and long form.
+      options.add(LEGACY_OPT_INSTANCE_SHORT);
+      options.add(LEGACY_OPT_INSTANCE_LONG);
+    }
+    if (legacySiteFile != null) {
+      options.add(LEGACY_OPT_SITE_FILE);
+    }
+    if (legacyKeytab != null) {
+      options.add(LEGACY_OPT_KEYTAB);
+    }
+    if (legacyDebug) {
+      options.add(LEGACY_OPT_DEBUG);
+    }
+    if (legacyFake) {
+      options.add(LEGACY_OPT_FAKE);
+    }
+    if (legacyMock) {
+      options.add(LEGACY_OPT_MOCK);
+    }
+    if (legacySsl) {
+      options.add(LEGACY_OPT_SSL);
+    }
+    if (legacySasl) {
+      options.add(LEGACY_OPT_SASL);
+    }
+    return options;
   }
 
   private Properties cachedProps = null;
@@ -230,4 +304,5 @@ public class ClientOpts extends Help {
     }
     return cachedProps;
   }
+
 }
