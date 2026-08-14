@@ -298,13 +298,9 @@ public class TabletServerResourceManager {
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
     _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
 
-    // Build the optional secondary compressed data cache. The BlockCacheManager only manages
-    // INDEX, DATA, and SUMMARY — it has no concept of a compressed secondary cache — so we
-    // construct it directly here using the same TinyLfuBlockCache implementation, then wrap
-    // it in CompressedBlockCache so blocks are stored at compressed size.
+    // Build the optional secondary compressed data cache.
     long compressedCacheSize = blockCacheConf.getCompressedDataMaxSize();
     if (compressedCacheSize > 0) {
-      // Reuse the same block-size hint that the primary data cache uses.
       BlockCacheManager.Configuration compressedConf = new BlockCacheManager.Configuration() {
         @Override
         public long getMaxSize(CacheType type) {

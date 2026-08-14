@@ -127,19 +127,15 @@ public class CompressedBlockCacheTest {
 
   @Test
   public void testCacheAndRetrieve() {
-    // Store a block with highly compressible data (lots of repeated bytes)
     byte[] data = new byte[1000];
     Arrays.fill(data, (byte) 'A');
 
     CacheEntry stored = cache.cacheBlock("block1", data);
     assertNotNull(stored);
-    // The returned entry should present the original uncompressed data
     assertArrayEquals(data, stored.getBuffer());
 
-    // The underlying delegate should have stored compressed bytes (smaller than original)
     byte[] compressed = underlying.getRaw("block1");
     assertNotNull(compressed);
-    // Verify compression actually reduced the size for highly repetitive data
     assert compressed.length < data.length
         : "Expected compressed size < original for repetitive data";
   }
@@ -179,13 +175,11 @@ public class CompressedBlockCacheTest {
       }
     };
 
-    // First call: cache miss → loader invoked → compressed and stored
     CacheEntry ce = cache.getBlock("blockLoader", loader);
     assertNotNull(ce);
     assertArrayEquals(data, ce.getBuffer());
     assert underlying.size() == 1 : "Expected one entry in underlying cache";
 
-    // Second call: cache hit → decompressed from stored entry
     CacheEntry ce2 = cache.getBlock("blockLoader", loader);
     assertNotNull(ce2);
     assertArrayEquals(data, ce2.getBuffer());
@@ -198,7 +192,6 @@ public class CompressedBlockCacheTest {
 
     CacheEntry ce = cache.getBlock("blockIdx");
     assertNotNull(ce);
-    // Index is not supported for secondary compressed cache entries
     assertNull(ce.getIndex(() -> null));
   }
 
@@ -212,7 +205,7 @@ public class CompressedBlockCacheTest {
 
       @Override
       public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
-        return null; // block too large or otherwise unavailable
+        return null;
       }
     };
 
@@ -230,7 +223,7 @@ public class CompressedBlockCacheTest {
 
     Thread[] threads = new Thread[THREADS];
     for (int i = 0; i < THREADS; i++) {
-      final String key = "block-" + (i % 5); // 5 distinct keys → lots of contention
+      final String key = "block-" + (i % 5);
       threads[i] = new Thread(() -> {
         for (int j = 0; j < OPS_PER_THREAD; j++) {
           cache.cacheBlock(key, data);
