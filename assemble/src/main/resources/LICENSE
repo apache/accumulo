@@ -306,7 +306,7 @@ Files (in lib/accumulo-monitor-*.jar):
 Files (in lib/accumulo-monitor-*.jar):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
 
-    Copyright (c) 2008-2026 SpryMedia Ltd
+    Copyright (c) SpryMedia Ltd - datatables.net/license
     Licensed under the MIT license (see above)
 
 ## DataTables Buttons 4.0.1 (https://datatables.net)
@@ -314,7 +314,7 @@ Files (in lib/accumulo-monitor-*.jar):
 Files (in server/monitor/src/main/resources/):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
 
-    Copyright (c) 2010-2026 SpryMedia Limited
+    Copyright (c) SpryMedia Ltd - datatables.net/license
     Licensed under the MIT license (see above)
 
 ## DataTables ColReorder 3.0.0 (https://datatables.net)
@@ -322,7 +322,7 @@ Files (in server/monitor/src/main/resources/):
 Files (in server/monitor/src/main/resources/):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
 
-    Copyright (c) 2010-2026 SpryMedia Limited
+    Copyright (c) SpryMedia Ltd - datatables.net/license
     Licensed under the MIT license (see above)
 
 **********
