@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -90,6 +91,8 @@ public class TabletLocatorImpl extends TabletLocator {
   // The TreeMap supports range lookups; Caffeine tracks access and expires entries from it.
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
   private final Cache<KeyExtent,TabletLocation> extentCache;
+  private final ConcurrentLinkedQueue<TabletLocation> evictedExtents =
+      new ConcurrentLinkedQueue<>();
   protected TabletLocationObtainer locationObtainer;
   private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
@@ -175,14 +178,30 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private void onExtentEviction(KeyExtent extent, TabletLocation location, RemovalCause cause) {
-    wLock.lock();
+    // The listener may run while this thread holds rLock, so queue the eviction before attempting
+    // the write lock processInvalidated() drains the queue later if the lock is unavailable here
+    evictedExtents.add(location);
     try {
-      Text endRow = extent.endRow() == null ? MAX_TEXT : extent.endRow();
-      if (metaCache.get(endRow) == location) {
+      if (wLock.tryLock(1, MILLISECONDS)) {
+        try {
+          processEvictedExtents();
+        } finally {
+          wLock.unlock();
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private void processEvictedExtents() {
+    TabletLocation evicted;
+    while ((evicted = evictedExtents.poll()) != null) {
+      Text endRow =
+          evicted.tablet_extent.endRow() == null ? MAX_TEXT : evicted.tablet_extent.endRow();
+      if (metaCache.get(endRow) == evicted) {
         metaCache.remove(endRow);
       }
-    } finally {
-      wLock.unlock();
     }
   }
 
@@ -744,7 +763,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    if (badExtents.isEmpty() && badServers.isEmpty()) {
+    if (badExtents.isEmpty() && badServers.isEmpty() && evictedExtents.isEmpty()) {
       return;
     }
 
@@ -753,9 +772,14 @@ public class TabletLocatorImpl extends TabletLocator {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.isEmpty() && badServers.isEmpty()) {
+        if (badExtents.isEmpty() && badServers.isEmpty() && evictedExtents.isEmpty()) {
           return;
         }
+      }
+
+      processEvictedExtents();
+      if (badExtents.isEmpty() && badServers.isEmpty()) {
+        return;
       }
 
       List<Range> lookups = new ArrayList<>(badExtents.size());
