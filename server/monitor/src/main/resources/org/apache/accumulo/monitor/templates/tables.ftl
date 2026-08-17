@@ -27,7 +27,7 @@
          */
         $(function () {
 
-          tableList = $('#tableList').DataTable({
+          tableList = new DataTable('#tableList', {
             "ajax": {
               "url": '${rootContext}rest-v2/tables',
               "dataSrc": function (json) {

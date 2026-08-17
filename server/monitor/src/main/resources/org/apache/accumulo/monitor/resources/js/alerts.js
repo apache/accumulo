@@ -80,7 +80,7 @@ function refresh() {
 }
 
 function createDataTable() {
-  dataTableRef = $(alertHtmlTable).DataTable({
+  dataTableRef = new DataTable('#alertHtmlTable', {
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({

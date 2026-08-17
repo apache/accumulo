@@ -24,13 +24,18 @@ var compactionsList;
  */
 $(function () {
   // Create a table for compactions list
-  compactionsList = $('#compactionsList').DataTable({
+  compactionsList = new DataTable('#compactionsList', {
     "ajax": {
       "url": contextPath + 'rest/compactions',
       "dataSrc": "compactions"
     },
     "stateSave": true,
-    "dom": 't<"align-left"l>p',
+    "layout": {
+      "topStart": null,
+      "topEnd": null,
+      "bottomStart": "pageLength",
+      "bottomEnd": "paging"
+    },
     "columnDefs": [{
         "targets": "duration",
         "render": function (data, type, row) {
