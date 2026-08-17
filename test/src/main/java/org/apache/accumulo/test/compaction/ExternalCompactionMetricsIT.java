@@ -35,6 +35,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.List;
@@ -46,12 +47,14 @@ import java.util.function.DoublePredicate;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -61,6 +64,7 @@ import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -214,20 +218,22 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
       thread.join();
 
       // Wait for all external compactions to complete
-      long count;
-      do {
-        // TODO: Change this from waiting to verifying that all compactors are done running jobs,
-        // not just check that the jobs have been polled off the queues.
-        UtilWaitThread.sleep(10000);
+      Wait.waitFor(() -> {
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build()) {
-          count = tm.stream().mapToLong(t -> t.getExternalCompactions().keySet().size()).sum();
+          return tm.stream().allMatch(t -> t.getExternalCompactions().isEmpty());
         }
-      } while (count > 0);
+      });
+
+      // verify any running compactions contains only system tables
+      ExternalCompactionUtil.getCompactionsRunningOnCompactors(getCluster().getServerContext(),
+          externalCompaction -> {
+            var tableId = KeyExtent.fromThrift(externalCompaction.getJob().getExtent()).tableId();
+            assertTrue(SystemTables.tableIds().contains(tableId));
+          });
 
       verify(client, table1, 7);
       verify(client, table2, 13);
-
     }
   }
 
