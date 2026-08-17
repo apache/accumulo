@@ -134,14 +134,8 @@ public class ClientOpts extends Help {
     }
   }
 
-  public static final String OPT_USER_SHORT = "-u";
-  public static final String OPT_USER_LONG = "--user";
-  public static final String OPT_PASSWORD = "--password";
-  public static final String OPT_AUTHS_SHORT = "-auths";
-  public static final String OPT_AUTHS_LONG = "--auths";
   public static final String OPT_CONFIG_FILE_SHORT = "-c";
   public static final String OPT_CONFIG_FILE_LONG = "--config-file";
-  public static final String OPT_OVERRIDE = "-o";
 
   public static final String LEGACY_OPT_PASSWORD = "-p";
   public static final String LEGACY_OPT_TOKEN_CLASS_SHORT = "-tc";
@@ -186,10 +180,10 @@ public class ClientOpts extends Help {
   @Parameter(names = LEGACY_OPT_SASL, hidden = true)
   private boolean legacySasl;
 
-  @Parameter(names = {OPT_USER_SHORT, OPT_USER_LONG}, description = "Connection user")
+  @Parameter(names = {"-u", "--user"}, description = "Connection user")
   public String principal = null;
 
-  @Parameter(names = OPT_PASSWORD, converter = PasswordConverter.class,
+  @Parameter(names = "--password", converter = PasswordConverter.class,
       description = "connection password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>' or 'env:<variable containing"
           + " the pass>')",
@@ -200,7 +194,7 @@ public class ClientOpts extends Help {
     return ClientProperty.getAuthenticationToken(getClientProps());
   }
 
-  @Parameter(names = {OPT_AUTHS_SHORT, OPT_AUTHS_LONG}, converter = AuthConverter.class,
+  @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
       description = "the authorizations to use when reading or writing")
   public Authorizations auths = Authorizations.EMPTY;
 
@@ -209,9 +203,8 @@ public class ClientOpts extends Help {
           + "If omitted, the classpath will be searched for file named accumulo-client.properties")
   private String clientConfigFile = null;
 
-  @Parameter(names = OPT_OVERRIDE, splitter = NullSplitter.class,
-      description = "Overrides property in "
-          + "accumulo-client.properties. Expected format: -o <key>=<value>")
+  @Parameter(names = "-o", splitter = NullSplitter.class, description = "Overrides property in "
+      + "accumulo-client.properties. Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
 
   public Map<String,String> getOverrides() {
