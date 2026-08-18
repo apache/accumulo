@@ -48,7 +48,9 @@ public class SlowFateSplitManager extends Manager {
   protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
       ServerContext context) {
     log.info("Creating Slow Split Fate for {}", store.type());
-    return new SlowFateSplit<>(env, store, TraceRepo::toLogString, getConfiguration());
+    var fate = new SlowFateSplit<>(env, store, TraceRepo::toLogString, getConfiguration());
+    fate.start();
+    return fate;
   }
 
   public static void main(String[] args) throws Exception {
