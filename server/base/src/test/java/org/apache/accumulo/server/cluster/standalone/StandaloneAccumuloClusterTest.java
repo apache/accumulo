@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.cluster.standalone;
+package org.apache.accumulo.server.cluster.standalone;
 
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.server.minicluster.ServerType;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
