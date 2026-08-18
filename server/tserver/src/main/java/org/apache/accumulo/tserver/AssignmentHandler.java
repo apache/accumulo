@@ -157,44 +157,45 @@ class AssignmentHandler implements Runnable {
     boolean successful = false;
 
     try {
-      server.acquireRecoveryMemory(extent);
+      try (var recoveryLock = server.acquireRecoveryMemory(tabletMetadata)) {
 
-      TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
-          server.getTableConfiguration(extent));
-      TabletData data = new TabletData(tabletMetadata);
+        TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
+            server.getTableConfiguration(extent));
+        TabletData data = new TabletData(tabletMetadata);
 
-      tablet = new Tablet(server, extent, trm, data);
-      // If a minor compaction starts after a tablet opens, this indicates a log recovery
-      // occurred. This recovered data must be minor compacted.
-      // There are three reasons to wait for this minor compaction to finish before placing the
-      // tablet in online tablets.
-      //
-      // 1) The log recovery code does not handle data written to the tablet on multiple tablet
-      // servers.
-      // 2) The log recovery code does not block if memory is full. Therefore recovering lots of
-      // tablets that use a lot of memory could run out of memory.
-      // 3) The minor compaction finish event did not make it to the logs (the file will be in
-      // metadata, preventing replay of compacted data)... but do not
-      // want a majc to wipe the file out from metadata and then have another process failure...
-      // this could cause duplicate data to replay.
-      if (tablet.getNumEntriesInMemory() > 0
-          && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
-        throw new RuntimeException("Minor compaction after recovery fails for " + extent);
-      }
-      Assignment assignment =
-          new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
-      TabletStateStore.setLocation(server.getContext(), assignment);
-
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
-          server.openingTablets.remove(extent);
-          server.onlineTablets.put(extent, tablet);
-          server.openingTablets.notifyAll();
-          server.recentlyUnloadedCache.remove(tablet.getExtent());
+        tablet = new Tablet(server, extent, trm, data);
+        // If a minor compaction starts after a tablet opens, this indicates a log recovery
+        // occurred. This recovered data must be minor compacted.
+        // There are three reasons to wait for this minor compaction to finish before placing the
+        // tablet in online tablets.
+        //
+        // 1) The log recovery code does not handle data written to the tablet on multiple tablet
+        // servers.
+        // 2) The log recovery code does not block if memory is full. Therefore recovering lots of
+        // tablets that use a lot of memory could run out of memory.
+        // 3) The minor compaction finish event did not make it to the logs (the file will be in
+        // metadata, preventing replay of compacted data)... but do not
+        // want a majc to wipe the file out from metadata and then have another process failure...
+        // this could cause duplicate data to replay.
+        if (tablet.getNumEntriesInMemory() > 0
+            && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
+          throw new RuntimeException("Minor compaction after recovery fails for " + extent);
         }
+        Assignment assignment =
+            new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
+        TabletStateStore.setLocation(server.getContext(), assignment);
+
+        synchronized (server.openingTablets) {
+          synchronized (server.onlineTablets) {
+            server.openingTablets.remove(extent);
+            server.onlineTablets.put(extent, tablet);
+            server.openingTablets.notifyAll();
+            server.recentlyUnloadedCache.remove(tablet.getExtent());
+          }
+        }
+        tablet = null; // release this reference
+        successful = true;
       }
-      tablet = null; // release this reference
-      successful = true;
     } catch (Exception e) {
       log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
 
@@ -205,8 +206,6 @@ class AssignmentHandler implements Runnable {
       TableId tableId = extent.tableId();
       ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
           extent.getUUID().toString(), server.getClientAddressString(), e));
-    } finally {
-      server.releaseRecoveryMemory(extent);
     }
 
     if (successful) {
