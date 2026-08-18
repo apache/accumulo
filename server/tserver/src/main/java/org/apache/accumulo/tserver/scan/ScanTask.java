@@ -30,6 +30,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.tserver.TabletHostingServer;
+import org.apache.accumulo.tserver.session.ScanSession;
 
 import com.google.common.base.Preconditions;
 
@@ -165,6 +166,13 @@ public abstract class ScanTask<T> implements Runnable {
         break;
     }
     return stateStr;
+  }
+
+  protected void recordException(ScanSession<?> scanSession) {
+    if (scanSession != null && server.getScanMetrics() != null) {
+      String executorName = scanSession.scanParams.getScanDispatch().getExecutorName();
+      server.getScanMetrics().incrementExecutorExceptions(executorName);
+    }
   }
 
   /**
