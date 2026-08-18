@@ -594,6 +594,11 @@ public enum Property {
       "Properties in this category affect the behavior of the scan servers.", "2.1.0"),
   SSERV_DATACACHE_SIZE("sserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks on each scan server.", "2.1.0"),
+  SSERV_COMPRESSED_DATACACHE_SIZE("sserver.cache.compressed.data.size", "0", PropertyType.MEMORY,
+      "Specifies the size of the secondary compressed cache for compressed RFile data blocks."
+          + "When set to a non-zero value a secondary block cache is created that stores block in compressed form."
+          + "A value of 0 disables the secondary compressed cache (default).",
+      "4.1.0"),
   SSERV_INDEXCACHE_SIZE("sserver.cache.index.size", "25%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile index blocks on each scan server.", "2.1.0"),
   SSERV_SUMMARYCACHE_SIZE("sserver.cache.summary.size", "10%", PropertyType.MEMORY,
@@ -679,6 +684,11 @@ public enum Property {
       "Specifies a default blocksize for the tserver caches.", "1.3.5"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks.", "1.3.5"),
+  TSERV_COMPRESSED_DATACACHE_SIZE("tserver.cache.data.compressed.size", "0", PropertyType.MEMORY,
+      "Specifies the size of the secondary compressed cache for compressed RFile data blocks."
+          + "When set to a non-zero value a secondary block cache is created that stores block in compressed form."
+          + "A value of 0 disables the secondary compressed cache (default).",
+      "4.1.0"),
   TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile index blocks.", "1.3.5"),
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY,
@@ -1720,9 +1730,10 @@ public enum Property {
 
       // SSERV options
       SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_CLIENTPORT,
-      SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE, SSERV_DEFAULT_BLOCKSIZE,
-      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
-      SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT, SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
+      SSERV_DATACACHE_SIZE, SSERV_COMPRESSED_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE,
+      SSERV_SUMMARYCACHE_SIZE, SSERV_DEFAULT_BLOCKSIZE, SSERV_SCAN_REFERENCE_EXPIRATION_TIME,
+      SSERV_CACHED_TABLET_METADATA_EXPIRATION, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
+      SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
 
       // TSERV options
       TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
@@ -1731,9 +1742,9 @@ public enum Property {
       TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
       TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
       TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE,
-      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS,
-      TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
-      TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
+      TSERV_COMPRESSED_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE,
+      TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED,
+      TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES, TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
       // GC options
       GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START, GC_PORT,
