@@ -177,7 +177,7 @@ function initTabletsTable() {
  * Initializes the tablet server rollup table.
  */
 function initTabletServersTable() {
-  tabletServersTable =  new DataTable('#tabletServersList', {
+  tabletServersTable = new DataTable('#tabletServersList', {
     "stateSave": true,
     "colReorder": true,
     "searching": false,

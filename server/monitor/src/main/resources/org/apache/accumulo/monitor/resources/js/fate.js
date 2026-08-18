@@ -45,7 +45,7 @@ function renderListOrDash(data, type) {
 function createDataTable() {
   $(fateHtmlTable).find('thead').remove();
   $(fateHtmlTable).find('tbody').remove();
-  dataTableRef =  new DataTable('#fateHtmlTable', {
+  dataTableRef = new DataTable('#fateHtmlTable', {
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
