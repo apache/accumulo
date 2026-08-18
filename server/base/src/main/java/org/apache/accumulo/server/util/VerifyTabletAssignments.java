@@ -57,7 +57,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,7 +154,7 @@ public class VerifyTabletAssignments {
 
   private static void checkTabletServer(ClientContext context,
       Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures) throws TException {
-    TabletScanClientService.Iface client =
+    TabletScanClientService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, entry.getKey(), context);
 
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<>();
@@ -205,6 +204,6 @@ public class VerifyTabletAssignments {
 
     client.closeMultiScan(tinfo, is.scanID);
 
-    ThriftUtil.returnClient((TServiceClient) client, context);
+    ThriftUtil.returnClient(client, context);
   }
 }

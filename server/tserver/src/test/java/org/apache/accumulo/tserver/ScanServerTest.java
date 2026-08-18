@@ -61,8 +61,6 @@ import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
-import org.apache.thrift.TApplicationException;
-import org.apache.thrift.TException;
 import org.junit.jupiter.api.Test;
 
 public class ScanServerTest {
@@ -223,10 +221,9 @@ public class ScanServerTest {
     ss.delegate = handler;
     ss.reservation = reservation;
 
-    assertThrows(NotServingTabletException.class, () -> {
-      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-          tsc, 30L, classLoaderContext, execHints, 0L);
-    });
+    assertThrows(NotServingTabletException.class,
+        () -> ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
+            false, 10, tsc, 30L, classLoaderContext, execHints, 0L));
 
     verify(extent, reservation);
   }
@@ -391,10 +388,9 @@ public class ScanServerTest {
     ss.resolver = resolver;
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
 
-    assertThrows(TException.class, () -> {
-      ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
-          classLoaderContext, execHints, 0L);
-    });
+    var e = assertThrows(IllegalArgumentException.class, () -> ss.startMultiScan(tinfo, tcreds,
+        extents, tcols, titer, ssio, auths, false, tsc, 30L, classLoaderContext, execHints, 0L));
+    assertEquals(e.getMessage(), "Scan Server batch must include at least one extent");
     verify(handler);
   }
 
@@ -482,14 +478,10 @@ public class ScanServerTest {
     ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
 
     TKeyExtent textent = createMock(TKeyExtent.class);
-    TException te = assertThrows(TException.class, () -> {
-      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-          tsc, 30L, classLoaderContext, execHints, 0L);
-    });
-    assertTrue(te instanceof TApplicationException);
-    TApplicationException tae = (TApplicationException) te;
-    assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
-    assertTrue(tae.getMessage().contains("disallowed by property"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
+            false, 10, tsc, 30L, classLoaderContext, execHints, 0L));
+    assertTrue(e.getMessage().contains("disallowed by property"));
     verify(sextent, reservation, handler);
 
   }
