@@ -292,24 +292,6 @@ public class WebViews {
   }
 
   /**
-   * Returns the compactions template
-   *
-   * @return Scans model
-   */
-  @GET
-  @Path("compactions")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getCompactions() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Active Compactions");
-    model.put("template", "compactions.ftl");
-    model.put("js", "compactions.js");
-
-    return model;
-  }
-
-  /**
    * Returns the active compactions template.
    *
    * @return Active compactions model
