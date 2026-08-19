@@ -115,17 +115,19 @@ public class ConfigurationDocGen {
     description += strike(sanitize(prop.getDescription()), depr) + "<br>"
         + strike("**type:** " + prop.getType().name(), depr) + ", "
         + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
-    String defaultValue = sanitize(prop.getDefaultValue()).trim();
-    if (defaultValue.isEmpty()) {
-      description += strike("**default value:** empty", depr);
-    } else if (defaultValue.contains("\n")) {
-      // deal with multi-line values, skip strikethrough of value
-      description += strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
-    } else if (prop.getType() == PropertyType.CLASSNAME
-        && defaultValue.startsWith("org.apache.accumulo")) {
-      description += strike("**default value:** {% jlink -f " + defaultValue + " %}", depr);
-    } else {
-      description += strike("**default value:** `" + defaultValue + "`", depr);
+    if (prop.getDefaultValue() != null) {
+      String defaultValue = sanitize(prop.getDefaultValue()).trim();
+      if (defaultValue.isEmpty()) {
+        description += strike("**default value:** empty", depr);
+      } else if (defaultValue.contains("\n")) {
+        // deal with multi-line values, skip strikethrough of value
+        description += strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
+      } else if (prop.getType() == PropertyType.CLASSNAME
+          && defaultValue.startsWith("org.apache.accumulo")) {
+        description += strike("**default value:** {% jlink -f " + defaultValue + " %}", depr);
+      } else {
+        description += strike("**default value:** `" + defaultValue + "`", depr);
+      }
     }
     doc.println("| " + key + " | " + description + " |");
   }

@@ -276,6 +276,8 @@ public enum PropertyType {
     @Override
     public boolean test(String volumes) {
       if (volumes == null) {
+        return true;
+      } else if (volumes.isEmpty()) {
         return false;
       }
       try {
