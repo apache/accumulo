@@ -175,7 +175,7 @@ under the License.
     <version.opentelemetry>1.48.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.17</version.slf4j>
-    <version.thrift>0.17.0</version.thrift>
+    <version.thrift>0.23.0</version.thrift>
     <version.zookeeper>3.9.5</version.zookeeper>
   </properties>
   <dependencyManagement>
