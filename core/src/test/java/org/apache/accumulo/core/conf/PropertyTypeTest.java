@@ -207,6 +207,9 @@ public class PropertyTypeTest extends WithTestNames {
   public void testTypeSTRING() {
     valid(null, "", "whatever");
   }
+  /*
+   * @Test public void testTypeNON_EMPTY_STRING() { valid("whatever"); invalid(null, "", " "); }
+   */
 
   @Test
   public void testTypeTIMEDURATION() {
@@ -228,9 +231,9 @@ public class PropertyTypeTest extends WithTestNames {
   @Test
   public void testTypeVOLUMES() {
     // more comprehensive parsing tests are in ConfigurationTypeHelperTest.testGetVolumeUris()
-    valid("", "hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,", "hdfs:/volA,file:/volB",
+    valid(null, "hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,", "hdfs:/volA,file:/volB",
         ",hdfs:/volA,file:/volB", "hdfs:/volA,,file:/volB", "hdfs:/volA,file:/volB,   ,");
-    invalid(null, "   ", ",", ",,,", " ,,,", ",,, ", ", ,,", "hdfs:/volA,hdfs:/volB,volA",
+    invalid("", "   ", ",", ",,,", " ,,,", ",,, ", ", ,,", "hdfs:/volA,hdfs:/volB,volA",
         ",volA,hdfs:/volA,hdfs:/volB", "hdfs:/volA,,volA,hdfs:/volB",
         "hdfs:/volA,volA,hdfs:/volB,   ,", "hdfs:/volA,hdfs:/volB,hdfs:/volA",
         "hdfs:/volA,hdfs :/::/volB");

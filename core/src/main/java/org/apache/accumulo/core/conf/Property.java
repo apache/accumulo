@@ -161,7 +161,7 @@ public enum Property {
       HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo \
       admin changeSecret`.
       """, "1.3.5"),
-  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.VOLUMES, """
+  INSTANCE_VOLUMES("instance.volumes", null, PropertyType.VOLUMES, """
       A comma separated list of dfs uris to use. Files will be stored across \
       these filesystems. In some situations, the first volume in this list \
       may be treated differently, such as being preferred for writing out \
@@ -1437,14 +1437,22 @@ public enum Property {
   private boolean isReplaced;
   private Property replacedBy = null;
   private final PropertyType type;
+  private final boolean isRequired;
+  // private final Predicate<String> checkValue;
 
   Property(String name, String defaultValue, PropertyType type, String description,
       String availableSince) {
     this.key = name;
     this.defaultValue = defaultValue;
+    this.type = type;
     this.description = description;
     this.availableSince = availableSince;
-    this.type = type;
+    isRequired = this.defaultValue == null;
+    /*
+     * checkValue = isRequired ? ((Predicate<String>)
+     * Objects::nonNull).and(Predicate.not(String::isEmpty)) .and(type::isValidFormat) :
+     * ((Predicate<String>) Objects::isNull).or(String::isEmpty).or(type::isValidFormat);
+     */
   }
 
   @Override
@@ -1478,6 +1486,15 @@ public enum Property {
    */
   public PropertyType getType() {
     return this.type;
+  }
+
+  /**
+   * Gets isRequired of this property.
+   *
+   * @return isRequired
+   */
+  public boolean getIsRequired() {
+    return this.isRequired;
   }
 
   /**
@@ -1641,7 +1658,7 @@ public enum Property {
       // If a key doesn't exist yet, then check if it follows a valid prefix
       return validPrefixes.stream().anyMatch(key::startsWith);
     }
-    return (isValidPropertyKey(key) && p.getType().isValidFormat(value));
+    return isValidPropertyKey(key) && p.getType().isValidFormat(value);
   }
 
   /**
@@ -1653,7 +1670,6 @@ public enum Property {
    */
   public static boolean isValidPropertyKey(String key) {
     return validProperties.contains(key) || validPrefixes.stream().anyMatch(key::startsWith);
-
   }
 
   /**
