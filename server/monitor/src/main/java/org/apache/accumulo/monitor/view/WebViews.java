@@ -419,30 +419,4 @@ public class WebViews {
 
     return model;
   }
-
-  /**
-   * Returns problem report template
-   *
-   * @param table Table ID to display problem details
-   * @return Problem report model
-   */
-  @GET
-  @Path("problems")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getProblems(
-      @QueryParam(TABLE_PARAM_KEY) @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Per-Table Problem Report");
-
-    model.put("template", "problems.ftl");
-    model.put("js", "problems.js");
-
-    if (table != null && !table.isBlank()) {
-      model.put("table", table);
-    }
-
-    return model;
-  }
-
 }
