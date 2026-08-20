@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,13 +78,17 @@ public class ThrottledBalancerProblemReporter {
       @Override
       public void report() {
         log.warn("Not balancing due to {} outstanding migrations.", migrations.size());
-        /*
-         * TODO ACCUMULO-2938 redact key extents in this output to avoid leaking protected
-         * information.
-         */
+
+        // convert each tabletId in migrations to keyExtent
+        Set<KeyExtent> keyExtents = migrations.stream().map(tabletId -> {
+          KeyExtent extent = KeyExtent.fromTabletId(tabletId);
+          extent.obscured();
+          return extent;
+        }).collect(Collectors.toSet());
+
         if (log.isDebugEnabled()) {
           log.debug("Sample up to 10 outstanding migrations: {}",
-              migrations.stream().limit(10).map(String::valueOf).collect(Collectors.joining(", ")));
+              keyExtents.stream().limit(10).map(String::valueOf).collect(Collectors.joining(", ")));
         }
         // Now that we've reported, clear out the migrations list so we don't hold it in memory.
         migrations = Collections.emptySet();
