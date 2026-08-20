@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -424,34 +425,27 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       };
     }
 
-    Map<TabletId,String> serversToUse = new HashMap<>();
-
-    int maxAttempts = selectServers(params, profile, rhasher, serversToUse);
-
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
-
-    return new ScanServerSelections() {
-      @Override
-      public String getScanServer(TabletId tabletId) {
-        return serversToUse.get(tabletId);
-      }
-
-      @Override
-      public Duration getDelay() {
-        return Duration.ZERO;
-      }
-
-      @Override
-      public Duration getBusyTimeout() {
-        return busyTO;
-      }
-    };
+    return selectServers(params, profile, rhasher);
   }
 
-  int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
-      RendezvousHasher rhasher, Map<TabletId,String> serversToUse) {
-    int attempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+  protected Duration computeDelay(int errorAttempts) {
+    if (errorAttempts == 0) {
+      return Duration.ZERO;
+    } else {
+      return Duration.ofMillis((long) Math.min(30_000, 100 * Math.pow(2, (errorAttempts - 1))));
+    }
+  }
+
+  ScanServerSelections selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      RendezvousHasher rhasher) {
+    int attempts = 0;
+    int errorAttempts = 0;
+
+    HashMap<TabletId,String> serversToUse = new HashMap<>();
+
+    for (TabletId tablet : params.getTablets()) {
+      attempts = Math.max(attempts, params.getAttempts(tablet).size());
+    }
 
     int numServers = profile.getNumServers(attempts,
         rhasher.getSnapshot().getServersForGroup(profile.group).size());
@@ -461,9 +455,17 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
       var tabletAttempts = params.getAttempts(tablet);
       if (!tabletAttempts.isEmpty()) {
+        HashSet<String> attemptServers = new HashSet<>();
+        int errorCount = 0;
+        for (var attempt : tabletAttempts) {
+          attemptServers.add(attempt.getServer());
+          if (attempt.getResult() == ScanServerAttempt.Result.ERROR) {
+            errorCount++;
+          }
+        }
+        errorAttempts = Math.max(errorCount, errorAttempts);
         // remove servers that failed in previous attempts
-        var attemptServers =
-            tabletAttempts.stream().map(ScanServerAttempt::getServer).collect(Collectors.toSet());
+
         var copy = rendezvousServers.stream().filter(server -> !attemptServers.contains(server))
             .collect(Collectors.toList());
         if (!copy.isEmpty()) {
@@ -475,6 +477,25 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       String serverToUse = rendezvousServers.get(RANDOM.nextInt(rendezvousServers.size()));
       serversToUse.put(tablet, serverToUse);
     }
-    return attempts;
+
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
+    Duration delay = computeDelay(errorAttempts);
+
+    return new ScanServerSelections() {
+      @Override
+      public String getScanServer(TabletId tabletId) {
+        return serversToUse.get(tabletId);
+      }
+
+      @Override
+      public Duration getDelay() {
+        return delay;
+      }
+
+      @Override
+      public Duration getBusyTimeout() {
+        return busyTO;
+      }
+    };
   }
 }

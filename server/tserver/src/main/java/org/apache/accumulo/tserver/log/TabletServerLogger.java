@@ -300,6 +300,7 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
+              Thread.currentThread().interrupt();
               // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
               // will log this then halt the VM.
               throw new Error("Next log maker thread interrupted", ex);
@@ -338,6 +339,7 @@ public class TabletServerLogger {
             try {
               nextLog.offer(t, 12, TimeUnit.HOURS);
             } catch (InterruptedException ex) {
+              Thread.currentThread().interrupt();
               // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
               // will log this then halt the VM.
               throw new Error("Next log maker thread interrupted", ex);
@@ -351,6 +353,7 @@ public class TabletServerLogger {
               log.info("Our WAL was not used for 12 hours: {}", fileName);
             }
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
             // will log this then halt the VM.
             throw new Error("Next log maker thread interrupted", e);

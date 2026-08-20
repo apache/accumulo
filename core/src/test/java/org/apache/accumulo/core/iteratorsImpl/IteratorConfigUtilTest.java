@@ -284,6 +284,27 @@ public class IteratorConfigUtilTest {
 
   }
 
+  /**
+   * Test that options with keys that contain dots are properly parsed
+   */
+  @Test
+  public void testOptionKeyContainingDots() {
+    Map<String,Map<String,String>> options = new HashMap<>();
+    ConfigurationCopy conf = new ConfigurationCopy();
+    conf.set(Property.TABLE_ITERATOR_SCAN_PREFIX + "error",
+        "50," + SummingCombiner.class.getName());
+
+    // add an option with a key that contains dots
+    conf.set(Property.TABLE_ITERATOR_SCAN_PREFIX + "error.opt.error.throwing.iterator.times", "3");
+
+    List<IterInfo> iterators =
+        IteratorConfigUtil.parseIterConf(IteratorScope.scan, EMPTY_ITERS, options, conf);
+
+    assertEquals(1, iterators.size());
+    assertEquals(new IterInfo(50, SummingCombiner.class.getName(), "error"), iterators.get(0));
+    assertEquals(Map.of("error.throwing.iterator.times", "3"), options.get("error"));
+  }
+
   @Test
   public void test5() throws IOException, ReflectiveOperationException {
     ConfigurationCopy conf = new ConfigurationCopy();

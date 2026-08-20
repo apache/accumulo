@@ -62,6 +62,7 @@ public class SlowIterator extends WrappingIterator {
       try {
         Thread.sleep(sleepTime);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IOException(e);
       }
     }

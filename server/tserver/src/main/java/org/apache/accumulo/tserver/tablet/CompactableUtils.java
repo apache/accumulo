@@ -112,7 +112,7 @@ public class CompactableUtils {
 
   public static Map<StoredTabletFile,Pair<Key,Key>> getFirstAndLastKeys(Tablet tablet,
       Set<StoredTabletFile> allFiles) throws IOException {
-    final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
+    final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>(allFiles.size(), 1.0f);
     final FileOperations fileFactory = FileOperations.getInstance();
     final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
     final TableConfiguration tableConf = tablet.getTableConfiguration();

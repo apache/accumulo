@@ -138,6 +138,9 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
         }
         System.out.println("Restarted " + i + " times");
       } catch (IOException | InterruptedException | TableNotFoundException ex) {
+        if (ex instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("{}", ex.getMessage(), ex);
       }
     });

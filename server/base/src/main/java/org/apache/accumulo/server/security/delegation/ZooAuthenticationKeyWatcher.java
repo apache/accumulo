@@ -67,6 +67,9 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
           try {
             updateAuthKeys();
           } catch (KeeperException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             log.error("Failed to update secret manager after ZooKeeper reconnect; {}", event, e);
           }
           break;
@@ -95,6 +98,9 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
         processChildNode(event);
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("Failed to communicate with ZooKeeper processing {}", event, e);
     }
   }

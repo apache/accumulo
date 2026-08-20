@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,13 +39,18 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -130,6 +136,80 @@ public class LocatorIT extends AccumuloClusterHarness {
       tableOps.delete(tableName);
 
       assertThrows(TableNotFoundException.class, () -> tableOps.locate(tableName, ranges));
+    }
+  }
+
+  @Test
+  public void testClearingUnused() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tables = getUniqueNames(4);
+      String table1 = tables[0];
+      String table2 = tables[1];
+      String table3 = tables[2];
+      String table4 = tables[3];
+
+      TableOperations tableOps = client.tableOperations();
+      tableOps.create(table1);
+      tableOps.create(table2);
+      tableOps.create(table3, new NewTableConfiguration().createOffline());
+      tableOps.create(table4, new NewTableConfiguration().createOffline());
+
+      TabletLocator.setClearFrequency(Duration.ofMillis(100));
+
+      ClientContext ctx = (ClientContext) client;
+      TableId tableId1 = ctx.getTableId(table1);
+      TableId tableId2 = ctx.getTableId(table2);
+      TableId tableId3 = ctx.getTableId(table3);
+      TableId tableId4 = ctx.getTableId(table4);
+
+      for (var tableId : List.of(tableId1, tableId2, tableId3, tableId4)) {
+        assertFalse(TabletLocator.isPresent(ctx, tableId));
+        assertNotNull(TabletLocator.getLocator(ctx, tableId));
+        assertTrue(TabletLocator.isPresent(ctx, tableId));
+      }
+
+      // Put table2 and table3 into a different state than what is in the cache
+      assertEquals(TableState.ONLINE, ctx.getTableState(tableId2));
+      assertEquals(TableState.OFFLINE, ctx.getTableState(tableId3));
+      tableOps.offline(table2, true);
+      tableOps.online(table3, true);
+      assertEquals(TableState.OFFLINE, ctx.getTableState(tableId2));
+      assertEquals(TableState.ONLINE, ctx.getTableState(tableId3));
+
+      Wait.waitFor(() -> {
+        // Accessing table1 in the cache should cause table2 and table3 to eventually be cleared
+        // because their table state does not match what was cached
+        assertNotNull(TabletLocator.getLocator(ctx, tableId1));
+        return !TabletLocator.isPresent(ctx, tableId2) && !TabletLocator.isPresent(ctx, tableId3);
+      });
+
+      assertTrue(TabletLocator.isPresent(ctx, tableId1));
+      assertTrue(TabletLocator.isPresent(ctx, tableId4));
+
+      // bring table2 and table3 back into the cache
+      for (var tableId : List.of(tableId2, tableId3)) {
+        assertFalse(TabletLocator.isPresent(ctx, tableId));
+        assertNotNull(TabletLocator.getLocator(ctx, tableId));
+        assertTrue(TabletLocator.isPresent(ctx, tableId));
+      }
+
+      tableOps.delete(table2);
+      tableOps.delete(table3);
+
+      Wait.waitFor(() -> {
+        // Accessing table4 in the cache should cause table2 and table3 to eventually be cleared
+        // because they no longer exist. This also test that online and offline tables a properly
+        // cleared from the cache.
+        assertNotNull(TabletLocator.getLocator(ctx, tableId4));
+        return !TabletLocator.isPresent(ctx, tableId2) && !TabletLocator.isPresent(ctx, tableId3);
+      });
+
+      // table1 and table4 should be left in the cache, check that online or offline tables are not
+      // removed unnecessarily.
+      assertTrue(TabletLocator.isPresent(ctx, tableId1));
+      assertTrue(TabletLocator.isPresent(ctx, tableId4));
+      assertEquals(TableState.ONLINE, ctx.getTableState(tableId1));
+      assertEquals(TableState.OFFLINE, ctx.getTableState(tableId4));
     }
   }
 }

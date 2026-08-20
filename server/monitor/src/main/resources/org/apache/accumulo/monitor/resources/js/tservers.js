@@ -75,12 +75,6 @@ function refreshTServersTable() {
 function refreshDeadTServersTable() {
   ajaxReloadTable(deadTServersTable);
 
-  // Only show the table if there are non-empty rows
-  if ($('#deadtservers tbody .dataTables_empty').length) {
-    $('#deadtservers_wrapper').hide();
-  } else {
-    $('#deadtservers_wrapper').show();
-  }
 }
 
 /**

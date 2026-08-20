@@ -33,13 +33,12 @@ import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 public class EscalatingLoggerTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(EscalatingLoggerTest.class);
-  private static final Logger TEST_LOGGER =
-      new EscalatingLogger(LOG, Duration.ofSeconds(3), 100, Level.WARN);
+  private static final EscalatingLogger TEST_LOGGER =
+      new EscalatingLogger(LOG, Duration.ofSeconds(3), 100, Logger::warn);
 
   @Test
   public void test() throws InterruptedException {
@@ -49,8 +48,8 @@ public class EscalatingLoggerTest {
     // Programatically modify the Log4j2 Logging configuration to add an appender
     LoggerContext ctx = LoggerContext.getContext(false);
     Configuration cfg = ctx.getConfiguration();
-    PatternLayout layout = PatternLayout.newBuilder().withConfiguration(cfg)
-        .withPattern(PatternLayout.SIMPLE_CONVERSION_PATTERN).build();
+    PatternLayout layout = PatternLayout.newBuilder().setConfiguration(cfg)
+        .setPattern(PatternLayout.SIMPLE_CONVERSION_PATTERN).build();
     Appender appender = WriterAppender.createAppender(layout, null, writer,
         "EscalatingLoggerTestAppender", false, true);
     appender.start();

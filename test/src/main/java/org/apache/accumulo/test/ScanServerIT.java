@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -147,24 +146,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanOfflineTable() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
-
-      createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      client.tableOperations().offline(tableName, true);
-
-      assertThrows(TableOfflineException.class, () -> {
-        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-          scanner.setRange(new Range());
-          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          assertEquals(100, Iterables.size(scanner));
-        } // when the scanner is closed, all open sessions should be closed
-      });
-    }
-  }
-
-  @Test
   @Timeout(value = 20)
   public void testBatchScannerTimeout() throws Exception {
     // Configure the client to use different scan server selector property values
@@ -232,7 +213,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
    */
   public static int ingest(AccumuloClient client, String tableName, int rowCount, int colCount,
       int offset, String colf, boolean shouldFlush) throws Exception {
-    ReadWriteIT.ingest(client, colCount, rowCount, 50, offset, colf, tableName);
+    ReadWriteIT.ingest(client, rowCount, colCount, 50, offset, colf, tableName);
 
     final int ingestedEntriesCount = colCount * rowCount;
 

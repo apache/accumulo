@@ -697,7 +697,8 @@ public class CompactableImpl implements Compactable {
       tabletMutator.mutate();
     }
 
-    ArrayList<StoredTabletFile> extCompactingFiles = new ArrayList<>();
+    ArrayList<StoredTabletFile> extCompactingFiles = new ArrayList<>(
+        extCompactions.values().stream().mapToInt(ecm -> ecm.getJobFiles().size()).sum());
 
     extCompactions.forEach((ecid, ecMeta) -> {
       if (!extCompactionsToRemove.containsKey(ecid)) {

@@ -238,6 +238,9 @@ public class ZooStore<T> implements TStore<T> {
         }
       }
     } catch (InterruptedException | KeeperException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }
@@ -251,6 +254,7 @@ public class ZooStore<T> implements TStore<T> {
           try {
             this.wait(1000);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
           }
         }
@@ -451,6 +455,7 @@ public class ZooStore<T> implements TStore<T> {
           try {
             this.wait(5000);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
           }
         }
@@ -567,6 +572,9 @@ public class ZooStore<T> implements TStore<T> {
       } catch (KeeperException.NoNodeException e) {
         return Collections.emptyList();
       } catch (KeeperException | InterruptedException e1) {
+        if (e1 instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e1);
       }
 
@@ -587,6 +595,9 @@ public class ZooStore<T> implements TStore<T> {
             // children changed so start over
             continue outer;
           } catch (KeeperException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(e);
           }
         }

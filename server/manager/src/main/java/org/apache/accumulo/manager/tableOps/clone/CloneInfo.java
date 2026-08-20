@@ -18,7 +18,11 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,8 +39,8 @@ class CloneInfo implements Serializable {
   // TODO: Make final in 3.1
   private NamespaceId namespaceId;
   private final NamespaceId srcNamespaceId;
-  private final Map<String,String> propertiesToSet;
-  private final Set<String> propertiesToExclude;
+  private final HashMap<String,String> propertiesToSet; // type must be serializable
+  private final HashSet<String> propertiesToExclude; // type must be serializable
   private final boolean keepOffline;
   private final String user;
 
@@ -48,8 +52,8 @@ class CloneInfo implements Serializable {
     this.srcTableId = srcTableId;
     this.tableName = dstTableName;
     this.namespaceId = dstNamespaceId;
-    this.propertiesToSet = propertiesToSet;
-    this.propertiesToExclude = propertiesToExclude;
+    this.propertiesToSet = new HashMap<>(requireNonNull(propertiesToSet));
+    this.propertiesToExclude = new HashSet<>(requireNonNull(propertiesToExclude));
     this.keepOffline = keepOffline;
     this.user = user;
   }

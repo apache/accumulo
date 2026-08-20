@@ -48,8 +48,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -67,6 +70,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.spi.crypto.AESCryptoService;
@@ -85,6 +89,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -357,6 +362,22 @@ public class CryptoTest {
     assertEquals(1, summary.getStatistics().size());
     assertEquals(0, summary.getFileStatistics().getInaccurate());
     assertEquals(1, summary.getFileStatistics().getTotal());
+
+    // test computing load plan for encrypted files
+    var absUri = new Path(file).makeQualified(fs.getUri(), fs.getWorkingDirectory()).toUri();
+    var loadPlan = LoadPlan.compute(absUri, cryptoOnConf.getAllCryptoProperties());
+    var expectedLoadPlan =
+        LoadPlan.builder().loadFileTo("testFile1.rf", LoadPlan.RangeType.FILE, "a", "a3").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+
+    var splits =
+        Stream.of("a", "b", "c").map(Text::new).collect(Collectors.toCollection(TreeSet::new));
+    var resolver = LoadPlan.SplitResolver.from(splits);
+    var loadPlan2 = LoadPlan.compute(absUri, cryptoOnConf.getAllCryptoProperties(), resolver);
+    var expectedLoadPlan2 =
+        LoadPlan.builder().loadFileTo("testFile1.rf", LoadPlan.RangeType.TABLE, null, "a")
+            .loadFileTo("testFile1.rf", LoadPlan.RangeType.TABLE, "a", "b").build();
+    assertEquals(expectedLoadPlan2.toJson(), loadPlan2.toJson());
   }
 
   @Test

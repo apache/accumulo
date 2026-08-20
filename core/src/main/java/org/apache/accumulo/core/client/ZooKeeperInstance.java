@@ -86,10 +86,12 @@ public class ZooKeeperInstance implements Instance {
    * @param zooKeepers A comma separated list of zoo keeper server locations. Each location can
    *        contain an optional port, of the format host:port.
    */
+  @Deprecated
   public ZooKeeperInstance(String instanceName, String zooKeepers) {
     this(ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
+  @Deprecated
   ZooKeeperInstance(ClientConfiguration config, ZooCacheFactory zcf) {
     checkArgument(config != null, "config is null");
     // Enable singletons before before getting a zoocache
@@ -118,10 +120,12 @@ public class ZooKeeperInstance implements Instance {
    *        specific to Accumulo.
    * @since 1.9.0
    */
+  @Deprecated
   public ZooKeeperInstance(ClientConfiguration config) {
     this(config, new ZooCacheFactory());
   }
 
+  @Deprecated
   @Override
   public String getInstanceID() {
     if (instanceId == null) {
@@ -131,18 +135,19 @@ public class ZooKeeperInstance implements Instance {
     return instanceId;
   }
 
+  @Deprecated
   @Override
   public List<String> getMasterLocations() {
     return ClientContext.getManagerLocations(zooCache, getInstanceID());
   }
 
+  @Deprecated
   @Override
   public String getRootTabletLocation() {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zookeeper.",
-          Thread.currentThread().getId());
+      log.trace("Looking up root tablet location in zookeeper.");
       timer = Timer.startNew();
     }
 
@@ -150,7 +155,7 @@ public class ZooKeeperInstance implements Instance {
         .getRootMetadata(Constants.ZROOT + "/" + getInstanceID(), zooCache).getLocation();
 
     if (timer != null) {
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
+      log.trace("Found root tablet at {} in {}", loc,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -161,6 +166,7 @@ public class ZooKeeperInstance implements Instance {
     return loc.getHostPort();
   }
 
+  @Deprecated
   @Override
   public String getInstanceName() {
     if (instanceName == null) {
@@ -171,16 +177,19 @@ public class ZooKeeperInstance implements Instance {
     return instanceName;
   }
 
+  @Deprecated
   @Override
   public String getZooKeepers() {
     return zooKeepers;
   }
 
+  @Deprecated
   @Override
   public int getZooKeepersSessionTimeOut() {
     return zooKeepersSessionTimeOut;
   }
 
+  @Deprecated
   @Override
   public Connector getConnector(String principal, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
@@ -193,6 +202,7 @@ public class ZooKeeperInstance implements Instance {
         new ClientContext(SingletonReservation.noop(), info, serverConf, null));
   }
 
+  @Deprecated
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(64);

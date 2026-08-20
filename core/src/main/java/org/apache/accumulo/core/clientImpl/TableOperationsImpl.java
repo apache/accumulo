@@ -138,7 +138,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
@@ -180,15 +180,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
+      log.trace("Fetching list of tables...");
       timer = Timer.startNew();
     }
 
     TreeSet<String> tableNames = new TreeSet<>(context.getTableNameToIdMap().keySet());
 
     if (timer != null) {
-      log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Fetched {} table names in {}", tableNames.size(),
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return tableNames;
@@ -205,14 +205,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if table {} exists...", Thread.currentThread().getId(), tableName);
+      log.trace("Checking if table {} exists...", tableName);
       timer = Timer.startNew();
     }
 
     boolean exists = context.getTableNameToIdMap().containsKey(tableName);
 
     if (timer != null) {
-      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("Checked existence of {} in {}", exists,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -530,6 +530,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     } finally {
       executor.shutdown();
@@ -571,8 +572,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             Timer timer = null;
 
             if (log.isTraceEnabled()) {
-              log.trace("tid={} Splitting tablet {} on {} at {}", Thread.currentThread().getId(),
-                  tl.tablet_extent, address, split);
+              log.trace("Splitting tablet {} on {} at {}", tl.tablet_extent, address, split);
               timer = Timer.startNew();
             }
 
@@ -1009,9 +1009,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       setPropertyNoChecks(tableName, property, value);
-
       checkLocalityGroups(tableName, property);
-    } catch (TableNotFoundException e) {
+    } catch (TableNotFoundException | IllegalArgumentException e) {
       throw new AccumuloException(e);
     }
   }
@@ -1067,6 +1066,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               + " because of concurrent modification");
           retry.waitForNextAttempt(log, "modify table properties for " + tableName);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {
@@ -1109,7 +1109,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> allProps = getConfiguration(tableName);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged + "' for table '"
             + tableName
             + "' resulted in bad locality group config.  This may be a transient situation since "
@@ -1219,11 +1219,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
-    Map<String,Set<Text>> groups2 = new HashMap<>();
+    Map<String,Set<Text>> groups2 = new HashMap<>(groups.size(), 1.0f);
 
     for (Entry<String,Set<ByteSequence>> entry : groups.entrySet()) {
 
-      HashSet<Text> colFams = new HashSet<>();
+      HashSet<Text> colFams = new HashSet<>(entry.getValue().size(), 1.0f);
 
       for (ByteSequence bs : entry.getValue()) {
         colFams.add(new Text(bs.toArray()));
@@ -1293,7 +1293,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     mergedExtents.addAll(unmergedExtents);
 
-    Set<Range> ranges = new HashSet<>();
+    Set<Range> ranges = new HashSet<>(mergedExtents.size(), 1.0f);
     for (KeyExtent k : mergedExtents) {
       ranges.add(k.toDataRange().clip(range));
     }
@@ -1673,7 +1673,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     boolean keepOffline = ic.isKeepOffline();
     boolean keepMapping = ic.isKeepMappings();
 
-    Set<String> checkedImportDirs = new HashSet<>();
+    Set<String> checkedImportDirs = new HashSet<>(importDirs.size(), 1.0f);
     try {
       for (String s : importDirs) {
         checkedImportDirs.add(checkPath(s, "Table", "").toString());
@@ -1931,6 +1931,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     requireNonNull(ranges, "ranges must be non null");
 
     TableId tableId = context.getTableId(tableName);
+    context.requireNotOffline(tableId, tableName);
     TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     List<Range> rangeList = null;
@@ -1957,6 +1958,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             String.format("locating tablets in table %s(%s) for %d ranges", tableName, tableId,
                 rangeList.size()));
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
       locator.invalidateCache();

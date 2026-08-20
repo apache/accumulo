@@ -36,6 +36,7 @@ public class EventCoordinator {
       try {
         wait(millis);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.debug("ignoring InterruptedException", e);
       }
     }

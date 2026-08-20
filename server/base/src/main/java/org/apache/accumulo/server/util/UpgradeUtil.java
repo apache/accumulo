@@ -146,6 +146,9 @@ public class UpgradeUtil implements KeywordExecutable {
           zoo.delete(zUpgradepath);
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error creating or checking for " + zUpgradepath
             + " node in zookeeper: " + e.getMessage(), e);
       }
@@ -159,6 +162,9 @@ public class UpgradeUtil implements KeywordExecutable {
               "Manager is running, shut it down and retry this operation");
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error trying to determine if Manager lock is held", e);
       }
 
@@ -174,6 +180,9 @@ public class UpgradeUtil implements KeywordExecutable {
               + " retry this operation.");
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error checking for existing FATE transactions", e);
       }
 
@@ -182,6 +191,9 @@ public class UpgradeUtil implements KeywordExecutable {
       try {
         zoo.putPersistentData(zUpgradepath, new byte[0], NodeExistsPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error creating " + zUpgradepath
             + " node in zookeeper. Check for any issues and retry.", e);
       }

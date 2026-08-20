@@ -91,6 +91,9 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     try {
       existingWork = workQueue.getWorkQueued();
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Error reading existing queued replication work", e);
     }
 
@@ -178,6 +181,9 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
         workQueue.addWork(queueKey, path.toString());
         workForPeer.put(target.getSourceTableId(), queueKey);
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.warn("Could not queue work for {} to {}", path, target, e);
         return false;
       }

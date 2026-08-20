@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.manager.upgrade.Upgrader9to10;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -84,10 +85,11 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    String path = getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK;
     ZooReaderWriter zk = getServerContext().getZooReaderWriter();
     try {
-      ServiceLock.deleteLock(zk, path);
+      ServiceLock.deleteLock(zk, path, ServerServices.Service.GC_CLIENT, hostAndPort -> true,
+          log::debug, false);
     } catch (IllegalStateException e) {
       log.error("Unable to delete ZooLock for mini accumulo-gc", e);
     }

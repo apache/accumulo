@@ -24,7 +24,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
-import java.net.URL;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -512,6 +512,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       monitorLock.replaceLockData(monitorHostAndPort.toString().getBytes(UTF_8));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception updating monitor lock with host and port", e);
     }
 
@@ -524,14 +527,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       rootContext = rootContext + "/";
     }
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
-          server.getPort(), rootContext);
+      var uri = new URI(server.isSecure() ? "https" : "http", null, monitorHostAndPort.getHost(),
+          server.getPort(), rootContext, null, null);
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       final ZooReaderWriter zoo = context.getZooReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
-      zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
-      log.info("Set monitor address in zookeeper to {}", url);
+      zoo.putEphemeralData(path, uri.toString().getBytes(UTF_8));
+      log.info("Set monitor address in zookeeper to {}", uri);
     } catch (Exception ex) {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
@@ -558,6 +561,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
       }

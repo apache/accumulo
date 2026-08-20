@@ -391,6 +391,14 @@ public enum Property {
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
       "2.1.4"),
+  MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
+      PropertyType.BOOLEAN,
+      "When deleting a table the Manager will remove related table directories from "
+          + " the storage volumes if there are no other references to the files in the "
+          + " metadata table. When deleting a lot of tables this optimization can be costly. "
+          + " Setting this value to false will skip this optimization and the table directory "
+          + " cleanup will occur in the Garbage Collector instead.",
+      "2.1.5"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
   MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
@@ -450,6 +458,11 @@ public enum Property {
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
+  MANAGER_TSERVER_HALT_DURATION("manager.tservers.halt.grace.period", "0",
+      PropertyType.TIMEDURATION,
+      "Allows the manager to force tserver halting by setting the max duration of time spent attempting to halt a tserver "
+          + " requests before deleting the tserver's zlock. A value of zero (default) disables this feature.",
+      "2.1.5"),
   @Deprecated(since = "2.1.0")
   MANAGER_REPLICATION_SCAN_INTERVAL("manager.replication.status.scan.interval", "30s",
       PropertyType.TIMEDURATION,
@@ -560,6 +573,13 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
+  @Experimental
+  SSERV_SCAN_ALLOWED_TABLES("sserver.scan.allowed.tables.group.", null, PropertyType.PREFIX,
+      "A regular expression that determines which tables are allowed to be scanned for"
+          + " servers in the specified group. The property name should end with the scan server"
+          + " group and the property value should take into account the table namespace and name."
+          + " The default value disallows scans on tables in the accumulo namespace.",
+      "2.1.5"),
   @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
@@ -976,11 +996,6 @@ public enum Property {
       "The number of threads used to delete write-ahead logs and recovery files.", "2.1.4"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
       "The number of threads used to delete RFiles.", "1.3.5"),
-  @Experimental
-  GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
-      "GC will remove deletion candidates that are in-use from the metadata location. "
-          + "This is expected to increase the speed of subsequent GC runs.",
-      "2.1.3"),
   @Deprecated(since = "2.1.1", forRemoval = true)
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),

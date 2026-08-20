@@ -186,9 +186,12 @@ public class AccumuloVFSClassLoader {
 
     ReloadingClassLoader wrapper = () -> parent;
 
-    if (dynamicCPath == null || dynamicCPath.equals("")) {
+    if (dynamicCPath == null || dynamicCPath.isBlank()) {
       return wrapper;
     }
+
+    log.warn("'{}' is deprecated but was set to '{}' ", DYNAMIC_CLASSPATH_PROPERTY_NAME,
+        dynamicCPath);
 
     // TODO monitor time for lib/ext was 1 sec... should this be configurable? - ACCUMULO-1301
     return new AccumuloReloadingVFSClassLoader(dynamicCPath, generateVfs(), wrapper, 1000, true);
@@ -204,15 +207,25 @@ public class AccumuloVFSClassLoader {
       synchronized (lock) {
         if (loader == null) {
 
-          FileSystemManager vfs = generateVfs();
-
           // Set up the 2nd tier class loader
           if (parent == null) {
             parent = AccumuloClassLoader.getClassLoader();
           }
 
-          FileObject[] vfsCP = resolve(vfs, AccumuloClassLoader
-              .getAccumuloProperty(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, ""));
+          var sysClasspath = AccumuloClassLoader
+              .getAccumuloProperty(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "");
+
+          if (sysClasspath.isBlank()) {
+            localLoader = createDynamicClassloader(parent);
+            loader = localLoader;
+            return localLoader.getClassLoader();
+          }
+
+          log.warn("'{}' is deprecated but was set to '{}' ",
+              VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, sysClasspath);
+
+          FileSystemManager vfs = generateVfs();
+          FileObject[] vfsCP = resolve(vfs, sysClasspath);
 
           if (vfsCP.length == 0) {
             localLoader = createDynamicClassloader(parent);

@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -28,6 +30,9 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.zookeeper.ZooKeeper;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
@@ -93,4 +98,69 @@ public class AdminTest {
     EasyMock.verify(zc);
   }
 
+  /**
+   * SServer group filter should use lock data (UUID,group).
+   */
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testSserverGroupFilterUsesLockData() throws Exception {
+
+    ZooReaderWriter zoo = EasyMock.createMock(ZooReaderWriter.class);
+    ZooKeeper zk = EasyMock.createMock(ZooKeeper.class);
+
+    String basePath = "/accumulo/iid/sservers";
+    String hostDefault = "host1:10000";
+    String hostOther = "host2:10001";
+    String zlock1 = "zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001";
+    String zlock2 = "zlock#00000000-0000-0000-0000-bbbbbbbbbbbb#0000000001";
+
+    EasyMock.expect(zoo.exists(basePath)).andReturn(true);
+    EasyMock.expect(zoo.getChildren(basePath)).andReturn(List.of(hostDefault, hostOther));
+    EasyMock.expect(zoo.getZooKeeper()).andReturn(zk);
+    EasyMock.expect(zk.getChildren(basePath + "/" + hostDefault, null)).andReturn(List.of(zlock1));
+    EasyMock.expect(zk.getData(basePath + "/" + hostDefault + "/" + zlock1, false, null))
+        .andReturn((UUID.randomUUID().toString() + ",default").getBytes(UTF_8));
+    EasyMock.expect(zk.getChildren(basePath + "/" + hostOther, null)).andReturn(List.of(zlock2));
+    EasyMock.expect(zk.getData(basePath + "/" + hostOther + "/" + zlock2, false, null))
+        .andReturn((UUID.randomUUID().toString() + ",rg1").getBytes(UTF_8));
+
+    zoo.recursiveDelete(basePath + "/" + hostDefault, NodeMissingPolicy.SKIP);
+    EasyMock.expectLastCall();
+
+    EasyMock.replay(zoo, zk);
+
+    ZooZap.Opts opts = new ZooZap.Opts();
+    ZooZap.removeScanServerGroupLocks(zoo, basePath, hp -> true, "default"::equals, opts);
+
+    EasyMock.verify(zoo, zk);
+
+  }
+
+  /**
+   * SServer cleanup without group filter should delete all host nodes.
+   */
+  @Test
+  public void testSserverDeleteAllNoGroupFilter() throws Exception {
+    ZooReaderWriter zoo = EasyMock.createMock(ZooReaderWriter.class);
+
+    String basePath = "/accumulo/iid/sservers";
+    String host1 = "host1:10000";
+    String host2 = "host2:10001";
+
+    EasyMock.expect(zoo.exists(basePath)).andReturn(true);
+    EasyMock.expect(zoo.getChildren(basePath)).andReturn(List.of(host1, host2));
+
+    zoo.recursiveDelete(basePath + "/" + host1, NodeMissingPolicy.SKIP);
+    EasyMock.expectLastCall();
+
+    zoo.recursiveDelete(basePath + "/" + host2, NodeMissingPolicy.SKIP);
+    EasyMock.expectLastCall();
+
+    EasyMock.replay(zoo);
+
+    ZooZap.Opts opts = new ZooZap.Opts();
+    ZooZap.removeLocks(zoo, basePath, hp -> true, opts);
+
+    EasyMock.verify(zoo);
+  }
 }

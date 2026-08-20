@@ -75,6 +75,9 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
       ZooReader reader = context.getZooReader();
       replCoordinatorAddr = new String(reader.getData(zkPath), UTF_8);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       LOG.error("Could not fetch remote coordinator port", e);
       return null;
     }
@@ -109,6 +112,7 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
       try {
         Thread.sleep(attempts * 250L);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
@@ -130,6 +134,7 @@ public class ReplicationCoordinatorThriftClient extends ThriftClientTypes<Client
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new AccumuloException(e);
         }
       } catch (ThriftSecurityException e) {

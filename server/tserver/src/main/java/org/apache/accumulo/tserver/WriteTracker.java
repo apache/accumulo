@@ -83,6 +83,7 @@ public class WriteTracker {
       try {
         this.wait();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("{}", e.getMessage(), e);
       }
     }

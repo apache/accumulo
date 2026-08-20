@@ -45,6 +45,8 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Provides a way to push work out to tablet servers via zookeeper and wait for that work to be
  * done. Any tablet server can pick up a work item and process it.
@@ -155,6 +157,7 @@ public class DistributedWorkQueue {
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               log.info("Interrupted looking for work", e);
             }
           }
@@ -217,6 +220,7 @@ public class DistributedWorkQueue {
               } catch (KeeperException e) {
                 log.error("Failed to look for work at path {}; {}", path, event, e);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 log.info("Interrupted looking for work at path {}; {}", path, event, e);
               }
             } else {
@@ -244,6 +248,7 @@ public class DistributedWorkQueue {
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               log.info("Interrupted looking for work", e);
             }
           }
@@ -278,6 +283,8 @@ public class DistributedWorkQueue {
     final Object condVar = new Object();
 
     Watcher watcher = new Watcher() {
+      @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
+          justification = "Monitored object was updated in a ZK thread.")
       @Override
       public void process(WatchedEvent event) {
         switch (event.getType()) {

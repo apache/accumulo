@@ -34,11 +34,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Namespaces {
-  private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
 
   public static boolean exists(ClientContext context, NamespaceId namespaceId) {
     ZooCache zc = context.getZooCache();
@@ -124,16 +121,14 @@ public class Namespaces {
   }
 
   /**
-   * Look for namespace ID in ZK. Fail quietly by logging and returning null.
+   * Look for namespace ID in ZK. Fail quietly by returning null.
    */
   public static NamespaceId lookupNamespaceId(ClientContext context, String namespaceName) {
     NamespaceId id = null;
     try {
       id = getNamespaceId(context, namespaceName);
     } catch (NamespaceNotFoundException e) {
-      if (log.isDebugEnabled()) {
-        log.debug("Failed to find namespace ID from name: " + namespaceName, e);
-      }
+      return null;
     }
     return id;
   }

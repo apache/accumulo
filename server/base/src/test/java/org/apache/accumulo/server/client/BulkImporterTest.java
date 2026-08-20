@@ -144,8 +144,8 @@ public class BulkImporterTest {
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
     try (var vm = VolumeManagerImpl.getLocalForTesting("file:///")) {
-      List<TabletLocation> overlaps =
-          BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file), null, null, cs);
+      List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(context, vm, locator,
+          new Path(file), null, null, cs, null);
       assertEquals(5, overlaps.size());
       Collections.sort(overlaps);
       assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
@@ -158,7 +158,7 @@ public class BulkImporterTest {
       assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
 
       List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
-          new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")), cs);
+          new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")), cs, null);
       assertEquals(3, overlaps2.size());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
           overlaps2.get(0).tablet_extent);

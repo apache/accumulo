@@ -232,9 +232,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         control.refreshProcesses(ServerType.COMPACTOR);
         return control.getProcesses(ServerType.COMPACTOR).isEmpty();
       });
-      final long numFiles3 = getNumFilesForTable(ctx, tid);
-      assertTrue(numFiles3 < numFiles2);
-      assertEquals(1, numFiles3);
+      Wait.waitFor(() -> getNumFilesForTable(ctx, tid) < numFiles2);
+      assertEquals(1, getNumFilesForTable(ctx, tid));
 
       getCluster().getConfig().setNumScanServers(1);
       control.startScanServer(ScanServer.class, 1, GROUP_NAME);

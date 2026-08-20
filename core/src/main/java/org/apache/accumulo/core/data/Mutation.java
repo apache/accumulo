@@ -73,6 +73,13 @@ import com.google.common.base.Preconditions;
  */
 public class Mutation implements Writable {
 
+  // the exact upper boundary for the initial array size doesn't matter, so long as it's high enough
+  // to avoid resizing if the user has any reasonable number of column updates in a single mutation;
+  // this value, near 100_000, was chosen to try to optimize memory allocation to typical hardware
+  // page sizes, accounting for 16 bytes overhead for the array, that works with either 32-bit
+  // compressed object references or native 64-bit references, while keeping the value reasonable
+  private static final int MAX_INITIAL_ARRAY_SIZE = 100_348;
+
   /**
    * Internally, this class keeps most mutation data in a byte buffer. If a cell value put into a
    * mutation exceeds this size, then it is stored in a separate buffer, and a reference to it is
@@ -1255,19 +1262,22 @@ public class Mutation implements Writable {
   public List<ColumnUpdate> getUpdates() {
     serialize();
 
-    UnsynchronizedBuffer.Reader in = new UnsynchronizedBuffer.Reader(data);
-
     if (updates == null) {
+      var in = new UnsynchronizedBuffer.Reader(data);
+
       if (entries == 1) {
         updates = Collections.singletonList(deserializeColumnUpdate(in));
       } else {
-        ColumnUpdate[] tmpUpdates = new ColumnUpdate[entries];
+        // if the number of column updates is excessive, then the performance will be slowed due to
+        // resizing the ArrayList to meet the requested capacity
+        int initialArraySize = Math.min(entries, MAX_INITIAL_ARRAY_SIZE);
+        var tmpUpdates = new ArrayList<ColumnUpdate>(initialArraySize);
 
         for (int i = 0; i < entries; i++) {
-          tmpUpdates[i] = deserializeColumnUpdate(in);
+          tmpUpdates.add(deserializeColumnUpdate(in));
         }
 
-        updates = Arrays.asList(tmpUpdates);
+        updates = tmpUpdates;
       }
     }
 
@@ -1440,8 +1450,8 @@ public class Mutation implements Writable {
 
     boolean valuesPresent = (first & 0x01) == 0x01;
     if (valuesPresent) {
-      values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
+      values = new ArrayList<>(numValues);
       for (int i = 0; i < numValues; i++) {
         len = WritableUtils.readVInt(in);
         byte[] val = new byte[len];
@@ -1454,7 +1464,7 @@ public class Mutation implements Writable {
 
     if ((first & 0x02) == 0x02) {
       int numMutations = WritableUtils.readVInt(in);
-      this.replicationSources = new HashSet<>();
+      this.replicationSources = new HashSet<>(numMutations, 1.0f);
       for (int i = 0; i < numMutations; i++) {
         replicationSources.add(WritableUtils.readString(in));
       }
@@ -1480,8 +1490,8 @@ public class Mutation implements Writable {
     List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
     if (valuesPresent) {
-      localValues = new ArrayList<>();
       int numValues = in.readInt();
+      localValues = new ArrayList<>(numValues);
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
         byte[] val = new byte[len];

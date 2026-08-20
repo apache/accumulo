@@ -202,8 +202,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   Iterator<Entry<Key,Value>> iterator();
 
   /**
-   * This setting determines how long a scanner will automatically retry when a failure occurs. By
-   * default, a scanner will retry forever.
+   * This setting determines how long a scanner will automatically retry when a failure occurs or
+   * when no data is being returned by servers. By default, a scanner will retry forever.
    *
    * <p>
    * Setting the timeout to zero (with any time unit) or {@link Long#MAX_VALUE} (with

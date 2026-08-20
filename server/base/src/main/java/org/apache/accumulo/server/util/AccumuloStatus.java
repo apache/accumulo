@@ -49,6 +49,9 @@ public class AccumuloStatus {
         return false;
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IOException("Issues contacting ZooKeeper to get Accumulo status.", e);
     }
     return true;

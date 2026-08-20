@@ -137,8 +137,10 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           interruptFlag.set(false);
 
         } catch (IOException e) {
-          log.warn("lookup failed for tablet " + extent, e);
-          throw new RuntimeException(e);
+          log.warn("lookup failed for tablet {} client will retry", extent, e);
+          // add extent to failure set and the client will retry it
+          failures.put(extent, ranges);
+          continue;
         }
 
         bytesAdded += lookupResult.bytesAdded;

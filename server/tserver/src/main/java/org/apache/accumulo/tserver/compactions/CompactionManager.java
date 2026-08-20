@@ -171,6 +171,7 @@ public class CompactionManager {
         try {
           retry.waitForNextAttempt(log, "compaction initiation loop");
         } catch (InterruptedException e1) {
+          Thread.currentThread().interrupt();
           log.debug("Retry interrupted", e1);
         }
       }

@@ -24,6 +24,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -89,7 +91,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
   public void clear() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       client.instanceOperations().modifyProperties(Map::clear);
-      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
+      Wait.waitFor(() -> getStoredConfiguration().isEmpty(), 5000, 500);
     }
   }
 
@@ -196,7 +198,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       final String maxOpenFiles = config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
 
       client.instanceOperations().modifyProperties(Map::clear);
-      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
+      Wait.waitFor(() -> getStoredConfiguration().isEmpty(), 5000, 500);
 
       // Properties should be empty to start
       final int numProps = properties.size();
@@ -217,11 +219,32 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       config = client.instanceOperations().getSystemConfiguration();
       assertEquals(maxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
 
-      // Set invalid properties
-      assertThrows(AccumuloException.class,
+      String tableName = getUniqueNames(1)[0];
+      client.tableOperations().create(tableName);
+      AccumuloException exception = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().modifyProperties(tableName, original -> {
+            original.put(Property.TABLE_BULK_MAX_TABLETS.getKey(), "thousand");
+          }));
+      assertInstanceOf(ThriftPropertyException.class, exception.getCause());
+
+      // tableId may be different depending on table cleanup so break this check into two separate
+      // tests
+      assertTrue(exception.getMessage().contains("description:Invalid property"),
+          exception.getMessage());
+      assertTrue(
+          exception.getMessage()
+              .contains(Property.TABLE_BULK_MAX_TABLETS.getKey() + ", value: thousand"),
+          exception.getMessage());
+      client.tableOperations().delete(tableName);
+
+      exception = assertThrows(AccumuloException.class,
           () -> client.instanceOperations().modifyProperties(original -> {
             original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "foo");
           }));
+      assertInstanceOf(ThriftPropertyException.class, exception.getCause());
+      assertTrue(exception.getMessage().contains("Property "
+          + Property.TSERV_SCAN_MAX_OPENFILES.getKey() + " with value: foo is not valid"));
+
       assertEquals(maxOpenFiles, properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
     }
   }

@@ -812,6 +812,9 @@ public class Compactor extends AbstractServer
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
 
@@ -1012,6 +1015,7 @@ public class Compactor extends AbstractServer
             }
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           LOG.info("Interrupt Exception received, shutting down");
           gracefulShutdown(getContext().rpcCreds());
         }

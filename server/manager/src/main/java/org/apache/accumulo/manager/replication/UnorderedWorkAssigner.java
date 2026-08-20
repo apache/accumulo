@@ -100,6 +100,7 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
         throw new RuntimeException("Error reading existing queued replication work from ZooKeeper",
             e);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("Error reading existing queued replication work from ZooKeeper", e);
         throw new RuntimeException("Error reading existing queued replication work from ZooKeeper",
             e);
@@ -126,6 +127,9 @@ public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
       workQueue.addWork(queueKey, path.toString());
       queuedWork.add(queueKey);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Could not queue work for {}", path, e);
       return false;
     }

@@ -146,7 +146,7 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
-  private static final Logger CLOSING_STUCK_LOGGER =
+  private static final DeduplicatingLogger CLOSING_STUCK_LOGGER =
       new DeduplicatingLogger(log, Duration.ofMinutes(5), 1000);
 
   private final TabletServer tabletServer;
@@ -341,7 +341,7 @@ public class Tablet extends TabletBase {
       final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
-        Set<String> absPaths = new HashSet<>();
+        Set<String> absPaths = new HashSet<>(datafiles.size());
         for (TabletFile ref : datafiles.keySet()) {
           absPaths.add(ref.getPathStr());
         }
@@ -395,7 +395,7 @@ public class Tablet extends TabletBase {
         }
       }
       // make some closed references that represent the recovered logs
-      currentLogs = new HashSet<>();
+      currentLogs = new HashSet<>(logEntries.size(), 1.0f);
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(new DfsLogger(tabletServer.getContext(), tabletServer.getServerConfig(),
             logEntry.filename, logEntry.getColumnQualifier().toString()));
@@ -719,6 +719,9 @@ public class Tablet extends TabletBase {
       String id = new String(context.getZooReaderWriter().getData(zTablePath), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -769,6 +772,9 @@ public class Tablet extends TabletBase {
 
       return new Pair<>(compactID, overlappingConfig);
     } catch (InterruptedException | DecoderException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting compaction ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -1024,6 +1030,7 @@ public class Tablet extends TabletBase {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error(e.toString());
         }
       }
@@ -1093,6 +1100,7 @@ public class Tablet extends TabletBase {
             runningScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.error("Interrupted waiting to completeClose for extent {}", extent, e);
       }
     }
@@ -1213,6 +1221,7 @@ public class Tablet extends TabletBase {
         String msg = "Data files in " + extent + " differ from in-memory data "
             + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
         log.error(msg);
+        throw new RuntimeException(msg);
       }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
@@ -1818,7 +1827,7 @@ public class Tablet extends TabletBase {
   public void importMapFiles(long tid, Map<TabletFile,MapFileInfo> fileMap, boolean setTime)
       throws IOException {
     Map<TabletFile,DataFileValue> entries = new HashMap<>(fileMap.size());
-    List<String> files = new ArrayList<>();
+    List<String> files = new ArrayList<>(fileMap.size());
 
     for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
@@ -1890,7 +1899,8 @@ public class Tablet extends TabletBase {
 
       synchronized (this) {
         // only mark the bulk import a success if no exception was thrown
-        bulkImported.computeIfAbsent(tid, k -> new ArrayList<>()).addAll(fileMap.keySet());
+        bulkImported.computeIfAbsent(tid, k -> new ArrayList<>(fileMap.size()))
+            .addAll(fileMap.keySet());
       }
 
       if (isSplitPossible()) {
@@ -1995,8 +2005,8 @@ public class Tablet extends TabletBase {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<String> unusedLogs = new HashSet<>();
 
-    ArrayList<String> otherLogsCopy = new ArrayList<>();
-    ArrayList<String> currentLogsCopy = new ArrayList<>();
+    ArrayList<String> otherLogsCopy = new ArrayList<>(otherLogs.size());
+    ArrayList<String> currentLogsCopy = new ArrayList<>(currentLogs.size());
 
     synchronized (this) {
       if (removingLogs) {

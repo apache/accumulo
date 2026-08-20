@@ -209,6 +209,7 @@ class DatafileManager {
             try {
               tablet.wait(100);
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               log.warn("{}", e.getMessage(), e);
             }
           }

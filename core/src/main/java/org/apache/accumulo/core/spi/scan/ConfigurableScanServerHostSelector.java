@@ -20,7 +20,9 @@ package org.apache.accumulo.core.spi.scan;
 
 import static org.apache.accumulo.core.spi.scan.RendezvousHasher.Mode.HOST;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -82,8 +84,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
   /**
    * @return map of previous failure keyed on host name with a set of servers per host
    */
-  Map<String,Set<String>> computeFailuresByHost(TabletId tablet, SelectorParameters params) {
-    var attempts = params.getAttempts(tablet);
+  Map<String,Set<String>> computeFailuresByHost(Collection<? extends ScanServerAttempt> attempts) {
     if (attempts.isEmpty()) {
       return Map.of();
     }
@@ -152,13 +153,25 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
   }
 
   @Override
-  int selectServers(SelectorParameters params, Profile profile, RendezvousHasher rhasher,
-      Map<TabletId,String> serversToUse) {
+  ScanServerSelections selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      RendezvousHasher rhasher) {
 
     int maxHostAttempt = 0;
+    int maxTabletErrors = 0;
+
+    HashMap<TabletId,String> serversToUse = new HashMap<>();
 
     for (TabletId tablet : params.getTablets()) {
-      Map<String,Set<String>> prevFailures = computeFailuresByHost(tablet, params);
+      var attempts = params.getAttempts(tablet);
+      Map<String,Set<String>> prevFailures = computeFailuresByHost(attempts);
+
+      int tabletErrors = 0;
+      for (var attempt : attempts) {
+        if (attempt.getResult() == ScanServerAttempt.Result.ERROR) {
+          tabletErrors++;
+        }
+      }
+      maxTabletErrors = Math.max(tabletErrors, maxTabletErrors);
 
       for (int hostAttempt = 0; hostAttempt < profile.getAttemptPlans().size(); hostAttempt++) {
         maxHostAttempt = Math.max(hostAttempt, maxHostAttempt);
@@ -183,6 +196,24 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
       }
     }
 
-    return maxHostAttempt;
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxHostAttempt));
+    Duration delay = computeDelay(maxTabletErrors);
+
+    return new ScanServerSelections() {
+      @Override
+      public String getScanServer(TabletId tabletId) {
+        return serversToUse.get(tabletId);
+      }
+
+      @Override
+      public Duration getDelay() {
+        return delay;
+      }
+
+      @Override
+      public Duration getBusyTimeout() {
+        return busyTO;
+      }
+    };
   }
 }

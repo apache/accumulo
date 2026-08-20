@@ -71,6 +71,7 @@ public class ReadyMonitorTest {
       boolean terminated = workerPool.awaitTermination(2000, MILLISECONDS);
       log.trace("Worked pool successfully terminated: {}", terminated);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       // don't care.
       workerPool.shutdownNow();
     }
@@ -145,6 +146,9 @@ public class ReadyMonitorTest {
         log.debug("waiting: {}", NANOSECONDS.toSeconds(timeWaiting));
         assertTrue(timeWaiting < MILLISECONDS.toNanos(readyTestTimeout));
       } catch (ExecutionException | InterruptedException ex) {
+        if (ex instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.warn("Task failed", ex);
         fail("Task failed with exception - " + ex.getMessage());
       }

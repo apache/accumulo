@@ -193,13 +193,14 @@ public class CompactionFinalizer {
 
     while (!Thread.interrupted()) {
       try {
-        ArrayList<ExternalCompactionFinalState> batch = new ArrayList<>();
+        ArrayList<ExternalCompactionFinalState> batch =
+            new ArrayList<>(pendingNotifications.size());
         batch.add(pendingNotifications.take());
         pendingNotifications.drainTo(batch);
 
         LOG.trace("Processing pending of batch size {}", batch.size());
 
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(batch.size());
 
         List<ExternalCompactionId> statusesToDelete = new ArrayList<>();
 

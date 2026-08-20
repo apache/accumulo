@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -313,6 +314,9 @@ public class GarbageCollectWriteAheadLogs {
               iter.remove();
               f.getValue().get();
             } catch (InterruptedException | ExecutionException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException("Uncaught exception deleting wal file" + f.getKey(), e);
             }
           }
@@ -353,6 +357,9 @@ public class GarbageCollectWriteAheadLogs {
               iter.remove();
               f.getValue().get();
             } catch (InterruptedException | ExecutionException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException(
                   "Uncaught exception deleting recovery log file" + f.getKey(), e);
             }
@@ -448,7 +455,8 @@ public class GarbageCollectWriteAheadLogs {
           candidates.remove(id);
           log.info("Ignore closed log " + id + " because it is being replicated");
         }
-      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException ex) {
+      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException
+          | TableOfflineException ex) {
         return candidates.size();
       }
 

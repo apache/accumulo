@@ -49,6 +49,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -152,7 +153,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     // Converting the bytes to approximate number of characters for batch size.
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
-    List<GcCandidate> candidatesBatch = new ArrayList<>();
+    List<GcCandidate> candidatesBatch = new ArrayList<>(256);
     batchCount.incrementAndGet();
 
     while (candidates.hasNext()) {
@@ -246,8 +247,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     while (retries <= 10) {
       try {
         zr.sync(tablesPath);
-        final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(tablesPath)) {
+        var tables = zr.getChildren(tablesPath);
+        final Map<TableId,TableState> tids = new HashMap<>(tables.size(), 1.0f);
+        for (String table : tables) {
           TableId tableId = TableId.of(table);
           TableState tableState = null;
           String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
@@ -394,6 +396,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
       }
     } catch (InterruptedException e1) {
+      Thread.currentThread().interrupt();
       log.error("{}", e1.getMessage(), e1);
     }
 
@@ -451,7 +454,8 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
         return Maps.immutableEntry(file, stat);
       });
-    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException e) {
+    } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException
+        | TableOfflineException e) {
       // No elements that we need to preclude
       return Collections.emptyIterator();
     }
@@ -528,16 +532,6 @@ public class GCRun implements GarbageCollectionEnvironment {
    */
   boolean inSafeMode() {
     return context.getConfiguration().getBoolean(Property.GC_SAFEMODE);
-  }
-
-  /**
-   * Checks if InUse Candidates can be removed.
-   *
-   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
-   */
-  @Override
-  public boolean canRemoveInUseCandidates() {
-    return context.getConfiguration().getBoolean(Property.GC_REMOVE_IN_USE_CANDIDATES);
   }
 
   /**
@@ -618,8 +612,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     } else if (level == DataLevel.METADATA) {
       return Set.of(MetadataTable.ID);
     } else if (level == DataLevel.USER) {
-      Set<TableId> tableIds = new HashSet<>();
-      getTableIDs().forEach((k, v) -> {
+      var tids = getTableIDs();
+      Set<TableId> tableIds = new HashSet<>(tids.size(), 1.0f);
+      tids.forEach((k, v) -> {
         if (v == TableState.ONLINE || v == TableState.OFFLINE) {
           // Don't return tables that are NEW, DELETING, or in an
           // UNKNOWN state.

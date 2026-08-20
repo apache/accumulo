@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -216,8 +219,7 @@ class ScanDataSource implements DataSource {
     }
 
     var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
-        .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)
-        .withTableId(tablet.getExtent().tableId())
+        .withScope(IteratorScope.scan).withTableId(tablet.getExtent().tableId())
         .withAuthorizations(scanParams.getAuthorizations());
     if (samplerConfig != null) {
       builder.withSamplingEnabled();
@@ -246,6 +248,32 @@ class ScanDataSource implements DataSource {
       } else {
         // Scan time iterator options were set, so need to merge those with pre-parsed table
         // iterator options.
+
+        // First ensure the set iterators do not conflict with the existing table iterators.
+        List<IteratorSetting> picIteratorSettings = null;
+        for (var scanParamIterInfo : scanParams.getSsiList()) {
+          // Quick check for a potential iterator conflict (does not consider iterator scope).
+          // This avoids the more expensive check method call most of the time.
+          if (pic.getUniqueNames().contains(scanParamIterInfo.getIterName())
+              || pic.getUniquePriorities().contains(scanParamIterInfo.getPriority())) {
+            if (picIteratorSettings == null) {
+              picIteratorSettings = new ArrayList<>(pic.getIterInfo().size());
+              for (var picIterInfo : pic.getIterInfo()) {
+                picIteratorSettings.add(
+                    getIteratorSetting(picIterInfo, pic.getOpts().get(picIterInfo.getIterName())));
+              }
+            }
+            try {
+              IteratorConfigUtil.checkIteratorConflicts(tablet.getExtent().toString(),
+                  getIteratorSetting(scanParamIterInfo,
+                      scanParams.getSsio().get(scanParamIterInfo.getIterName())),
+                  EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings),
+                  false);
+            } catch (AccumuloException e) {
+              throw new IllegalArgumentException(e);
+            }
+          }
+        }
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
         IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
@@ -273,6 +301,18 @@ class ScanDataSource implements DataSource {
     } else {
       return visFilter;
     }
+  }
+
+  private IteratorSetting getIteratorSetting(IterInfo iterInfo, Map<String,String> iterOpts) {
+    IteratorSetting setting;
+    if (iterOpts != null) {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName(), iterOpts);
+    } else {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName());
+    }
+    return setting;
   }
 
   private void returnIterators() {

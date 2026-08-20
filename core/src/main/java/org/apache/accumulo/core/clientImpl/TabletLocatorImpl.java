@@ -170,8 +170,7 @@ public class TabletLocatorImpl extends TabletLocator {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Binning {} mutations for table {}", Thread.currentThread().getId(),
-          mutations.size(), tableId);
+      log.trace("Binning {} mutations for table {}", mutations.size(), tableId);
       timer = Timer.startNew();
     }
 
@@ -233,9 +232,8 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     if (timer != null) {
-      log.trace("tid={} Binned {} mutations for table {} to {} tservers in {}",
-          Thread.currentThread().getId(), mutations.size(), tableId, binnedMutations.size(),
-          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Binned {} mutations for table {} to {} tservers in {}", mutations.size(), tableId,
+          binnedMutations.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
   }
@@ -375,8 +373,7 @@ public class TabletLocatorImpl extends TabletLocator {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Binning {} ranges for table {}", Thread.currentThread().getId(),
-          ranges.size(), tableId);
+      log.trace("Binning {} ranges for table {}", ranges.size(), tableId);
       timer = Timer.startNew();
     }
 
@@ -411,9 +408,8 @@ public class TabletLocatorImpl extends TabletLocator {
     }
 
     if (timer != null) {
-      log.trace("tid={} Binned {} ranges for table {} to {} tservers in {}",
-          Thread.currentThread().getId(), ranges.size(), tableId, binnedRanges.size(),
-          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Binned {} ranges for table {} to {} tservers in {}", ranges.size(), tableId,
+          binnedRanges.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return failures;
@@ -484,8 +480,8 @@ public class TabletLocatorImpl extends TabletLocator {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Locating tablet  table={} row={} skipRow={} retry={}",
-          Thread.currentThread().getId(), tableId, TextUtil.truncate(row), skipRow, retry);
+      log.trace("Locating tablet  table={} row={} skipRow={} retry={}", tableId,
+          TextUtil.truncate(row), skipRow, retry);
       timer = Timer.startNew();
     }
 
@@ -504,8 +500,8 @@ public class TabletLocatorImpl extends TabletLocator {
       }
 
       if (timer != null) {
-        log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
-            (tl == null ? "null" : tl.tablet_extent), (tl == null ? "null" : tl.tablet_location),
+        log.trace("Located tablet {} at {} in {}", (tl == null ? "null" : tl.tablet_extent),
+            (tl == null ? "null" : tl.tablet_location),
             String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
       }
 

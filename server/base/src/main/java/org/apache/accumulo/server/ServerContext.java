@@ -132,6 +132,8 @@ public class ServerContext extends ClientContext {
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
+    thriftTransportPool =
+        memoize(() -> ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis, true));
   }
 
   /**
@@ -316,6 +318,9 @@ public class ServerContext extends ClientContext {
         getZooReaderWriter().getChildren(Constants.ZROOT);
         break;
       } catch (InterruptedException | KeeperException ex) {
+        if (ex instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.info("Waiting for accumulo to be initialized");
         sleepUninterruptibly(1, SECONDS);
       }
@@ -446,11 +451,6 @@ public class ServerContext extends ClientContext {
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
-  }
-
-  @Override
-  public synchronized ThriftTransportPool getTransportPool() {
-    return getTransportPoolImpl(true);
   }
 
   public AuditedSecurityOperation getSecurityOperation() {

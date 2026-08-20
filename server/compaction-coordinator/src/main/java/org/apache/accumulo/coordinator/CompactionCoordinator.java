@@ -61,6 +61,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -96,7 +97,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -303,6 +303,7 @@ public class CompactionCoordinator extends AbstractServer implements
     try {
       waitForUpgrade();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
@@ -319,6 +320,9 @@ public class CompactionCoordinator extends AbstractServer implements
     try {
       getCoordinatorLock(clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception getting Coordinator lock", e);
     }
 
@@ -380,6 +384,7 @@ public class CompactionCoordinator extends AbstractServer implements
           Thread.sleep(checkInterval - duration);
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }
@@ -705,16 +710,13 @@ public class CompactionCoordinator extends AbstractServer implements
     for (var key : failureCounts.keySet()) {
       failureCounts.compute(key, (k, counts) -> {
         if (counts != null) {
-          Level level;
+          ConditionalLogAction logAction = Logger::debug;
           if (counts.failures > 0) {
-            level = Level.WARN;
+            logAction = Logger::warn;
           } else if (logSuccessAtTrace) {
-            level = Level.TRACE;
-          } else {
-            level = Level.DEBUG;
+            logAction = Logger::trace;
           }
-
-          LOG.atLevel(level).log("{} {} failures:{} successes:{} since last time this was logged ",
+          logAction.log(LOG, "{} {} failures:{} successes:{} since last time this was logged ",
               logPrefix, k, counts.failures, counts.successes);
         }
 

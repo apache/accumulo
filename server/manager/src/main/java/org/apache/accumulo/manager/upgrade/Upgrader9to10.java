@@ -176,6 +176,9 @@ public class Upgrader9to10 implements Upgrader {
             aclErrorOccurred.set(true);
           }
         } catch (KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Error getting ACL for path: {}", path, e);
           aclErrorOccurred.set(true);
         }
@@ -187,6 +190,9 @@ public class Upgrader9to10 implements Upgrader {
                 + "for instructions on how to fix.");
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
     }
   }
@@ -245,6 +251,9 @@ public class Upgrader9to10 implements Upgrader {
           context.getZooKeeperRoot() + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
           NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Unable to create scan server paths", e);
     }
   }
@@ -263,6 +272,9 @@ public class Upgrader9to10 implements Upgrader {
           context.getZooKeeperRoot() + Constants.ZCOMPACTORS, EMPTY_BYTE_ARRAY,
           NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Unable to create external compaction paths", e);
     }
   }
@@ -315,6 +327,9 @@ public class Upgrader9to10 implements Upgrader {
           context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES,
           new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
 
@@ -410,6 +425,9 @@ public class Upgrader9to10 implements Upgrader {
 
       return result;
     } catch (KeeperException | InterruptedException | IOException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }
@@ -425,6 +443,9 @@ public class Upgrader9to10 implements Upgrader {
     } catch (NoNodeException e) {
       return null;
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }
@@ -434,6 +455,9 @@ public class Upgrader9to10 implements Upgrader {
       context.getZooReaderWriter().recursiveDelete(context.getZooKeeperRoot() + relpath,
           NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }

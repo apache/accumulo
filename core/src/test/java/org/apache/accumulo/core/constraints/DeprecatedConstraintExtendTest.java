@@ -20,6 +20,7 @@ package org.apache.accumulo.core.constraints;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -92,10 +93,11 @@ public class DeprecatedConstraintExtendTest {
     @Override
     public List<Short> check(Constraint.Environment env, Mutation mutation) {
       List<Short> violations = super.check(env, mutation);
-      if (!violations.isEmpty()) {
+      if (violations != null && !violations.isEmpty()) {
         return violations;
       }
 
+      violations = new ArrayList<>();
       for (ColumnUpdate cu : mutation.getUpdates()) {
         int size = mutation.getRow().length;
         size += cu.getColumnFamily().length;

@@ -507,6 +507,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         wait();
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new RuntimeException(e);
     }
   }
@@ -644,13 +645,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         if (rf != null) {
           if (log.isTraceEnabled()) {
-            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(),
-                rf.size());
+            log.trace("Requeuing {} failed mutations", rf.size());
           }
           addFailedMutations(rf);
         }
-      } catch (Exception t) {
-        updateUnknownErrors("tid=" + Thread.currentThread().getId()
+      } catch (RuntimeException t) {
+        updateUnknownErrors(Threads.toString(Thread.currentThread())
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
         executor.remove(task);
       }
@@ -1075,6 +1075,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           try {
             cancelSession();
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
           }
         }

@@ -145,6 +145,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
         try {
           work.add(workQueue.take());
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           continue;
         }
         workQueue.drainTo(work);
@@ -251,6 +252,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       try {
         work.latch.await();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
 
@@ -539,6 +541,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       try {
         syncThread.join();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }

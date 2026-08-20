@@ -33,7 +33,7 @@ public final class LruBlockCacheConfiguration {
 
   public static final String PROPERTY_PREFIX = "lru";
 
-  /** Default Configuration Parameters */
+  /* Default Configuration Parameters */
 
   /** Backing Concurrent Map Configuration */
   public static final Float DEFAULT_LOAD_FACTOR = 0.75f;

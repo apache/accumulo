@@ -61,7 +61,7 @@ import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.slf4j.Logger;
@@ -85,15 +85,15 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Fetching list of namespaces...", Thread.currentThread().getId());
+      log.trace("Fetching list of namespaces...");
       timer = Timer.startNew();
     }
 
     TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context).keySet());
 
     if (timer != null) {
-      log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
-          namespaces.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Fetched {} namespaces in {}", namespaces.size(),
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return namespaces;
@@ -106,15 +106,14 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(),
-          namespace);
+      log.trace("Checking if namespace {} exists", namespace);
       timer = Timer.startNew();
     }
 
     boolean exists = Namespaces.namespaceNameExists(context, namespace);
 
     if (timer != null) {
-      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("Checked existence of {} in {}", exists,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -258,6 +257,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
               + " because of concurrent modification");
           retry.waitForNextAttempt(log, "Modify namespace properties for " + namespace);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {
@@ -405,7 +405,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       Map<String,String> allProps = getConfiguration(namespace);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' for namespace '" + namespace
             + "'resulted in bad locality group config. This may be a transient situation since the"

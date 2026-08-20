@@ -44,6 +44,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -309,6 +310,11 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
+  public FSDataInputStream open(Path path, FileStatus status) throws IOException {
+    return FileOperations.openFile(getFileSystemByPath(path), path, status);
+  }
+
+  @Override
   public boolean rename(Path path, Path newPath) throws IOException {
     FileSystem source = getFileSystemByPath(path);
     FileSystem dest = getFileSystemByPath(newPath);
@@ -322,7 +328,7 @@ public class VolumeManagerImpl implements VolumeManager {
   @Override
   public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
       String transactionId) throws IOException {
-    List<Future<Void>> results = new ArrayList<>();
+    List<Future<Void>> results = new ArrayList<>(oldToNewPathMap.size());
     ExecutorService workerPool = ThreadPools.getServerThreadPools().getPoolBuilder(poolName)
         .numCoreThreads(poolSize).build();
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
@@ -355,6 +361,9 @@ public class VolumeManagerImpl implements VolumeManager {
         future.get();
       }
     } catch (InterruptedException | ExecutionException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IOException(e);
     }
   }

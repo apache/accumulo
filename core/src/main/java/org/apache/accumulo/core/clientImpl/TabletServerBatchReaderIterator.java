@@ -36,6 +36,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.clientImpl.ScanServerAttemptsImpl.BatchAttemptReporter;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -156,6 +158,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         resultsQueue.put(entries);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) {
           log.debug("Failed to add Batch Scan result", e);
         } else {
@@ -215,6 +218,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         batchIterator = batch.iterator();
         return batch != LAST_BATCH;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
@@ -288,6 +292,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           retry.waitForNextAttempt(log, "binRanges retry failures");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
 
@@ -303,7 +308,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       binnedRanges2.put(entry.getKey(), tabletMap);
       for (Entry<KeyExtent,List<Range>> tabletRanges : entry.getValue().entrySet()) {
         Range tabletRange = tabletRanges.getKey().toDataRange();
-        List<Range> clippedRanges = new ArrayList<>();
+        List<Range> clippedRanges = new ArrayList<>(tabletRanges.getValue().size());
         tabletMap.put(tabletRanges.getKey(), clippedRanges);
         for (Range range : tabletRanges.getValue()) {
           clippedRanges.add(tabletRange.clip(range));
@@ -339,7 +344,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     failSleepTime = Math.min(5000, failSleepTime * 2);
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-    List<Range> allRanges = new ArrayList<>();
+    List<Range> allRanges = new ArrayList<>(failures.values().stream().mapToInt(List::size).sum());
 
     for (List<Range> ranges : failures.values()) {
       allRanges.addAll(ranges);
@@ -368,12 +373,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private final List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
-    private final ScanServerAttemptReporter reporter;
+    private final BatchAttemptReporter reporter;
     private final Duration scanServerSelectorDelay;
 
     QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
         Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns,
-        long busyTimeout, ScanServerAttemptReporter reporter, Duration scanServerSelectorDelay) {
+        long busyTimeout, BatchAttemptReporter reporter, Duration scanServerSelectorDelay) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
       this.receiver = receiver;
@@ -404,6 +409,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             options, authorizations, timeoutTracker, busyTimeout);
 
         if (!tsFailures.isEmpty()) {
+          // On scan servers routine failures that occur on tservers, like not serving tablet or a
+          // tablet closing, are not expected. So for scan server record any failures seen as an
+          // error.
+          reporter.report(tsFailures.keySet(), ScanServerAttempt.Result.ERROR);
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
             failures.putAll(tsFailures);
@@ -425,7 +434,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         if (e.getCause() instanceof ScanServerBusyException) {
           result = ScanServerAttempt.Result.BUSY;
         }
-        reporter.report(result);
+        reporter.report(tabletsRanges.keySet(), result);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
@@ -488,6 +497,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               try {
                 resultsQueue.put(LAST_BATCH);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 fatalException = e;
                 if (!resultsQueue.offer(LAST_BATCH)) {
                   log.debug("Could not add to result queue after seeing fatalException",
@@ -499,7 +509,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
       }
     }
-
   }
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
@@ -509,7 +518,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     long busyTimeout = 0;
     Duration scanServerSelectorDelay = null;
-    Map<String,ScanServerAttemptReporter> reporters = Map.of();
+    Map<String,BatchAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
       var scanServerData = rebinToScanServers(binnedRanges, startTime);
@@ -560,14 +569,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     List<String> locations = new ArrayList<>(binnedRanges.keySet());
     Collections.shuffle(locations);
 
-    List<QueryTask> queryTasks = new ArrayList<>();
+    List<QueryTask> queryTasks = new ArrayList<>(locations.size());
 
     for (final String tsLocation : locations) {
 
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
       if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
         QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns,
-            busyTimeout, reporters.getOrDefault(tsLocation, r -> {}), scanServerSelectorDelay);
+            busyTimeout, reporters.getOrDefault(tsLocation, (t, r) -> {}), scanServerSelectorDelay);
         queryTasks.add(queryTask);
       } else {
         HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
@@ -576,15 +585,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (tabletSubset.size() >= maxTabletsPerRequest) {
             QueryTask queryTask =
                 new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, busyTimeout,
-                    reporters.getOrDefault(tsLocation, r -> {}), scanServerSelectorDelay);
+                    reporters.getOrDefault(tsLocation, (t, r) -> {}), scanServerSelectorDelay);
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
           }
         }
 
         if (!tabletSubset.isEmpty()) {
-          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns,
-              busyTimeout, reporters.getOrDefault(tsLocation, r -> {}), scanServerSelectorDelay);
+          QueryTask queryTask =
+              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, busyTimeout,
+                  reporters.getOrDefault(tsLocation, (t, r) -> {}), scanServerSelectorDelay);
           queryTasks.add(queryTask);
         }
       }
@@ -602,7 +612,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static class ScanServerData {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
     ScanServerSelections actions;
-    Map<String,ScanServerAttemptReporter> reporters;
+    Map<String,BatchAttemptReporter> reporters;
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
@@ -655,7 +665,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
 
-    Map<String,ScanServerAttemptReporter> reporters = new HashMap<>();
+    Map<String,BatchAttemptReporter> reporters = new HashMap<>();
 
     for (TabletIdImpl tabletId : tabletIds) {
       KeyExtent extent = tabletId.toKeyExtent();
@@ -675,7 +685,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       rangeMap.put(extent, ranges);
 
       var server = serverToUse;
-      reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server, tabletId));
+      reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server));
     }
 
     ScanServerData ssd = new ScanServerData();
@@ -730,42 +740,60 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private static class TimeoutTracker {
 
-    String server;
-    Set<String> badServers;
-    long timeOut;
-    long activityTime;
+    final String server;
+    final Set<String> badServers;
+    final long timeOut;
+
+    // When failures happen, rpc task to scan a server may be requeued in a thread pool. These two
+    // variables track failures across task running in those thread pools.
     Long firstErrorTime = null;
+    Long firstAllFailureTime = null;
 
     TimeoutTracker(String server, Set<String> badServers, long timeOut) {
-      this(timeOut);
-      this.server = server;
+      this.timeOut = timeOut;
+      this.server = Objects.requireNonNull(server);
       this.badServers = badServers;
     }
 
     TimeoutTracker(long timeOut) {
       this.timeOut = timeOut;
+      this.badServers = null;
+      this.server = null;
     }
 
-    void startingScan() {
-      activityTime = System.currentTimeMillis();
-    }
+    class Session {
+      long activityTime;
 
-    void check() throws IOException {
-      if (System.currentTimeMillis() - activityTime > timeOut) {
-        badServers.add(server);
-        throw new IOException(
-            "Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
+      void check() throws IOException {
+        if (System.currentTimeMillis() - activityTime > timeOut) {
+          badServers.add(server);
+          throw new IOException(
+              "Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
+        }
+      }
+
+      void madeProgress() {
+        activityTime = System.currentTimeMillis();
+        synchronized (TimeoutTracker.this) {
+          firstErrorTime = null;
+          firstAllFailureTime = null;
+        }
       }
     }
 
-    void madeProgress() {
-      activityTime = System.currentTimeMillis();
-      firstErrorTime = null;
+    /**
+     * Multiple threads can scan different exents on the same server at the same time. The session
+     * allows each potential rpc thread to have its own activityTime.
+     */
+    Session startingScan() throws IOException {
+      var session = new Session();
+      session.activityTime = System.currentTimeMillis();
+      return session;
     }
 
-    void errorOccured() {
+    synchronized void errorOccured(Session session) {
       if (firstErrorTime == null) {
-        firstErrorTime = activityTime;
+        firstErrorTime = session.activityTime;
       } else if (System.currentTimeMillis() - firstErrorTime > timeOut) {
         badServers.add(server);
       }
@@ -773,6 +801,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     public long getTimeOut() {
       return timeOut;
+    }
+
+    synchronized void sawOnlyFailures(Session session) throws IOException {
+      if (firstAllFailureTime == null) {
+        firstAllFailureTime = session.activityTime;
+      } else if (System.currentTimeMillis() - firstAllFailureTime > timeOut) {
+        badServers.add(server);
+        throw new IOException(
+            "Time exceeded " + (System.currentTimeMillis() - firstAllFailureTime) + " " + server);
+      }
     }
   }
 
@@ -797,14 +835,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     // copy requested to unscanned map. we will remove ranges as they are scanned in trackScanning()
     for (Entry<KeyExtent,List<Range>> entry : requested.entrySet()) {
-      ArrayList<Range> ranges = new ArrayList<>();
+      ArrayList<Range> ranges = new ArrayList<>(entry.getValue().size());
       for (Range range : entry.getValue()) {
         ranges.add(new Range(range));
       }
       unscanned.put(KeyExtent.copyOf(entry.getKey()), ranges);
     }
 
-    timeoutTracker.startingScan();
+    var timeoutSession = timeoutTracker.startingScan();
     try {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       final TabletScanClientService.Client client;
@@ -823,11 +861,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Timer timer = null;
 
         if (log.isTraceEnabled()) {
-          log.trace(
-              "tid={} Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}",
-              Thread.currentThread().getId(), server, requested.size(),
-              sumSizes(requested.values()), options.serverSideIteratorList,
-              options.serverSideIteratorOptions);
+          log.trace("Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}",
+              server, requested.size(), sumSizes(requested.values()),
+              options.serverSideIteratorList, options.serverSideIteratorOptions);
 
           timer = Timer.startNew();
         }
@@ -859,8 +895,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         MultiScanResult scanResult = imsr.result;
 
         if (timer != null) {
-          log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
-              Thread.currentThread().getId(), scanResult.results.size(),
+          log.trace("Got 1st multi scan results, #results={} {} in {}", scanResult.results.size(),
               (scanResult.more ? "scanID=" + imsr.scanID : ""),
               String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
         }
@@ -874,8 +909,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           receiver.receive(entries);
         }
 
-        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty()) {
-          timeoutTracker.madeProgress();
+        if (!entries.isEmpty() || !scanResult.fullScans.isEmpty() || scanResult.partScan != null) {
+          // Got some data back, finished scanning a tablet w/o getting data, or partially scanned a
+          // tablet w/o getting data. Any of these indicate the scan is making progress.
+          timeoutSession.madeProgress();
+        } else if (!scanResult.failures.isEmpty()) {
+          // Observed no progress and only tablets failed. Want to eventually timeout if this
+          // situation continues.
+          timeoutTracker.sawOnlyFailures(timeoutSession);
         }
 
         trackScanning(failures, unscanned, scanResult);
@@ -884,20 +925,19 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         while (scanResult.more) {
 
-          timeoutTracker.check();
+          timeoutSession.check();
 
           if (timer != null) {
-            log.trace("tid={} oid={} Continuing multi scan, scanid={}",
-                Thread.currentThread().getId(), nextOpid.get(), imsr.scanID);
+            log.trace("oid={} Continuing multi scan, scanid={}", nextOpid.get(), imsr.scanID);
             timer.restart();
           }
 
           scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID, busyTimeout);
 
           if (timer != null) {
-            log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
-                Thread.currentThread().getId(), nextOpid.getAndIncrement(),
-                scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
+            log.trace("oid={} Got more multi scan results, #results={} {} in {}",
+                nextOpid.getAndIncrement(), scanResult.results.size(),
+                (scanResult.more ? " scanID=" + imsr.scanID : ""),
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
           }
 
@@ -910,8 +950,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             receiver.receive(entries);
           }
 
-          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty()) {
-            timeoutTracker.madeProgress();
+          if (!entries.isEmpty() || !scanResult.fullScans.isEmpty()
+              || scanResult.partScan != null) {
+            timeoutSession.madeProgress();
+          } else if (!scanResult.failures.isEmpty()) {
+            timeoutTracker.sawOnlyFailures(timeoutSession);
           }
 
           trackScanning(failures, unscanned, scanResult);
@@ -938,7 +981,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());
-      timeoutTracker.errorOccured();
+      timeoutTracker.errorOccured(timeoutSession);
       throw new IOException(e);
     } catch (ThriftSecurityException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
@@ -963,7 +1006,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       throw new SampleNotPresentException(message, e);
     } catch (TException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
-      timeoutTracker.errorOccured();
+      timeoutTracker.errorOccured(timeoutSession);
       throw new IOException(e);
     }
   }

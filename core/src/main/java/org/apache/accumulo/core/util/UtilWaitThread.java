@@ -32,6 +32,7 @@ public class UtilWaitThread {
     try {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
     }
   }
@@ -57,6 +58,7 @@ public class UtilWaitThread {
           NANOSECONDS.sleep(remainingNanos);
           return;
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           interrupted = true;
           remainingNanos = end - System.nanoTime();
         }

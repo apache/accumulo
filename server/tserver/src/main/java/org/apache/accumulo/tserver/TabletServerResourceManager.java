@@ -525,6 +525,7 @@ public class TabletServerResourceManager {
           }
 
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.warn("Interrupted processing tablet memory statistics", e);
         }
       }
@@ -632,7 +633,9 @@ public class TabletServerResourceManager {
               throw new HoldTimeoutException("Commits are held");
             }
             commitHold.wait(1000);
-          } catch (InterruptedException e) {}
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
         }
       }
     }

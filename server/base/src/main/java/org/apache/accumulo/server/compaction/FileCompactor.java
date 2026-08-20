@@ -70,7 +70,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -263,7 +263,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       Collections.synchronizedSet(new HashSet<>());
 
   public static List<CompactionInfo> getRunningCompactions() {
-    ArrayList<CompactionInfo> compactions = new ArrayList<>();
+    ArrayList<CompactionInfo> compactions = new ArrayList<>(runningCompactions.size());
 
     runningCompactions.forEach(compactor -> compactions.add(new CompactionInfo(compactor)));
 
@@ -302,7 +302,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       throws IOException {
     try {
       return LocalityGroupUtil.getLocalityGroups(acuTableConf);
-    } catch (LocalityGroupConfigurationError e) {
+    } catch (LocalityGroupConfigurationException e) {
       throw new IOException(e);
     }
   }
@@ -323,10 +323,19 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     clearCurrentEntryCounts();
 
+    final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
+
+    StringBuilder newThreadName = new StringBuilder();
+    if (isMinC) {
+      newThreadName.append("MinC ");
+    } else {
+      newThreadName.append("MajC ");
+    }
+
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName =
-        "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
-    Thread.currentThread().setName(newThreadName);
+    newThreadName.append("compacting ").append(extent).append(" started ").append(threadStartDate)
+        .append(" file: ").append(outputFile);
+    Thread.currentThread().setName(newThreadName.toString());
     // Use try w/ resources for clearing the thread instead of finally because clearing may throw an
     // exception. Java's handling of exceptions thrown in finally blocks is not good.
     try (var ignored = setThread()) {
@@ -347,8 +356,6 @@ public class FileCompactor implements Callable<CompactionStats> {
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
       final EnumSet<FilePrefix> dropCacheFileTypes =
           ConfigurationTypeHelper.getDropCacheBehindFilePrefixes(dropCachePrefixProperty);
-
-      final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
       final boolean dropCacheBehindOutput = !RootTable.ID.equals(this.extent.tableId())
           && !MetadataTable.ID.equals(this.extent.tableId())

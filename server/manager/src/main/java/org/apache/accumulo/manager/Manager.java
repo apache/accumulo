@@ -52,6 +52,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -81,6 +82,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -109,6 +111,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
@@ -155,6 +158,9 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -195,10 +201,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
+  final Map<TServerInstance,GracefulHaltTimer> tserverHaltRpcAttempts =
+      Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
+
+  private final LoadingCache<String,ReentrantLock> mergeLocks = Caffeine.newBuilder().weakValues()
+      .scheduler(Scheduler.systemScheduler()).build(k -> new ReentrantLock());
+
   final EventCoordinator nextEvent = new EventCoordinator();
-  private final Object mergeLock = new Object();
   private Thread replicationWorkThread;
   private Thread replicationAssignerThread;
   RecoveryManager recoveryManager = null;
@@ -325,9 +336,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
 
   private Future<Void> upgradeMetadataFuture;
-
-  private FateServiceHandler fateServiceHandler;
-  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -476,7 +484,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   public MergeInfo getMergeInfo(TableId tableId) {
     ServerContext context = getContext();
-    synchronized (mergeLock) {
+    final ReentrantLock l = mergeLocks.get(tableId.canonical());
+    l.lock();
+    try {
       try {
         String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
         if (!context.getZooReaderWriter().exists(path)) {
@@ -495,15 +505,19 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         log.warn("Unexpected error reading merge state", ex);
         return new MergeInfo();
       }
+    } finally {
+      l.unlock();
     }
   }
 
   public void setMergeState(MergeInfo info, MergeState state)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
-    synchronized (mergeLock) {
-      String path =
-          getZooKeeperRoot() + Constants.ZTABLES + "/" + info.getExtent().tableId() + "/merge";
+    final TableId tid = info.getExtent().tableId();
+    final ReentrantLock l = mergeLocks.get(tid.canonical());
+    l.lock();
+    try {
+      String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tid + "/merge";
       info.setState(state);
       if (state.equals(MergeState.NONE)) {
         context.getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
@@ -518,16 +532,20 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
                 : ZooUtil.NodeExistsPolicy.OVERWRITE);
       }
-      mergeLock.notifyAll();
+    } finally {
+      l.unlock();
     }
     nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
   }
 
   public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
-    synchronized (mergeLock) {
+    final ReentrantLock l = mergeLocks.get(tableId.canonical());
+    l.lock();
+    try {
       String path = getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
       getContext().getZooReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
-      mergeLock.notifyAll();
+    } finally {
+      l.unlock();
     }
     nextEvent.event("Merge state of %s cleared", tableId);
   }
@@ -792,7 +810,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         } catch (KeeperException e) {
           log.error("Exception trying to delete empty scan server ZNodes, will retry", e);
         } catch (InterruptedException e) {
-          Thread.interrupted();
           log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
         } finally {
           // sleep for 5 mins
@@ -899,7 +916,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                   break;
               }
           }
-        } catch (Exception t) {
+        } catch (RuntimeException t) {
           log.error("Error occurred reading / switching manager goal state. Will"
               + " continue with attempt to update status", t);
         }
@@ -908,7 +925,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
-        } catch (Exception t) {
+        } catch (RuntimeException t) {
           TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
@@ -1030,6 +1047,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
     }
 
+    @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
+        justification = "balance state checked before notification")
     private long balanceTablets() {
 
       // Check for balancer property change
@@ -1141,6 +1160,33 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   }
 
+  /**
+   * This class tracks the duration of a haltRPC and is used to determine when the manager should
+   * delete the server zLock.
+   */
+  private static class GracefulHaltTimer {
+
+    Duration maxHaltGraceDuration;
+    Timer timer;
+
+    public GracefulHaltTimer(AccumuloConfiguration config) {
+      timer = null;
+      maxHaltGraceDuration =
+          Duration.ofMillis(config.getTimeInMillis(Property.MANAGER_TSERVER_HALT_DURATION));
+    }
+
+    public synchronized void startTimer() {
+      if (timer == null) {
+        timer = Timer.startNew();
+      }
+    }
+
+    public synchronized boolean shouldForceHalt() {
+      return maxHaltGraceDuration.toMillis() != 0 && timer != null
+          && timer.hasElapsed(maxHaltGraceDuration);
+    }
+  }
+
   private SortedMap<TServerInstance,TabletServerStatus>
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
@@ -1190,15 +1236,38 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
               > MAX_BAD_STATUS_COUNT) {
             if (shutdownServerRateLimiter.tryAcquire()) {
               log.warn("attempting to stop {}", server);
-              try {
-                TServerConnection connection2 = tserverSet.getConnection(server);
-                if (connection2 != null) {
-                  connection2.halt(managerLock);
+              var gracefulHaltTimer = tserverHaltRpcAttempts.computeIfAbsent(server,
+                  s -> new GracefulHaltTimer(getConfiguration()));
+              if (gracefulHaltTimer.shouldForceHalt()) {
+                log.warn("tserver {} is not responding to halt requests, deleting zlock", server);
+                var zk = getContext().getZooReaderWriter();
+                var iid = getContext().getInstanceID();
+                String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
+                try {
+                  ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
+                      log::info, false);
+                  tserverHaltRpcAttempts.remove(server);
+                  badServers.remove(server);
+                } catch (KeeperException | InterruptedException e) {
+                  if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                  }
+                  log.error("Failed to delete zlock for server {}", server, e);
                 }
-              } catch (TTransportException e1) {
-                // ignore: it's probably down
-              } catch (Exception e2) {
-                log.info("error talking to troublesome tablet server", e2);
+              } else {
+                try {
+                  TServerConnection connection2 = tserverSet.getConnection(server);
+                  if (connection2 != null) {
+                    connection2.halt(managerLock);
+                  }
+                } catch (TTransportException e1) {
+                  // ignore: it's probably down so log the exception at trace
+                  log.trace("error attempting to halt tablet server {}", server, e1);
+                } catch (Exception e2) {
+                  log.info("error talking to troublesome tablet server {}", server, e2);
+                } finally {
+                  gracefulHaltTimer.startTimer();
+                }
               }
             } else {
               log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
@@ -1213,6 +1282,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       tp.awaitTermination(Math.max(10000, rpcTimeout / 3), MILLISECONDS);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.debug("Interrupted while fetching status");
     }
 
@@ -1225,6 +1295,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       badServers.keySet().retainAll(currentServers);
       badServers.keySet().removeAll(info.keySet());
     }
+
+    synchronized (tserverHaltRpcAttempts) {
+      tserverHaltRpcAttempts.keySet().retainAll(currentServers);
+      tserverHaltRpcAttempts.keySet().removeAll(info.keySet());
+    }
+
     log.debug(String.format("Finished gathering information from %d of %d servers in %.2f seconds",
         info.size(), currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
 
@@ -1239,17 +1315,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
-    // Start the Manager's Fate Service
-    fateServiceHandler = new FateServiceHandler(this);
-    managerClientHandler = new ManagerClientServiceHandler(this);
-    // Start the Manager's Client service
-    // Ensure that calls before the manager gets the lock fail
-    ManagerClientService.Iface haProxy =
-        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+    // Start the Manager's Fate Service. Ensure that calls before the manager gets the lock fail
+    FateService.Iface fateServiceHandler =
+        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    // Start the Manager's Client service. Ensure that calls before the manager gets the lock fail
+    ManagerClientService.Iface managerClientHandler =
+        HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
 
     ServerAddress sa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
+        managerClientHandler, getContext());
 
     try {
       @SuppressWarnings("deprecation")
@@ -1272,6 +1347,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK), clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception getting manager lock", e);
     }
 
@@ -1318,6 +1396,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         }
       });
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
@@ -1361,6 +1442,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         upgradeMetadataFuture.get();
       }
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
 
@@ -1382,6 +1466,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
           .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
@@ -1398,6 +1485,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         keyDistributor.initialize();
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
       authenticationTokenKeyManagerThread = Threads
@@ -1421,6 +1511,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       managerLock.replaceLockData(address.getBytes(UTF_8));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
@@ -1439,6 +1532,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           replServer.set(setupReplication());
         }
       } catch (UnknownHostException | KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error occurred starting replication services. ", e);
       }
     }, 0, 5000, MILLISECONDS);
@@ -1458,6 +1554,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         Thread.sleep(500);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
       }
@@ -1479,6 +1576,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         replicationWorkThread.join(remaining(deadline));
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException("Exception stopping replication workers", e);
     }
     var nullableReplServer = replServer.get();
@@ -1494,6 +1592,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           authenticationTokenKeyManagerThread.join(remaining(deadline));
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Exception waiting on delegation-token key manager", e);
       }
     }
@@ -1504,6 +1603,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         watcher.join(remaining(deadline));
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
@@ -1523,6 +1623,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       org.apache.accumulo.server.replication.ZooKeeperInitialization
           .ensureZooKeeperInitialized(zReaderWriter, zroot);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
     }
   }
@@ -1727,6 +1830,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
       serversToShutdown.removeAll(deleted);
       badServers.keySet().removeAll(deleted);
+      tserverHaltRpcAttempts.keySet().removeAll(deleted);
       // clear out any bad server with the same host/port as a new server
       synchronized (badServers) {
         cleanListByHostAndPort(badServers.keySet(), deleted, added);
@@ -1734,7 +1838,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       synchronized (serversToShutdown) {
         cleanListByHostAndPort(serversToShutdown, deleted, added);
       }
-
+      synchronized (tserverHaltRpcAttempts) {
+        cleanListByHostAndPort(tserverHaltRpcAttempts.keySet(), deleted, added);
+      }
       migrations.removeServers(deleted);
       nextEvent.event("There are now %d tablet servers", current.size());
     }
@@ -1745,24 +1851,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     serversToShutdown.retainAll(current.getCurrentServers());
   }
 
-  private static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
+  static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
       Set<TServerInstance> deleted, Set<TServerInstance> added) {
-    Iterator<TServerInstance> badIter = badServers.iterator();
-    while (badIter.hasNext()) {
-      TServerInstance bad = badIter.next();
-      for (TServerInstance add : added) {
-        if (bad.getHostPort().equals(add.getHostPort())) {
-          badIter.remove();
-          break;
-        }
-      }
-      for (TServerInstance del : deleted) {
-        if (bad.getHostPort().equals(del.getHostPort())) {
-          badIter.remove();
-          break;
-        }
-      }
+    if (badServers.isEmpty() || (deleted.isEmpty() && added.isEmpty())) {
+      // nothing to do
+      return;
     }
+    HashSet<HostAndPort> removalSet = new HashSet<>(deleted.size() + added.size());
+    deleted.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    added.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    badServers.removeIf(badServer -> removalSet.contains(badServer.getHostAndPort()));
   }
 
   @Override
@@ -1844,7 +1942,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
+  @SuppressFBWarnings(value = "UW_UNCOND_WAIT",
+      justification = "balance condition is modified in another thread")
   public void waitForBalance() {
     synchronized (balancedNotifier) {
       long eventCounter;
@@ -1853,6 +1952,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.debug(e.toString(), e);
         }
       } while (displayUnassigned() > 0 || !migrations.isEmpty()

@@ -48,6 +48,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -434,14 +435,15 @@ public class FileUtil {
       FileSKVIterator reader = null;
       Path path = new Path(file);
       FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+      FileStatus status = ns.getFileStatus(path);
       try {
         if (useIndex) {
           reader = FileOperations.getInstance().newIndexReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
               .withTableConfiguration(tableConf).build();
         } else {
           reader = FileOperations.getInstance().newScanReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
               .withTableConfiguration(tableConf)
               .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build();
         }
@@ -468,11 +470,11 @@ public class FileUtil {
 
       if (useIndex) {
         readers.add(FileOperations.getInstance().newIndexReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
             .withTableConfiguration(tableConf).build());
       } else {
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService(), status)
             .withTableConfiguration(tableConf)
             .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build());
       }

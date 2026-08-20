@@ -24,8 +24,7 @@ import static java.util.function.Predicate.not;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Collections;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -164,12 +163,13 @@ public class ImportTable extends ManagerRepo {
     Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
   }
 
-  static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {
+  static ArrayList<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {
     if (exportDirs == null || exportDirs.isEmpty()) {
-      return Collections.emptyList();
+      return new ArrayList<>();
     }
 
     return exportDirs.stream().filter(not(String::isEmpty))
-        .map(ImportedTableInfo.DirectoryMapping::new).collect(Collectors.toList());
+        .map(ImportedTableInfo.DirectoryMapping::new)
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 }

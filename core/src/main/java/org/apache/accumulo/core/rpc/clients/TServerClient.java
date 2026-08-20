@@ -72,9 +72,8 @@ public interface TServerClient<C extends TServiceClient> {
 
     final long rpcTimeout = context.getClientTimeoutInMillis();
     final ZooCache zc = context.getZooCache();
-    final List<String> tservers = new ArrayList<>();
-
-    tservers.addAll(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS));
+    final List<String> tservers =
+        new ArrayList<>(zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS));
 
     if (tservers.isEmpty()) {
       if (warned.compareAndSet(false, true)) {

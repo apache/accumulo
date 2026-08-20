@@ -115,6 +115,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
       throw new IllegalStateException(
           "Failed to read namespaces from ZooKeeper for path: " + zkPathNamespaceBase, ex);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(
           "Interrupted reading namespaces from ZooKeeper for path: " + zkPathNamespaceBase, ex);
     }
@@ -136,6 +137,7 @@ public class ConfigPropertyUpgrader implements KeywordExecutable {
       throw new IllegalStateException(
           "Failed to read tables from ZooKeeper for path: " + zkPathTableBase, ex);
     } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(
           "Interrupted reading tables from ZooKeeper for path: " + zkPathTableBase, ex);
     }

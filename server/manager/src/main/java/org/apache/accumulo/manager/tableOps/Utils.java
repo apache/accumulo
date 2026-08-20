@@ -92,6 +92,9 @@ public class Utils {
         }
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("Error checking to see if tableId {} exists in ZooKeeper", tableId, e);
       throw new AcceptableThriftTableOperationException(null, tableName, TableOperation.CREATE,
           TableOperationExceptionType.OTHER, e.getMessage());

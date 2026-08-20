@@ -321,7 +321,7 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      // insert deletes before deleting data from metadata... this makes the code fault tolerant
+      // insert deletes before deleting data from metadata... this makes the code fault-tolerant
       if (insertDeletes) {
 
         ms.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -375,7 +375,6 @@ public class MetadataTableUtil {
 
   public static Pair<List<LogEntry>,SortedMap<StoredTabletFile,DataFileValue>>
       getFileAndLogEntries(ServerContext context, KeyExtent extent) throws IOException {
-    ArrayList<LogEntry> result = new ArrayList<>();
     TreeMap<StoredTabletFile,DataFileValue> sizes = new TreeMap<>();
 
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
@@ -384,7 +383,7 @@ public class MetadataTableUtil {
       throw new RuntimeException("Tablet " + extent + " not found in metadata");
     }
 
-    result.addAll(tablet.getLogs());
+    ArrayList<LogEntry> result = new ArrayList<>(tablet.getLogs());
 
     tablet.getFilesMap().forEach(sizes::put);
 

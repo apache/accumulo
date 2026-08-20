@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
@@ -45,12 +46,14 @@ import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 
 /**
@@ -87,13 +90,22 @@ public class CachableBlockFile {
     }
 
     public CachableBuilder fsPath(FileSystem fs, Path dataFile) {
-      return fsPath(fs, dataFile, false);
+      return fsPath(fs, dataFile, false, null);
     }
 
-    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind) {
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile, FileStatus status) {
+      return fsPath(fs, dataFile, false, status);
+    }
+
+    public CachableBuilder fsPath(FileSystem fs, Path dataFile, boolean dropCacheBehind,
+        FileStatus status) {
+      Preconditions.checkState(this.inputSupplier == null,
+          "file input already set via call to input()");
+      Preconditions.checkState(this.lengthSupplier == null,
+          "file length already set via call to length()");
       this.cacheId = pathToCacheId(dataFile);
       this.inputSupplier = () -> {
-        FSDataInputStream is = fs.open(dataFile);
+        FSDataInputStream is = FileOperations.openFile(fs, dataFile, status);
         if (dropCacheBehind) {
           // Tell the DataNode that the write ahead log does not need to be cached in the OS page
           // cache
@@ -109,17 +121,22 @@ public class CachableBlockFile {
         }
         return is;
       };
-      this.lengthSupplier = () -> fs.getFileStatus(dataFile).getLen();
+      this.lengthSupplier =
+          () -> status == null ? fs.getFileStatus(dataFile).getLen() : status.getLen();
       return this;
     }
 
     public CachableBuilder input(InputStream is, String cacheId) {
+      Preconditions.checkState(this.inputSupplier == null,
+          "file input already set via call to fsPath()");
       this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
     }
 
     public CachableBuilder length(long len) {
+      Preconditions.checkState(this.lengthSupplier == null,
+          "file length already set via call to fsPath()");
       this.lengthSupplier = () -> len;
       return this;
     }
@@ -186,26 +203,34 @@ public class CachableBlockFile {
         RateLimitedInputStream fsIn =
             new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
         BCFile.Reader tmpReader = null;
-        byte[] serializedMetadata = cachedMetadataSupplier.get();
-        if (serializedMetadata == null) {
-          if (fileLenCache == null) {
-            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
-          } else {
-            long len = getCachedFileLen();
-            try {
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
-            } catch (Exception e) {
-              log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
-              fileLenCache.invalidate(cacheId);
-            }
+        try {
+          byte[] serializedMetadata = cachedMetadataSupplier.get();
+          if (serializedMetadata == null) {
+            if (fileLenCache == null) {
+              tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
+            } else {
+              long len = getCachedFileLen();
+              try {
+                tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              } catch (Exception e) {
+                log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
+                fileLenCache.invalidate(cacheId);
+              }
 
-            if (tmpReader == null) {
-              len = getCachedFileLen();
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              if (tmpReader == null) {
+                len = getCachedFileLen();
+                tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              }
             }
+          } else {
+            tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
           }
-        } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
+        } catch (IOException | RuntimeException e) {
+          fsIn.close();
+          if (fileLenCache != null) {
+            fileLenCache.invalidate(cacheId);
+          }
+          throw e;
         }
 
         if (bcfr.compareAndSet(null, tmpReader)) {

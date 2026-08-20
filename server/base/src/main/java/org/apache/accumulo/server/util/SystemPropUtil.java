@@ -37,8 +37,10 @@ public class SystemPropUtil {
   public static void setSystemProperty(ServerContext context, String property, String value)
       throws IllegalArgumentException {
     final SystemPropKey key = SystemPropKey.of(context);
-    context.getPropStore().putAll(key,
-        Map.of(validateSystemProperty(context, key, property, value), value));
+    Map<String,String> properties =
+        Map.of(validateSystemProperty(context, key, property, value), value);
+    context.getPropStore().putAll(key, properties);
+    PropUtil.logSetProperties(key, properties);
   }
 
   public static void modifyProperties(ServerContext context, long version,
@@ -50,6 +52,7 @@ public class SystemPropUtil {
                 entry -> validateSystemProperty(context, key, entry.getKey(), entry.getValue()),
                 Map.Entry::getValue));
     context.getPropStore().replaceAll(key, version, checkedProperties);
+    PropUtil.logReplaceProperties(key, version, checkedProperties);
   }
 
   public static void removeSystemProperty(ServerContext context, String property) {
@@ -65,7 +68,9 @@ public class SystemPropUtil {
 
   private static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
     logIfFixed(Property.getPropertyByKey(property), null);
-    context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
+    SystemPropKey key = SystemPropKey.of(context);
+    context.getPropStore().removeProperties(key, List.of(property));
+    PropUtil.logRemoveProperties(key, List.of(property));
   }
 
   private static String validateSystemProperty(ServerContext context, SystemPropKey key,

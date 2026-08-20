@@ -56,6 +56,7 @@ public class GroupBalancerTest {
     }
   };
 
+  @Deprecated
   public static class TabletServers {
     private final Set<TServerInstance> tservers = new HashSet<>();
     private final Map<KeyExtent,TServerInstance> tabletLocs = new HashMap<>();
@@ -159,7 +160,7 @@ public class GroupBalancerTest {
 
       Map<String,Integer> expectedCounts = new HashMap<>();
 
-      int totalExtra = 0;
+      long totalExtra = 0;
       for (String group : groupCounts.keySet()) {
         long groupCount = groupCounts.get(group);
         totalExtra += groupCount % tservers.size();
@@ -167,12 +168,12 @@ public class GroupBalancerTest {
       }
 
       // The number of extra tablets from all groups that each tserver must have.
-      int expectedExtra = totalExtra / tservers.size();
-      int maxExtraGroups = expectedExtra + ((totalExtra % tservers.size() > 0) ? 1 : 0);
+      long expectedExtra = totalExtra / tservers.size();
+      long maxExtraGroups = expectedExtra + ((totalExtra % tservers.size() > 0) ? 1 : 0);
 
       for (Entry<TServerInstance,MapCounter<String>> entry : tserverGroupCounts.entrySet()) {
         MapCounter<String> tgc = entry.getValue();
-        int tserverExtra = 0;
+        long tserverExtra = 0;
         for (String group : groupCounts.keySet()) {
           assertTrue(tgc.get(group) >= expectedCounts.get(group));
           assertTrue(tgc.get(group) <= expectedCounts.get(group) + 1,
@@ -187,6 +188,7 @@ public class GroupBalancerTest {
     }
   }
 
+  @Deprecated
   @Test
   public void testSingleGroup() {
 
@@ -211,6 +213,7 @@ public class GroupBalancerTest {
     }
   }
 
+  @Deprecated
   @Test
   public void testTwoGroups() {
     String[][] tests = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
@@ -240,6 +243,7 @@ public class GroupBalancerTest {
     }
   }
 
+  @Deprecated
   @Test
   public void testThreeGroups() {
     String[][] tests = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
@@ -275,6 +279,7 @@ public class GroupBalancerTest {
     }
   }
 
+  @Deprecated
   @Test
   public void testManySingleTabletGroups() {
 
@@ -297,6 +302,7 @@ public class GroupBalancerTest {
     }
   }
 
+  @Deprecated
   @Test
   public void testMaxMigrations() {
 
@@ -321,6 +327,7 @@ public class GroupBalancerTest {
     }
   }
 
+  @Deprecated
   @Test
   public void bigTest() {
     TabletServers tservers = new TabletServers();
@@ -339,6 +346,7 @@ public class GroupBalancerTest {
     tservers.balance(1000);
   }
 
+  @Deprecated
   @Test
   public void bigTest2() {
     TabletServers tservers = new TabletServers();

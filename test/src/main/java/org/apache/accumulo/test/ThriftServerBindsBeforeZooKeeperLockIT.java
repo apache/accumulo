@@ -23,7 +23,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.Socket;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +94,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       monitor = startProcess(cluster, ServerType.MONITOR, freePort);
 
       while (true) {
-        URL url = new URL(monitorUrl);
+        var url = new URI(monitorUrl).toURL();
         try {
           HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
           final int responseCode = cnxn.getResponseCode();

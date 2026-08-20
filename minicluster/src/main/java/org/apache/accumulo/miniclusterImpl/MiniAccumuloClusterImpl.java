@@ -93,7 +93,6 @@ import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.start.Main;
-import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -200,7 +199,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set(DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY, "1");
       conf.set("dfs.support.append", "true");
       conf.set("dfs.datanode.synconclose", "true");
-      conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
       String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
       miniDFS.set(new MiniDFSCluster.Builder(conf).numDataNodes(config.getNumDataNodes()).build());
@@ -544,6 +542,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           } catch (IOException e) {
             log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
           }
         }));
@@ -721,6 +720,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
                   (rc, path, ctx, name) -> log.warn("{}", path));
               log.warn("******* END ZK DUMP ************");
             } catch (KeeperException | InterruptedException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               log.error("Error dumping zk", e);
             }
           }
@@ -786,6 +788,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return Stream.of(procs).map(ProcessReference::new).collect(toList());
   }
 
+  @SuppressWarnings("removal")
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
@@ -805,7 +808,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             result.put(type, references(control.gcProcess));
           }
           break;
-        case MASTER:
         case MANAGER:
           if (control.managerProcess != null) {
             result.put(type, references(control.managerProcess));
@@ -828,6 +830,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           }
           break;
         case TRACER:
+        case MASTER:
           break;
         default:
           throw new IllegalArgumentException("Unhandled server type : " + type);

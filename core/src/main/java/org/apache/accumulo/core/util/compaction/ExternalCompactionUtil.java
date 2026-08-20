@@ -116,10 +116,10 @@ public class ExternalCompactionUtil {
    */
   public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
-      final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
       final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader = context.getZooReader();
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
+      final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>(queues.size(), 1.0f);
       for (String queue : queues) {
         queuesAndAddresses.putIfAbsent(queue, new ArrayList<>());
         try {
@@ -244,6 +244,9 @@ public class ExternalCompactionUtil {
           results.add(new RunningCompaction(job, compactorAddress, rcf.getQueue()));
         }
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e);
       }
     });
@@ -254,16 +257,18 @@ public class ExternalCompactionUtil {
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
-    List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    getCompactorAddrs(context).forEach((q, hp) -> {
+    var compactors = getCompactorAddrs(context);
+    List<Future<ExternalCompactionId>> futures = new ArrayList<>(compactors.size());
+
+    compactors.forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
         futures.add(executor.submit(() -> getRunningCompactionId(hostAndPort, context)));
       });
     });
     executor.shutdown();
 
-    HashSet<ExternalCompactionId> runningIds = new HashSet<>();
+    HashSet<ExternalCompactionId> runningIds = new HashSet<>(compactors.size() / 4);
 
     futures.forEach(future -> {
       try {
@@ -272,6 +277,9 @@ public class ExternalCompactionUtil {
           runningIds.add(ceid);
         }
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new RuntimeException(e);
       }
     });
