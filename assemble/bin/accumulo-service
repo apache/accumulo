@@ -34,7 +34,7 @@ Commands:
   start                   Starts service(s)
   stop [--all | [<name>]] Stops service(s)
   kill [--all | [<name>]] Kills service(s)
-  list [-p, --parseable ] List running service(s)
+  list [--json]           List running service(s)
 
 EOF
 }
@@ -219,10 +219,10 @@ function kill_service() {
 
 function list_processes() {
   local service_type=$1
-  local parseable_flag=$2
+  local json_flag=$2
   find_processes "$service_type"
-  # Print this only if the output does not need to be consistently formatted for parsing.
-  if [[ $parseable_flag == 'false' ]]; then
+  # Print this only if the caller doesn't want json.
+  if [[ $json_flag != 'true' ]]; then
     echo "Currently running ${service_type} processes (fields: process pid port):"
   fi
   for process in "${RUNNING_PROCESSES[@]}"; do
@@ -235,7 +235,13 @@ function list_processes() {
     port=$(ss -tnlp 2>/dev/null | grep -wF "pid=$pid" | awk '{print $4}' | awk -F : '{print $NF}' | paste -sd,)
 
     if [[ $port =~ ^[1-9][0-9]{1,4}(,[1-9][0-9]{1,4})*$ ]]; then
-      echo "$process $pid $port"
+
+      if [[ $json_flag != 'true' ]]; then
+        echo "$process $pid $port"
+      else
+        jq -n --arg process "$process" --arg pid "$pid" --arg port "$port" '$ARGS.named'
+      fi
+
     else
       echo "ERROR unexpected port format $(hostname) process:$process pid:$pid ports:$port" >&2
       loop_err=1
@@ -280,7 +286,7 @@ function main() {
   shift 2
   local service_name=""
   local all_flag=false
-  local parseable_flag=false
+  local json_flag=false
 
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
     #shellcheck source=../conf/accumulo-env.sh
@@ -297,8 +303,9 @@ function main() {
     # The rest of the arguments are from a user
     if [[ $1 == "--all" ]]; then
       all_flag=true
-    elif [[ $1 == "-p" || $1 == "--parseable" ]]; then
-      parseable_flag=true
+    # The caller wants the output formatted as json.
+    elif [[ $1 == "--json" ]]; then
+      json_flag=true
     else
       # A named service has been specified
       if [[ $1 != "-o" ]]; then
@@ -337,7 +344,7 @@ function main() {
             kill_service "$service" "$service_name" $all_flag "$@"
             ;;
           list)
-            list_processes "$service" $parseable_flag
+            list_processes "$service" $json_flag
             ;;
           *)
             invalid_args "'$command_name' is an invalid <command>"
