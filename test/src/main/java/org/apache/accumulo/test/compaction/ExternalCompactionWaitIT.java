@@ -136,11 +136,8 @@ public class ExternalCompactionWaitIT extends AccumuloClusterHarness {
     }
   }
 
-  /**
+  /*
    * Pulls metrics from the configured sink and updates the provided variables.
-   *
-   * @param totalEntriesRead this is set to the value of the entries read metric
-   * @param totalEntriesWritten this is set to the value of the entries written metric
    */
   private static Thread getMetricsCheckerThread(AtomicBoolean compactorIdle) {
     return Threads.createNonCriticalThread("metric-tailer", () -> {
