@@ -88,6 +88,7 @@ public class TabletLocatorImpl extends TabletLocator {
   protected TabletLocator parent;
   // The TreeMap supports range lookups; Caffeine tracks access and expires entries from it.
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
+  // Null when extent expiration is disabled.
   private final Cache<KeyExtent,TabletLocation> extentCache;
   private final ConcurrentLinkedQueue<TabletLocation> evictedExtents =
       new ConcurrentLinkedQueue<>();
