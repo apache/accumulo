@@ -226,8 +226,8 @@ public class Tablet extends TabletBase {
   private final Rate ingestByteRate = new Rate(0.95);
   private final Rate scannedRate = new Rate(0.95);
 
-  private long lastMinorCompactionFinishTime = 0;
-  private long lastMapFileImportTime = 0;
+  private volatile long lastMinorCompactionFinishTime = 0;
+  private volatile long lastMapFileImportTime = 0;
 
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;

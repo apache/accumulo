@@ -44,6 +44,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -89,6 +91,7 @@ import com.google.common.collect.Iterators;
  */
 public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable {
 
+  @NotThreadSafe
   public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
     private final List<Text> families = new ArrayList<>();
