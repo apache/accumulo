@@ -30,6 +30,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -156,15 +157,17 @@ public abstract class TabletLocator {
       TabletLocator tl = locators.get(key);
       if (tl == null) {
         MetadataLocationObtainer mlo = new MetadataLocationObtainer();
+        Duration cacheExpiration = Duration.ofMillis(
+            ClientProperty.CLIENT_EXTENT_CACHE_EXPIRATION.getTimeInMillis(context.getProperties()));
 
         if (RootTable.ID.equals(tableId)) {
           tl = new RootTabletLocator(context.getTServerLockChecker());
         } else if (MetadataTable.ID.equals(tableId)) {
           tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-              context.getTServerLockChecker());
+              context.getTServerLockChecker(), cacheExpiration);
         } else {
           tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-              context.getTServerLockChecker());
+              context.getTServerLockChecker(), cacheExpiration);
         }
         locators.put(key, tl);
       }

@@ -66,8 +66,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
-  private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
-
   // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
   // this purpose, but there seems to be a bug in TreeMap.tailMap with null. Therefore instead of
   // using null, created MAX_TEXT.
@@ -165,13 +163,20 @@ public class TabletLocatorImpl extends TabletLocator {
 
   public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
       TabletServerLockChecker tslc) {
+    this(tableId, parent, tlo, tslc, Duration.ZERO);
+  }
+
+  public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
+      TabletServerLockChecker tslc, Duration cacheExpiration) {
     this.tableId = tableId;
     this.parent = parent;
     this.locationObtainer = tlo;
     this.lockChecker = tslc;
 
-    extentCache = Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION)
-        .scheduler(Scheduler.systemScheduler()).evictionListener(this::onExtentEviction).build();
+    extentCache = cacheExpiration.isZero() ? null
+        : Caffeine.newBuilder().expireAfterAccess(cacheExpiration)
+            .scheduler(Scheduler.systemScheduler()).evictionListener(this::onExtentEviction)
+            .build();
 
     this.lastTabletRow = new Text(tableId.canonical());
     lastTabletRow.append(new byte[] {'<'}, 0, 1);
@@ -508,7 +513,9 @@ public class TabletLocatorImpl extends TabletLocator {
     try {
       invalidatedCount = metaCache.size();
       metaCache.clear();
-      extentCache.invalidateAll();
+      if (extentCache != null) {
+        extentCache.invalidateAll();
+      }
     } finally {
       wLock.unlock();
     }
@@ -640,7 +647,9 @@ public class TabletLocatorImpl extends TabletLocator {
       er = MAX_TEXT;
     }
     metaCache.put(er, tabletLocation);
-    extentCache.put(tabletLocation.tablet_extent, tabletLocation);
+    if (extentCache != null) {
+      extentCache.put(tabletLocation.tablet_extent, tabletLocation);
+    }
 
     if (!badExtents.isEmpty()) {
       removeOverlapping(badExtents, tabletLocation.tablet_extent);
@@ -693,7 +702,8 @@ public class TabletLocatorImpl extends TabletLocator {
     Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
 
     if (entry != null) {
-      TabletLocation location = extentCache.getIfPresent(entry.getValue().tablet_extent);
+      TabletLocation location = extentCache == null ? entry.getValue()
+          : extentCache.getIfPresent(entry.getValue().tablet_extent);
       if (location == null) {
         return null;
       }
