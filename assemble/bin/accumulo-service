@@ -306,6 +306,11 @@ function main() {
       all_flag=true
     # The caller wants the output formatted as json.
     elif [[ $1 == "--json" ]]; then
+      # Make sure jq is installed.
+      if ! jq -h >&/dev/null; then
+        echo "Missing jq. Unable to continue."
+        exit 1
+      fi
       json_flag=true
     else
       # A named service has been specified
