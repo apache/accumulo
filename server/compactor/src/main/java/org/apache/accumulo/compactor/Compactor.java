@@ -97,6 +97,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -224,6 +225,7 @@ public class Compactor extends AbstractServer
   private final AtomicLong cancelled = new AtomicLong(0);
   private final AtomicLong failed = new AtomicLong(0);
   private final AtomicLong terminated = new AtomicLong(0);
+  private final AtomicBoolean stopWaiting = new AtomicBoolean(false);
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
@@ -798,6 +800,44 @@ public class Compactor extends AbstractServer
     }
   }
 
+  // visible for tests
+  protected void waitForNextCompactionCheck(int compactorCount) throws InterruptedException {
+    long waitMillis = getWaitTimeBetweenCompactionChecks(compactorCount);
+    LOG.info("Waiting {}ms before checking for next compaction job", waitMillis);
+    Duration waitTime = Duration.ofMillis(waitMillis);
+    Timer timer = Timer.startNew();
+    while (!timer.hasElapsed(waitTime)) {
+      if (stopWaiting.compareAndSet(true, false)) {
+        LOG.info("Wait aborted by coordinator");
+        break;
+      }
+      UtilWaitThread.sleep(250);
+    }
+  }
+
+  // visible for tests
+  protected boolean shouldStopWaiting() {
+    return stopWaiting.get();
+  }
+
+  // visible for tests
+  protected boolean wakeInternal() {
+    LOG.debug("Wake called");
+    return stopWaiting.compareAndSet(false, true);
+  }
+
+  @Override
+  public void wake(TInfo tinfo, TCredentials credentials) {
+    // Don't throw exceptions, this is a oneway method
+    try {
+      if (getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
+        wakeInternal();
+      }
+    } catch (ThriftSecurityException e) {
+      LOG.error("Wake called but exception thrown", e);
+    }
+  }
+
   @Override
   public void run() {
 
@@ -855,7 +895,7 @@ public class Compactor extends AbstractServer
             job = next.getJob();
             if (!job.isSetExternalCompactionId()) {
               LOG.trace("No external compactions in queue {}", this.queueName);
-              UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
+              waitForNextCompactionCheck(next.getCompactorCount());
               continue;
             }
             if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {

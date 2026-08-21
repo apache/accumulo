@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
@@ -325,5 +326,23 @@ public class ExternalCompactionUtil {
     } finally {
       ThriftUtil.returnClient(client, context);
     }
+  }
+
+  public static void wakeCompactors(ClientContext context, List<HostAndPort> compactors,
+      int threads) {
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL).numCoreThreads(threads).build();
+    compactors.forEach(c -> {
+      CompactorService.Client client = null;
+      try {
+        client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, c, context);
+        client.wake(TraceUtil.traceInfo(), context.rpcCreds());
+      } catch (TException e) {
+        LOG.debug("Failed to wake compactor {}", c);
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
+    });
+    executor.shutdown();
   }
 }

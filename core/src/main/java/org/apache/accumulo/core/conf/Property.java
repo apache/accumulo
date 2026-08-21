@@ -1698,6 +1698,13 @@ public enum Property {
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
       "The interval at which to check the tservers for external compactions.", "2.1.0"),
+  @Experimental
+  COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS("compaction.coordinator.compactor.wakeup.threads",
+      "0", PropertyType.COUNT,
+      "The number of threads the Coordinator should use to wake Compactors that are in a wait state. A value of zero"
+          + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
+          + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
+      "2.1.7"),
   // deprecated properties grouped at the end to reference property that replaces them
   @Deprecated(since = "1.6.0")
   @ReplacedBy(property = INSTANCE_VOLUMES)
