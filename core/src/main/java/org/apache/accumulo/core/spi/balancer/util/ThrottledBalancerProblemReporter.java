@@ -78,17 +78,14 @@ public class ThrottledBalancerProblemReporter {
       @Override
       public void report() {
         log.warn("Not balancing due to {} outstanding migrations.", migrations.size());
-
-        // convert each tabletId in migrations to keyExtent
-        Set<KeyExtent> keyExtents = migrations.stream().map(tabletId -> {
-          KeyExtent extent = KeyExtent.fromTabletId(tabletId);
-          extent.obscured();
-          return extent;
-        }).collect(Collectors.toSet());
-
         if (log.isDebugEnabled()) {
+          // convert each tabletId in migrations to keyExtent for redacting
           log.debug("Sample up to 10 outstanding migrations: {}",
-              keyExtents.stream().limit(10).map(String::valueOf).collect(Collectors.joining(", ")));
+              String.join(", ", migrations.stream().limit(10).map(tabletId -> {
+                KeyExtent extent = KeyExtent.fromTabletId(tabletId);
+                extent.obscured();
+                return extent.toString();
+              }).map(String::valueOf).collect(Collectors.toSet())));
         }
         // Now that we've reported, clear out the migrations list so we don't hold it in memory.
         migrations = Collections.emptySet();
