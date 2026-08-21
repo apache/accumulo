@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.CommandReport;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class FateSummaryReport {
+public class FateSummaryReport implements CommandReport {
 
   private Map<String,Integer> statusCounts = new TreeMap<>();
   private Map<String,Integer> cmdCounts = new TreeMap<>();
@@ -154,6 +155,7 @@ public class FateSummaryReport {
    *
    * @return formatted report lines.
    */
+  @Override
   public List<String> formatLines() {
     List<String> lines = new ArrayList<>();
 
@@ -184,5 +186,10 @@ public class FateSummaryReport {
     fateDetails.forEach(txnDetails -> lines.add(txnDetails.toString()));
 
     return lines;
+  }
+
+  @Override
+  public Object getData() {
+    return this;
   }
 }
