@@ -81,11 +81,11 @@ public class ThrottledBalancerProblemReporter {
         if (log.isDebugEnabled()) {
           // convert each tabletId in migrations to keyExtent for redacting
           log.debug("Sample up to 10 outstanding migrations: {}",
-              String.join(", ", migrations.stream().limit(10).map(tabletId -> {
+              migrations.stream().limit(10).map(tabletId -> {
                 KeyExtent extent = KeyExtent.fromTabletId(tabletId);
                 extent.obscured();
                 return extent.toString();
-              }).map(String::valueOf).collect(Collectors.toSet())));
+              }).collect(Collectors.joining(", ")));
         }
         // Now that we've reported, clear out the migrations list so we don't hold it in memory.
         migrations = Collections.emptySet();
