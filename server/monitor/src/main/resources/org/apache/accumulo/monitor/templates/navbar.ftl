@@ -63,15 +63,6 @@
             </li>
             <li>
               <a id="alert-anchor" class="nav-link" aria-current="page" href="alerts">Alerts</a>
-            </li>            
-            <li class="dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
-              role="button" data-bs-toggle="dropdown" aria-expanded="false">REST
-              </a>
-              <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="link-body-emphasis dropdown-item" href="rest/xml">XML Summary</a></li>
-                <li><a class="link-body-emphasis dropdown-item" href="rest/json">JSON Summary</a></li>
-              </ul>
             </li>
             <li class="dropdown">
               <a class="nav-link" href="#" id="navbarDropdown"

@@ -148,7 +148,7 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs4"); // TODO which service
+      createTable(client, table1, "cs4");
       TableId tid = getCluster().getServerContext().getTableId(table1);
       writeData(client, table1);
 

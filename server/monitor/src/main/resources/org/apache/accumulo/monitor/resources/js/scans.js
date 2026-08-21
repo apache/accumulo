@@ -28,7 +28,7 @@ $(function () {
   sessionStorage[SCANS] = JSON.stringify([]);
 
   // Create a table for scans list
-  scansList = $('#scansList').DataTable({
+  scansList = new DataTable('#scansList', {
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(SCANS)

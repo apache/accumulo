@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -55,7 +54,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.rfile.RFile;
@@ -74,18 +72,16 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.checkCommand.MetadataCheckRunner;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
-import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,53 +89,28 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.MoreCollectors;
 
-public class SplitIT extends AccumuloClusterHarness {
+public class SplitIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(SplitIT.class);
+
+  @BeforeAll
+  public static void start() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setProperty(Property.TSERV_MAXMEM, "5K");
+      cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
+      // Splitting a tablet w/ a compaction can result in a dead compaction. Run the detector more
+      // frequently to clean them up as they could cause tests to hang.
+      cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
+    });
+  }
+
+  @AfterAll
+  public static void stop() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
-  }
-
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
-    // Splitting a tablet w/ a compaction can result in a dead compaction. Run the detector more
-    // frequently to clean them up as they could cause tests to hang.
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
-  }
-
-  private String tservMaxMem;
-
-  @BeforeEach
-  public void alterConfig() throws Exception {
-    assumeTrue(getClusterType() == ClusterType.MINI);
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      InstanceOperations iops = client.instanceOperations();
-      Map<String,String> config = iops.getSystemConfiguration();
-      tservMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
-
-      // Property.TSERV_MAXMEM can't be altered on a running server
-      if (!tservMaxMem.equals("5K")) {
-        iops.setProperty(Property.TSERV_MAXMEM.getKey(), "5K");
-        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
-    }
-  }
-
-  @AfterEach
-  public void resetConfig() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      if (tservMaxMem != null) {
-        log.info("Resetting {}={}", Property.TSERV_MAXMEM.getKey(), tservMaxMem);
-        client.instanceOperations().setProperty(Property.TSERV_MAXMEM.getKey(), tservMaxMem);
-        tservMaxMem = null;
-        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      }
-    }
   }
 
   // Test that checks the estimated file sizes created by a split are reasonable
@@ -170,9 +141,9 @@ public class SplitIT extends AccumuloClusterHarness {
         }
       }
 
-      var tableId = getServerContext().getTableId(table);
-      var files = getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null))
-          .getFilesMap();
+      var tableId = getCluster().getServerContext().getTableId(table);
+      var files = getCluster().getServerContext().getAmple()
+          .readTablet(new KeyExtent(tableId, null, null)).getFilesMap();
 
       // map of file name and the estimates for that file from the original tablet
       Map<String,DataFileValue> filesSizes1 = new HashMap<>();
@@ -187,8 +158,8 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // map of file name and the estimates for that file from all splits
       Map<String,List<DataFileValue>> filesSizes2 = new HashMap<>();
-      try (var tablets =
-          getServerContext().getAmple().readTablets().forTable(tableId).fetch(FILES).build()) {
+      try (var tablets = getCluster().getServerContext().getAmple().readTablets().forTable(tableId)
+          .fetch(FILES).build()) {
         for (var tablet : tablets) {
           tablet.getFilesMap().forEach((file, dfv) -> filesSizes2
               .computeIfAbsent(file.getFileName(), k -> new ArrayList<>()).add(dfv));
@@ -517,8 +488,8 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // create a file with a single row and lots of columns. The files size will exceed the split
       // threshold configured above.
-      try (
-          RFileWriter writer = RFile.newWriter().to(file).withFileSystem(getFileSystem()).build()) {
+      try (RFileWriter writer =
+          RFile.newWriter().to(file).withFileSystem(getCluster().getFileSystem()).build()) {
         writer.startDefaultLocalityGroup();
         for (int i = 0; i < 1000; i++) {
           random.nextBytes(val);
@@ -531,7 +502,7 @@ public class SplitIT extends AccumuloClusterHarness {
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
       // wait for the tablet to be marked unsplittable
-      var ctx = getServerContext();
+      var ctx = getCluster().getServerContext();
       Wait.waitFor(() -> {
         var tableId = ctx.getTableId(tableName);
         try (var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build()) {
@@ -568,7 +539,7 @@ public class SplitIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
 
-      var ctx = getServerContext();
+      var ctx = getCluster().getServerContext();
       var tableId = ctx.getTableId(tableName);
       var extent = new KeyExtent(tableId, null, null);
 
