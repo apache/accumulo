@@ -19,6 +19,8 @@
 package org.apache.accumulo.server.rpc;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The type of configured Thrift server to start. This is meant more as a developer knob to ensure
@@ -30,13 +32,14 @@ import org.apache.commons.lang3.StringUtils;
  * benchmarks against "unsecure" Accumulo use the same type of Thrift server.
  */
 public enum ThriftServerType {
-  CUSTOM_HS_HA("custom_hs_ha"),
+  HS_HA("hs_ha"),
   THREADPOOL("threadpool"),
   SSL("ssl"),
   SASL("sasl"),
   THREADED_SELECTOR("threaded_selector");
 
   private final String name;
+  private static final Logger log = LoggerFactory.getLogger(ThriftServerType.class);
 
   private ThriftServerType(String name) {
     this.name = name;
@@ -45,6 +48,11 @@ public enum ThriftServerType {
   public static ThriftServerType get(String name) {
     if (StringUtils.isBlank(name)) {
       return getDefault();
+    }
+    // check added for backwards compatibility
+    if (name.trim().equalsIgnoreCase("custom_hs_ha")) {
+      log.warn("Server type custom_hs_ha is deprecated, use {}", ThriftServerType.HS_HA);
+      return ThriftServerType.HS_HA;
     }
     return ThriftServerType.valueOf(name.trim().toUpperCase());
   }
@@ -55,6 +63,6 @@ public enum ThriftServerType {
   }
 
   public static ThriftServerType getDefault() {
-    return CUSTOM_HS_HA;
+    return HS_HA;
   }
 }
