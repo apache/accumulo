@@ -762,7 +762,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
 
     class Session {
-      long activityTime;
+      volatile long activityTime;
 
       void check() throws IOException {
         if (System.currentTimeMillis() - activityTime > timeOut) {
