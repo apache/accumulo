@@ -26,6 +26,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.IdBasedPropStoreKey;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -96,7 +97,14 @@ public final class PropUtil {
         ResourceGroupPropUtil.validateResourceGroupProperty(prop.getKey(), prop.getValue());
       }
 
-      if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())
+      if (prop.getKey().equals(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service")) {
+        // Validate the compaction service exists
+        var compactionService = prop.getValue();
+        if (!isTableCompactionServiceValid(context, compactionService)) {
+          throw new IllegalArgumentException(
+              "Compaction Service " + compactionService + " has not been configured.");
+        }
+      } else if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())
           && !prop.getValue().isEmpty()) {
         var volumes = context.getVolumeManager().getVolumes();
         for (var volume : volumes) {
@@ -190,4 +198,13 @@ public final class PropUtil {
     }
   }
 
+  public static boolean isTableCompactionServiceValid(ServerContext context, String serviceName) {
+    if (serviceName == null) {
+      return true; // no compaction service set on table
+    } else {
+      var servicesConfig = new CompactionServicesConfig(context.getConfiguration());
+      var plannerClass = servicesConfig.getPlanners().get(serviceName);
+      return plannerClass != null;
+    }
+  }
 }
