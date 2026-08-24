@@ -305,7 +305,6 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         }
 
         if (retryCountDownTimer.isExpired()) {
-          // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
         }
