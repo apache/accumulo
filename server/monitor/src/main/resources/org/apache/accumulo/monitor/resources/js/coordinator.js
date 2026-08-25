@@ -67,7 +67,7 @@ $(function () {
   sessionStorage[RUNNING_COMPACTIONS_BY_GROUP] = JSON.stringify([]);
 
   // Create a table for scans list
-  tableRunning = new DataTable('#runningTableHtmlTable', {
+  tableRunning = new DataTable(runningTableHtmlTable, {
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(RUNNING_COMPACTIONS_BY_TABLE)
@@ -98,7 +98,7 @@ $(function () {
     ]
   });
 
-  queueRunning = new DataTable('#runningQueueHtmlTable', {
+  queueRunning = new DataTable(runningQueueHtmlTable, {
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(RUNNING_COMPACTIONS_BY_GROUP)
