@@ -38,6 +38,10 @@ public class BlockCacheMetrics implements MetricsProducer {
     this.summaryCache = summaryCache;
   }
 
+  /**
+   * This BlockCache implementation is a monotonically increasing counter, the counter should not reset or
+   * decrease the counts as the metrics rely on these values being monotonically increasing.
+   */
   @Override
   public void registerMetrics(MeterRegistry registry) {
     ToDoubleFunction<BlockCache> getHitCount = cache -> cache.getStats().hitCount();
