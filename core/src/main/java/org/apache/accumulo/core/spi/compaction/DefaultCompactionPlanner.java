@@ -165,14 +165,12 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private List<Executor> executors;
-  private int maxFilesToCompact;
-  private double lowestRatio;
+  private volatile List<Executor> executors;
+  private volatile int maxFilesToCompact;
+  private volatile double lowestRatio;
 
-  @SuppressFBWarnings(
-      value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD", "AT_NONATOMIC_64BIT_PRIMITIVE"},
-      justification = "UWF_UNWRITTEN_FIELD and NP_UNWRITTEN_FIELD: Field is written by Gson. "
-          + "AT_NONATOMIC_64BIT_PRIMITIVE: Fields modified here are initialized once, and read-only after.")
+  @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
+      justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
 
@@ -245,8 +243,6 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   }
 
   @SuppressWarnings("removal")
-  @SuppressFBWarnings(value = "AT_STALE_THREAD_WRITE_OF_PRIMITIVE",
-      justification = "only called in init")
   private void determineMaxFilesToCompact(InitParameters params) {
     String fqo = params.getFullyQualifiedOption("maxOpen");
     if (!params.getServiceEnvironment().getConfiguration().isSet(fqo)
