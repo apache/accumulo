@@ -25,7 +25,7 @@ import org.apache.thrift.TException;
 
 public interface ManagerMessage {
 
-  void send(TCredentials info, String serverName, ManagerClientService.Iface client)
+  void send(TCredentials info, String serverName, ManagerClientService.Client client)
       throws TException, ThriftSecurityException;
 
 }

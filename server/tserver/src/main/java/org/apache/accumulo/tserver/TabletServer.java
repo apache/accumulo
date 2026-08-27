@@ -160,7 +160,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -899,7 +898,7 @@ public class TabletServer extends AbstractServer
       // send all of the pending messages
       try {
         ManagerMessage mm = null;
-        ManagerClientService.Client iface = null;
+        ManagerClientService.Client client = null;
 
         try {
           // wait until a message is ready to send, or a server stop
@@ -912,8 +911,7 @@ public class TabletServer extends AbstractServer
           // have a message to send to the manager, so grab a
           // connection
           managerHost = getManagerAddress();
-          iface = managerConnection(managerHost);
-          TServiceClient client = iface;
+          client = managerConnection(managerHost);
 
           // if while loop does not execute at all and mm != null,
           // then finally block should place mm back on queue
@@ -922,7 +920,7 @@ public class TabletServer extends AbstractServer
               && client.getOutputProtocol().getTransport() != null
               && client.getOutputProtocol().getTransport().isOpen()) {
             try {
-              mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+              mm.send(getContext().rpcCreds(), getClientAddressString(), client);
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
@@ -942,7 +940,7 @@ public class TabletServer extends AbstractServer
           if (mm != null) {
             managerMessages.putFirst(mm);
           }
-          returnManagerConnection(iface);
+          returnManagerConnection(client);
 
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
@@ -958,13 +956,13 @@ public class TabletServer extends AbstractServer
       }
     }
 
-    ManagerClientService.Client iface = managerConnection(getManagerAddress());
+    ManagerClientService.Client client = managerConnection(getManagerAddress());
     try {
       // Ask the manager to unload our tablets and stop loading new tablets
-      if (iface == null) {
+      if (client == null) {
         Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!");
       } else {
-        iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
+        client.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
             getTabletSession().getHostPortSession());
       }
 
@@ -973,17 +971,17 @@ public class TabletServer extends AbstractServer
         log.info("Shutdown requested, waiting for manager to unload {} tablets",
             getOnlineTablets().size());
 
-        managerDown = sendManagerMessages(managerDown, iface);
+        managerDown = sendManagerMessages(managerDown, client);
 
         UtilWaitThread.sleep(1000);
       }
 
-      sendManagerMessages(managerDown, iface);
+      sendManagerMessages(managerDown, client);
 
     } catch (TException | RuntimeException e) {
       Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
-      returnManagerConnection(iface);
+      returnManagerConnection(client);
     }
 
     log.debug("Stopping Replication Server");
@@ -1014,11 +1012,11 @@ public class TabletServer extends AbstractServer
     }
   }
 
-  private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client iface) {
+  private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client client) {
     ManagerMessage mm = managerMessages.poll();
     while (mm != null && !managerDown) {
       try {
-        mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+        mm.send(getContext().rpcCreds(), getClientAddressString(), client);
         mm = managerMessages.poll();
       } catch (TException e) {
         managerDown = true;

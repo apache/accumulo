@@ -84,7 +84,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -947,7 +946,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       // happen after the batch writer closes. See #3721
       try {
         final HostAndPort parsedServer = HostAndPort.fromString(location);
-        final TabletClientService.Iface client;
+        final TabletClientService.Client client;
 
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis()) {
           client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
@@ -1026,7 +1025,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
           return allFailures;
         } finally {
-          ThriftUtil.returnClient((TServiceClient) client, context);
+          ThriftUtil.returnClient(client, context);
         }
       } catch (TTransportException e) {
         timeoutTracker.errorOccured();

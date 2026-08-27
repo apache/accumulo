@@ -24,11 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTest;
-import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.TServer;
@@ -43,24 +40,24 @@ public class TestThrift1474 {
   static class TestServer implements ThriftTest.Iface {
 
     @Override
-    public boolean success() throws TException {
+    public boolean success() {
       return true;
     }
 
     @Override
-    public boolean fails() throws TException {
+    public boolean fails() {
       return false;
     }
 
     @Override
-    public boolean throwsError() throws ThriftSecurityException, TException {
+    public boolean throwsError() throws ThriftSecurityException {
       throw new ThriftSecurityException();
     }
 
   }
 
   @Test
-  public void test() throws IOException, TException, InterruptedException {
+  public void test() throws Exception {
     TServerSocket serverTransport = new TServerSocket(0);
     serverTransport.listen();
     int port = serverTransport.getServerSocket().getLocalPort();

@@ -80,6 +80,8 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:data.TKeyExtent extent
     5:tabletserver.TCompactionStats stats
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
   
   /*
@@ -91,6 +93,8 @@ service CompactionCoordinatorService {
     3:string queueName
     4:string compactor
     5:string externalCompactionId
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
   
   /*
@@ -102,6 +106,8 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:TCompactionStatusUpdate status
     5:i64 timestamp
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
   
   /*
@@ -113,6 +119,8 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:data.TKeyExtent extent
     5:string exceptionClassName
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 
   /*
@@ -121,6 +129,8 @@ service CompactionCoordinatorService {
   TExternalCompactionList getRunningCompactions(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 
   /*
@@ -129,12 +139,16 @@ service CompactionCoordinatorService {
   TExternalCompactionList getCompletedCompactions(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 
   void cancel(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 
 }
@@ -166,5 +180,8 @@ service CompactorService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:UnknownCompactionIdException unk
   )
 }

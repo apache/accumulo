@@ -45,14 +45,10 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
@@ -116,7 +112,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -427,9 +422,8 @@ public class Compactor extends AbstractServer
    * @param externalCompactionId compaction id
    * @throws UnknownCompactionIdException if the externalCompactionId does not match the currently
    *         executing compaction
-   * @throws TException thrift error
    */
-  private void cancel(String externalCompactionId) throws TException {
+  private void cancel(String externalCompactionId) throws UnknownCompactionIdException {
     if (JOB_HOLDER.cancel(externalCompactionId)) {
       LOG.info("Cancel requested for compaction job {}", externalCompactionId);
     } else {
@@ -439,17 +433,17 @@ public class Compactor extends AbstractServer
 
   @Override
   public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
+      throws ThriftSecurityException, UnknownCompactionIdException {
     TableId tableId = JOB_HOLDER.getTableId();
+    NamespaceId nsId;
     try {
-      NamespaceId nsId = getContext().getNamespaceId(tableId);
-      if (!getContext().getSecurityOperation().canCompact(credentials, tableId, nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
+      nsId = getContext().getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+      throw new IllegalStateException("Table " + tableId + " no longer exists");
+    }
+    if (!getContext().getSecurityOperation().canCompact(credentials, tableId, nsId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     cancel(externalCompactionId);
@@ -984,7 +978,7 @@ public class Compactor extends AbstractServer
                     e);
                 try {
                   cancel(job.getExternalCompactionId());
-                } catch (TException e1) {
+                } catch (UnknownCompactionIdException e1) {
                   LOG.error("Error cancelling compaction.", e1);
                 }
               } finally {
@@ -997,7 +991,7 @@ public class Compactor extends AbstractServer
                 e1);
             try {
               cancel(job.getExternalCompactionId());
-            } catch (TException e2) {
+            } catch (UnknownCompactionIdException e2) {
               LOG.error("Error cancelling compaction.", e2);
             }
           } finally {
@@ -1062,10 +1056,10 @@ public class Compactor extends AbstractServer
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     List<CompactionInfo> compactions =
@@ -1088,11 +1082,11 @@ public class Compactor extends AbstractServer
    */
   @Override
   public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     // Return what is currently running, does not wait for jobs in the process of reserving. This
@@ -1113,11 +1107,11 @@ public class Compactor extends AbstractServer
 
   @Override
   public String getRunningCompactionId(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
     }
 
     // Any returned id must cover the time period from before a job is reserved until after it
