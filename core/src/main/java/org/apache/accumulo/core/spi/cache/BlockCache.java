@@ -94,7 +94,13 @@ public interface BlockCache {
    */
   Stats getStats();
 
-  /** Cache statistics. */
+  /**
+   * Cache statistics.
+   * <p>
+   * All counts returned by this interface must be monotonically increasing. The counter must never
+   * reset or decrease the counts as the values for the metrics are read periodically and must
+   * increase over each reading.
+   */
   interface Stats {
 
     /**
