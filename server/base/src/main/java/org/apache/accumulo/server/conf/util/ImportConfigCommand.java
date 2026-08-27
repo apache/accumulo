@@ -20,14 +20,17 @@ package org.apache.accumulo.server.conf.util;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -145,14 +148,41 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
       }
       if (fail) {
         throw new IllegalArgumentException(
-            "Yaml and Accumulo do not have the same tables,namespaces, and/or resource groups");
+            "Yaml and Accumulo do not have the same tables, namespaces, and/or resource groups");
       }
     }
 
-    // validate all scope+name before attempting to update any scope+name
+    // Namespace or Table level compaction service properties will fail in
+    // PropUtil.validateProperties because they require the compaction service to be
+    // defined at the system level. Validate these manually and then remove them
+    // before calling PropUtil.validateProperties
+    final String tableCompactionServiceKey =
+        Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service";
     for (var scopedProps : allProps) {
+      Map<String,String> scopeProperties = new HashMap<>(scopedProps.props());
+      if ((scopedProps.scope() == Scope.NAMESPACE || scopedProps.scope() == Scope.TABLE)
+          && scopeProperties.containsKey(tableCompactionServiceKey)) {
+        String compactionSvcName = scopeProperties.get(tableCompactionServiceKey);
+        String compactionSvcPlannerKey =
+            Property.COMPACTION_SERVICE_PREFIX.getKey() + compactionSvcName + ".planner";
+        AtomicBoolean compactionSvcPlannerKeyFound = new AtomicBoolean(false);
+        // validate that the compaction service is defined at the system level
+        allProps.forEach(sp -> {
+          if (sp.scope() == Scope.SYSTEM && sp.props().containsKey(compactionSvcPlannerKey)) {
+            compactionSvcPlannerKeyFound.set(true);
+          }
+        });
+        if (!compactionSvcPlannerKeyFound.get()) {
+          throw new IllegalArgumentException("Compaction service property "
+              + tableCompactionServiceKey + " defined in " + scopedProps.name()
+              + "scope, but corresponding compaction service not defined in SYSTEM scope");
+        }
+        // We have validated, remove for next level validation so it doesn't fail
+        scopeProperties.remove(tableCompactionServiceKey);
+      }
+      // validate all scope+name before attempting to update any scope+name
       var propStoreKey = getKey(scopedProps.scope(), scopedProps.name(), serverContext);
-      PropUtil.validateProperties(serverContext, propStoreKey, scopedProps.props());
+      PropUtil.validateProperties(serverContext, propStoreKey, scopeProperties);
     }
   }
 
