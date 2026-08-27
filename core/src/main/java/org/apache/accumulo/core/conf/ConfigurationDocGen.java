@@ -115,7 +115,7 @@ public class ConfigurationDocGen {
     description += strike(sanitize(prop.getDescription()), depr) + "<br>"
         + strike("**type:** " + prop.getType().name(), depr) + ", "
         + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
-    if (prop.getDefaultValue() != null) {
+    if (!prop.getIsRequired()) {
       String defaultValue = sanitize(prop.getDefaultValue()).trim();
       if (defaultValue.isEmpty()) {
         description += strike("**default value:** empty", depr);

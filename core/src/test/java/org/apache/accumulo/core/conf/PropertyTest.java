@@ -52,7 +52,7 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(prop.getKey());
-        // assertFalse(prop.getIsRequired());
+        assertFalse(prop.getIsRequired());
       }
     }
 
@@ -63,7 +63,8 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
-        // default values shouldn't be null, but they can be an empty string
+        // default values shouldn't be null (unless the property is required), but they can be an
+        // empty string
         if (!prop.getIsRequired()) {
           assertNotNull(prop.getDefaultValue());
           // default values shouldn't start or end with whitespace

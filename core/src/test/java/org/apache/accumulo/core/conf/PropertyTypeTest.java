@@ -207,9 +207,6 @@ public class PropertyTypeTest extends WithTestNames {
   public void testTypeSTRING() {
     valid(null, "", "whatever");
   }
-  /*
-   * @Test public void testTypeNON_EMPTY_STRING() { valid("whatever"); invalid(null, "", " "); }
-   */
 
   @Test
   public void testTypeTIMEDURATION() {
