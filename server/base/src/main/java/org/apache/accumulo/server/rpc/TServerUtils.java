@@ -51,6 +51,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
+import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
@@ -75,8 +76,7 @@ public class TServerUtils {
   private static final Logger log = LoggerFactory.getLogger(TServerUtils.class);
 
   /**
-   * Static instance, passed to {@link ClientInfoProcessorFactory}, which will contain the client
-   * address of any incoming RPC.
+   * Static instance, which will contain the client address of any incoming RPC.
    */
   public static final ThreadLocal<String> clientAddress = new ThreadLocal<>();
 
@@ -190,7 +190,10 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
-    return new ServerAddress(new CustomThreadedSelectorServer(options), address);
+    final TThreadedSelectorServer server = new TThreadedSelectorServer(options);
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
+    return new ServerAddress(server, address);
   }
 
   /**
@@ -207,7 +210,7 @@ public class TServerUtils {
         .clientTimeout(0).maxFrameSize(Ints.saturatedCast(maxMessageSize));
 
     final TNonblockingServerSocket transport = new TNonblockingServerSocket(args);
-    final CustomNonBlockingServer.Args options = new CustomNonBlockingServer.Args(transport);
+    THsHaServer.Args options = new THsHaServer.Args(transport);
 
     options.protocolFactory(protocolFactory);
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
@@ -225,7 +228,21 @@ public class TServerUtils {
       address = HostAndPort.fromParts(address.getHost(), transport.getPort());
     }
 
-    return new ServerAddress(new CustomNonBlockingServer(options), address);
+    final THsHaServer server = new THsHaServer(options) {
+      @Override
+      public void stop() {
+        super.stop();
+        try {
+          getInvoker().shutdownNow();
+        } catch (Exception e) {
+          log.error("Unable to call shutdownNow", e);
+        }
+      }
+    };
+
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
+    return new ServerAddress(server, address);
   }
 
   /**
@@ -295,6 +312,8 @@ public class TServerUtils {
       log.info("Blocking Server bound on {}", address);
     }
 
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
     return new ServerAddress(server, address);
 
   }
@@ -313,11 +332,14 @@ public class TServerUtils {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.protocolFactory(protocolFactory);
     options.transportFactory(transportFactory);
-    options.processorFactory(new ClientInfoProcessorFactory(clientAddress, processor));
     if (service != null) {
       options.executorService(service);
     }
-    return new TThreadPoolServer(options);
+
+    final TThreadPoolServer server = new TThreadPoolServer(options);
+    server.setServerEventHandler(new ThriftServerEventHandler());
+
+    return server;
   }
 
   /**
@@ -395,9 +417,11 @@ public class TServerUtils {
 
     ThreadPoolExecutor pool =
         createSelfResizingThreadPool(numThreads, threadTimeOut, conf, timeBetweenThreadChecks);
+    TThreadPoolServer server = createTThreadPoolServer(transport, processor,
+        ThriftUtil.transportFactory(), protocolFactory, pool);
+    server.setServerEventHandler(new ThriftServerEventHandler());
 
-    return new ServerAddress(createTThreadPoolServer(transport, processor,
-        ThriftUtil.transportFactory(), protocolFactory, pool), address);
+    return new ServerAddress(server, address);
   }
 
   private static ServerAddress createSaslThreadPoolServer(HostAndPort address, TProcessor processor,
@@ -495,6 +519,7 @@ public class TServerUtils {
     final TThreadPoolServer server =
         createTThreadPoolServer(transport, processor, ugiTransportFactory, protocolFactory, pool);
 
+    server.setServerEventHandler(new ThriftServerEventHandler());
     return new ServerAddress(server, address);
   }
 
@@ -568,7 +593,7 @@ public class TServerUtils {
             yield createThreadedSelectorServer(address, processor, protocolFactory, numThreads,
                 threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
           }
-          case CUSTOM_HS_HA -> {
+          case HS_HA -> {
             log.debug("Instantiating unsecure custom half-async Thrift server");
             yield createNonBlockingServer(address, processor, protocolFactory, numThreads,
                 threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
