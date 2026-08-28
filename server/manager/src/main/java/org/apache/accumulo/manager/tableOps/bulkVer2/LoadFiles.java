@@ -38,6 +38,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk;
@@ -159,6 +161,7 @@ class LoadFiles extends ManagerRepo {
     abstract long finish() throws Exception;
   }
 
+  @NotThreadSafe
   static class OnlineLoader extends Loader {
 
     private final int maxConnections;
