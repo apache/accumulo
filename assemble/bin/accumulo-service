@@ -29,12 +29,12 @@ Services:
   tserver                Accumulo tserver
   compactor              Accumulo compactor
   sserver                Accumulo scan server
-
+  all                    All services (list command only)
 Commands:
   start                   Starts service(s)
   stop [--all | [<name>]] Stops service(s)
   kill [--all | [<name>]] Kills service(s)
-  list                    List running service(s)
+  list [--json]           List running service(s)
 
 EOF
 }
@@ -143,6 +143,8 @@ function find_processes() {
   local filepath
   local expected_pid
   local found_pid
+  # Clear the array.
+  RUNNING_PROCESSES=()
   for filepath in "$ACCUMULO_PID_DIR"/*; do
     if [[ $filepath =~ ^.*/accumulo-("$service_type".*)[.]pid$ ]]; then
       file="${BASH_REMATCH[1]}"
@@ -217,8 +219,12 @@ function kill_service() {
 
 function list_processes() {
   local service_type=$1
+  local json_flag=$2
   find_processes "$service_type"
-  echo "Currently running ${service_type} processes (fields: process pid port):"
+  # Print this only if the caller doesn't want json.
+  if [[ $json_flag != 'true' ]]; then
+    echo "Currently running ${service_type} processes (fields: process pid port):"
+  fi
   for process in "${RUNNING_PROCESSES[@]}"; do
     local pid_file
     local pid
@@ -229,7 +235,14 @@ function list_processes() {
     port=$(ss -tnlp 2>/dev/null | grep -wF "pid=$pid" | awk '{print $4}' | awk -F : '{print $NF}' | paste -sd,)
 
     if [[ $port =~ ^[1-9][0-9]{1,4}(,[1-9][0-9]{1,4})*$ ]]; then
-      echo "$process $pid $port"
+
+      if [[ $json_flag != 'true' ]]; then
+        echo "$process $pid $port"
+      else
+        # If --json was specified, append the JSON to the output array.
+        JSON_OUTPUT+=$(jq -n -c --arg process "$process" --arg pid "$pid" --arg port "$port" '$ARGS.named')
+      fi
+
     else
       echo "ERROR unexpected port format $(hostname) process:$process pid:$pid ports:$port" >&2
       loop_err=1
@@ -274,6 +287,7 @@ function main() {
   shift 2
   local service_name=""
   local all_flag=false
+  local json_flag=false
 
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
     #shellcheck source=../conf/accumulo-env.sh
@@ -290,6 +304,14 @@ function main() {
     # The rest of the arguments are from a user
     if [[ $1 == "--all" ]]; then
       all_flag=true
+    # The caller wants the output formatted as json.
+    elif [[ $1 == "--json" ]]; then
+      # Make sure jq is installed.
+      if ! jq -h >&/dev/null; then
+        echo "Missing jq. Unable to continue."
+        exit 1
+      fi
+      json_flag=true
     else
       # A named service has been specified
       if [[ $1 != "-o" ]]; then
@@ -298,33 +320,53 @@ function main() {
     fi
   fi
 
-  case "$service_type" in
-    gc | manager | monitor | tserver | compactor | sserver)
-      if [[ -z $command_name ]]; then
-        invalid_args "<command> cannot be empty"
-      fi
-      case "$command_name" in
-        start)
-          start_service "$service_type" "$service_name" "$@"
-          ;;
-        stop)
-          stop_service "$service_type" "$service_name" $all_flag "$@"
-          ;;
-        kill)
-          kill_service "$service_type" "$service_name" $all_flag "$@"
-          ;;
-        list)
-          list_processes "$service_type"
-          ;;
-        *)
-          invalid_args "'$command_name' is an invalid <command>"
-          ;;
-      esac
-      ;;
-    *)
-      invalid_args "'$service_type' is an invalid <service>"
-      ;;
-  esac
+  local services
+  # If 'all' was specified, execute the command against all services.
+  if [[ $service_type == "all" ]]; then
+    if [[ -z $command_name ]]; then
+      invalid_args "<command> cannot be empty"
+    elif [[ $command_name != "list" ]]; then
+      invalid_args "Service all can only be used with the list command"
+    fi
+    services=("gc" "manager" "monitor" "tserver" "compactor" "sserver")
+  else
+    services=("$service_type")
+  fi
+
+  for service in "${services[@]}"; do
+    case "$service" in
+      gc | manager | monitor | tserver | compactor | sserver)
+        if [[ -z $command_name ]]; then
+          invalid_args "<command> cannot be empty"
+        fi
+        case "$command_name" in
+          start)
+            start_service "$service" "$service_name" "$@"
+            ;;
+          stop)
+            stop_service "$service" "$service_name" $all_flag "$@"
+            ;;
+          kill)
+            kill_service "$service" "$service_name" $all_flag "$@"
+            ;;
+          list)
+            list_processes "$service" $json_flag
+            ;;
+          *)
+            invalid_args "'$command_name' is an invalid <command>"
+            ;;
+        esac
+        ;;
+      *)
+        invalid_args "'$service' is an invalid <service>"
+        ;;
+    esac
+  done
+
+  # If --json was specified, combine the json for each process into a single json object.
+  if [[ $json_flag == 'true' ]]; then
+    printf '%s\n' "${JSON_OUTPUT[@]}" | jq -s '.'
+  fi
 }
 
 main "$@"
