@@ -113,7 +113,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   public FateMutator<T> requireReserved() {
     Preconditions.checkState(!requiredReserved);
     Condition condition = new Condition(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-            TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
     mutation.addCondition(condition);
     requiredReserved = true;
     return this;
