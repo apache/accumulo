@@ -253,10 +253,13 @@ public abstract class TabletBase {
     if (span.isRecording()) {
       span.setAttribute(TraceAttributes.ENTRIES_RETURNED_KEY, batch.size());
       long bytesReturned = 0;
+      long memoryUsed = 0;
       for (var e : batch) {
         bytesReturned += e.getKey().getLength() + e.getValue().get().length;
+        memoryUsed += e.estimateMemoryUsed();
       }
       span.setAttribute(TraceAttributes.BYTES_RETURNED_KEY, bytesReturned);
+      span.setAttribute(TraceAttributes.MEMORY_USED_KEY, memoryUsed);
       span.setAttribute(TraceAttributes.EXECUTOR_KEY,
           scanParameters.getScanDispatch().getExecutorName());
       span.setAttribute(TraceAttributes.TABLE_ID_KEY, getExtent().tableId().canonical());

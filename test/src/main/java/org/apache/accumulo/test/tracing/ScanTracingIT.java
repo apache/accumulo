@@ -57,6 +57,9 @@ class ScanTracingIT extends ConfigurableMacBase {
 
   private static final int OTLP_PORT = PortUtils.getRandomFreePort();
 
+  // must be kept in sync with KVEntry.estimateMemoryUsed(), which is not visible from here
+  private static final long KVENTRY_MEMORY_OVERHEAD = 9 * 32;
+
   private static List<String> getJvmArgs() {
     String javaAgent = null;
     for (var cpi : System.getProperty("java.class.path").split(":")) {
@@ -231,6 +234,8 @@ class ScanTracingIT extends ConfigurableMacBase {
       double colMultiplier = 10.0 / expectedColumns;
       assertClose((long) (results.scanSize * colMultiplier), stats.getBytesRead(), .05);
       assertClose(results.scanSize, stats.getBytesReturned(), .05);
+      assertEquals(stats.getBytesReturned() + KVENTRY_MEMORY_OVERHEAD * stats.getEntriesReturned(),
+          stats.getMemoryUsed(), stats::toString);
       if (secondScanFitsInCache && i == 1) {
         assertEquals(0, stats.getFileBytesRead(), stats::toString);
       } else {
@@ -333,6 +338,10 @@ class ScanTracingIT extends ConfigurableMacBase {
 
     long getBytesReturned() {
       return scanStats.getOrDefault(TraceAttributes.BYTES_RETURNED_KEY.getKey(), 0L);
+    }
+
+    long getMemoryUsed() {
+      return scanStats.getOrDefault(TraceAttributes.MEMORY_USED_KEY.getKey(), 0L);
     }
 
     long getDataCacheHits() {
