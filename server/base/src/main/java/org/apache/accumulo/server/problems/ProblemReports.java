@@ -59,6 +59,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   private static final Logger log = LoggerFactory.getLogger(ProblemReports.class);
 
   private final LRUMap<ProblemReport,Long> problemReports = new LRUMap<>(1000);
+  private static final Object lock = new Object();
 
   /**
    * use a thread pool so that reporting a problem never blocks
@@ -283,12 +284,14 @@ public class ProblemReports implements Iterable<ProblemReport> {
     return iterator(null);
   }
 
-  public static synchronized ProblemReports getInstance(ServerContext context) {
-    if (instance == null) {
-      instance = new ProblemReports(context);
-    }
+  public static ProblemReports getInstance(ServerContext context) {
+    synchronized (lock) {
+      if (instance == null) {
+        instance = new ProblemReports(context);
+      }
 
-    return instance;
+      return instance;
+    }
   }
 
   public static void main(String[] args) {

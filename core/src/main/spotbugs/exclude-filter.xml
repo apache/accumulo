@@ -43,4 +43,11 @@
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
+  <Match>
+    <!-- Match against any Test class -->
+    <Class name="~.*\.*Test" />
+    <!-- Test code will pass null values to ensure NullPointerExceptions are thrown.
+     These are currently being ignored since Objects.requireNonNull is not being taken into consideration -->
+    <Bug pattern="NP_NULL_PARAM_DEREF_NONVIRTUAL,NP_NULL_PARAM_DEREF_ALL_TARGETS_DANGEROUS" />
+  </Match>
 </FindBugsFilter>

@@ -60,6 +60,8 @@ public abstract class TabletLocator {
     return isValid;
   }
 
+  private static final Object lock = new Object();
+
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
@@ -118,12 +120,14 @@ public abstract class TabletLocator {
       new HashMap<>();
   private static boolean enabled = true;
 
-  public static synchronized void clearLocators() {
-    for (TabletLocator locator : locators.values()) {
-      locator.isValid = false;
+  public static void clearLocators() {
+    synchronized (lock) {
+      for (TabletLocator locator : locators.values()) {
+        locator.isValid = false;
+      }
+      locators.clear();
+      offlineLocators.clear();
     }
-    locators.clear();
-    offlineLocators.clear();
   }
 
   static synchronized boolean isEnabled() {
@@ -139,36 +143,39 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
-  public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
-    Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
-        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
+  public static TabletLocator getLocator(ClientContext context, TableId tableId) {
+    synchronized (lock) {
+      Preconditions.checkState(enabled,
+          "The Accumulo singleton that that tracks tablet locations is "
+              + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
 
-    clearUnusedTables(context);
+      clearUnusedTables(context);
 
-    TableState state = context.getTableState(tableId);
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    if (state == TableState.OFFLINE) {
-      locators.remove(key);
-      return offlineLocators.computeIfAbsent(key,
-          f -> new OfflineTabletLocatorImpl(context, tableId));
-    } else {
-      offlineLocators.remove(key);
-      TabletLocator tl = locators.get(key);
-      if (tl == null) {
-        MetadataLocationObtainer mlo = new MetadataLocationObtainer();
+      TableState state = context.getTableState(tableId);
+      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+      if (state == TableState.OFFLINE) {
+        locators.remove(key);
+        return offlineLocators.computeIfAbsent(key,
+            f -> new OfflineTabletLocatorImpl(context, tableId));
+      } else {
+        offlineLocators.remove(key);
+        TabletLocator tl = locators.get(key);
+        if (tl == null) {
+          MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
-        if (RootTable.ID.equals(tableId)) {
-          tl = new RootTabletLocator(context.getTServerLockChecker());
-        } else if (MetadataTable.ID.equals(tableId)) {
-          tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-              context.getTServerLockChecker());
-        } else {
-          tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-              context.getTServerLockChecker());
+          if (RootTable.ID.equals(tableId)) {
+            tl = new RootTabletLocator(context.getTServerLockChecker());
+          } else if (MetadataTable.ID.equals(tableId)) {
+            tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+                context.getTServerLockChecker());
+          } else {
+            tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
+                context.getTServerLockChecker());
+          }
+          locators.put(key, tl);
         }
-        locators.put(key, tl);
+        return tl;
       }
-      return tl;
     }
 
   }
@@ -177,9 +184,11 @@ public abstract class TabletLocator {
    * Checks if a table id is present in the cache w/o creating it.
    */
   @VisibleForTesting
-  public static synchronized boolean isPresent(ClientContext context, TableId tableId) {
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    return locators.containsKey(key) || offlineLocators.containsKey(key);
+  public static boolean isPresent(ClientContext context, TableId tableId) {
+    synchronized (lock) {
+      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+      return locators.containsKey(key) || offlineLocators.containsKey(key);
+    }
   }
 
   private static Duration clearFrequency = Duration.ofMinutes(10);
@@ -188,10 +197,13 @@ public abstract class TabletLocator {
    * Sets how often checks for unused tables are done
    */
   @VisibleForTesting
-  public static synchronized void setClearFrequency(Duration frequency) {
-    Preconditions.checkArgument(frequency != null && !frequency.isNegative() && !frequency.isZero(),
-        "frequency:%s", frequency);
-    clearFrequency = frequency;
+  public static void setClearFrequency(Duration frequency) {
+    synchronized (lock) {
+      Preconditions.checkArgument(
+          frequency != null && !frequency.isNegative() && !frequency.isZero(), "frequency:%s",
+          frequency);
+      clearFrequency = frequency;
+    }
   }
 
   private static final Timer lastClearTimer = Timer.startNew();

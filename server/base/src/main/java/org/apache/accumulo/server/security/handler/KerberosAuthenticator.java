@@ -56,6 +56,7 @@ public class KerberosAuthenticator implements Authenticator {
   private ServerContext context;
   private String zkUserPath;
   private UserImpersonation impersonation;
+  private final Object zooCacheLock = new Object();
 
   @Override
   public void initialize(ServerContext context) {
@@ -72,7 +73,7 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   private void createUserNodeInZk(String principal) throws KeeperException, InterruptedException {
-    synchronized (zooCache) {
+    synchronized (zooCacheLock) {
       zooCache.clear();
       ZooReaderWriter zoo = context.getZooReaderWriter();
       zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
@@ -85,7 +86,7 @@ public class KerberosAuthenticator implements Authenticator {
     try {
       // remove old settings from zookeeper first, if any
       ZooReaderWriter zoo = context.getZooReaderWriter();
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zooCache.clear();
         if (zoo.exists(zkUserPath)) {
           zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);

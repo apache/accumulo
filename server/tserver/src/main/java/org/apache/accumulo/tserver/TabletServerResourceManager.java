@@ -135,6 +135,7 @@ public class TabletServerResourceManager {
   private final ServerContext context;
 
   private final Cache<String,Long> fileLenCache;
+  private final Object tabletServerResourceManagerLock = new Object();
 
   /**
    * This method creates a task that changes the number of core and maximum threads on the thread
@@ -664,6 +665,7 @@ public class TabletServerResourceManager {
     private final KeyExtent extent;
 
     private final AccumuloConfiguration tableConf;
+    private final Object tabletResourceManagerLock = new Object();
 
     TabletResourceManager(KeyExtent extent, AccumuloConfiguration tableConf) {
       requireNonNull(extent, "extent is null");
@@ -751,8 +753,8 @@ public class TabletServerResourceManager {
 
     public void close() throws IOException {
       // always obtain locks in same order to avoid deadlock
-      synchronized (TabletServerResourceManager.this) {
-        synchronized (this) {
+      synchronized (tabletServerResourceManagerLock) {
+        synchronized (tabletResourceManagerLock) {
           if (closed) {
             throw new IOException("closed");
           }
