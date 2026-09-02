@@ -93,10 +93,12 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
+      recordException(scanSession);
       addResult(e);
     } catch (IOException | RuntimeException e) {
       log.warn("exception while scanning tablet {} for {}", scanSession.extent, scanSession.client,
           e);
+      recordException(scanSession);
       addResult(e);
     } finally {
       transitionFromRunning();
