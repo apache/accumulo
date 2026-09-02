@@ -49,7 +49,8 @@ public class ChangeTableState extends AbstractFateOperation {
     this.top = top;
     this.expectedCurrStates = expectedCurrStates;
 
-    if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE) {
+    if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE && top != TableOperation.LOCK
+        && top != TableOperation.UNLOCK) {
       throw new IllegalArgumentException(top.toString());
     }
   }
@@ -65,10 +66,12 @@ public class ChangeTableState extends AbstractFateOperation {
 
   @Override
   public Repo<FateEnv> call(FateId fateId, FateEnv env) {
-    TableState ts = TableState.ONLINE;
-    if (top == TableOperation.OFFLINE) {
-      ts = TableState.OFFLINE;
-    }
+    TableState ts = switch (top) {
+      case OFFLINE -> TableState.OFFLINE;
+      case LOCK -> TableState.LOCKED;
+      case ONLINE, UNLOCK -> TableState.ONLINE;
+      default -> throw new IllegalArgumentException("Unexpected operations: " + top);
+    };
 
     env.getTableManager().transitionTableState(tableId, ts, expectedCurrStates);
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);

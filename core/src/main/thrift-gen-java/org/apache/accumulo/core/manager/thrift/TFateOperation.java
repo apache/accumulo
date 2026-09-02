@@ -43,7 +43,9 @@ public enum TFateOperation implements org.apache.thrift.TEnum {
   NAMESPACE_RENAME(15),
   TABLE_BULK_IMPORT2(16),
   TABLE_TABLET_AVAILABILITY(17),
-  TABLE_SPLIT(18);
+  TABLE_SPLIT(18),
+  TABLE_LOCK(19),
+  TABLE_UNLOCK(20);
 
   private final int value;
 
@@ -102,6 +104,10 @@ public enum TFateOperation implements org.apache.thrift.TEnum {
         return TABLE_TABLET_AVAILABILITY;
       case 18:
         return TABLE_SPLIT;
+      case 19:
+        return TABLE_LOCK;
+      case 20:
+        return TABLE_UNLOCK;
       default:
         return null;
     }
