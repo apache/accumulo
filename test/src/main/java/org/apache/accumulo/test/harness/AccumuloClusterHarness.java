@@ -26,11 +26,11 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.io.IOException;
 import java.util.Properties;
 
-import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.cluster.ClusterUser;
-import org.apache.accumulo.cluster.ClusterUsers;
-import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
+import org.apache.accumulo.server.cluster.AccumuloCluster;
+import org.apache.accumulo.server.cluster.ClusterControl;
+import org.apache.accumulo.server.cluster.ClusterUser;
+import org.apache.accumulo.server.cluster.ClusterUsers;
+import org.apache.accumulo.server.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
