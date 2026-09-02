@@ -435,7 +435,7 @@ public class FateExecutor<T> {
     public void run() {
       runnerLog.trace("A TransactionRunner is starting for {} {} ", fate.getStore().type(),
           fateOps);
-      threadId = Thread.currentThread().getId();
+      threadId = Thread.currentThread().threadId();
       try {
         while (fate.getKeepRunning().get() && !isShutdown() && !stop.get()) {
           FateTxStore<T> txStore = null;

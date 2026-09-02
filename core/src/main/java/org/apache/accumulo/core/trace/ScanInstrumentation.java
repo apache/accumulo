@@ -85,9 +85,9 @@ public abstract class ScanInstrumentation {
   public static ScanScope enable(Span span) {
     if (span.isRecording()) {
       INSTRUMENTED_SCANS.set(new ScanInstrumentationImpl());
-      var id = Thread.currentThread().getId();
+      var id = Thread.currentThread().threadId();
       return () -> {
-        Preconditions.checkState(id == Thread.currentThread().getId());
+        Preconditions.checkState(id == Thread.currentThread().threadId());
         INSTRUMENTED_SCANS.remove();
       };
     } else {
