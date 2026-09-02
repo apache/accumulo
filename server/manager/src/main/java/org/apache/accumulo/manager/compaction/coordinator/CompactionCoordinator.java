@@ -31,7 +31,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,7 +55,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -77,7 +75,6 @@ import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.logging.TabletLogger;
@@ -110,7 +107,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
 import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactionFile;
-import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -122,7 +118,6 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -274,12 +269,6 @@ public class CompactionCoordinator
     }
   }
 
-  protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future = schedExecutor
-        .scheduleWithFixedDelay(this::cleanUpEmptyCompactorPathInZK, 0, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
   protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::resizeThreadPools, 0, 5, TimeUnit.MINUTES);
@@ -301,7 +290,6 @@ public class CompactionCoordinator
   @Override
   public void run() {
     startConfigMonitor(ctx.getScheduledExecutor());
-    startCompactorZKCleaner(ctx.getScheduledExecutor());
 
     startDeadCompactionDetector();
     startFailureSummaryLogging();
@@ -818,55 +806,6 @@ public class CompactionCoordinator
   /* Method exists to be called from test */
   public CompactionJobQueues getJobQueues() {
     return jobQueues;
-  }
-
-  private void deleteEmpty(ZooReaderWriter zoorw, String path)
-      throws KeeperException, InterruptedException {
-    try {
-      LOG.debug("Deleting empty ZK node {}", path);
-      zoorw.delete(path);
-    } catch (KeeperException.NotEmptyException e) {
-      LOG.debug("Failed to delete {} its not empty, likely an expected race condition.", path);
-    }
-  }
-
-  private void cleanUpEmptyCompactorPathInZK() {
-
-    final var zoorw = this.ctx.getZooSession().asReaderWriter();
-
-    try {
-      var groups = zoorw.getChildren(Constants.ZCOMPACTORS);
-
-      for (String group : groups) {
-        final String qpath = Constants.ZCOMPACTORS + "/" + group;
-        final ResourceGroupId cgid = ResourceGroupId.of(group);
-        final var compactors = zoorw.getChildren(qpath);
-
-        if (compactors.isEmpty()) {
-          deleteEmpty(zoorw, qpath);
-          // Group has no compactors, we can clear its
-          // associated priority queue of jobs
-          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
-          if (queue != null) {
-            queue.clearIfInactive(Duration.ofMinutes(10));
-          }
-        } else {
-          for (String compactor : compactors) {
-            String cpath = Constants.ZCOMPACTORS + "/" + group + "/" + compactor;
-            var lockNodes =
-                zoorw.getChildren(Constants.ZCOMPACTORS + "/" + group + "/" + compactor);
-            if (lockNodes.isEmpty()) {
-              deleteEmpty(zoorw, cpath);
-            }
-          }
-        }
-      }
-    } catch (KeeperException | RuntimeException e) {
-      LOG.warn("Failed to clean up compactors", e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
-    }
   }
 
   public void resizeThreadPools() {
