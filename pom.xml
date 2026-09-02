@@ -175,7 +175,7 @@ under the License.
     <version.opentelemetry>1.48.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.17</version.slf4j>
-    <version.thrift>0.17.0</version.thrift>
+    <version.thrift>0.24.0</version.thrift>
     <version.zookeeper>3.9.5</version.zookeeper>
   </properties>
   <dependencyManagement>
@@ -563,6 +563,29 @@ under the License.
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${version.thrift}</version>
+        <exclusions>
+          <!-- these runtime deps are not needed -->
+          <exclusion>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5-h2</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
