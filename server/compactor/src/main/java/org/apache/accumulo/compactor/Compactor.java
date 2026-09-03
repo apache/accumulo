@@ -827,14 +827,9 @@ public class Compactor extends AbstractServer
   }
 
   @Override
-  public void wake(TInfo tinfo, TCredentials credentials) {
-    // Don't throw exceptions, this is a oneway method
-    try {
-      if (getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
-        wakeInternal();
-      }
-    } catch (ThriftSecurityException e) {
-      LOG.error("Wake called but exception thrown", e);
+  public void wake(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+    if (getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
+      wakeInternal();
     }
   }
 

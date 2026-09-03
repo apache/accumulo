@@ -165,9 +165,9 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private List<Executor> executors;
-  private int maxFilesToCompact;
-  private double lowestRatio;
+  private volatile List<Executor> executors;
+  private volatile int maxFilesToCompact;
+  private volatile double lowestRatio;
 
   @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
       justification = "Field is written by Gson")
