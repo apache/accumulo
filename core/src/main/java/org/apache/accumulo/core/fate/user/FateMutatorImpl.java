@@ -75,7 +75,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putStatus(TStatus status) {
-    requireReserved();
     TxAdminColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
     return this;
   }
@@ -111,10 +110,11 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
-  public FateMutator<T> requireReserved() {
+  public FateMutator<T> requireReserved(FateStore.FateReservation fateReservation) {
     Preconditions.checkState(!requiredReserved);
     Condition condition = new Condition(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier())
+        .setValue(fateReservation.getSerialized());
     mutation.addCondition(condition);
     requiredReserved = true;
     return this;
@@ -137,7 +137,10 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation) {
-    requireReserved();
+    Condition condition = new Condition(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier())
+        .setValue(reservation.getSerialized());
+    mutation.addCondition(condition);
     TxAdminColumnFamily.RESERVATION_COLUMN.putDelete(mutation);
     return this;
   }
@@ -174,7 +177,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
-    requireReserved();
     switch (txInfo) {
       case FATE_OP:
         putFateOp(data);
@@ -199,7 +201,6 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putRepo(int position, Repo<T> repo) {
-    requireReserved();
     final Text cq = invertRepo(position);
     // ensure this repo is not already set
     mutation.addCondition(new Condition(RepoColumnFamily.NAME, cq));
@@ -209,13 +210,11 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> deleteRepo(int position) {
-    requireReserved();
     mutation.putDelete(RepoColumnFamily.NAME, invertRepo(position));
     return this;
   }
 
   public FateMutator<T> delete() {
-    requireReserved();
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
       scanner.setRange(getRow(fateId));
       scanner.forEach(
