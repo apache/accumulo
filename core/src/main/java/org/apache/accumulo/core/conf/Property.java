@@ -1093,7 +1093,9 @@ public enum Property {
       "Options for the table scan dispatcher.", "2.0.0"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
-          + "Once this limit is reached, the buffered data is sent to the client.",
+          + "Once this limit is reached, the buffered data is sent to the client. This is an "
+          + "estimate of heap usage and includes per entry object overhead, so it will always "
+          + "exceed the size of the key value data actually sent to the client.",
       "1.3.5"),
   TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "100", PropertyType.COUNT,
       "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited.",
