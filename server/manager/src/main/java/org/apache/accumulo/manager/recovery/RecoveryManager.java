@@ -111,9 +111,9 @@ public class RecoveryManager {
           initiateSort(sortId, source, destination);
         }
       } catch (FileNotFoundException e) {
-        log.debug("Unable to initiate log sort for " + source + ": " + e);
+        log.debug("Unable to initiate log sort for {}: {}", source, e);
       } catch (Exception e) {
-        log.warn("Failed to initiate log sort " + source, e);
+        log.warn("Failed to initiate log sort {}", source, e);
       } finally {
         if (!rescheduled) {
           synchronized (RecoveryManager.this) {
@@ -135,7 +135,7 @@ public class RecoveryManager {
       sortsQueued.add(sortId);
     }
 
-    log.info("Created zookeeper entry {} with data {}", Constants.ZRECOVERY + "/" + sortId, work);
+    log.info("Created zookeeper entry {}{}{} with data {}", Constants.ZRECOVERY, "/", sortId, work);
   }
 
   private boolean exists(final Path path) throws IOException {
@@ -192,7 +192,7 @@ public class RecoveryManager {
 
     String sortId = walog.getUniqueID().toString();
     String filename = walog.getPath();
-    String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
+    String dest = RecoveryPath.getRecoveryPath(filename);
 
     boolean sortQueued;
     synchronized (this) {
