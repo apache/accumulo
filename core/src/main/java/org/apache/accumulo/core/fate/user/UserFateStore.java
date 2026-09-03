@@ -546,7 +546,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public Repo<T> top() {
-      verifyReservedAndNotDeleted(false);
+      newMutator(fateId).requireReserved(reservation);
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(fateId));
@@ -562,7 +562,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public List<ReadOnlyRepo<T>> getStack() {
-      verifyReservedAndNotDeleted(false);
+      newMutator(fateId).requireReserved(reservation);
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(fateId));
@@ -577,7 +577,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public Serializable getTransactionInfo(TxInfo txInfo) {
-      verifyReservedAndNotDeleted(false);
+      newMutator(fateId).requireReserved(reservation);
 
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(getRow(fateId));
@@ -600,7 +600,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public long timeCreated() {
-      verifyReservedAndNotDeleted(false);
+      newMutator(fateId).requireReserved(reservation);
 
       return scanTx(scanner -> {
         scanner.setRange(getRow(fateId));
