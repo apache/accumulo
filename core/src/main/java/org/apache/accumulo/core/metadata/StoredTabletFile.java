@@ -150,7 +150,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
 
   @Override
   public String toString() {
-    return metadataEntry;
+    return toMinimalString();
   }
 
   public static StoredTabletFile of(final Text metadataEntry) {
