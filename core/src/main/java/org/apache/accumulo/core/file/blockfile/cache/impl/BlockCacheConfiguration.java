@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager.Configuration;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -41,22 +42,24 @@ public class BlockCacheConfiguration implements Configuration {
   private final long dataMaxSize;
 
   private final long summaryMaxSize;
+  private final long compressedDataMaxSize;
 
   public static BlockCacheConfiguration forTabletServer(AccumuloConfiguration conf) {
     return new BlockCacheConfiguration(conf, Property.TSERV_PREFIX, Property.TSERV_INDEXCACHE_SIZE,
         Property.TSERV_DATACACHE_SIZE, Property.TSERV_SUMMARYCACHE_SIZE,
-        Property.TSERV_DEFAULT_BLOCKSIZE);
+        Property.TSERV_DEFAULT_BLOCKSIZE, Property.TSERV_COMPRESSED_DATACACHE_SIZE);
   }
 
   public static BlockCacheConfiguration forScanServer(AccumuloConfiguration conf) {
     return new BlockCacheConfiguration(conf, Property.SSERV_PREFIX, Property.SSERV_INDEXCACHE_SIZE,
         Property.SSERV_DATACACHE_SIZE, Property.SSERV_SUMMARYCACHE_SIZE,
-        Property.SSERV_DEFAULT_BLOCKSIZE);
+        Property.SSERV_DEFAULT_BLOCKSIZE, Property.SSERV_COMPRESSED_DATACACHE_SIZE);
   }
 
   private BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
       Property indexCacheSizeProperty, Property dataCacheSizeProperty,
-      Property summaryCacheSizeProperty, Property defaultBlockSizeProperty) {
+      Property summaryCacheSizeProperty, Property defaultBlockSizeProperty,
+      Property compressedDataCacheSizeProperty) {
 
     this.serverPrefix = serverPrefix;
     this.genProps = conf.getAllPropertiesWithPrefix(serverPrefix);
@@ -64,6 +67,13 @@ public class BlockCacheConfiguration implements Configuration {
     this.dataMaxSize = conf.getAsBytes(dataCacheSizeProperty);
     this.summaryMaxSize = conf.getAsBytes(summaryCacheSizeProperty);
     this.blockSize = conf.getAsBytes(defaultBlockSizeProperty);
+
+    String compressedSizeStr = conf.get(compressedDataCacheSizeProperty);
+    if (compressedSizeStr == null) {
+      compressedSizeStr = compressedDataCacheSizeProperty.getDefaultValue();
+    }
+
+    this.compressedDataMaxSize = ConfigurationTypeHelper.getMemoryAsBytes(compressedSizeStr);
   }
 
   @Override
@@ -83,7 +93,8 @@ public class BlockCacheConfiguration implements Configuration {
   @Override
   public String toString() {
     return "indexMaxSize: " + indexMaxSize + "dataMaxSize: " + dataMaxSize + "summaryMaxSize: "
-        + summaryMaxSize + ", blockSize: " + getBlockSize();
+        + summaryMaxSize + ", blockSize: " + getBlockSize() + ", compressedDataMaxSize: "
+        + compressedDataMaxSize;
   }
 
   @Override
@@ -119,6 +130,10 @@ public class BlockCacheConfiguration implements Configuration {
 
   public static String getCachePropertyBase(Property serverPrefix) {
     return serverPrefix.getKey() + "cache.config.";
+  }
+
+  public long getCompressedDataMaxSize() {
+    return compressedDataMaxSize;
   }
 
 }
