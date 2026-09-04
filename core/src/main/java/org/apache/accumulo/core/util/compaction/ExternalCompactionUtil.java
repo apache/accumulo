@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
@@ -29,10 +30,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -325,5 +328,38 @@ public class ExternalCompactionUtil {
     } finally {
       ThriftUtil.returnClient(client, context);
     }
+  }
+
+  public static void wakeCompactors(ClientContext context, List<HostAndPort> compactors,
+      int threads) {
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL).numCoreThreads(threads).build();
+    List<Future<?>> futures = new ArrayList<>(compactors.size());
+    compactors.forEach(c -> {
+      futures.add(executor.submit(() -> {
+        CompactorService.Client client = null;
+        try {
+          client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, c, context);
+          client.wake(TraceUtil.traceInfo(), context.rpcCreds());
+        } catch (TException e) {
+          LOG.debug("Failed to wake compactor {}", c, e);
+        } finally {
+          ThriftUtil.returnClient(client, context);
+        }
+      }));
+    });
+    executor.shutdown();
+    AtomicLong success = new AtomicLong();
+    AtomicLong failure = new AtomicLong();
+    futures.forEach(f -> {
+      try {
+        f.get();
+        success.incrementAndGet();
+      } catch (InterruptedException | ExecutionException | CancellationException e) {
+        failure.incrementAndGet();
+      }
+    });
+    LOG.info("Attempted to wake {} compactors, succeeded: {}, failed: {}", compactors.size(),
+        success.get(), failure.get());
   }
 }

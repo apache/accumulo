@@ -100,12 +100,23 @@ public class QueueSummaries {
     }
   }
 
-  synchronized boolean isCompactionsQueued(String queue) {
-    var q = QUEUES.get(queue);
+  synchronized Set<String> getQueueNames() {
+    return QUEUES.keySet();
+  }
+
+  /*
+   * returns the number of tservers that have compactions for all priorities for this queue
+   */
+  synchronized long numCompactionsQueued(String queue) {
+    long compactionCount = 0;
+    TreeMap<Short,TreeSet<TServerInstance>> q = QUEUES.get(queue);
     if (q == null) {
-      return false;
+      return compactionCount;
     }
-    return !q.isEmpty();
+    for (TreeSet<TServerInstance> servers : q.values()) {
+      compactionCount += servers.size();
+    }
+    return compactionCount;
   }
 
   synchronized PrioTserver getNextTserver(String queue) {

@@ -161,6 +161,13 @@ service CompactorService {
   ) throws (
     1:client.ThriftSecurityException sec
   )
+  
+  void wake(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
 
   void cancel(
     1:trace.TInfo tinfo
