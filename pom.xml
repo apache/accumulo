@@ -172,10 +172,10 @@ under the License.
     <version.errorprone>2.41.0</version.errorprone>
     <version.flatbuffers>24.3.25</version.flatbuffers>
     <version.hadoop>3.5.0</version.hadoop>
-    <version.log4j>2.25.4</version.log4j>
-    <version.opentelemetry>1.60.1</version.opentelemetry>
+    <version.log4j>2.26.1</version.log4j>
+    <version.opentelemetry>1.65.0</version.opentelemetry>
     <version.slf4j>2.0.17</version.slf4j>
-    <version.thrift>0.23.0</version.thrift>
+    <version.thrift>0.24.0</version.thrift>
     <version.zookeeper>3.9.5</version.zookeeper>
   </properties>
   <dependencyManagement>
@@ -190,7 +190,7 @@ under the License.
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.14.5</version>
+        <version>1.16.7</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -198,7 +198,7 @@ under the License.
         <!-- for dependency convergence between Micrometer and ZooKeeper -->
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
-        <version>4.1.104.Final</version>
+        <version>4.1.130.Final</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -278,7 +278,7 @@ under the License.
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.4</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
@@ -325,7 +325,7 @@ under the License.
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>4.34.1</version>
+        <version>4.35.1</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -361,12 +361,12 @@ under the License.
         <groupId>io.opentelemetry.javaagent</groupId>
         <artifactId>opentelemetry-javaagent</artifactId>
         <!-- This version was selected because it aligns with the version of open telemetry that Accumulo is using. -->
-        <version>2.26.1</version>
+        <version>2.31.1</version>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry.proto</groupId>
         <artifactId>opentelemetry-proto</artifactId>
-        <version>1.9.0-alpha</version>
+        <version>1.11.0-alpha</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -556,6 +556,29 @@ under the License.
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${version.thrift}</version>
+        <exclusions>
+          <!-- these runtime deps are not needed -->
+          <exclusion>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.httpcomponents.core5</groupId>
+            <artifactId>httpcore5-h2</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
       <dependency>
         <groupId>org.apache.zookeeper</groupId>
@@ -648,6 +671,12 @@ under the License.
         <groupId>org.jline</groupId>
         <artifactId>jline</artifactId>
         <version>3.25.1</version>
+      </dependency>
+      <dependency>
+        <!-- for dependency convergence between Micrometer and Caffeine -->
+        <groupId>org.jspecify</groupId>
+        <artifactId>jspecify</artifactId>
+        <version>1.0.1</version>
       </dependency>
       <dependency>
         <groupId>org.latencyutils</groupId>

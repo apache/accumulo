@@ -94,10 +94,13 @@ public class Scanner {
 
     Batch results = null;
 
+    boolean locked = false;
+
     try {
 
       try {
         lock.lockInterruptibly();
+        locked = true;
         Preconditions.checkState(!readInProgress);
         // Simple check to ensure the same thread never calls this method recursively. This code
         // would not handle that well.
@@ -192,8 +195,10 @@ public class Scanner {
           tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
         }
       } finally {
-        readInProgress = false;
-        lock.unlock();
+        if (locked) {
+          readInProgress = false;
+          lock.unlock();
+        }
       }
     }
   }
@@ -228,10 +233,7 @@ public class Scanner {
         return false;
       }
 
-      scanClosed = true;
-      if (isolatedDataSource != null) {
-        isolatedDataSource.close(false);
-      }
+      lockAndClose();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       return false;
@@ -241,5 +243,17 @@ public class Scanner {
       }
     }
     return true;
+  }
+
+  private void lockAndClose() {
+    lock.lock();
+    try {
+      scanClosed = true;
+      if (isolatedDataSource != null) {
+        isolatedDataSource.close(false);
+      }
+    } finally {
+      lock.unlock();
+    }
   }
 }

@@ -89,7 +89,7 @@ $(function () {
     serversSortingLogs: []
   });
 
-  overviewDataTable = $(overviewTableElement).DataTable({
+  overviewDataTable = new DataTable(overviewTableElement, {
     "ajax": function (data, callback) {
       callback({
         data: getOverview()
@@ -117,7 +117,7 @@ $(function () {
     ]
   });
 
-  tabletDataTable = $(tabletRecoveryTableElement).DataTable({
+  tabletDataTable = new DataTable(tabletRecoveryTableElement, {
     "ajax": function (data, callback) {
       callback({
         data: getTablets()
@@ -145,7 +145,7 @@ $(function () {
     ]
   });
 
-  sortingDataTable = $(sortingServersTableElement).DataTable({
+  sortingDataTable = new DataTable(sortingServersTableElement, {
     "ajax": function (data, callback) {
       callback({
         data: getSorting()
@@ -210,8 +210,7 @@ $(function () {
       }
     ]
   });
-
-  replayingDataTable = $(replayingServersTableElement).DataTable({
+  replayingDataTable = new DataTable(replayingServersTableElement, {
     "ajax": function (data, callback) {
       callback({
         data: getReplaying()

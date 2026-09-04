@@ -41,7 +41,7 @@
       <!-- make sure jquery is included first - other scripts depend on it -->
       <script src="resources/external/jquery/jquery-3.7.1.js"></script>
       <script src="resources/external/bootstrap/js/bootstrap.bundle.js"></script>
-      <script src="resources/external/datatables/js/jquery.dataTables.js"></script>
+      <script src="resources/external/datatables/js/dataTables.js"></script>
       <script src="resources/external/datatables/js/dataTables.buttons.js"></script>
       <script src="resources/external/datatables/js/dataTables.colReorder.js"></script>
       <script src="resources/external/datatables/js/dataTables.bootstrap5.js"></script>

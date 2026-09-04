@@ -41,15 +41,20 @@ $(function () {
   const ecidColumnName = 'ecid';
   const durationColumnName = 'duration';
 
-  // Create a table for long running compactions
-  runningTable = $('#runningTable').DataTable({
+  // Create a table for long-running compactions
+  runningTable = new DataTable('#runningTable', {
     "autoWidth": false,
     "ajax": {
       "url": contextPath + 'rest-v2/compactions/running',
       "dataSrc": ""
     },
     "stateSave": true,
-    "dom": 't<"align-left"l>p',
+    "layout": {
+      "topStart": null,
+      "topEnd": null,
+      "bottomStart": "pageLength",
+      "bottomEnd": "paging"
+    },
     "columnDefs": [{
         targets: '_all',
         defaultContent: '&mdash;'
@@ -189,7 +194,7 @@ $(function () {
 
   // Custom filter function for duration
   $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
-    if (settings.nTable.id !== 'runningTable') {
+    if (settings.table.id !== 'runningTable') {
       return true;
     }
 
