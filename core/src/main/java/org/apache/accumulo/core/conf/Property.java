@@ -1215,6 +1215,12 @@ public enum Property {
           + "estimate of heap usage and includes per entry object overhead, so it will always "
           + "exceed the size of the key value data actually sent to the client.",
       "1.3.5"),
+  TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER("table.scan.batch.duplicate.max.multiplier", "3",
+      PropertyType.COUNT,
+      "When a scan batch would end on a duplicate key, allow the batch to grow by this "
+          + "multiplier of the scan batch size and table scan max memory to avoid splitting duplicate keys. "
+          + "If the duplicate run still exceeds this limit, the scan fails to avoid dropping keys.",
+      "2.1.5"),
   TABLE_SHUFFLE_SOURCES("table.shuffle.sources", "false", PropertyType.BOOLEAN,
       "Shuffle the opening order for Rfiles to reduce thread contention on file open operations.",
       "2.1.5"),
