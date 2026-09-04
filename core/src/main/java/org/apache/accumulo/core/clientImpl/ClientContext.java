@@ -334,11 +334,6 @@ public class ClientContext implements AccumuloClient {
     });
 
     zkLockChecker = memoize(() -> {
-      // make this use its own ZooSession and ZooCache, because this is used by the
-      // tablet location cache, which is a static singleton reused by multiple clients
-      // so, it can't rely on being able to continue to use the same client's ZooCache,
-      // because that client could be closed, and its ZooSession also closed
-      // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
           ZooUtil.getRoot(getInstanceID())).get();
       return new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
