@@ -93,7 +93,7 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
 
-  private NullWatcher nullWatcher;
+  NullWatcher nullWatcher;
 
   private static final String INDENT = "  ";
 
@@ -108,7 +108,7 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
 
   @Override
   public String description() {
-    return "view Accumulo instance and property information stored in ZooKeeper";
+    return "[DEPRECATED - use 'zk props'] view Accumulo instance and property information stored in ZooKeeper";
   }
 
   @Override
@@ -118,6 +118,7 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
 
   @Override
   public void execute(JCommander cl, ViewerOpts opts) throws Exception {
+    log.warn("'zk info-infoViewer' is deprecated, use 'zk props' instead");
     nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
     log.debug("print ids map: {}", opts.printIdMap);
@@ -170,8 +171,8 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
     }
   }
 
-  private void printProps(final ServerContext context, final ViewerOpts opts,
-      final PrintWriter writer) throws Exception {
+  void printProps(final ServerContext context, final ViewerOpts opts, final PrintWriter writer)
+      throws Exception {
     var iid = context.getInstanceID();
     var zooReader = context.getZooSession().asReader();
 
@@ -509,21 +510,21 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
     @Parameter(names = {"-ns", "--namespaces"},
         description = "a list of namespace names to print properties, with none specified, print all. Only valid with --print-props",
         variableArity = true)
-    private List<String> namespacesOpt = new ArrayList<>();
+    public List<String> namespacesOpt = new ArrayList<>();
 
     @Parameter(names = {"-r", "--resource-groups"},
         description = "a list of resource group names to print properties, with none specified, print all. Only valid with --print-props",
         variableArity = true)
-    private List<String> resourceGroupOpt = new ArrayList<>();
+    public List<String> resourceGroupOpt = new ArrayList<>();
 
     @Parameter(names = {"--system"},
         description = "print the properties for the system config. Only valid with --print-props")
-    private boolean printSystemOpt = false;
+    public boolean printSystemOpt = false;
 
     @Parameter(names = {"-t", "--tables"},
         description = "a list of table names to print properties, with none specified, print all. Only valid with --print-props",
         variableArity = true)
-    private List<String> tablesOpt = new ArrayList<>();
+    public List<String> tablesOpt = new ArrayList<>();
 
     /**
      * Get print all option status.
@@ -568,7 +569,7 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
     }
   }
 
-  private static class NullWatcher extends PropStoreWatcher {
+  static class NullWatcher extends PropStoreWatcher {
     public NullWatcher(ReadyMonitor zkReadyMonitor) {
       super(zkReadyMonitor);
     }

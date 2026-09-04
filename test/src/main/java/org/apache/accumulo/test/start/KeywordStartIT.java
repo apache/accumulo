@@ -62,6 +62,7 @@ import org.apache.accumulo.server.conf.util.ExportConfigCommand;
 import org.apache.accumulo.server.conf.util.ImportConfigCommand;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
+import org.apache.accumulo.server.conf.util.ZooProps;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.CancelCompaction;
 import org.apache.accumulo.server.util.DumpZookeeper;
@@ -254,6 +255,7 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "prop-editor", ZooPropEditor.class));
     expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "zap", ZooZap.class));
     expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "cli", ZooKeeperMain.class));
+    expectSet.add(new CommandInfo(CommandGroups.ZOOKEEPER, "props", ZooProps.class));
 
     Map<CommandGroup,Map<String,KeywordExecutable>> actualExecutables = getKeywordExecutables();
     SortedSet<CommandInfo> actualSet = new TreeSet<>();
