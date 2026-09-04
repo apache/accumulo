@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -43,6 +45,7 @@ import org.apache.hadoop.io.MapFile;
 public class MapFileOperations extends FileOperations {
   private static final String MSG = "Map files are not supported";
 
+  @NotThreadSafe
   public static class RangeIterator implements FileSKVIterator {
 
     SortedKeyValueIterator<Key,Value> reader;

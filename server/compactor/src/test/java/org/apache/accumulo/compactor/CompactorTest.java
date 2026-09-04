@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
@@ -32,7 +33,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
@@ -542,6 +548,43 @@ public class CompactorTest {
       assertTrue(maxWait <= 968L);
     }
 
+    PowerMock.verifyAll();
+  }
+
+  @Test
+  public void testCompactorWaitAndWake() throws InterruptedException, ExecutionException {
+    PowerMock.resetAll();
+    PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
+    PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
+
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "3m");
+    conf.set(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "5m");
+
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+
+    Compactor.CompactorServerOpts compactorServerOpts =
+        PowerMock.createNiceMock(Compactor.CompactorServerOpts.class);
+    expect(compactorServerOpts.getQueueName()).andReturn("default");
+
+    PowerMock.replayAll();
+
+    ScheduledExecutorService executors = Executors.newSingleThreadScheduledExecutor();
+    try (var c = new SuccessfulCompactor(null, null, null, context, null, compactorServerOpts)) {
+      ScheduledFuture<?> f =
+          executors.schedule(() -> assertTrue(c.wakeInternal()), 1, TimeUnit.SECONDS);
+      assertFalse(c.shouldStopWaiting());
+      c.waitForNextCompactionCheck(100);
+      assertNull(f.get());
+      assertFalse(c.shouldStopWaiting());
+      f = executors.schedule(() -> assertTrue(c.wakeInternal()), 1, TimeUnit.SECONDS);
+      c.waitForNextCompactionCheck(100);
+      assertNull(f.get());
+      assertFalse(c.shouldStopWaiting());
+    } finally {
+      executors.shutdownNow();
+    }
     PowerMock.verifyAll();
   }
 

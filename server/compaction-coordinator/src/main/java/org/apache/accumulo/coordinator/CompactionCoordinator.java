@@ -19,6 +19,7 @@
 package org.apache.accumulo.coordinator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.Property.COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS;
 import static org.apache.accumulo.core.conf.Property.COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_SUMMARY_POOL;
@@ -28,6 +29,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -369,13 +371,33 @@ public class CompactionCoordinator extends AbstractServer implements
         LOG.debug("Time spent checking compaction summaries: {}ms", (now - start));
 
         Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
-        TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
-          if ((now - lastCheckTime) > getMissingCompactorWarningTime()
-              && QUEUE_SUMMARIES.isCompactionsQueued(queue) && idleCompactors.containsKey(queue)) {
-            LOG.warn("No compactors have checked in with coordinator for queue {} in {}ms", queue,
-                getMissingCompactorWarningTime());
+        long compactorWarnTime = getMissingCompactorWarningTime();
+
+        for (Entry<String,Long> e : TIME_COMPACTOR_LAST_CHECKED.entrySet()) {
+          String queueName = e.getKey();
+          Long lastCheckTime = e.getValue();
+          long timeSinceLastCheck = now - lastCheckTime;
+          long compactionsQueued = QUEUE_SUMMARIES.numCompactionsQueued(queueName);
+
+          if (compactionsQueued > 0) {
+            // If there are idle compactors, wake them
+            // If no idle compactors and beyond the warn time, then warn
+            List<HostAndPort> idle = idleCompactors.get(queueName);
+            int wakeThreads =
+                getConfiguration().getCount(COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS);
+            if (idle != null && wakeThreads > 0) {
+              LOG.info("Attempting to wake {} compactors for queue {}", compactionsQueued,
+                  queueName);
+              ExternalCompactionUtil.wakeCompactors(getContext(),
+                  idle.subList(0, (int) compactionsQueued), wakeThreads);
+            } else if (timeSinceLastCheck > compactorWarnTime) {
+              LOG.warn(
+                  "No compactors have checked in with coordinator for queue {} in {}ms. Either all compactors"
+                      + " for this queue are busy or there are no compactors for this queue.",
+                  queueName, getMissingCompactorWarningTime());
+            }
           }
-        });
+        }
 
         long checkInterval = getTServerCheckInterval();
         long duration = (System.currentTimeMillis() - start);

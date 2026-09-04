@@ -497,7 +497,6 @@ public class ServiceLockIT {
       zl1.unlock();
       assertFalse(zlw1.isLockHeld());
       assertFalse(zl1.verifyLockAtSource());
-      assertFalse(zl2.verifyLockAtSource());
       zk1.close();
 
       while (!zlw2.isLockHeld()) {

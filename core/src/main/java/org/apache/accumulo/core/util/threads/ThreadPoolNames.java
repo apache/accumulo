@@ -28,6 +28,7 @@ public enum ThreadPoolNames {
   BULK_IMPORT_CLIENT_BULK_THREADS_POOL("accumulo.pool.bulk.import.client.bulk.threads"),
   BULK_IMPORT_DIR_MOVE_POOL("accumulo.pool.bulk.dir.move"),
   COMPACTION_COORDINATOR_SUMMARY_POOL("accumulo.pool.compaction.summary.gatherer"),
+  COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL("accumulo.pool.compaction.compactor.wake"),
   COMPACTION_SERVICE_COMPACTION_PLANNER_POOL("accumulo.pool.compaction.service.compaction.planner"),
   COMPACTOR_RUNNING_COMPACTIONS_POOL("accumulo.pool.compactor.running.compactions"),
   COMPACTOR_RUNNING_COMPACTION_IDS_POOL("accumulo.pool.compactor.running.compaction.ids"),

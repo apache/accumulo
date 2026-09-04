@@ -533,7 +533,7 @@ public class InMemoryMap {
 
   class MemoryDataSource implements DataSource {
 
-    private boolean switched = false;
+    private volatile boolean switched = false;
     private InterruptibleIterator iter;
     private FileSKVIterator reader;
     private final MemoryDataSource parent;

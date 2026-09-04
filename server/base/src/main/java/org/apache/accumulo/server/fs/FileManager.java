@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -388,6 +390,7 @@ public class FileManager {
 
   }
 
+  @NotThreadSafe
   static class FileDataSource implements DataSource {
 
     private SortedKeyValueIterator<Key,Value> iter;
