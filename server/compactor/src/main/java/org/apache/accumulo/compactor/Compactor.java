@@ -227,6 +227,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicLong cancelled = new AtomicLong(0);
   private final AtomicLong failed = new AtomicLong(0);
   private final AtomicLong terminated = new AtomicLong(0);
+  private final AtomicBoolean stopWaiting = new AtomicBoolean(false);
 
   @VisibleForTesting
   protected Compactor(ServerOpts opts, String[] args) {
@@ -799,6 +800,39 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
+  // visible for tests
+  protected void waitForNextCompactionCheck(int compactorCount) throws InterruptedException {
+    long waitMillis = getWaitTimeBetweenCompactionChecks(compactorCount);
+    LOG.info("Waiting {}ms before checking for next compaction job", waitMillis);
+    Duration waitTime = Duration.ofMillis(waitMillis);
+    Timer timer = Timer.startNew();
+    while (!timer.hasElapsed(waitTime)) {
+      if (stopWaiting.compareAndSet(true, false)) {
+        LOG.info("Wait aborted by coordinator");
+        break;
+      }
+      UtilWaitThread.sleep(250);
+    }
+  }
+
+  // visible for tests
+  protected boolean shouldStopWaiting() {
+    return stopWaiting.get();
+  }
+
+  // visible for tests
+  protected boolean wakeInternal() {
+    LOG.debug("Wake called");
+    return stopWaiting.compareAndSet(false, true);
+  }
+
+  @Override
+  public void wake(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+    if (getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
+      wakeInternal();
+    }
+  }
+
   @Override
   public void run() {
 
@@ -869,7 +903,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           job = next.getJob();
           if (!job.isSetExternalCompactionId()) {
             LOG.trace("No external compactions in queue {}", this.getResourceGroup());
-            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
+            waitForNextCompactionCheck(next.getCompactorCount());
             continue;
           }
           if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {

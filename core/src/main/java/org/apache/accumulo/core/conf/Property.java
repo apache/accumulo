@@ -1423,6 +1423,12 @@ public enum Property {
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors.", "2.1.0"),
+  COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS("compaction.coordinator.compactor.wakeup.threads",
+      "0", PropertyType.COUNT,
+      "The number of threads the Coordinator should use to wake Compactors that are in a wait state. A value of zero"
+          + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
+          + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
+      "2.1.7"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
       "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
