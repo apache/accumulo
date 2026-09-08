@@ -20,6 +20,7 @@ package org.apache.accumulo.core.classloader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -91,6 +92,22 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
     assertEquals(
         "Error getting classloader for context: Property general.custom.factory.class.loader.url.allowed.patterns not set, no contexts are allowed",
         ex.getMessage());
+  }
+
+  @Test
+  public void urlContextPatternDoesNotMath() {
+    ConfigurationCopy cc = new ConfigurationCopy();
+    cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),
+        URLContextClassLoaderFactory.class.getName());
+    cc.set(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY, "file://path/to/unknown/folder/.*");
+    ClassLoaderUtil.resetContextFactoryForTests();
+    ClassLoaderUtil.initContextFactory(cc);
+    IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
+      @SuppressWarnings("unused")
+      URLClassLoader classloader =
+          (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri1.toString());
+    });
+    assertTrue(ex.getMessage().contains(" not allowed by pattern "));
   }
 
   @Test
