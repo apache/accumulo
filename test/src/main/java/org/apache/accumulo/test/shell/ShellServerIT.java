@@ -35,6 +35,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -51,6 +53,7 @@ import java.util.SortedSet;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.classloader.URLContextClassLoaderFactory;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -129,6 +132,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private static class ShellServerITConfigCallback implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      try {
+        cfg.setProperty(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY,
+            new URL("file://" + System.getProperty("user.dir") + "/target/*").toExternalForm());
+      } catch (MalformedURLException e) {
+        throw new RuntimeException(e);
+      }
+
       // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
@@ -1756,7 +1766,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
-    String context = fooFilterJar.toURI() + "," + fooConstraintJar.toURI();
+    String context = fooFilterJar.toURI().toURL().toExternalForm() + ","
+        + fooConstraintJar.toURI().toURL().toExternalForm();
 
     ts.exec("createtable " + table, true);
     ts.exec(
@@ -1959,10 +1970,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     make10();
     setupFakeContextPath();
 
+    String fakeCtx = new URL(FAKE_CONTEXT).toExternalForm();
     result = ts.exec("config -t " + tableName + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey()
-        + "=" + FAKE_CONTEXT);
+        + "=" + fakeCtx);
     assertEquals("root@miniInstance " + tableName + "> config -t " + tableName + " -s "
-        + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + FAKE_CONTEXT + "\n", result);
+        + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + fakeCtx + "\n", result);
 
     result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
@@ -1991,25 +2003,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
-    result = ts.exec("scan -pn baz -b row1 -e row1 -cc " + REAL_CONTEXT);
+    String realCtx = new URL(REAL_CONTEXT).toExternalForm();
+    result = ts.exec("scan -pn baz -b row1 -e row1 -cc " + realCtx);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -b row3 -e row5 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row3 -e row5 -cc " + realCtx);
     assertEquals(4, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -r row3 -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -r row3 -cc " + realCtx);
     assertEquals(2, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -b row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row: -cc " + realCtx);
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -pn baz -b row -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -b row -cc " + realCtx);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    result = ts.exec("scan -pn baz -e row: -cc " + REAL_CONTEXT);
+    result = ts.exec("scan -pn baz -e row: -cc " + realCtx);
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));

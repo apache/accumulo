@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -84,7 +83,7 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
       LOG.debug("Creating URLClassLoader for context, uris: {}", context);
       return new URLClassLoader(Arrays.stream(context.split(",")).map(p -> {
         try {
-          URL url = URI.create(p).toURL();
+          URL url = new URL(p);
           checkArgument(urlPattern.matcher(url.toExternalForm()).matches(),
               "Context %s URL (%s) not allowed by pattern (%s)", context, url.toExternalForm(),
               urlPattern.pattern());

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -74,7 +75,7 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
         propsFile2.toFile());
     uri2 = propsFile2.toUri().toURL();
 
-    tempFolderPattern = ".*/" + tempFolder.getFileName().toString() + "/.*";
+    tempFolderPattern = tempFolder.toUri().toURL().toExternalForm() + ".*";
   }
 
   @Test
@@ -95,11 +96,12 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
   }
 
   @Test
-  public void urlContextPatternDoesNotMath() {
+  public void urlContextPatternDoesNotMath() throws MalformedURLException {
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),
         URLContextClassLoaderFactory.class.getName());
-    cc.set(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY, "file://path/to/unknown/folder/.*");
+    cc.set(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY,
+        new URL("file:///path/to/unknown/folder/.*").toExternalForm());
     ClassLoaderUtil.resetContextFactoryForTests();
     ClassLoaderUtil.initContextFactory(cc);
     IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
