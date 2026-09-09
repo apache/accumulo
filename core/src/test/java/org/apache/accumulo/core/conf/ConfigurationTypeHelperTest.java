@@ -149,4 +149,45 @@ public class ConfigurationTypeHelperTest {
         () -> ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("A"));
 
   }
+
+  @Test
+  public void testGetNumberOfThreads() {
+    assertEquals(1, ConfigurationTypeHelper.getNumThreads("1", "4"));
+    assertEquals(2, ConfigurationTypeHelper.getNumThreads("", "2"));
+    assertEquals(3, ConfigurationTypeHelper.getNumThreads(null, "3"));
+
+    // availableProcessors can return different results than physical core count on systems that use
+    // simultaneous multithreading (SMT).
+    int cores = Runtime.getRuntime().availableProcessors();
+    assertEquals(cores * 2, ConfigurationTypeHelper.getNumThreads("2C", "1"));
+    assertEquals(cores * 3, ConfigurationTypeHelper.getNumThreads(null, "3C"));
+  }
+
+  @Test
+  public void testGetNumberOfThreadsNullDefaultFailure() {
+    Exception exception = assertThrows(NullPointerException.class,
+        () -> ConfigurationTypeHelper.getNumThreads("", null));
+    assertEquals("The default thread value cannot be null", exception.getMessage());
+  }
+
+  @Test
+  public void testGetNumberOfThreadsEmptyDefaultFailure() {
+    Exception exception = assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getNumThreads(null, ""));
+    assertEquals("The default thread value cannot be empty or blank", exception.getMessage());
+  }
+
+  @Test
+  public void testGetNumberOfThreadsBlankDefaultFailure() {
+    Exception exception = assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getNumThreads(null, " "));
+    assertEquals("The default thread value cannot be empty or blank", exception.getMessage());
+  }
+
+  @Test
+  public void testGetNumberOfThreadsDecimalFailure() {
+    Exception exception = assertThrows(NumberFormatException.class,
+        () -> ConfigurationTypeHelper.getNumThreads("0.25C", "1"));
+    assertEquals("For input string: \"0.25\"", exception.getMessage());
+  }
 }
