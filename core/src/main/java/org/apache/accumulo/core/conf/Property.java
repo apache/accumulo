@@ -261,6 +261,11 @@ public enum Property {
           + "org.apache.accumulo.server.rpc.ThriftServerType for more information. "
           + "Only useful for benchmarking thrift servers.",
       "1.7.0"),
+  GENERAL_RPC_SERVER_SELECTOR_THREADS("general.rpc.server.selector.threads", "2",
+      PropertyType.COUNT,
+      "The number of selector threads to use for the TThreadedSelectorServer. "
+          + " If the value ends with C, then it will be multiplied by the number of cores on the system.",
+      "2.1.7"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH,
       "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs.", "1.4.1"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING,
