@@ -209,16 +209,13 @@ public class ConfigurationTypeHelper {
   }
 
   /**
-   * Get the number of threads from string property. If the value ends with C, then it will be
+   * Get the number of threads from a string property. If the value ends with C, then it will be
    * multiplied by the number of cores.
    */
-  public static int getNumThreads(String threads, String defaultValue) {
-    Objects.requireNonNull(defaultValue, "The default thread value cannot be null");
-    if (defaultValue.isBlank()) {
-      throw new IllegalArgumentException("The default thread value cannot be empty or blank");
-    }
-    if (threads == null || threads.isBlank()) {
-      threads = defaultValue;
+  public static int getNumThreads(String threads) {
+    Objects.requireNonNull(threads, "Threads value cannot be null");
+    if (threads.isBlank()) {
+      throw new IllegalArgumentException("Threads value cannot be empty or blank");
     }
     int nThreads;
     if (threads.toUpperCase().endsWith("C")) {
@@ -226,6 +223,9 @@ public class ConfigurationTypeHelper {
           * Integer.parseInt(threads.substring(0, threads.length() - 1));
     } else {
       nThreads = Integer.parseInt(threads);
+    }
+    if (nThreads < 1) {
+      throw new IllegalArgumentException("Threads value cannot be less than 1");
     }
     return nThreads;
   }
