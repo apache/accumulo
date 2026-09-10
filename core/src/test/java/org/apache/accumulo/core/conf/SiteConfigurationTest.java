@@ -59,7 +59,7 @@ public class SiteConfigurationTest {
     var conf = SiteConfiguration.empty().build();
     assertEquals("localhost:2181", conf.get(Property.INSTANCE_ZK_HOST));
     assertEquals("DEFAULT", conf.get(Property.INSTANCE_SECRET));
-    assertEquals("", conf.get(Property.INSTANCE_VOLUMES));
+    assertNull(conf.get(Property.INSTANCE_VOLUMES.getDefaultValue()));
     assertEquals("120s", conf.get(Property.GENERAL_RPC_TIMEOUT));
     assertEquals("1G", conf.get(Property.TSERV_WAL_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory",
