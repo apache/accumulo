@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.List;
 import java.util.TreeMap;
 
 /**
@@ -47,6 +48,10 @@ public class ConfigurationDocGen {
     beginSection("Property Types");
     beginTable("Type");
     propertyTypeDescriptions();
+
+    beginSection("Java System Properties");
+    beginTable("Property");
+    systemPropertyDescriptions();
 
     doc.close();
   }
@@ -141,6 +146,14 @@ public class ConfigurationDocGen {
       }
       doc.println(
           "| " + sanitize(type.toString()) + " | " + sanitize(type.getFormatDescription()) + " |");
+    }
+  }
+
+  void systemPropertyDescriptions() {
+    doc.println("Below are properties used to modify the behavior of runtime.");
+    List<String> systemProps = Property.getSystemProperties();
+    for (String prop : systemProps) {
+      doc.println("| " + sanitize(prop) + " | " + "Description per prop" + " |");
     }
   }
 

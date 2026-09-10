@@ -21,11 +21,13 @@ package org.apache.accumulo.core.conf;
 import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 
 import java.lang.annotation.Annotation;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -38,6 +40,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
@@ -1859,6 +1862,14 @@ public enum Property {
       Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
+  }
+
+  public static List<String> getSystemProperties() {
+    List<String> systemProps = new ArrayList<>();
+    systemProps.add(TServerClient.DEBUG_HOST);
+    systemProps.add(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
+
+    return systemProps;
   }
 
   static {
