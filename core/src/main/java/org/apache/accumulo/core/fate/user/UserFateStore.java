@@ -414,12 +414,6 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     return new FateMutatorImpl<>(context, tableName, fateId, writer);
   }
 
-  public FateMutatorImpl<T> newReservedMutator(FateId fateId, FateReservation reservation) {
-    Preconditions.checkState(fateId != null,
-        "Attempted write on deleted FATE transaction: " + fateId);
-    return (FateMutatorImpl<T>) newMutator(fateId).requireReserved(reservation);
-  }
-
   private <R> R scanTx(Function<Scanner,R> func) {
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
       return func.apply(scanner);
@@ -550,6 +544,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       super(fateId, reservation);
     }
 
+    public FateMutatorImpl<T> newReservedMutator() {
+      Preconditions.checkState(!deleted, "Attempted write on deleted FATE transaction: " + fateId);
+      return (FateMutatorImpl<T>) newMutator(fateId).requireReserved(reservation);
+    }
+
     @Override
     public Repo<T> top() {
       return scanTx(scanner -> {
@@ -616,33 +615,33 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         throw new StackOverflowException("Repo stack size too large");
       }
 
-      FateMutator<T> fateMutator = newReservedMutator(fateId, reservation)
-          .requireStatus(REQ_PUSH_STATUS.toArray(TStatus[]::new));
+      FateMutator<T> fateMutator =
+          newReservedMutator().requireStatus(REQ_PUSH_STATUS.toArray(TStatus[]::new));
       fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
 
     @Override
     public void pop() {
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> newReservedMutator(fateId, reservation)
-          .requireStatus(REQ_POP_STATUS.toArray(TStatus[]::new)).deleteRepo(t).mutate());
+      top.ifPresent(t -> newReservedMutator().requireStatus(REQ_POP_STATUS.toArray(TStatus[]::new))
+          .deleteRepo(t).mutate());
     }
 
     @Override
     public void setStatus(TStatus status) {
-      newReservedMutator(fateId, reservation).putStatus(status).mutate();
+      newReservedMutator().putStatus(status).mutate();
       observedStatus = status;
     }
 
     @Override
     public void setTransactionInfo(TxInfo txInfo, Serializable so) {
       final byte[] serialized = serializeTxInfo(so);
-      newReservedMutator(fateId, reservation).putTxInfo(txInfo, serialized).mutate();
+      newReservedMutator().putTxInfo(txInfo, serialized).mutate();
     }
 
     @Override
     public void delete() {
-      var mutator = newReservedMutator(fateId, reservation);
+      var mutator = newReservedMutator();
       mutator.requireStatus(REQ_DELETE_STATUS.toArray(TStatus[]::new));
       mutator.delete().mutate();
       this.deleted = true;
@@ -650,7 +649,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
     @Override
     public void forceDelete() {
-      var mutator = newReservedMutator(fateId, reservation);
+      var mutator = newReservedMutator();
       mutator.requireStatus(REQ_FORCE_DELETE_STATUS.toArray(TStatus[]::new));
       mutator.delete().mutate();
       this.deleted = true;
