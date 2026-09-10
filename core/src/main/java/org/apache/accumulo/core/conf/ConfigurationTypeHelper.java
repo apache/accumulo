@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -208,12 +209,13 @@ public class ConfigurationTypeHelper {
   }
 
   /**
-   * Get the number of threads from string property. If the value ends with C, then it will be
+   * Get the number of threads from a string property. If the value ends with C, then it will be
    * multiplied by the number of cores.
    */
   public static int getNumThreads(String threads) {
-    if (threads == null) {
-      threads = ClientProperty.BULK_LOAD_THREADS.getDefaultValue();
+    Objects.requireNonNull(threads, "Threads value cannot be null");
+    if (threads.isBlank()) {
+      throw new IllegalArgumentException("Threads value cannot be empty or blank");
     }
     int nThreads;
     if (threads.toUpperCase().endsWith("C")) {
@@ -221,6 +223,9 @@ public class ConfigurationTypeHelper {
           * Integer.parseInt(threads.substring(0, threads.length() - 1));
     } else {
       nThreads = Integer.parseInt(threads);
+    }
+    if (nThreads < 1) {
+      throw new IllegalArgumentException("Threads value cannot be less than 1");
     }
     return nThreads;
   }
