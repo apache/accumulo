@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,6 +85,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.util.ExpectedProcessCounts;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.InformationFetcher.MetricFetcher;
 import org.apache.accumulo.monitor.next.InformationFetcher.TableInformationFetcher;
@@ -1403,6 +1405,42 @@ public class SystemInformation {
       if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
         addAlert(High, Configuration, "Compactor group " + compactorGroup
             + " has running compactors, but no configuration uses them.");
+      }
+    }
+
+    ExpectedProcessCounts expectedCounts = ExpectedProcessCounts
+        .parse(ctx.getConfiguration().get(Property.GENERAL_EXPECTED_PROCESS_COUNTS));
+
+    if (!expectedCounts.isEmpty()) {
+      for (var typeEntry : expectedCounts.all().entrySet()) {
+        ServerId.Type serverType = typeEntry.getKey();
+        for (var groupEntry : typeEntry.getValue().entrySet()) {
+          ResourceGroupId group = groupEntry.getKey();
+          OptionalInt expected = expectedCounts.getExpectedCount(serverType, group);
+          if (expected.isEmpty()) {
+            continue;
+          }
+
+          int running = switch (serverType) {
+            case COMPACTOR -> {
+              Set<ServerId> s = compactors.get(group.canonical());
+              yield s == null ? 0 : s.size();
+            }
+            case SCAN_SERVER -> {
+              Set<ServerId> s = sservers.get(group.canonical());
+              yield s == null ? 0 : s.size();
+            }
+            default -> expected.getAsInt();
+          };
+
+          int down = expected.getAsInt() - running;
+          if (down > 0) {
+            String typeName = serverType == ServerId.Type.COMPACTOR ? "Compactor" : "ScanServer";
+            addAlert(High, Resource,
+                typeName + " group " + group.canonical() + " is degraded: expected "
+                    + expected.getAsInt() + ", running " + running + ", down " + down);
+          }
+        }
       }
     }
 
