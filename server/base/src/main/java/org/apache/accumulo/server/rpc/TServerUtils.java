@@ -240,8 +240,8 @@ public class TServerUtils {
 
     TThreadedSelectorServer.Args options = new TThreadedSelectorServer.Args(transport);
 
-    String threads = conf.get(GENERAL_RPC_SERVER_SELECTOR_THREADS);
-    options.selectorThreads = ConfigurationTypeHelper.getNumThreads(threads);
+    options.selectorThreads =
+        ConfigurationTypeHelper.getNumThreads(conf.get(GENERAL_RPC_SERVER_SELECTOR_THREADS));
     log.info("selectorThreads : {}", options.selectorThreads);
     options.protocolFactory(protocolFactory);
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
