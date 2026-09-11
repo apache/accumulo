@@ -134,7 +134,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       try {
         cfg.setProperty(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY,
-            new URL("file://" + System.getProperty("user.dir") + "/target/*").toExternalForm());
+            new URL("file://" + System.getProperty("user.dir") + "/target/.*").toExternalForm());
       } catch (MalformedURLException e) {
         throw new RuntimeException(e);
       }
