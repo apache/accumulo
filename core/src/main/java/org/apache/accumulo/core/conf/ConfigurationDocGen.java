@@ -22,7 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 /**
@@ -50,6 +50,7 @@ public class ConfigurationDocGen {
     propertyTypeDescriptions();
 
     beginSection("Java System Properties");
+    doc.println("Below are properties used to modify the behavior of runtime.\n");
     beginTable("Property");
     systemPropertyDescriptions();
 
@@ -150,11 +151,9 @@ public class ConfigurationDocGen {
   }
 
   void systemPropertyDescriptions() {
-    doc.println("Below are properties used to modify the behavior of runtime.");
-    List<String> systemProps = Property.getSystemProperties();
-    for (String prop : systemProps) {
-      doc.println("| " + sanitize(prop) + " | " + "Description per prop" + " |");
-    }
+    Map<String,String> systemProps = Property.getSystemProperties();
+    systemProps.forEach(
+        (key, value) -> doc.println("| " + sanitize(key) + " | " + sanitize(value) + " |"));
   }
 
   String sanitize(String str) {
