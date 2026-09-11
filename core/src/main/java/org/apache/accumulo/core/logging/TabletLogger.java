@@ -35,14 +35,12 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,10 +131,6 @@ public class TabletLogger {
     fileLog.error("For tablet {} failed to read {} ", tablet, path, e);
   }
 
-  public static void tabletNoDir(KeyExtent extent, Path path) {
-    fileLog.debug("Tablet {} had no dir, creating {}", extent, path);
-  }
-
   /**
    * Lazily converts TableFile to file names. The lazy part is really important because when it is
    * not called with log.isDebugEnabled().
@@ -214,10 +208,6 @@ public class TabletLogger {
    */
   public static void walRefsChanged(KeyExtent extent, Collection<String> refsSupplier) {
     walsLog.trace("{} has unflushed data in wals: {} ", extent, refsSupplier);
-  }
-
-  public static void updateRejected(FateId fateId, Ample.ConditionalResult result) {
-    fileLog.debug("{} update for {} was rejected ", fateId, result.getExtent());
   }
 
 }

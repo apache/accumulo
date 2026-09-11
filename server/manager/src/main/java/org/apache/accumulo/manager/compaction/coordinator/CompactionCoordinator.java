@@ -411,7 +411,7 @@ public class CompactionCoordinator
         }
 
         if (files == null) {
-          TabletLogger.tabletNoDir(extent, path);
+          LOG.debug("Tablet {} had no dir, creating {}", extent, path);
 
           ctx.getVolumeManager().mkdirs(path);
         }

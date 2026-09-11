@@ -32,7 +32,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
-import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -73,7 +72,7 @@ public class CleanUp extends AbstractFateOperation {
     AtomicLong rejectedCount = new AtomicLong(0);
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Status.REJECTED) {
-        TabletLogger.updateRejected(fateId, result);
+        log.debug("{} update for {} was rejected ", fateId, result.getExtent());
         rejectedCount.incrementAndGet();
       }
     };
