@@ -48,6 +48,7 @@ public class AccumuloClassLoader {
   private static URL accumuloConfigUrl;
   private static URLClassLoader classloader;
   private static final Logger log = LoggerFactory.getLogger(AccumuloClassLoader.class);
+  private static final Object lock = new Object();
 
   static {
     String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
@@ -193,34 +194,36 @@ public class AccumuloClassLoader {
     return urls;
   }
 
-  public static synchronized ClassLoader getClassLoader() throws IOException {
-    if (classloader == null) {
-      ArrayList<URL> urls = findAccumuloURLs();
+  public static ClassLoader getClassLoader() throws IOException {
+    synchronized (lock) {
+      if (classloader == null) {
+        ArrayList<URL> urls = findAccumuloURLs();
 
-      ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
+        ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
 
-      log.debug("Create 2nd tier ClassLoader using URLs: {}", urls);
-      classloader =
-          new URLClassLoader("AccumuloClassLoader (loads everything defined by general.classpaths)",
-              urls.toArray(new URL[urls.size()]), parentClassLoader) {
-            @Override
-            protected synchronized Class<?> loadClass(String name, boolean resolve)
-                throws ClassNotFoundException {
+        log.debug("Create 2nd tier ClassLoader using URLs: {}", urls);
+        classloader = new URLClassLoader(
+            "AccumuloClassLoader (loads everything defined by general.classpaths)",
+            urls.toArray(new URL[urls.size()]), parentClassLoader) {
+          @Override
+          protected synchronized Class<?> loadClass(String name, boolean resolve)
+              throws ClassNotFoundException {
 
-              if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
-                Class<?> c = findLoadedClass(name);
-                if (c == null) {
-                  try {
-                    // try finding this class here instead of parent
-                    findClass(name);
-                  } catch (ClassNotFoundException e) {}
-                }
+            if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
+              Class<?> c = findLoadedClass(name);
+              if (c == null) {
+                try {
+                  // try finding this class here instead of parent
+                  findClass(name);
+                } catch (ClassNotFoundException e) {}
               }
-              return super.loadClass(name, resolve);
             }
-          };
-    }
+            return super.loadClass(name, resolve);
+          }
+        };
+      }
 
-    return classloader;
+      return classloader;
+    }
   }
 }

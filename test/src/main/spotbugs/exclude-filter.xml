@@ -35,4 +35,10 @@
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
+  <Match>
+    <!-- Match against any Compactor class -->
+    <Class name="org.apache.accumulo.test.compaction.ExternalDoNothingCompactor" />
+    <!-- Compactor's JOB_HOLDER is not ideal and fixing it would break anyone who's extended the class -->
+    <Bug pattern="USO_UNSAFE_EXPOSED_OBJECT_SYNCHRONIZATION" />
+  </Match>
 </FindBugsFilter>

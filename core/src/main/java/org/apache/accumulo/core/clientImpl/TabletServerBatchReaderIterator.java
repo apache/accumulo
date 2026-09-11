@@ -743,6 +743,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     final String server;
     final Set<String> badServers;
     final long timeOut;
+    private final Object lock = new Object();
 
     // When failures happen, rpc task to scan a server may be requeued in a thread pool. These two
     // variables track failures across task running in those thread pools.
@@ -774,7 +775,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
       void madeProgress() {
         activityTime = System.currentTimeMillis();
-        synchronized (TimeoutTracker.this) {
+        synchronized (lock) {
           firstErrorTime = null;
           firstAllFailureTime = null;
         }

@@ -475,7 +475,7 @@ public class BulkImporter {
   }
 
   private class AssignmentTask implements Runnable {
-    final Map<Path,List<KeyExtent>> assignmentFailures;
+    private final Map<Path,List<KeyExtent>> assignmentFailures;
     HostAndPort location;
     private Map<KeyExtent,List<PathSize>> assignmentsPerTablet;
 
