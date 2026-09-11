@@ -21,10 +21,15 @@ package org.apache.accumulo.core.conf;
 import static com.google.common.base.Suppliers.memoize;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An {@link AccumuloConfiguration} that contains only default values for properties. This class is
@@ -33,12 +38,36 @@ import java.util.stream.Collectors;
 public class DefaultConfiguration extends AccumuloConfiguration {
 
   private static final Supplier<DefaultConfiguration> instance = memoize(DefaultConfiguration::new);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultConfiguration.class);
 
-  private final Map<String,String> resolvedProps =
-      Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
-          .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue));
+  private final Map<String,String> resolvedProps;
+  private boolean keyDuplication = false;
 
-  private DefaultConfiguration() {}
+  private DefaultConfiguration() {
+    Map<String,String> tmp = new HashMap<>();
+
+    tmp.putAll(Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+        .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue)));
+
+    Map<String,
+        String> clientDefaults = (Arrays.stream(ClientProperty.values())
+            .filter(p -> p.getType() != PropertyType.PREFIX)
+            .collect(Collectors.toMap(ClientProperty::getKey, ClientProperty::getDefaultValue)));
+
+    for (Entry<String,String> e : clientDefaults.entrySet()) {
+      if (tmp.containsKey(e.getKey())) {
+        keyDuplication = true;
+        if (keyDuplication) {
+          LOG.warn("Name collision between client and server properties: {}", e.getKey());
+        }
+
+      } else {
+        tmp.put(e.getKey(), e.getValue());
+      }
+    }
+
+    resolvedProps = Map.copyOf(tmp);
+  }
 
   /**
    * Gets a default configuration.
@@ -51,11 +80,19 @@ public class DefaultConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
+    if (keyDuplication) {
+      throw new IllegalStateException(
+          "Name collision between client and server properties, check the log");
+    }
     return resolvedProps.get(property.getKey());
   }
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
+    if (keyDuplication) {
+      throw new IllegalStateException(
+          "Name collision between client and server properties, check the log");
+    }
     resolvedProps.entrySet().stream().filter(p -> filter.test(p.getKey()))
         .forEach(e -> props.put(e.getKey(), e.getValue()));
   }

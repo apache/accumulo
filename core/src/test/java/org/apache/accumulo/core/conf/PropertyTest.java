@@ -248,7 +248,8 @@ public class PropertyTest {
             || e.getKey().toLowerCase().endsWith("secret")
             || e.getKey().startsWith(Property.INSTANCE_CRYPTO_SENSITIVE_PREFIX.getKey());
 
-    Predicate<Entry<String,String>> isMarkedSensitive = e -> Property.isSensitive(e.getKey());
+    Predicate<Entry<String,String>> isMarkedSensitive = e -> Property.isSensitive(e.getKey())
+        || (ClientProperty.getPropertyByKey(e.getKey()) != null && e.getKey().contains("password"));
 
     TreeMap<String,String> expected = StreamSupport.stream(conf.spliterator(), false)
         .filter(sensitiveNames).collect(treeMapCollector);

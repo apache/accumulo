@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -132,9 +133,23 @@ public enum ClientProperty {
   // RPC
   RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
-      false),
+      false);
 
-  ;
+  private static final HashMap<String,ClientProperty> propertiesByKey = new HashMap<>();
+
+  static {
+    Arrays.stream(ClientProperty.values()).forEach(p -> propertiesByKey.put(p.getKey(), p));
+  }
+
+  /**
+   * Gets a {@link Property} instance with the given key.
+   *
+   * @param key property key
+   * @return property, or null if not found
+   */
+  public static ClientProperty getPropertyByKey(String key) {
+    return propertiesByKey.get(key);
+  }
 
   private final String key;
   private final String defaultValue;
