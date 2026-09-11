@@ -1875,14 +1875,15 @@ public enum Property {
    */
   public static Map<String,String> getSystemProperties() {
     Map<String,String> systemProps = new HashMap<>(Map.of());
-    systemProps.put(TServerClient.DEBUG_HOST, "Debug host description");
+    systemProps.put(TServerClient.DEBUG_HOST,
+        "Set to host:port for the client to connect to a specific server.");
     systemProps.put(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
-        "accumulo properties description");
-    systemProps.put(Bzip2.CODEC_BZIP2, "Codec BZip2 Compression Algorithm");
-    systemProps.put(Lz4.CODEC_LZ4, "Codec LZ4 Compression Algorithm");
-    systemProps.put(Lzo.CODEC_LZO, "Codec LZO Compression Algorithm");
-    systemProps.put(Snappy.CODEC_SNAPPY, "Codec Snappy Compression Algorithm");
-    systemProps.put(ZStandard.CODEC_ZSTANDARD, "Codec ZStandard Compression Algorithm");
+        "Path to accumulo.properties file.");
+    systemProps.put(Bzip2.CODEC_BZIP2, "BZip2 Codec Compression Algorithm.");
+    systemProps.put(Lz4.CODEC_LZ4, "LZ4 Codec Compression Algorithm.");
+    systemProps.put(Lzo.CODEC_LZO, "LZO Codec Compression Algorithm.");
+    systemProps.put(Snappy.CODEC_SNAPPY, "Snappy Codec Compression Algorithm.");
+    systemProps.put(ZStandard.CODEC_ZSTANDARD, "ZStandard Codec Compression Algorithm.");
 
     return systemProps;
   }

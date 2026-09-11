@@ -50,7 +50,7 @@ public class ConfigurationDocGen {
     propertyTypeDescriptions();
 
     beginSection("Java System Properties");
-    doc.println("Below are properties used to modify the behavior of runtime.\n");
+    doc.println("Below are properties used to modify the runtime behavior.\n");
     beginTable("Property");
     systemPropertyDescriptions();
 
