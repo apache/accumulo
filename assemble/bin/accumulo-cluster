@@ -725,7 +725,7 @@ function prune() {
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
   "$accumulo_cmd" inst service-status --json >"$service_json" 2>/dev/null || {
-    echo "Error calling 'inst serviceStatus'" >&2
+    echo "Error calling 'inst service-status'" >&2
     exit 1
   }
 
