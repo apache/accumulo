@@ -507,10 +507,13 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       executor = service = context.threadPools().getPoolBuilder(BULK_IMPORT_CLIENT_LOAD_POOL)
           .numCoreThreads(numThreads).enableThreadPoolMetrics().build();
     } else {
+      String threads = context.getConfiguration().get(BULK_LOAD_THREADS.getKey());
+      if (threads == null || threads.isBlank()) {
+        threads = BULK_LOAD_THREADS.getDefaultValue();
+      }
       executor =
           service = context.threadPools().getPoolBuilder(BULK_IMPORT_CLIENT_BULK_THREADS_POOL)
-              .numCoreThreads(ConfigurationTypeHelper
-                  .getNumThreads(context.getConfiguration().get(BULK_LOAD_THREADS.getKey())))
+              .numCoreThreads(ConfigurationTypeHelper.getNumThreads(threads))
               .enableThreadPoolMetrics().build();
     }
 
