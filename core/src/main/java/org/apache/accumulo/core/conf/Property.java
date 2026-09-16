@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -1873,8 +1874,8 @@ public enum Property {
    *
    * @return A Map of each property's value and description as Strings
    */
-  public static Map<String,String> getSystemProperties() {
-    Map<String,String> systemProps = new HashMap<>(Map.of());
+  public static TreeMap<String,String> getSystemProperties() {
+    TreeMap<String,String> systemProps = new TreeMap<>(Map.of());
     systemProps.put(TServerClient.DEBUG_HOST,
         "Set to host:port for the client to connect to a specific server.");
     systemProps.put(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,

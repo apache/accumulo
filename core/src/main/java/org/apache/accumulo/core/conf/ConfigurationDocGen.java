@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Map;
 import java.util.TreeMap;
 
 /**
@@ -151,7 +150,7 @@ public class ConfigurationDocGen {
   }
 
   void systemPropertyDescriptions() {
-    Map<String,String> systemProps = Property.getSystemProperties();
+    TreeMap<String,String> systemProps = Property.getSystemProperties();
     systemProps.forEach(
         (key, value) -> doc.println("| " + sanitize(key) + " | " + sanitize(value) + " |"));
   }
