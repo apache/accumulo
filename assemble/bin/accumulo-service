@@ -34,15 +34,15 @@ Services:
 
 Commands:
   start                   Starts service(s)
-  stop [--all | [<name>]] Stops service(s)
-  kill [--all | [<name>]] Kills service(s)
+  stop [--all | <name>]   Stops service(s)
+  kill [--all | <name>]   Kills service(s)
   list                    List running service(s)
 
 EOF
 }
 
 function invalid_args {
-  echo -e "Invalid arguments: $1\n"
+  echo -e "Invalid arguments: $1\n" 1>&2
   print_usage 1>&2
   exit 1
 }
@@ -189,6 +189,9 @@ function stop_service() {
     done
 
   else
+    if [[ -z $service_name ]]; then
+      invalid_args "'stop' requires --all or a service <name> (e.g. ${service_type}_${group}_1; see '$service_type list')"
+    fi
     echo "Stopping service process: $service_name"
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
     control_process "TERM" "$service_name" "$pid_file"
@@ -218,6 +221,9 @@ function kill_service() {
     done
 
   else
+    if [[ -z $service_name ]]; then
+      invalid_args "'kill' requires --all or a service <name> (e.g. ${service_type}_${group}_1; see '$service_type list')"
+    fi
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${service_name}.pid"
     control_process "KILL" "$service_name" "$pid_file"
   fi
