@@ -36,6 +36,8 @@ ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
 HADOOP_HOME="${HADOOP_HOME:-/path/to/hadoop}"
 ## Hadoop configuration
 HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_HOME}/etc/hadoop}"
+## Hadoop client jars location.
+HADOOP_CLIENT_LIB_DIR="${HADOOP_CLIENT_LIB_DIR:-${HADOOP_HOME}/share/hadoop/client}"
 ## Zookeeper installation
 ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 
@@ -64,7 +66,7 @@ fi
 ZK_JARS=$(find "$ZOOKEEPER_HOME/lib/" -maxdepth 1 -name '*.jar' -not -name '*slf4j*' -not -name '*log4j*' | paste -sd: -)
 # lib is set by calling script that sources this env file
 #shellcheck disable=SC2154
-CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZK_JARS}:${HADOOP_HOME}/share/hadoop/client/*"
+CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZK_JARS}:${HADOOP_CLIENT_LIB_DIR}/*"
 export CLASSPATH
 
 ##################################################################
