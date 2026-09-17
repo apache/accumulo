@@ -18,13 +18,17 @@
  */
 package org.apache.accumulo.core.classloader;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderEnvironment;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -42,6 +46,9 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(URLContextClassLoaderFactory.class);
 
+  public static final String URL_PATTERN_PROPERTY =
+      Property.GENERAL_ARBITRARY_PROP_PREFIX + "factory.class.loader.url.allowed.patterns";
+
   // Cache the class loaders for re-use
   // WeakReferences are used so that the class loaders can be cleaned up when no longer needed
   // Classes that are loaded contain a reference to the class loader used to load them
@@ -49,8 +56,25 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
   private final Cache<String,URLClassLoader> classloaders =
       Caches.getInstance().createNewBuilder(CacheName.CLASSLOADERS, true).weakValues().build();
 
+  private volatile Pattern urlPattern = null;
+
   @Override
-  public ClassLoader getClassLoader(String context) {
+  public void init(ContextClassLoaderEnvironment env) {
+    String urlPatternProperty = env.getConfiguration().get(URL_PATTERN_PROPERTY);
+    if (urlPatternProperty == null) {
+      LOG.warn("Property " + URL_PATTERN_PROPERTY + " not set, no contexts are allowed");
+    } else {
+      urlPattern = Pattern.compile(urlPatternProperty);
+    }
+  }
+
+  @Override
+  public ClassLoader getClassLoader(String context) throws ContextClassLoaderException {
+    if (urlPattern == null) {
+      throw new ContextClassLoaderException(
+          "Property " + URL_PATTERN_PROPERTY + " not set, no contexts are allowed");
+    }
+
     if (context == null) {
       throw new IllegalArgumentException("Unknown context");
     }
@@ -59,7 +83,11 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
       LOG.debug("Creating URLClassLoader for context, uris: {}", context);
       return new URLClassLoader(Arrays.stream(context.split(",")).map(p -> {
         try {
-          return URI.create(p).toURL();
+          URL url = new URL(p);
+          checkArgument(urlPattern.matcher(url.toExternalForm()).matches(),
+              "Context %s URL (%s) not allowed by pattern (%s)", context, url.toExternalForm(),
+              urlPattern.pattern());
+          return url;
         } catch (MalformedURLException e) {
           throw new UncheckedIOException(e);
         }
