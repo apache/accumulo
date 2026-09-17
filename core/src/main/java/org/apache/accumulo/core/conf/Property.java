@@ -26,8 +26,10 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -38,8 +40,14 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.file.rfile.compression.Bzip2;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lz4;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lzo;
+import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
+import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -1864,6 +1872,26 @@ public enum Property {
       Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
+  }
+
+  /**
+   * A set Map of identified System Properties to be used in ConfigurationDocGen.java
+   *
+   * @return A Map of each property's value and description as Strings
+   */
+  public static TreeMap<String,String> getSystemProperties() {
+    TreeMap<String,String> systemProps = new TreeMap<>(Map.of());
+    systemProps.put(TServerClient.DEBUG_HOST,
+        "Set to host:port for the client to connect to a specific server.");
+    systemProps.put(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "Path to accumulo.properties file.");
+    systemProps.put(Bzip2.CODEC_BZIP2, "BZip2 Codec Compression Algorithm.");
+    systemProps.put(Lz4.CODEC_LZ4, "LZ4 Codec Compression Algorithm.");
+    systemProps.put(Lzo.CODEC_LZO, "LZO Codec Compression Algorithm.");
+    systemProps.put(Snappy.CODEC_SNAPPY, "Snappy Codec Compression Algorithm.");
+    systemProps.put(ZStandard.CODEC_ZSTANDARD, "ZStandard Codec Compression Algorithm.");
+
+    return systemProps;
   }
 
   static {
