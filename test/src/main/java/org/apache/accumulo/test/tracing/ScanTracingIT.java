@@ -20,7 +20,6 @@ package org.apache.accumulo.test.tracing;
 
 import static org.apache.accumulo.core.trace.TraceAttributes.EXECUTOR_KEY;
 import static org.apache.accumulo.core.trace.TraceAttributes.EXTENT_KEY;
-import static org.apache.accumulo.tserver.tablet.KVEntry.MEMORY_OVERHEAD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

@@ -41,6 +41,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -162,12 +163,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           "Number of WALs seen was less than expected " + allWalsSeen.size());
 
       // the total number of closed write ahead logs should get small
-      int closedLogs = countClosedWals(context);
-      while (closedLogs > 3) {
-        log.debug("Waiting for wals to shrink " + closedLogs);
-        Thread.sleep(250);
-        closedLogs = countClosedWals(context);
-      }
+      Wait.waitFor(() -> countClosedWals(context) <= 3, 30_000, 250,
+          "Closed WAL count did not decrease");
     }
   }
 
