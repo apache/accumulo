@@ -135,6 +135,10 @@ public enum ClientProperty {
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
       false),
 
+  CLIENT_EXTENT_CACHE_EXPIRATION("client.extent.cache.expiration", "0", PropertyType.TIMEDURATION,
+      "The expiration time for cached tablet extents. A value of 0 disables expiration.", "2.1.7",
+      false),
+
   // Trace
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",

@@ -53,8 +53,8 @@ public enum PropertyType {
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
       "A non-negative integer optionally followed by a unit of time (whitespace"
           + " disallowed), as in 30s.\n"
-          + "If no unit of time is specified, seconds are assumed. Valid units"
-          + " are 'ms', 's', 'm', 'h' for milliseconds, seconds, minutes, and hours.\n"
+          + "If no unit of time is specified, seconds are assumed. Valid suffixes (units)"
+          + " are 'ms', 's', 'm', 'h', 'd' for milliseconds, seconds, minutes, hours, and days.\n"
           + "Examples of valid durations are '600', '30s', '45m', '30000ms', '3d', and '1h'.\n"
           + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '',"
           + " and 'a'.\nUnless otherwise stated, the max value for the duration"
