@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
@@ -40,7 +41,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
@@ -75,6 +80,7 @@ public class ScanCommand extends Command {
   protected Option contextOpt;
   private Option executionHintsOpt;
   private Option scanServerOpt;
+  private Option decodeMetadataOpt;
 
   protected void setupSampling(final String tableName, final CommandLine cl, final Shell shellState,
       ScannerBase scanner)
@@ -155,10 +161,52 @@ public class ScanCommand extends Command {
           Shell.log.error("Invalid length argument", iae);
         }
       }
-      printRecords(cl, shellState, config, scanner, formatter, printFile);
+      boolean decodeMetadata = cl.hasOption(decodeMetadataOpt.getLongOpt())
+          && (tableName.equals(SystemTables.METADATA.tableName())
+              || tableName.equals(SystemTables.ROOT.tableName()));
+
+      if (decodeMetadata) {
+        printRecordsWithDecodedRanges(cl, shellState, config, scanner, printFile);
+      } else {
+        printRecords(cl, shellState, config, scanner, formatter, printFile);
+      }
     }
 
     return 0;
+  }
+
+  private void printRecordsWithDecodedRanges(final CommandLine cl, final Shell shellState,
+      final FormatterConfig config, final Scanner scanner, final PrintFile printFile)
+      throws IOException {
+
+    final Text fileCf = new Text(MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME);
+    final Text scanCf = new Text(MetadataSchema.TabletsSection.ScanFileColumnFamily.STR_NAME);
+
+    final List<String> lines = new ArrayList<>();
+
+    for (Entry<Key,Value> entry : scanner) {
+      Text cf = entry.getKey().getColumnFamily();
+
+      if (fileCf.equals(cf) || scanCf.equals(cf)) {
+        String metadataRow = entry.getKey().getRow().toString();
+        String cq = entry.getKey().getColumnQualifier().toString();
+        try {
+          StoredTabletFile stf = StoredTabletFile.of(cq);
+          lines.add(metadataRow + "\t" + stf.toMinimalString());
+        } catch (RuntimeException e) {
+          lines.add(DefaultFormatter.formatEntry(entry, config));
+        }
+      } else {
+        // All non-file columns (loc:, srv:, ~tab:, etc.) use normal formatting
+        lines.add(DefaultFormatter.formatEntry(entry, config));
+      }
+    }
+
+    if (printFile == null) {
+      shellState.printLines(lines.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
+    } else {
+      shellState.printLines(lines.iterator(), false, printFile);
+    }
   }
 
   protected boolean getUseSample(CommandLine cl) {
@@ -352,6 +400,8 @@ public class ScanCommand extends Command {
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
     scanServerOpt =
         new Option("cl", "consistency-level", true, "set consistency level (experimental)");
+    decodeMetadataOpt = new Option("dm", "decode-metadata", false,
+        "Decode fenced file row ranges from metadata and root tables");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -366,6 +416,7 @@ public class ScanCommand extends Command {
     contextOpt.setArgName("context");
     executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
     scanServerOpt.setArgName("immediate|eventual");
+    decodeMetadataOpt.setArgName("decode-metadata");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -398,6 +449,7 @@ public class ScanCommand extends Command {
     o.addOption(contextOpt);
     o.addOption(executionHintsOpt);
     o.addOption(scanServerOpt);
+    o.addOption(decodeMetadataOpt);
 
     return o;
   }
