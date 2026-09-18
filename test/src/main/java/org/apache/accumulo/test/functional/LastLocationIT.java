@@ -33,7 +33,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class LastLocationIT extends ConfigurableMacBase {
@@ -53,13 +53,15 @@ public class LastLocationIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName, ntc);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       // wait for the table to be online
-      TabletMetadata newTablet;
-      do {
-        UtilWaitThread.sleep(250);
-        newTablet = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
-      } while (!newTablet.hasCurrent());
+      TabletMetadata[] newTablet = {null};
+      Wait.waitFor(() -> {
+        newTablet[0] = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
+        return newTablet[0].hasCurrent();
+      }, 30_000, 250, "Tablet was not assigned");
+      TabletMetadata assignedTablet = newTablet[0];
       // this would be null if the mode was not "assign"
-      assertEquals(newTablet.getLocation().getHostPort(), newTablet.getLast().getHostPort());
+      assertEquals(assignedTablet.getLocation().getHostPort(),
+          assignedTablet.getLast().getHostPort());
 
       // put something in it
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -70,23 +72,24 @@ public class LastLocationIT extends ConfigurableMacBase {
 
       // last location should not be set yet
       TabletMetadata unflushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLast().getHostPort());
-      assertTrue(newTablet.hasCurrent());
+      assertEquals(assignedTablet.getLocation().getHostPort(),
+          unflushed.getLocation().getHostPort());
+      assertEquals(assignedTablet.getLocation().getHostPort(), unflushed.getLast().getHostPort());
+      assertTrue(assignedTablet.hasCurrent());
 
       // take the tablet offline
       c.tableOperations().offline(tableName, true);
       TabletMetadata offline = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertNull(offline.getLocation());
       assertFalse(offline.hasCurrent());
-      assertEquals(newTablet.getLocation().getHostPort(), offline.getLast().getHostPort());
+      assertEquals(assignedTablet.getLocation().getHostPort(), offline.getLast().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
       TabletMetadata online = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
+      assertEquals(assignedTablet.getLast().getHostPort(), online.getLast().getHostPort());
     }
   }
 

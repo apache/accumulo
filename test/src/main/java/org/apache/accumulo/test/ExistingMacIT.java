@@ -51,6 +51,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -116,10 +117,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
       }
     }
 
-    while (!AccumuloStatus.isAccumuloOffline((ClientContext) client)) {
-      log.debug("Accumulo services still have their ZK locks held");
-      Thread.sleep(1000);
-    }
+    Wait.waitFor(() -> AccumuloStatus.isAccumuloOffline((ClientContext) client), 30_000, 250,
+        "Accumulo services still have ZooKeeper locks after processes were killed");
 
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");
     FileUtils.deleteQuietly(hadoopConfDir);
@@ -137,8 +136,6 @@ public class ExistingMacIT extends ConfigurableMacBase {
 
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
-
-    client = accumulo2.createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
 
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
       int sum = 0;

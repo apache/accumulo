@@ -652,11 +652,8 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       finishCall.countDown();
 
       // This should complete normally, cleaning up the tx and deleting it from ZK
-      TStatus status = getTxStatus(sctx, txid);
-      while (status != TStatus.UNKNOWN) {
-        Thread.sleep(100);
-        status = getTxStatus(sctx, txid);
-      }
+      Wait.waitFor(() -> getTxStatus(sctx, txid) == TStatus.UNKNOWN, 30_000, 100,
+          "FATE transaction was not cleaned up");
       assertNull(interruptedException.get());
     } finally {
       fate.shutdown(10, TimeUnit.MINUTES);
