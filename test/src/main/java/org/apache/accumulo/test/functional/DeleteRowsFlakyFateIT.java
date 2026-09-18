@@ -20,12 +20,12 @@ package org.apache.accumulo.test.functional;
 
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.fate.FlakyFateManager;
+import org.apache.accumulo.test.fate.custom.FlakyFate;
+import org.apache.accumulo.test.fate.custom.FlakyFateManager;
 import org.apache.hadoop.conf.Configuration;
 
 /**
- * Run all delete rows using {@link org.apache.accumulo.test.fate.FlakyFate} to verify delete rows
- * fate steps are idempotent.
+ * Run all delete rows using {@link FlakyFate} to verify delete rows fate steps are idempotent.
  */
 public class DeleteRowsFlakyFateIT extends DeleteRowsIT {
   @Override
