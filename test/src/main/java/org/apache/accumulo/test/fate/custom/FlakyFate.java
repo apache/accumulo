@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate;
+package org.apache.accumulo.test.fate.custom;
 
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -24,7 +24,6 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
@@ -34,7 +33,7 @@ import com.google.common.base.Preconditions;
 /**
  * An implementation of fate that runs fate steps multiple times to ensure they are idempotent.
  */
-public class FlakyFate<T> extends Fate<T> {
+public class FlakyFate<T> extends CustomFate<T> {
 
   public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
@@ -45,7 +44,7 @@ public class FlakyFate<T> extends Fate<T> {
     }
   }
 
-  private static class FlakyFateExecutor<T> extends FateExecutor<T> {
+  private static class FlakyFateExecutor<T> extends CustomFateExecutor<T> {
     private FlakyFateExecutor(Fate<T> fate, T environment, Set<FateOperation> fateOps, int poolSize,
         String name) {
       super(fate, environment, fateOps, poolSize, name);

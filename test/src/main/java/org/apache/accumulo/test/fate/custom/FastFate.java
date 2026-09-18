@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate;
+package org.apache.accumulo.test.fate.custom;
 
 import java.time.Duration;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 
@@ -32,7 +31,7 @@ import org.apache.accumulo.core.fate.Repo;
  * shorter delay between. Useful for shortening test times for tests that are waiting for one of
  * these actions to occur.
  */
-public class FastFate<T> extends Fate<T> {
+public class FastFate<T> extends CustomFate<T> {
   private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofSeconds(5);
   private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(5);
 
