@@ -544,9 +544,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       super(fateId, reservation);
     }
 
-    public FateMutatorImpl<T> newReservedMutator() {
+    private FateMutatorImpl<T> newReservedMutator() {
+      Preconditions.checkState(isReserved(),
+          "Attempted write on unreserved FATE transaction: " + fateId);
       Preconditions.checkState(!deleted, "Attempted write on deleted FATE transaction: " + fateId);
-      return (FateMutatorImpl<T>) newMutator(fateId).requireReserved(reservation);
+      FateMutatorImpl<T> mutator = newMutator(fateId);
+      mutator.requireReserved(reservation);
+      return mutator;
     }
 
     @Override

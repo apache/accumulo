@@ -53,7 +53,7 @@ public interface FateMutator<T> {
   FateMutator<T> requireUnreserved();
 
   /**
-   * Require the transaction has a reservation.
+   * Require the transaction is reserved with the given reservation.
    */
   FateMutator<T> requireReserved(FateStore.FateReservation fateReservation);
 
