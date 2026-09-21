@@ -863,12 +863,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
+  public void flush(String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // tableName is validated in the flush method being called below
     try {
       flush(tableName, null, null, false);
     } catch (TableNotFoundException e) {
-      throw new AccumuloException(e.getMessage(), e);
+      throw e;
     }
   }
 
@@ -1030,7 +1031,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void setProperty(final String tableName, final String property, final String value)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
@@ -1039,13 +1040,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
       setPropertyNoChecks(tableName, property, value);
       checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException | IllegalArgumentException e) {
-      throw new AccumuloException(e);
+      throw new TableNotFoundException((ThriftTableOperationException) e);
     }
   }
 
   private Map<String,String> tryToModifyProperties(String tableName,
-      final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
-      AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
+      final Consumer<Map<String,String>> mapMutator)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException,
+      ConcurrentModificationException, TableNotFoundException {
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
@@ -1066,9 +1068,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         checkLocalityGroups(tableName, property);
       }
     } catch (TableNotFoundException e) {
-      throw new AccumuloException(e);
+      throw e;
     }
-
     return vProperties.getProperties();
   }
 
@@ -1088,7 +1089,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         var props = tryToModifyProperties(tableName, mapMutator);
         retry.logCompletion(log, "Modifying properties for table " + tableName);
         return props;
-      } catch (ConcurrentModificationException cme) {
+      } catch (ConcurrentModificationException | TableNotFoundException cme) {
         try {
           retry.logRetry(log, "Unable to modify table properties for " + tableName
               + " because of concurrent modification");
@@ -1133,7 +1134,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void removeProperty(final String tableName, final String property)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(property != null, "property is null");
 
@@ -1142,7 +1143,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
-      throw new AccumuloException(e);
+      throw e;
     }
   }
 

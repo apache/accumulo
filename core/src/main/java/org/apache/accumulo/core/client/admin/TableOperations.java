@@ -465,11 +465,11 @@ public interface TableOperations {
    * to complete use {@link #flush(String, Text, Text, boolean)}.
    *
    * @param tableName the name of the table
-   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
-   *         does not exist.
+   * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    */
-  void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
+  void flush(String tableName)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Flush a table's data that is currently in memory.
@@ -493,12 +493,11 @@ public interface TableOperations {
    * @param tableName the name of the table
    * @param property the name of a per-table property
    * @param value the value to set a per-table property to
-   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
-   *         does not exist.
+   * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    */
   void setProperty(String tableName, String property, String value)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    *
@@ -521,8 +520,8 @@ public interface TableOperations {
    * @return The map that became Accumulo's new properties for this table. This map is immutable and
    *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
    *
-   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
-   *         does not exist.
+   * @throws AccumuloException if a general error occurs. TableNotFoundException if table does not
+   *         exist.
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws IllegalArgumentException if the Consumer alters the map by adding properties that
    *         cannot be stored
@@ -544,7 +543,7 @@ public interface TableOperations {
    * @throws AccumuloSecurityException if the user does not have permission
    */
   void removeProperty(String tableName, String property)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * Gets a merged view of the properties of a table with its parent configuration. This operation
@@ -902,14 +901,13 @@ public interface TableOperations {
    *
    * @param tableName the name of the table
    * @param number the unique number assigned to the constraint
-   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
-   *         does not exist.
+   * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException thrown if the user doesn't have permission to remove the
    *         constraint
    * @since 1.5.0
    */
   void removeConstraint(String tableName, int number)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
    * List constraints on a table with their assigned numbers.
