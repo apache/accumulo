@@ -33,13 +33,9 @@ public class CustomFate<T> extends Fate<T> {
   /**
    * Creates a Fault-tolerant executor for the given store type.
    *
-   * @param environment
-   * @param store
    * @param runDeadResCleaner Whether this Custom FATE should run a dead reservation cleaner. The
    *        real FATEs need have a cleaner, but may be undesirable in testing.
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
-   * @param conf
-   * @param genSchedExecutor
    */
   public CustomFate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf,
