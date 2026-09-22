@@ -137,7 +137,10 @@ public class ExistingMacIT extends ConfigurableMacBase {
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
-    try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+    AccumuloClient client2 =
+        accumulo2.createAccumuloClient(rootUser, new PasswordToken(ROOT_PASSWORD));
+
+    try (Scanner scanner = client2.createScanner(table, Authorizations.EMPTY)) {
       int sum = 0;
       for (Entry<Key,Value> entry : scanner) {
         sum += Integer.parseInt(entry.getValue().toString());
