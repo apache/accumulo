@@ -538,8 +538,7 @@ public interface TableOperations {
    *
    * @param tableName the name of the table
    * @param property the name of a per-table property
-   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
-   *         does not exist.
+   * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    */
   void removeProperty(String tableName, String property)
