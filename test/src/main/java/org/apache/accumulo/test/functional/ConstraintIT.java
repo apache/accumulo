@@ -67,7 +67,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
         c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
       }
 
-      // Wait for both constraints to become visible instead of sleeping for a fixed 10 seconds.
+      // Wait for both constraints to become visible.
       for (String table : tableNames) {
         Wait.waitFor(() -> {
           log.debug("Checking constraints on {}", table);

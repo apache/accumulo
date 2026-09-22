@@ -163,7 +163,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       }
 
       // close happens asynchronously; poll until the references are removed
-      Wait.waitFor(() -> !ctx.getAmple().scanServerRefs().list().findAny().isPresent(), 30_000, 250,
+      Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().findAny().isEmpty(), 30_000, 250,
           "Scan server references were not removed after scanner close");
     }
   }
@@ -196,7 +196,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       }
 
       // close happens asynchronously; poll until the references are removed
-      Wait.waitFor(() -> !ctx.getAmple().scanServerRefs().list().findAny().isPresent(), 30_000, 250,
+      Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().findAny().isEmpty(), 30_000, 250,
           "Scan server references were not removed after scanner close");
     }
   }
@@ -264,7 +264,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       client.tableOperations().delete(tableName);
     }
     // close happens asynchronously; poll until the references are removed
-    Wait.waitFor(() -> !ctx.getAmple().scanServerRefs().list().findAny().isPresent(), 30_000, 250,
+    Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().findAny().isEmpty(), 30_000, 250,
         "Scan server references were not removed after table deletion");
 
   }
