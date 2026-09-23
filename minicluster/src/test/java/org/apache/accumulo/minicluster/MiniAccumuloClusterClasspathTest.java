@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,8 +63,7 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    Path testDir = tempDir.resolve(MiniAccumuloClusterTest.class.getName());
-    Files.createDirectories(testDir);
+    Path testDir = MiniTestDirs.createTestDir(MiniAccumuloClusterClasspathTest.class.getName());
 
     jarFile = tempDir.resolve("iterator.jar").toFile();
     FileUtils.copyURLToFile(requireNonNull(MiniAccumuloClusterClasspathTest.class
