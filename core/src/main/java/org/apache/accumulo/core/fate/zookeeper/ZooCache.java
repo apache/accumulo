@@ -247,39 +247,35 @@ public class ZooCache {
 
       int sleepTime = 100;
 
-      while (true) {
+      try {
+        while (true) {
 
-        try {
-          return run();
-        } catch (KeeperException e) {
-          final Code code = e.code();
-          if (code == Code.NONODE) {
-            log.error("Looked up non-existent node in cache " + e.getPath(), e);
-          } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-              || code == Code.SESSIONEXPIRED) {
-            log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry",
-                e);
-          } else {
-            log.warn("Zookeeper error, will retry", e);
+          try {
+            return run();
+          } catch (KeeperException e) {
+            final Code code = e.code();
+            if (code == Code.NONODE) {
+              log.error("Looked up non-existent node in cache " + e.getPath(), e);
+            } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+                || code == Code.SESSIONEXPIRED) {
+              log.warn(
+                  "Saw (possibly) transient exception communicating with ZooKeeper, will retry", e);
+            } else {
+              log.warn("Zookeeper error, will retry", e);
+            }
+          } catch (ConcurrentModificationException e) {
+            log.debug("Zookeeper was modified, will retry");
           }
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          log.info("Zookeeper error, will retry", e);
-        } catch (ConcurrentModificationException e) {
-          log.debug("Zookeeper was modified, will retry");
-        }
 
-        try {
-          // do not hold lock while sleeping
           Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          log.debug("Wait in retry() was interrupted.", e);
+          LockSupport.parkNanos(sleepTime);
+          if (sleepTime < 10_000) {
+            sleepTime = (int) (sleepTime + sleepTime * random.nextDouble());
+          }
         }
-        LockSupport.parkNanos(sleepTime);
-        if (sleepTime < 10_000) {
-          sleepTime = (int) (sleepTime + sleepTime * random.nextDouble());
-        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("ZooCache thread interrupted.", e);
       }
     }
 

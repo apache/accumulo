@@ -58,7 +58,6 @@ public class UtilWaitThread {
           NANOSECONDS.sleep(remainingNanos);
           return;
         } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
           interrupted = true;
           remainingNanos = end - System.nanoTime();
         }

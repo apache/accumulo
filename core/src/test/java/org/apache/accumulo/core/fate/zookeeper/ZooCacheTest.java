@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -132,11 +133,16 @@ public class ZooCacheTest {
   private void testGet_Retry(Exception e) throws Exception {
     expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andThrow(e);
     Stat existsStat = new Stat();
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
-    replay(zk);
 
-    assertArrayEquals(DATA, zc.get(ZPATH));
+    if (e instanceof InterruptedException) {
+      replay(zk);
+      assertThrows(IllegalStateException.class, () -> zc.get(ZPATH));
+    } else {
+      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
+      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
+      replay(zk);
+      assertArrayEquals(DATA, zc.get(ZPATH));
+    }
     verify(zk);
   }
 
@@ -160,15 +166,21 @@ public class ZooCacheTest {
     testGet_Retry2(new InterruptedException());
   }
 
+  // Like the other method, but throws on getData instead of exists
   private void testGet_Retry2(Exception e) throws Exception {
     Stat existsStat = new Stat();
     expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
     expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andThrow(e);
-    expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
-    expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
-    replay(zk);
 
-    assertArrayEquals(DATA, zc.get(ZPATH));
+    if (e instanceof InterruptedException) {
+      replay(zk);
+      assertThrows(IllegalStateException.class, () -> zc.get(ZPATH));
+    } else {
+      expect(zk.exists(eq(ZPATH), anyObject(Watcher.class))).andReturn(existsStat);
+      expect(zk.getData(eq(ZPATH), anyObject(Watcher.class), eq(existsStat))).andReturn(DATA);
+      replay(zk);
+      assertArrayEquals(DATA, zc.get(ZPATH));
+    }
     verify(zk);
   }
 
