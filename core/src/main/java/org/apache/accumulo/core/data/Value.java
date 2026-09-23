@@ -92,7 +92,6 @@ public class Value implements WritableComparable<Object> {
    * @param bytes May not be null
    */
   public Value(ByteBuffer bytes) {
-    /* TODO ACCUMULO-2509 right now this uses the entire backing array, which must be accessible. */
     this(toBytes(bytes), false);
   }
 
