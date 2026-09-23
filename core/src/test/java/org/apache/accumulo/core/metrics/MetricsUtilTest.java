@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.core.metrics;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,5 +41,11 @@ public class MetricsUtilTest {
           String output = MetricsUtil.formatString(label);
           assertTrue(output.contentEquals(correctFormat));
         });
+  }
+
+  @Test
+  public void testResourceGroupTagPreservesUnderscores() {
+    assertEquals("user_small",
+        MetricsInfo.resourceGroupTag(ResourceGroupId.of("user_small")).getValue());
   }
 }

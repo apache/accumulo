@@ -70,7 +70,7 @@ public interface MetricsInfo {
     if (resourceGroupName == null) {
       return Tag.of(RESOURCE_GROUP_TAG_KEY, MetricsUtil.formatString("NOT_PROVIDED"));
     }
-    return Tag.of(RESOURCE_GROUP_TAG_KEY, MetricsUtil.formatString(resourceGroupName.canonical()));
+    return Tag.of(RESOURCE_GROUP_TAG_KEY, resourceGroupName.canonical());
   }
 
   /**
