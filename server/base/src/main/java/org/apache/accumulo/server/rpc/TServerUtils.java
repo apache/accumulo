@@ -20,6 +20,7 @@ package org.apache.accumulo.server.rpc;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.conf.Property.GENERAL_RPC_SERVER_SELECTOR_THREADS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.RPC_POOL;
 
 import java.io.IOException;
@@ -38,6 +39,7 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -172,8 +174,9 @@ public class TServerUtils {
 
     TThreadedSelectorServer.Args options = new TThreadedSelectorServer.Args(transport);
 
-    options.selectorThreads = Math.max(2, Runtime.getRuntime().availableProcessors() / 4);
-    log.info("selectorThreads : " + options.selectorThreads);
+    options.selectorThreads =
+        ConfigurationTypeHelper.getNumThreads(conf.get(GENERAL_RPC_SERVER_SELECTOR_THREADS));
+    log.info("selectorThreads : {}", options.selectorThreads);
     options.protocolFactory(protocolFactory);
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
     options.maxReadBufferBytes = maxMessageSize;

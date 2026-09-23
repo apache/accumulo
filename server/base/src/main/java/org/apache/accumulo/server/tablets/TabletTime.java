@@ -76,7 +76,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    public MetadataTime getMetadataTime() {
+    public synchronized MetadataTime getMetadataTime() {
       return getMetadataTime(lastTime);
     }
 
@@ -86,7 +86,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    public void updateTimeIfGreater(long time) {
+    public synchronized void updateTimeIfGreater(long time) {
       if (time > lastTime) {
         lastTime = time;
       }
@@ -112,7 +112,7 @@ public abstract class TabletTime {
       return currTime;
     }
 
-    private long updateTime(long currTime) {
+    private synchronized long updateTime(long currTime) {
       if (currTime < lastTime) {
         if (currTime - lastUpdateTime > 0) {
           // not in same millisecond as last call
@@ -130,7 +130,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    public long getTime() {
+    public synchronized long getTime() {
       return lastTime;
     }
 
@@ -156,11 +156,7 @@ public abstract class TabletTime {
 
     @Override
     public void updateTimeIfGreater(long time) {
-      time++;
-
-      if (this.nextTime.get() < time) {
-        this.nextTime.set(time);
-      }
+      this.nextTime.getAndUpdate(val -> Math.max(val, time + 1));
     }
 
     @Override

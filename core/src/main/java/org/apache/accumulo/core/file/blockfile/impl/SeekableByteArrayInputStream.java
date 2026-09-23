@@ -26,10 +26,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.IntBinaryOperator;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids
  * synchronization.
  */
+@NotThreadSafe
 public class SeekableByteArrayInputStream extends InputStream {
 
   private final byte[] buffer;

@@ -23,6 +23,8 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -31,6 +33,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
     justification = "Constructor validation is required for proper initialization")
+@NotThreadSafe
 public class BlockedInputStream extends InputStream {
   byte[] array;
   // ReadPos is where to start reading

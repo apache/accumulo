@@ -39,6 +39,7 @@ public class Mocket {
   private final TTransport clientTransport;
   private final TServerTransport serverTransport;
   private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final TConfiguration config = new TConfiguration();
 
   public Mocket() {
     Buffer serverQueue = new Buffer();

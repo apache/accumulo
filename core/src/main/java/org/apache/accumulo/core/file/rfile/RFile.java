@@ -42,6 +42,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -560,6 +562,7 @@ public class RFile {
     }
   }
 
+  @NotThreadSafe
   public static class Writer implements FileSKVWriter {
 
     public static final int MAX_CF_IN_DLG = 1000;
@@ -757,6 +760,7 @@ public class RFile {
     }
   }
 
+  @NotThreadSafe
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
     private final CachableBlockFile.Reader reader;

@@ -55,6 +55,6 @@ public enum ThriftServerType {
   }
 
   public static ThriftServerType getDefault() {
-    return CUSTOM_HS_HA;
+    return THREADED_SELECTOR;
   }
 }

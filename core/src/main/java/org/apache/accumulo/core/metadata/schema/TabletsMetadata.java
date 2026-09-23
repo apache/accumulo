@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -83,6 +85,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   private static final Logger LOG = LoggerFactory.getLogger(TabletsMetadata.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
+  @NotThreadSafe
   public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
     private final List<Text> families = new ArrayList<>();

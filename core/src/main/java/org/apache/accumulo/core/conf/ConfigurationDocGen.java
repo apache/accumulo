@@ -48,6 +48,11 @@ public class ConfigurationDocGen {
     beginTable("Type");
     propertyTypeDescriptions();
 
+    beginSection("Java System Properties");
+    doc.println("Below are properties used to modify the runtime behavior.\n");
+    beginTable("Property");
+    systemPropertyDescriptions();
+
     doc.close();
   }
 
@@ -142,6 +147,12 @@ public class ConfigurationDocGen {
       doc.println(
           "| " + sanitize(type.toString()) + " | " + sanitize(type.getFormatDescription()) + " |");
     }
+  }
+
+  void systemPropertyDescriptions() {
+    TreeMap<String,String> systemProps = Property.getSystemProperties();
+    systemProps.forEach(
+        (key, value) -> doc.println("| " + sanitize(key) + " | " + sanitize(value) + " |"));
   }
 
   String sanitize(String str) {

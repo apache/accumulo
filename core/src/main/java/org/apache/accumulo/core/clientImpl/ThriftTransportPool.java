@@ -584,6 +584,10 @@ public class ThriftTransportPool {
     private static final long serialVersionUID = 1L;
   }
 
+  @SuppressFBWarnings(
+      value = {"AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE", "AT_STALE_THREAD_WRITE_OF_PRIMITIVE"},
+      justification = "stuck IO counters are best effort diagnostics read by the pool's "
+          + "background thread; only the reserving thread increments ioCount")
   private static class CachedTTransport extends TTransport {
 
     private final ThriftTransportKey cacheKey;

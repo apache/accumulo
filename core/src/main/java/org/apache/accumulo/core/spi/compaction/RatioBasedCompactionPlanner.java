@@ -172,9 +172,9 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private List<CompactionGroup> groups;
-  private int maxFilesToCompact;
-  private double lowestRatio;
+  private volatile List<CompactionGroup> groups;
+  private volatile int maxFilesToCompact;
+  private volatile double lowestRatio;
 
   @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
       justification = "Field is written by Gson")
