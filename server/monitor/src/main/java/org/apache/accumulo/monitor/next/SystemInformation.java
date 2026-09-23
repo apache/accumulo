@@ -79,6 +79,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -871,7 +872,8 @@ public class SystemInformation {
           for (int i = 0; i < fm.tagsLength(); i++) {
             t = fm.tags(t, i);
             if (t.key().equals(QUEUE_TAG_KEY)) {
-              String queueName = t.value();
+              String queueName = MetricsUtil.resolveResourceGroupName(t.value(),
+                  configuredCompactionResourceGroups);
               // For these MetricResponse objects we are going to put the queueId value
               // in the place of the resource group, we'll update the column information
               // for the resource group below.
@@ -992,7 +994,8 @@ public class SystemInformation {
             for (int i = 0; i < flatbuffer.tagsLength(); i++) {
               tag = flatbuffer.tags(tag, i);
               if (tag.key().equals(QUEUE_TAG_KEY)) {
-                queueName = tag.value();
+                queueName = MetricsUtil.resolveResourceGroupName(tag.value(),
+                    configuredCompactionResourceGroups);
                 break;
               }
             }

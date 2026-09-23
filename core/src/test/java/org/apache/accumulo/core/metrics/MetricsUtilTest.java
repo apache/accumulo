@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,8 +44,10 @@ public class MetricsUtilTest {
   }
 
   @Test
-  public void testResourceGroupTagPreservesUnderscores() {
+  public void testResourceGroupNameResolution() {
     assertEquals("user_small",
-        MetricsInfo.resourceGroupTag(ResourceGroupId.of("user_small")).getValue());
+        MetricsUtil.resolveResourceGroupName("user.small", Set.of("user_small")));
+    assertEquals("user.small",
+        MetricsUtil.resolveResourceGroupName("user.small", Set.of("user_small", "user-small")));
   }
 }
