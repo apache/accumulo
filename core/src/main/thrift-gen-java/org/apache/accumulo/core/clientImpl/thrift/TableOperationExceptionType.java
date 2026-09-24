@@ -37,7 +37,8 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
   NAMESPACE_NOTFOUND(8),
   INVALID_NAME(9),
   OBSOLETE_BULK_BAD_LOAD_MAPPING(10),
-  BULK_CONCURRENT_MERGE(11);
+  BULK_CONCURRENT_MERGE(11),
+  NAMESPACE_NOTEMPTY(12);
 
   private final int value;
 
@@ -84,6 +85,8 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
         return OBSOLETE_BULK_BAD_LOAD_MAPPING;
       case 11:
         return BULK_CONCURRENT_MERGE;
+      case 12:
+        return NAMESPACE_NOTEMPTY;
       default:
         return null;
     }

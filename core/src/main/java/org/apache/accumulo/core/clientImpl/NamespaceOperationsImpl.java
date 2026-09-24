@@ -49,6 +49,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -150,10 +152,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
           SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
-    if (!context.getTableMapping(namespaceId).getIdToNameMap().isEmpty()) {
-      throw new NamespaceNotEmptyException(namespaceId.canonical(), namespace, null);
-    }
-
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
@@ -162,6 +160,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
+    } catch (AccumuloException e) {
+      if (e.getCause() instanceof ThriftTableOperationException ttoe
+          && ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTEMPTY) {
+        throw new NamespaceNotEmptyException(ttoe.getTableId(), namespace, ttoe.getDescription(),
+            ttoe);
+      }
+      throw e;
     }
 
   }
