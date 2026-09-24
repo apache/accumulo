@@ -40,7 +40,7 @@ public class ImportDirectoryCommand extends Command {
         + " table if the -t option is not provided. The boolean argument determines if accumulo"
         + " sets the time. If the -i ignore option is supplied then no exception will be thrown"
         + " when attempting to import files from an empty source directory. An info log message"
-        + " will be displayed indicating the source directory is empty, but no error is thrown.\n"
+        + " will be displayed indicating the source directory is empty, but no error is thrown. "
         + " Bulk import only takes 2 arguments:  <directory> true|false";
   }
 
