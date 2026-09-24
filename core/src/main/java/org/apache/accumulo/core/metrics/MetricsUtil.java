@@ -62,8 +62,7 @@ public class MetricsUtil {
    *
    * @param formattedName the resource group name after metric tag formatting
    * @param validNames configured resource group names
-   * @return the unique matching configured name, or the original value when there is no unique
-   *         match
+   * @return the unique matching configured name, or {@code null} when there is no unique match
    */
   public static String resolveResourceGroupName(String formattedName,
       Collection<String> validNames) {
@@ -76,6 +75,6 @@ public class MetricsUtil {
         match = validName;
       }
     }
-    return match == null ? formattedName : match;
+    return match;
   }
 }

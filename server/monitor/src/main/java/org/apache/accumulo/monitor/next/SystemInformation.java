@@ -869,22 +869,28 @@ public class SystemInformation {
         FTag t = new FTag();
         for (final ByteBuffer binary : response.getMetrics()) {
           fm = FMetric.getRootAsFMetric(binary, fm);
+          String queueName = null;
           for (int i = 0; i < fm.tagsLength(); i++) {
             t = fm.tags(t, i);
             if (t.key().equals(QUEUE_TAG_KEY)) {
-              String queueName = MetricsUtil.resolveResourceGroupName(t.value(),
+              queueName = MetricsUtil.resolveResourceGroupName(t.value(),
                   configuredCompactionResourceGroups);
-              // For these MetricResponse objects we are going to put the queueId value
-              // in the place of the resource group, we'll update the column information
-              // for the resource group below.
-              ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(queueName),
-                  manager.getHost(), manager.getPort());
-              qm.computeIfAbsent(sid, (k) -> new MetricResponse(response.getServerType(),
-                  response.getServer(), queueName, response.getTimestamp(), new ArrayList<>()))
-                  .addToMetrics(binary);
               break;
             }
           }
+          if (queueName == null) {
+            continue;
+          }
+          // For these MetricResponse objects we are going to put the queueId value
+          // in the place of the resource group, we'll update the column information
+          // for the resource group below.
+          final String resolvedQueueName = queueName;
+          ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(resolvedQueueName),
+              manager.getHost(), manager.getPort());
+          qm.computeIfAbsent(sid,
+              (k) -> new MetricResponse(response.getServerType(), response.getServer(),
+                  resolvedQueueName, response.getTimestamp(), new ArrayList<>()))
+              .addToMetrics(binary);
         }
       }
     }
@@ -990,7 +996,7 @@ public class SystemInformation {
             }
           } else if (metricName.equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())) {
             long queued = getMetricValue(flatbuffer).longValue();
-            String queueName = "unknown";
+            String queueName = null;
             for (int i = 0; i < flatbuffer.tagsLength(); i++) {
               tag = flatbuffer.tags(tag, i);
               if (tag.key().equals(QUEUE_TAG_KEY)) {
@@ -999,7 +1005,9 @@ public class SystemInformation {
                 break;
               }
             }
-            queuedRgCompactions.put(queueName, queued);
+            if (queueName != null) {
+              queuedRgCompactions.put(queueName, queued);
+            }
             this.instanceOverview.getCompactionsQueued().addAndGet(queued);
           } else if (metricName
               .equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName())) {
