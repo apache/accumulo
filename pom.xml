@@ -156,7 +156,7 @@ under the License.
     <minimalJavaBuildVersion>21</minimalJavaBuildVersion>
     <modernizer.javaVersion>${javaVersion}</modernizer.javaVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2026-06-30T00:16:12Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-09-16T16:35:01Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
