@@ -61,6 +61,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -142,9 +143,8 @@ public class MetadataIT extends SharedMiniClusterBase {
       c.tableOperations().merge(SystemTables.METADATA.tableName(), null, null);
       try (Scanner s = c.createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
-        while (s.stream().findAny().isEmpty()) {
-          Thread.sleep(100);
-        }
+        Wait.waitFor(() -> s.stream().findAny().isPresent(), 30_000, 100,
+            "Metadata delete marker did not appear");
         assertEquals(0, c.tableOperations().listSplits(SystemTables.METADATA.tableName()).size());
       }
     }

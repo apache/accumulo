@@ -62,6 +62,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -180,10 +181,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
       scanThreadsToClose.forEach(st -> st.scanner.close());
       batchScanThreadsToClose.forEach(bst -> bst.bs.close());
 
-      while (!getScanIds(client).isEmpty()) {
-        log.debug("Waiting for active scans to stop...");
-        Thread.sleep(200);
-      }
+      Wait.waitFor(() -> getScanIds(client).isEmpty(), 30_000, 100,
+          "Scan IDs remained active after scanners closed");
     }
   }
 
