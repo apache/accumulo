@@ -942,12 +942,15 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     var fate =
         new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     return fate;
   }
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
-    return new Fate<>(new LatchTestEnv(), store, false, Object::toString,
+    Fate<LatchTestEnv> fate = new Fate<>(new LatchTestEnv(), store, false, Object::toString,
         DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+    fate.start();
+    return fate;
   }
 
   private boolean wordIsTStatus(String word) {

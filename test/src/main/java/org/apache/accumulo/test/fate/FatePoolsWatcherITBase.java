@@ -94,6 +94,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     boolean isUserStore = store.type() == FateInstanceType.USER;
     final Set<Fate.FateOperation> set1 = isUserStore ? USER_FATE_OPS_SET1 : META_FATE_OPS_SET1;
     final Set<Fate.FateOperation> set2 = isUserStore ? USER_FATE_OPS_SET2 : META_FATE_OPS_SET2;
@@ -227,6 +228,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     final int numWorkers = 2;
     final int newNumWorkers = 3;
     final Set<Fate.FateOperation> allFateOps =
@@ -309,6 +311,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     boolean isUserStore = store.type() == FateInstanceType.USER;
     final Set<Fate.FateOperation> set1 = isUserStore ? USER_FATE_OPS_SET1 : META_FATE_OPS_SET1;
     final Set<Fate.FateOperation> set2 = isUserStore ? USER_FATE_OPS_SET2 : META_FATE_OPS_SET2;
@@ -440,6 +443,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     try {
       // We have two worker threads. Submit 3 transactions that won't complete yet so we can check
       // for a warning
@@ -554,7 +558,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
-
+    fate.start();
     try {
       // seeding pool1/FateExecutor1
       for (int i = 0; i < numSeedPool1; i++) {
@@ -657,6 +661,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), poolSize, "AllFateOps");
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
 
     try {
       // start a single transaction
