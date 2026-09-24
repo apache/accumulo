@@ -18,41 +18,86 @@
  */
 package org.apache.accumulo.server.manager.recovery;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.hadoop.fs.Path;
 
 public class RecoveryPath {
 
-  // given a wal path, transform it to a recovery path
-  public static Path getRecoveryPath(Path walPath) {
-    if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
-      // its a fully qualified path
-      String uuid = walPath.getName();
-      // drop uuid
-      walPath = walPath.getParent();
+  private static int getPathStart(String walPath) {
+    final String schemeTest = "://";
 
-      // expect and drop the server component
-      if (walPath.getName().equals(FileType.WAL.getDirectory())) {
-        throw new IllegalArgumentException("Bath path " + walPath + " (missing server component)");
-      }
-      walPath = walPath.getParent();
-
-      // expect and drop the wal component
-      if (!walPath.getName().equals(FileType.WAL.getDirectory())) {
-        throw new IllegalArgumentException(
-            "Bad path " + walPath + " (missing wal directory component)");
-      }
-      walPath = walPath.getParent();
-
-      // create new path in recovery directory that is a sibling to the wal directory (same volume),
-      // without the server component
-      walPath = new Path(walPath, FileType.RECOVERY.getDirectory());
-      walPath = new Path(walPath, uuid);
-
-      return walPath;
+    if (walPath == null || walPath.isEmpty()) {
+      throw new IllegalArgumentException("Bad path " + walPath);
     }
 
-    throw new IllegalArgumentException("Bad path " + walPath);
+    // Test for scheme
+    int schemeEnd = walPath.indexOf(schemeTest);
+    if (schemeEnd < 0) {
+      throw new IllegalArgumentException("Bad path " + walPath + " No scheme");
+    }
+
+    // Find the start of the path
+    int pathStart = walPath.indexOf("/", schemeEnd + schemeTest.length());
+    if (pathStart < 0) {
+      // Empty path after authority
+      throw new IllegalArgumentException("Bad path " + walPath + " No content");
+    }
+    return pathStart;
+  }
+
+  static String transformToRecoveryPath(String walPath) {
+    int pathStart = getPathStart(walPath);
+
+    // This replaces the need for Path.getParent calls
+    String[] segments = walPath.substring(pathStart).split("/");
+    // Remove any spaces
+    List<String> parts = new ArrayList<>();
+    for (String s : segments) {
+      if (!s.isEmpty()) {
+        parts.add(s);
+      }
+    }
+
+    // checks for minimum correct depth
+    if (parts.size() < 3) {
+      throw new IllegalArgumentException("Bad path due to length" + walPath);
+    }
+
+    String uuid = parts.get(parts.size() - 1);
+    String serverComponent = parts.get(parts.size() - 2);
+    String walDir = parts.get(parts.size() - 3);
+
+    if (serverComponent.equals(FileType.WAL.getDirectory())) {
+      throw new IllegalArgumentException("Bad path " + walPath + " (missing server component)");
+    }
+
+    if (!walDir.equals(FileType.WAL.getDirectory())) {
+      throw new IllegalArgumentException(
+          "Bad path " + walPath + " (missing wal directory component)");
+    }
+
+    String authority = walPath.substring(0, pathStart);
+    // Handle file scheme like Hadoop Path and drop the slashes
+    // This converts file:///<path> to file:/<path>
+    if (authority.equals("file://")) {
+      authority = "file:";
+    }
+
+    List<String> baseParts = parts.subList(0, parts.size() - 3);
+    StringBuilder recoveryPath = new StringBuilder(authority);
+    for (String part : baseParts) {
+      recoveryPath.append("/").append(part);
+    }
+    recoveryPath.append("/").append(FileType.RECOVERY.getDirectory());
+    recoveryPath.append("/").append(uuid);
+
+    return recoveryPath.toString();
+  }
+
+  public static String getRecoveryPath(String walPath) {
+    return transformToRecoveryPath(walPath);
   }
 
 }
