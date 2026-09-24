@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -35,9 +36,7 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -116,16 +115,19 @@ public class BulkIT extends AccumuloClusterHarness {
     // that location
     Path a = new Path(base, "accumulo");
     fs.deleteOnExit(a);
-    Path t = new Path(base, "tables");
+    Path t = new Path(a, "tables");
     fs.deleteOnExit(t);
     fs.mkdirs(t);
-    params = new IngestParams(c.properties(), tableName, N);    
+    params = new IngestParams(c.properties(), tableName, N);
     params.outputFile = new Path(t, String.format(fileFormat, N)).toString();
     params.startRow = N;
     params.rows = 1;
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, fs, params);
-    bulkLoad(c, tableName, bulkFailures, t, useOld);
+    AccumuloSecurityException ase = assertThrows(AccumuloSecurityException.class,
+        () -> bulkLoad(c, tableName, bulkFailures, t, useOld));
+    assertTrue(
+        ase.getMessage().contains("Error PERMISSION_DENIED for user root on table BulkIT_test"));
 
   }
 

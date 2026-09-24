@@ -540,24 +540,18 @@ public class SecurityOperation {
     authenticate(c);
     final boolean tablePerm =
         hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
-    boolean locationMatch = false;
-    String allowedLocations =
-        context.getTableConfiguration(tableId).get(Property.TABLE_BULK_SOURCE_DIRS);
-    if (allowedLocations.isBlank()) {
-      locationMatch = true;
-    } else {
-      for (String location : allowedLocations.split(",")) {
-        if (Pattern.matches(location, dir)) {
-          locationMatch = true;
-          break;
-        }
-      }
+    final String allowedLocations =
+        context.getTableConfiguration(tableId).get(Property.GENERAL_BULK_SOURCE_DIRS);
+    boolean locationAllowed = false;
+    if (allowedLocations.isBlank() || Pattern.matches(allowedLocations, dir)) {
+      locationAllowed = true;
     }
-    if (!locationMatch) {
-      log.error("Bulk Import into table {} not allowed from directory {}, check table property {}",
-          tableId, dir, Property.TABLE_BULK_SOURCE_DIRS.getKey());
+    if (!locationAllowed) {
+      log.error(
+          "Bulk Import into table {} not allowed from directory {}, check table property {} value: {}",
+          tableId, dir, Property.GENERAL_BULK_SOURCE_DIRS.getKey(), allowedLocations);
     }
-    return tablePerm && locationMatch;
+    return tablePerm && locationAllowed;
   }
 
   protected boolean canCompact(TCredentials c, TableId tableId, NamespaceId namespaceId)
