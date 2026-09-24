@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -34,7 +35,9 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -108,6 +111,22 @@ public class BulkIT extends AccumuloClusterHarness {
     verifyParams.startRow = N;
     verifyParams.rows = 1;
     VerifyIngest.verifyIngest(c, verifyParams);
+
+    // Create a subdirectory that is not allowed and try to bulk import from
+    // that location
+    Path a = new Path(base, "accumulo");
+    fs.deleteOnExit(a);
+    Path t = new Path(base, "tables");
+    fs.deleteOnExit(t);
+    fs.mkdirs(t);
+    params = new IngestParams(c.properties(), tableName, N);    
+    params.outputFile = new Path(t, String.format(fileFormat, N)).toString();
+    params.startRow = N;
+    params.rows = 1;
+    // create an rfile with one entry, there was a bug with this:
+    TestIngest.ingest(c, fs, params);
+    bulkLoad(c, tableName, bulkFailures, t, useOld);
+
   }
 
   @SuppressWarnings("deprecation")
