@@ -106,6 +106,7 @@ import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.util.PropUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -546,6 +547,15 @@ class FateServiceHandler implements FateService.Iface {
 
         if (!canCompact) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        var tableConf = manager.getContext().getTableConfiguration(tableId);
+        var compactionService =
+            tableConf.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service");
+        if (!PropUtil.isTableCompactionServiceValid(manager.getContext(), compactionService)) {
+          throw new ThriftTableOperationException(tableId.canonical(), null, tableOp,
+              TableOperationExceptionType.OTHER,
+              "Compaction Service " + compactionService + " has not been configured.");
         }
 
         goalMessage += "Compact table (" + tableId + ") with config " + compactionConfig;
