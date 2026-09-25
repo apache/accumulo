@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.io.FileNotFoundException;
 import java.time.Duration;
 
-import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.server.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
