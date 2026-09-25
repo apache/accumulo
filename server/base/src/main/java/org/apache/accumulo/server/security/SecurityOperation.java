@@ -543,7 +543,8 @@ public class SecurityOperation {
     final String allowedLocations =
         context.getTableConfiguration(tableId).get(Property.GENERAL_BULK_SOURCE_DIRS);
     boolean locationAllowed = false;
-    if (allowedLocations.isBlank() || Pattern.matches(allowedLocations, dir)) {
+    if (allowedLocations == null || allowedLocations.isBlank()
+        || Pattern.matches(allowedLocations, dir)) {
       locationAllowed = true;
     }
     if (!locationAllowed) {
