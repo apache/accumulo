@@ -190,20 +190,6 @@ class FateServiceHandler implements FateService.Iface {
             InitialTableState.valueOf(ByteBufferUtil.toString(arguments.get(2)));
         int splitCount = Integer.parseInt(ByteBufferUtil.toString(arguments.get(3)));
         validateArgumentCount(arguments, tableOp, SPLIT_OFFSET + splitCount);
-        Path splitsPath = null;
-        Path splitsDirsPath = null;
-        if (splitCount > 0) {
-          try {
-            Path tmpDir = mkTempDir(opid);
-            splitsPath = new Path(tmpDir, "splits");
-            splitsDirsPath = new Path(tmpDir, "splitsDirs");
-            writeSplitsToFile(splitsPath, arguments, splitCount, SPLIT_OFFSET);
-          } catch (IOException e) {
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                "Exception thrown while writing splits to file system");
-          }
-        }
         NamespaceId namespaceId;
 
         try {
@@ -224,6 +210,23 @@ class FateServiceHandler implements FateService.Iface {
             namespaceIterProps);
         for (Map.Entry<String,String> entry : options.entrySet()) {
           validateTableProperty(entry.getKey(), entry.getValue(), tableName, tableOp);
+        }
+
+        Path splitsPath = null;
+        Path splitsDirsPath = null;
+        if (splitCount > 0) {
+          Path tmpDir = null;
+          try {
+            tmpDir = mkTempDir(opid);
+            splitsPath = new Path(tmpDir, "splits");
+            splitsDirsPath = new Path(tmpDir, "splitsDirs");
+            writeSplitsToFile(splitsPath, arguments, splitCount, SPLIT_OFFSET);
+          } catch (IOException e) {
+            cleanupTempDir(tmpDir);
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
+                "Exception thrown while writing splits to file system");
+          }
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
@@ -873,6 +876,21 @@ class FateServiceHandler implements FateService.Iface {
     }
     fs.mkdirs(p);
     return p;
+  }
+
+  /**
+   * Attempt to recursively delete the given temporary directory, logging any errors that occur.
+   *
+   * @param tmpDir the temporary directory to delete
+   */
+  private void cleanupTempDir(Path tmpDir) {
+    if (tmpDir != null) {
+      try {
+        manager.getVolumeManager().deleteRecursively(tmpDir);
+      } catch (IOException e) {
+        log.error("Failed to clean up temporary split files at {}", tmpDir, e);
+      }
+    }
   }
 
   @Override
