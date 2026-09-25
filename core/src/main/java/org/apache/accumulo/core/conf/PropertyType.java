@@ -21,6 +21,8 @@ package org.apache.accumulo.core.conf;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
@@ -155,7 +157,7 @@ public enum PropertyType {
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", x -> true, "A valid URI"),
+  URI("uri", new ValidUri(), "A valid URI"),
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
@@ -247,12 +249,35 @@ public enum PropertyType {
     }
   }
 
+  /**
+   * Validate that the provided string can be used to create a valid URI.
+   */
+  private static class ValidUri implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidUri.class);
+
+    @Override
+    public boolean test(String uri) {
+      if (uri == null) {
+        return true;
+      }
+      try {
+        new URI(uri);
+        return true;
+      } catch (URISyntaxException e) {
+        log.error("provided uri string is not valid");
+        return false;
+      }
+    }
+  }
+
   private static class ValidVolumes implements Predicate<String> {
     private static final Logger log = LoggerFactory.getLogger(ValidVolumes.class);
 
     @Override
     public boolean test(String volumes) {
       if (volumes == null) {
+        return true;
+      } else if (volumes.isEmpty()) {
         return false;
       }
       try {
@@ -306,7 +331,6 @@ public enum PropertyType {
         }
       }
     }
-
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("\\D*$"); // match non-digits at end
@@ -413,14 +437,8 @@ public enum PropertyType {
 
     @Override
     public boolean test(final String input) {
-      // TODO when the input is null, it just means that the property wasn't set
-      // we can add checks for not null for required properties with
-      // Predicates.and(Predicates.notNull(), ...),
-      // or we can stop assuming that null is always okay for a Matches predicate, and do that
-      // explicitly with Predicates.or(Predicates.isNull(), ...)
       return input == null || pattern.matcher(input).matches();
     }
-
   }
 
   public static class PortRange extends Matches {
