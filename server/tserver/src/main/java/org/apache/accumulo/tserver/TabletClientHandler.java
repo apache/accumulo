@@ -1108,15 +1108,20 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId)
       throws ThriftSecurityException {
+    List<TabletStats> result = new ArrayList<>();
     TableId tid = TableId.of(tableId);
-    NamespaceId namespaceId = getNamespaceId(credentials, tid);
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = getNamespaceId(credentials, tid);
+    } catch (ThriftSecurityException e) {
+      return result;
+    }
     if (!security.canScan(credentials, tid, namespaceId, Map.of(), List.of(), List.of(), Map.of(),
         List.of())) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    List<TabletStats> result = new ArrayList<>();
     KeyExtent start = new KeyExtent(tid, new Text(), null);
     for (Entry<KeyExtent,Tablet> entry : server.getOnlineTablets().tailMap(start).entrySet()) {
       KeyExtent ke = entry.getKey();
