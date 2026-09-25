@@ -21,7 +21,6 @@ package org.apache.accumulo.miniclusterImpl;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
 
@@ -30,12 +29,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.minicluster.MiniTestDirs;
 import org.apache.accumulo.minicluster.ServerType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.Iterators;
 
@@ -43,9 +42,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterImplTest {
-
-  @TempDir
-  private static Path tempDir;
 
   private static MiniAccumuloClusterImpl accumulo;
 
@@ -55,8 +51,9 @@ public class MiniAccumuloClusterImplTest {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    MiniAccumuloConfigImpl config =
-        new MiniAccumuloConfigImpl(tempDir.toFile(), "superSecret").setJDWPEnabled(true);
+    MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(
+        MiniTestDirs.createTestDir(MiniAccumuloClusterImplTest.class.getName()).toFile(),
+        "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
     config.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
