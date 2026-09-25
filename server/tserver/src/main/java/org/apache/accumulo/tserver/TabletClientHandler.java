@@ -1114,7 +1114,10 @@ public class TabletClientHandler implements TabletClientService.Iface {
     try {
       namespaceId = getNamespaceId(credentials, tid);
     } catch (ThriftSecurityException e) {
-      return result;
+      if (e.getCode() == SecurityErrorCode.TABLE_DOESNT_EXIST) {
+        return result;
+      }
+      throw e;
     }
     if (!security.canScan(credentials, tid, namespaceId, Map.of(), List.of(), List.of(), Map.of(),
         List.of())) {
