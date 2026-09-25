@@ -77,6 +77,7 @@ import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
 import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
 import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestRepo;
+import org.apache.accumulo.test.fate.custom.FastFate;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate;
+package org.apache.accumulo.test.fate.custom;
 
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -25,7 +25,6 @@ import java.util.function.Function;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
@@ -47,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * time, but don't have direct access to the Fate objects/are testing Fate as it operates within the
  * Manager instead of directly working with Fate objects.
  */
-public class SlowFateSplit<T> extends Fate<T> {
+public class SlowFateSplit<T> extends CustomFate<T> {
   private static final Logger log = LoggerFactory.getLogger(SlowFateSplit.class);
   private boolean haveSlept = false;
 
@@ -57,10 +56,11 @@ public class SlowFateSplit<T> extends Fate<T> {
     for (var poolConfig : getPoolConfigurations(conf, getStore().type()).entrySet()) {
       fateExecutors.add(new SlowFateSplitExecutor(this, environment, poolConfig.getKey(),
           poolConfig.getValue().getValue(), poolConfig.getValue().getKey()));
+
     }
   }
 
-  private class SlowFateSplitExecutor extends FateExecutor<T> {
+  private class SlowFateSplitExecutor extends CustomFateExecutor<T> {
     private SlowFateSplitExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps,
         int poolSize, String name) {
       super(fate, environment, fateOps, poolSize, name);
