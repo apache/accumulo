@@ -31,7 +31,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 
-public class CustomFateManager extends Manager {
+abstract class CustomFateManager extends Manager {
   protected CustomFateManager(ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) throws IOException {
