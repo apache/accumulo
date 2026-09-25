@@ -30,8 +30,10 @@ public final class ScanCacheProvider implements CacheProvider {
   private final BlockCache indexCache;
   private final BlockCache dataCache;
 
+  private final BlockCache compressedDataCache;
+
   public ScanCacheProvider(AccumuloConfiguration tableConfig, ScanDispatch dispatch,
-      BlockCache indexCache, BlockCache dataCache) {
+      BlockCache indexCache, BlockCache dataCache, BlockCache compressedDataCache) {
 
     var loggingIndexCache = BlockCacheUtil.instrument(CacheType.INDEX, indexCache);
     var loggingDataCache = BlockCacheUtil.instrument(CacheType.DATA, dataCache);
@@ -57,16 +59,20 @@ public final class ScanCacheProvider implements CacheProvider {
     switch (dispatch.getDataCacheUsage()) {
       case ENABLED:
         this.dataCache = loggingDataCache;
+        this.compressedDataCache = compressedDataCache;
         break;
       case DISABLED:
         this.dataCache = null;
+        this.compressedDataCache = null;
         break;
       case OPPORTUNISTIC:
         this.dataCache = new OpportunisticBlockCache(loggingDataCache);
+        this.compressedDataCache = null;
         break;
       case TABLE:
-        this.dataCache =
-            tableConfig.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED) ? loggingDataCache : null;
+        boolean tableDataCacheEnabled = tableConfig.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED);
+        this.dataCache = tableDataCacheEnabled ? loggingDataCache : null;
+        this.compressedDataCache = tableDataCacheEnabled ? compressedDataCache : null;
         break;
       default:
         throw new IllegalStateException();
@@ -81,5 +87,10 @@ public final class ScanCacheProvider implements CacheProvider {
   @Override
   public BlockCache getIndexCache() {
     return indexCache;
+  }
+
+  @Override
+  public BlockCache getCompressedDataCache() {
+    return compressedDataCache;
   }
 }

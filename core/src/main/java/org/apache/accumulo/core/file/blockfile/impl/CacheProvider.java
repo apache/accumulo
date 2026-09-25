@@ -26,4 +26,10 @@ public interface CacheProvider {
   BlockCache getDataCache();
 
   BlockCache getIndexCache();
+
+  // Returns an optional secondary data cache that stores block in compressed for. When non-null
+  // blocks that miss the primary data cache will be looked up here before falling through to disk.
+  default BlockCache getCompressedDataCache() {
+    return null;
+  }
 }
