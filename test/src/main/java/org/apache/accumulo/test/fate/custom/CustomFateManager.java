@@ -26,7 +26,6 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
@@ -39,9 +38,6 @@ abstract class CustomFateManager extends Manager {
   }
 
   @Override
-  protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
-      ServerContext context) {
-    return new SlowFateSplit<>(env, store, TraceRepo::toLogString, getConfiguration());
-  }
-
+  protected abstract Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
+      ServerContext context);
 }
