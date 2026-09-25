@@ -53,7 +53,8 @@ $(document).ready(function () {
     "autoWidth": false,
     "columns": [{
         "data": "filename",
-        "width": "40%"
+        "width": "40%",
+        "render": $.fn.dataTable.render.text()
       },
       {
         "data": "age",
