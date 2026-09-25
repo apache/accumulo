@@ -133,6 +133,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -1183,6 +1184,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
+  @SuppressFBWarnings("USO_UNSAFE_OBJECT_SYNCHRONIZATION")
   public void loadTablet(TInfo tinfo, TCredentials credentials, String lock,
       final TKeyExtent textent) {
 

@@ -37,7 +37,7 @@ public class DistributedReadWriteLockTest {
   public static class MockQueueLock implements QueueLock {
 
     long next = 0L;
-    final SortedMap<Long,byte[]> locks = new TreeMap<>();
+    private final SortedMap<Long,byte[]> locks = new TreeMap<>();
 
     @Override
     public synchronized SortedMap<Long,byte[]> getEarlierEntries(long entry) {
@@ -47,7 +47,7 @@ public class DistributedReadWriteLockTest {
     }
 
     @Override
-    public synchronized void removeEntry(long entry) {
+    public void removeEntry(long entry) {
       synchronized (locks) {
         locks.remove(entry);
         locks.notifyAll();
@@ -55,7 +55,7 @@ public class DistributedReadWriteLockTest {
     }
 
     @Override
-    public synchronized long addEntry(byte[] data) {
+    public long addEntry(byte[] data) {
       long result;
       synchronized (locks) {
         locks.put(result = next++, data);

@@ -432,24 +432,26 @@ public class AccumuloVFSClassLoader {
     return getContextManager().getClassLoader(contextName);
   }
 
-  public static synchronized ContextManager getContextManager() throws IOException {
-    if (contextManager == null) {
-      getClassLoader();
-      try {
-        contextManager = new ContextManager(generateVfs(), () -> {
-          try {
-            return getClassLoader();
-          } catch (IOException e) {
-            // throw runtime, then unwrap it.
-            throw new UncheckedIOException(e);
-          }
-        });
-      } catch (UncheckedIOException uioe) {
-        throw uioe.getCause();
-      }
-    }
+  public static ContextManager getContextManager() throws IOException {
+    synchronized (lock) {
+      if (contextManager == null) {
 
-    return contextManager;
+        getClassLoader();
+        try {
+          contextManager = new ContextManager(generateVfs(), () -> {
+            try {
+              return getClassLoader();
+            } catch (IOException e) {
+              // throw runtime, then unwrap it.
+              throw new UncheckedIOException(e);
+            }
+          });
+        } catch (UncheckedIOException uioe) {
+          throw uioe.getCause();
+        }
+      }
+      return contextManager;
+    }
   }
 
   public static void close() {

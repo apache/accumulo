@@ -60,6 +60,7 @@ public class ThriftUtil {
 
   private static final SecureRandom random = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
+  private static final Object lock = new Object();
 
   /**
    * An instance of {@link TraceProtocolFactory}
@@ -169,17 +170,19 @@ public class ThriftUtil {
    * @param maxFrameSize Maximum Thrift message frame size
    * @return A, possibly cached, TTransportFactory with the requested maximum frame size
    */
-  public static synchronized TTransportFactory transportFactory(long maxFrameSize) {
-    if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1) {
-      throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
+  public static TTransportFactory transportFactory(long maxFrameSize) {
+    synchronized (lock) {
+      if (maxFrameSize > Integer.MAX_VALUE || maxFrameSize < 1) {
+        throw new RuntimeException("Thrift transport frames are limited to " + Integer.MAX_VALUE);
+      }
+      int maxFrameSize1 = (int) maxFrameSize;
+      TTransportFactory factory = factoryCache.get(maxFrameSize1);
+      if (factory == null) {
+        factory = new AccumuloTFramedTransportFactory(maxFrameSize1);
+        factoryCache.put(maxFrameSize1, factory);
+      }
+      return factory;
     }
-    int maxFrameSize1 = (int) maxFrameSize;
-    TTransportFactory factory = factoryCache.get(maxFrameSize1);
-    if (factory == null) {
-      factory = new AccumuloTFramedTransportFactory(maxFrameSize1);
-      factoryCache.put(maxFrameSize1, factory);
-    }
-    return factory;
   }
 
   /**

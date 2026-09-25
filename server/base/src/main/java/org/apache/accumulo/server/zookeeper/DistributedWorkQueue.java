@@ -278,9 +278,9 @@ public class DistributedWorkQueue {
     return children;
   }
 
-  public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
+  private final Object condVar = new Object();
 
-    final Object condVar = new Object();
+  public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
 
     Watcher watcher = new Watcher() {
       @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
