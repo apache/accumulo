@@ -313,6 +313,12 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  GENERAL_BULK_SOURCE_DIRS("general.bulk.allowed.source.dir.pattern", "^(?!.*/accumulo/tables).*$",
+      PropertyType.STRING,
+      "A regular expressions where source bulk import files for the table may located."
+          + " The default value prevents using rfiles from the default Accumulo table directory"
+          + " path from being the source directory.",
+      "2.1.7"),
   GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
       "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
       "Specifies the class name of the block cache factory implementation."

@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -537,7 +538,21 @@ public class SecurityOperation {
   protected boolean canBulkImport(TCredentials c, TableId tableId, String tableName, String dir,
       String failDir, NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
+    final boolean tablePerm =
+        hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
+    final String allowedLocations =
+        context.getTableConfiguration(tableId).get(Property.GENERAL_BULK_SOURCE_DIRS);
+    boolean locationAllowed = false;
+    if (allowedLocations == null || allowedLocations.isBlank()
+        || Pattern.matches(allowedLocations, dir)) {
+      locationAllowed = true;
+    }
+    if (!locationAllowed) {
+      log.error(
+          "Bulk Import into table {} not allowed from directory {}, check table property {} value: {}",
+          tableId, dir, Property.GENERAL_BULK_SOURCE_DIRS.getKey(), allowedLocations);
+    }
+    return tablePerm && locationAllowed;
   }
 
   protected boolean canCompact(TCredentials c, TableId tableId, NamespaceId namespaceId)
