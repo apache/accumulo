@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -48,8 +48,9 @@ public class MetricsUtilTest {
   public void testResourceGroupNameResolution() {
     assertEquals("user_small",
         MetricsUtil.resolveResourceGroupName("user.small", Set.of("user_small")));
-    assertEquals("user.small",
-        MetricsUtil.resolveResourceGroupName("user.small", Set.of("user_small", "user-small")));
-    assertNull(MetricsUtil.resolveResourceGroupName("user.small", Set.of("other")));
+    assertThrows(IllegalStateException.class, () -> MetricsUtil
+        .resolveResourceGroupName("user.small", Set.of("user_small", "user-small")));
+    assertThrows(IllegalStateException.class,
+        () -> MetricsUtil.resolveResourceGroupName("user.small", Set.of("other")));
   }
 }

@@ -62,7 +62,8 @@ public class MetricsUtil {
    *
    * @param formattedName the resource group name after metric tag formatting
    * @param validNames configured resource group names
-   * @return the unique matching configured name, or {@code null} when there is no unique match
+   * @return the unique matching configured name
+   * @throws IllegalStateException if there is no unique configured match
    */
   public static String resolveResourceGroupName(String formattedName,
       Collection<String> validNames) {
@@ -70,10 +71,15 @@ public class MetricsUtil {
     for (String validName : validNames) {
       if (formatString(validName).equals(formattedName)) {
         if (match != null) {
-          return formattedName;
+          throw new IllegalStateException(
+              "Multiple resource groups match formatted name '" + formattedName + "'");
         }
         match = validName;
       }
+    }
+    if (match == null) {
+      throw new IllegalStateException(
+          "No configured resource group matches formatted name '" + formattedName + "'");
     }
     return match;
   }

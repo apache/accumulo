@@ -873,8 +873,13 @@ public class SystemInformation {
           for (int i = 0; i < fm.tagsLength(); i++) {
             t = fm.tags(t, i);
             if (t.key().equals(QUEUE_TAG_KEY)) {
-              queueName = MetricsUtil.resolveResourceGroupName(t.value(),
-                  configuredCompactionResourceGroups);
+              try {
+                queueName = MetricsUtil.resolveResourceGroupName(t.value(),
+                    configuredCompactionResourceGroups);
+              } catch (IllegalStateException e) {
+                LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
+                    t.value(), e);
+              }
               break;
             }
           }
@@ -1000,8 +1005,13 @@ public class SystemInformation {
             for (int i = 0; i < flatbuffer.tagsLength(); i++) {
               tag = flatbuffer.tags(tag, i);
               if (tag.key().equals(QUEUE_TAG_KEY)) {
-                queueName = MetricsUtil.resolveResourceGroupName(tag.value(),
-                    configuredCompactionResourceGroups);
+                try {
+                  queueName = MetricsUtil.resolveResourceGroupName(tag.value(),
+                      configuredCompactionResourceGroups);
+                } catch (IllegalStateException e) {
+                  LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
+                      tag.value(), e);
+                }
                 break;
               }
             }
