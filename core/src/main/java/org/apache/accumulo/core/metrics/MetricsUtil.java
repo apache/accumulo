@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metrics;
 
+import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,5 +55,32 @@ public class MetricsUtil {
     name = output.toString();
     // remove all capital letters after the dot delimiters have been inserted.
     return name.toLowerCase();
+  }
+
+  /**
+   * Resolves a formatted resource group tag against the configured resource group names.
+   *
+   * @param formattedName the resource group name after metric tag formatting
+   * @param validNames configured resource group names
+   * @return the unique matching configured name
+   * @throws IllegalStateException if there is no unique configured match
+   */
+  public static String resolveResourceGroupName(String formattedName,
+      Collection<String> validNames) {
+    String match = null;
+    for (String validName : validNames) {
+      if (formatString(validName).equals(formattedName)) {
+        if (match != null) {
+          throw new IllegalStateException(
+              "Multiple resource groups match formatted name '" + formattedName + "'");
+        }
+        match = validName;
+      }
+    }
+    if (match == null) {
+      throw new IllegalStateException(
+          "No configured resource group matches formatted name '" + formattedName + "'");
+    }
+    return match;
   }
 }

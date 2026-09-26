@@ -79,6 +79,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -868,21 +869,33 @@ public class SystemInformation {
         FTag t = new FTag();
         for (final ByteBuffer binary : response.getMetrics()) {
           fm = FMetric.getRootAsFMetric(binary, fm);
+          String queueName = null;
           for (int i = 0; i < fm.tagsLength(); i++) {
             t = fm.tags(t, i);
             if (t.key().equals(QUEUE_TAG_KEY)) {
-              String queueName = t.value();
-              // For these MetricResponse objects we are going to put the queueId value
-              // in the place of the resource group, we'll update the column information
-              // for the resource group below.
-              ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(queueName),
-                  manager.getHost(), manager.getPort());
-              qm.computeIfAbsent(sid, (k) -> new MetricResponse(response.getServerType(),
-                  response.getServer(), queueName, response.getTimestamp(), new ArrayList<>()))
-                  .addToMetrics(binary);
+              try {
+                queueName = MetricsUtil.resolveResourceGroupName(t.value(),
+                    configuredCompactionResourceGroups);
+              } catch (IllegalStateException e) {
+                LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
+                    t.value(), e);
+              }
               break;
             }
           }
+          if (queueName == null) {
+            continue;
+          }
+          // For these MetricResponse objects we are going to put the queueId value
+          // in the place of the resource group, we'll update the column information
+          // for the resource group below.
+          final String resolvedQueueName = queueName;
+          ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(resolvedQueueName),
+              manager.getHost(), manager.getPort());
+          qm.computeIfAbsent(sid,
+              (k) -> new MetricResponse(response.getServerType(), response.getServer(),
+                  resolvedQueueName, response.getTimestamp(), new ArrayList<>()))
+              .addToMetrics(binary);
         }
       }
     }
@@ -988,15 +1001,23 @@ public class SystemInformation {
             }
           } else if (metricName.equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())) {
             long queued = getMetricValue(flatbuffer).longValue();
-            String queueName = "unknown";
+            String queueName = null;
             for (int i = 0; i < flatbuffer.tagsLength(); i++) {
               tag = flatbuffer.tags(tag, i);
               if (tag.key().equals(QUEUE_TAG_KEY)) {
-                queueName = tag.value();
+                try {
+                  queueName = MetricsUtil.resolveResourceGroupName(tag.value(),
+                      configuredCompactionResourceGroups);
+                } catch (IllegalStateException e) {
+                  LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
+                      tag.value(), e);
+                }
                 break;
               }
             }
-            queuedRgCompactions.put(queueName, queued);
+            if (queueName != null) {
+              queuedRgCompactions.put(queueName, queued);
+            }
             this.instanceOverview.getCompactionsQueued().addAndGet(queued);
           } else if (metricName
               .equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName())) {

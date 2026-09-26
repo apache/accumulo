@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.metrics;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -39,5 +42,15 @@ public class MetricsUtilTest {
           String output = MetricsUtil.formatString(label);
           assertTrue(output.contentEquals(correctFormat));
         });
+  }
+
+  @Test
+  public void testResourceGroupNameResolution() {
+    assertEquals("user_small",
+        MetricsUtil.resolveResourceGroupName("user.small", Set.of("user_small")));
+    assertThrows(IllegalStateException.class, () -> MetricsUtil
+        .resolveResourceGroupName("user.small", Set.of("user_small", "user-small")));
+    assertThrows(IllegalStateException.class,
+        () -> MetricsUtil.resolveResourceGroupName("user.small", Set.of("other")));
   }
 }
