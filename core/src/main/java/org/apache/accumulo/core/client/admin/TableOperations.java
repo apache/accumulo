@@ -465,6 +465,7 @@ public interface TableOperations {
    * to complete use {@link #flush(String, Text, Text, boolean)}.
    *
    * @param tableName the name of the table
+   * @throws AccumuloException if a general error occurs.
    * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    */
@@ -480,6 +481,7 @@ public interface TableOperations {
    *        complete
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
+   * @throws TableNotFoundException if table does not exist.
    */
   void flush(String tableName, Text start, Text end, boolean wait)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
@@ -493,6 +495,7 @@ public interface TableOperations {
    * @param tableName the name of the table
    * @param property the name of a per-table property
    * @param value the value to set a per-table property to
+   * @throws AccumuloException if a general error occurs
    * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    */
@@ -538,6 +541,7 @@ public interface TableOperations {
    *
    * @param tableName the name of the table
    * @param property the name of a per-table property
+   * @throws AccumuloException if a general error occurs
    * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    */
@@ -900,6 +904,7 @@ public interface TableOperations {
    *
    * @param tableName the name of the table
    * @param number the unique number assigned to the constraint
+   * @throws AccumuloException if a general error occurs
    * @throws TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException thrown if the user doesn't have permission to remove the
    *         constraint
