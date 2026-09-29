@@ -627,9 +627,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     @Override
     public void pop() {
       Optional<Integer> top = findTop();
-      FateMutator<T> fateMutator =
-          newReservedMutator().requireStatus(REQ_POP_STATUS.toArray(TStatus[]::new));
-      top.ifPresent(t -> fateMutator.deleteRepo(t).mutate());
+      newReservedMutator().requireStatus(REQ_POP_STATUS.toArray(TStatus[]::new))
+          .deleteRepo(top.orElseThrow()).mutate();
     }
 
     @Override
