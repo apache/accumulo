@@ -28,21 +28,11 @@ import org.junit.jupiter.api.Test;
 public class SystemInformationTest {
 
   @Test
-  public void testInvalidResourceGroupIsSkippedForServerMetricPath() {
+  public void testResourceGroupNameResolution() {
     assertEquals("user_small",
-        SystemInformation.resolveResourceGroupNameOrNull("user.small", Set.of("user_small")));
-    assertNull(SystemInformation.resolveResourceGroupNameOrNull("user.small", Set.of("other")));
-    assertNull(SystemInformation.resolveResourceGroupNameOrNull("user.small",
-        Set.of("user_small", "user-small")));
-  }
-
-  @Test
-  public void testInvalidResourceGroupIsPreservedAsUnknownForQueuedMetricPath() {
-    assertEquals("user_small",
-        SystemInformation.resolveResourceGroupNameOrUnknown("user.small", Set.of("user_small")));
-    assertEquals("unknown",
-        SystemInformation.resolveResourceGroupNameOrUnknown("user.small", Set.of("other")));
-    assertEquals("unknown", SystemInformation.resolveResourceGroupNameOrUnknown("user.small",
+        SystemInformation.resolveResourceGroupName("user.small", Set.of("user_small")));
+    assertNull(SystemInformation.resolveResourceGroupName("user.small", Set.of("other")));
+    assertNull(SystemInformation.resolveResourceGroupName("user.small",
         Set.of("user_small", "user-small")));
   }
 }

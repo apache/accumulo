@@ -634,26 +634,17 @@ public class SystemInformation {
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
   private static final String UNKNOWN_RESOURCE_GROUP = "unknown";
 
-  static String resolveResourceGroupNameOrNull(String formattedName,
-      Collection<String> configuredNames) {
-    try {
-      return MetricsUtil.resolveResourceGroupName(formattedName, configuredNames);
-    } catch (IllegalStateException e) {
-      LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}", formattedName,
-          e);
-      return null;
+  static String resolveResourceGroupName(String formattedName, Collection<String> configuredNames) {
+    String match = null;
+    for (String configuredName : configuredNames) {
+      if (MetricsUtil.formatString(configuredName).equals(formattedName)) {
+        if (match != null) {
+          return null;
+        }
+        match = configuredName;
+      }
     }
-  }
-
-  static String resolveResourceGroupNameOrUnknown(String formattedName,
-      Collection<String> configuredNames) {
-    try {
-      return MetricsUtil.resolveResourceGroupName(formattedName, configuredNames);
-    } catch (IllegalStateException e) {
-      LOG.warn("Using unknown resource group for compaction queue metric with invalid tag {}",
-          formattedName, e);
-      return UNKNOWN_RESOURCE_GROUP;
-    }
+    return match;
   }
 
   private final ServerContext ctx;
@@ -891,33 +882,33 @@ public class SystemInformation {
 
         FMetric fm = new FMetric();
         FTag t = new FTag();
-        metricLoop: for (final ByteBuffer binary : response.getMetrics()) {
+        for (final ByteBuffer binary : response.getMetrics()) {
           fm = FMetric.getRootAsFMetric(binary, fm);
-          String queueName = null;
+          String formattedQueueName = null;
           for (int i = 0; i < fm.tagsLength(); i++) {
             t = fm.tags(t, i);
             if (t.key().equals(QUEUE_TAG_KEY)) {
-              queueName =
-                  resolveResourceGroupNameOrNull(t.value(), configuredCompactionResourceGroups);
-              if (queueName == null) {
-                continue metricLoop;
-              }
+              formattedQueueName = t.value();
               break;
             }
           }
-          if (queueName == null) {
-            continue;
+          if (formattedQueueName != null) {
+            String queueName =
+                resolveResourceGroupName(formattedQueueName, configuredCompactionResourceGroups);
+            if (queueName != null) {
+              // For these MetricResponse objects we are going to put the queueId value
+              // in the place of the resource group, we'll update the column information
+              // for the resource group below.
+              ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(queueName),
+                  manager.getHost(), manager.getPort());
+              qm.computeIfAbsent(sid, (k) -> new MetricResponse(response.getServerType(),
+                  response.getServer(), queueName, response.getTimestamp(), new ArrayList<>()))
+                  .addToMetrics(binary);
+            } else {
+              LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
+                  formattedQueueName);
+            }
           }
-          // For these MetricResponse objects we are going to put the queueId value
-          // in the place of the resource group, we'll update the column information
-          // for the resource group below.
-          final String resolvedQueueName = queueName;
-          ServerId sid = new ServerId(manager.getType(), ResourceGroupId.of(resolvedQueueName),
-              manager.getHost(), manager.getPort());
-          qm.computeIfAbsent(sid,
-              (k) -> new MetricResponse(response.getServerType(), response.getServer(),
-                  resolvedQueueName, response.getTimestamp(), new ArrayList<>()))
-              .addToMetrics(binary);
         }
       }
     }
@@ -1027,8 +1018,13 @@ public class SystemInformation {
             for (int i = 0; i < flatbuffer.tagsLength(); i++) {
               tag = flatbuffer.tags(tag, i);
               if (tag.key().equals(QUEUE_TAG_KEY)) {
-                queueName = resolveResourceGroupNameOrUnknown(tag.value(),
-                    configuredCompactionResourceGroups);
+                queueName =
+                    resolveResourceGroupName(tag.value(), configuredCompactionResourceGroups);
+                if (queueName == null) {
+                  LOG.warn("Using unknown resource group for compaction queue metric with invalid "
+                      + "tag {}", tag.value());
+                  queueName = UNKNOWN_RESOURCE_GROUP;
+                }
                 break;
               }
             }
