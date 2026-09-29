@@ -631,6 +631,7 @@ public class SystemInformation {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
+  private static final String UNKNOWN_RESOURCE_GROUP = "unknown";
 
   private final ServerContext ctx;
   private final Cache<ServerId,MetricResponse> allMetrics;
@@ -879,6 +880,7 @@ public class SystemInformation {
               } catch (IllegalStateException e) {
                 LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
                     t.value(), e);
+                queueName = UNKNOWN_RESOURCE_GROUP;
               }
               break;
             }
@@ -1011,6 +1013,7 @@ public class SystemInformation {
                 } catch (IllegalStateException e) {
                   LOG.warn("Ignoring compaction queue metric with invalid resource group tag {}",
                       tag.value(), e);
+                  queueName = UNKNOWN_RESOURCE_GROUP;
                 }
                 break;
               }
