@@ -315,7 +315,7 @@ public enum Property {
       "2.0.0"),
   GENERAL_BULK_SOURCE_DIRS("general.bulk.allowed.source.dir.pattern", "^(?!.*/accumulo/tables).*$",
       PropertyType.STRING,
-      "A regular expressions where source bulk import files for the table may located."
+      "A regular expression where source bulk import files for the table may be located."
           + " The default value prevents using rfiles from the default Accumulo table directory"
           + " path from being the source directory.",
       "2.1.7"),
