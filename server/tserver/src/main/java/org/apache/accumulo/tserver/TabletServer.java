@@ -1425,11 +1425,10 @@ public class TabletServer extends AbstractServer
         closedLogs.add(currentLog);
         clSize = closedLogs.size();
       }
-      log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
+      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getPath(), clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
     } else {
-      log.info(
-          "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
+      log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
       walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
     }
   }

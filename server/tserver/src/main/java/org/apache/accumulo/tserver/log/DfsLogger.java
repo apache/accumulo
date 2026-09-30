@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -565,6 +566,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
   public synchronized long getWrites() {
     Preconditions.checkState(writes >= 0);
     return writes;
+  }
+
+  public synchronized long size() {
+    Objects.requireNonNull(logFile, "logFile is null");
+    return logFile.getPos();
   }
 
   public LoggerOperation defineTablet(CommitSession cs) throws IOException {
