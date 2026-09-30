@@ -21,6 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -54,12 +56,16 @@ import org.apache.hadoop.io.WritableComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.Scheduler;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TabletLocatorImpl extends TabletLocator {
 
   private static final Logger log = LoggerFactory.getLogger(TabletLocatorImpl.class);
-
   // MAX_TEXT represents a TEXT object that is greater than all others. Attempted to use null for
   // this purpose, but there seems to be a bug in TreeMap.tailMap with null. Therefore instead of
   // using null, created MAX_TEXT.
@@ -80,7 +86,12 @@ public class TabletLocatorImpl extends TabletLocator {
 
   protected TableId tableId;
   protected TabletLocator parent;
+  // The TreeMap supports range lookups; Caffeine tracks access and expires entries from it.
   protected TreeMap<Text,TabletLocation> metaCache = new TreeMap<>(END_ROW_COMPARATOR);
+  // Null when extent expiration is disabled.
+  private final Cache<KeyExtent,TabletLocation> extentCache;
+  private final ConcurrentLinkedQueue<TabletLocation> evictedExtents =
+      new ConcurrentLinkedQueue<>();
   protected TabletLocationObtainer locationObtainer;
   private final TabletServerLockChecker lockChecker;
   protected Text lastTabletRow;
@@ -153,13 +164,51 @@ public class TabletLocatorImpl extends TabletLocator {
 
   public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
       TabletServerLockChecker tslc) {
+    this(tableId, parent, tlo, tslc, Duration.ZERO);
+  }
+
+  public TabletLocatorImpl(TableId tableId, TabletLocator parent, TabletLocationObtainer tlo,
+      TabletServerLockChecker tslc, Duration cacheExpiration) {
     this.tableId = tableId;
     this.parent = parent;
     this.locationObtainer = tlo;
     this.lockChecker = tslc;
 
+    extentCache = cacheExpiration.isZero() ? null
+        : Caffeine.newBuilder().expireAfterAccess(cacheExpiration)
+            .scheduler(Scheduler.systemScheduler()).evictionListener(this::onExtentEviction)
+            .build();
+
     this.lastTabletRow = new Text(tableId.canonical());
     lastTabletRow.append(new byte[] {'<'}, 0, 1);
+  }
+
+  private void onExtentEviction(KeyExtent extent, TabletLocation location, RemovalCause cause) {
+    // The listener may run while this thread holds rLock, so queue the eviction before attempting
+    // the write lock processInvalidated() drains the queue later if the lock is unavailable here
+    evictedExtents.add(location);
+    try {
+      if (wLock.tryLock(1, MILLISECONDS)) {
+        try {
+          processEvictedExtents();
+        } finally {
+          wLock.unlock();
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  private void processEvictedExtents() {
+    TabletLocation evicted;
+    while ((evicted = evictedExtents.poll()) != null) {
+      Text endRow =
+          evicted.tablet_extent.endRow() == null ? MAX_TEXT : evicted.tablet_extent.endRow();
+      if (metaCache.get(endRow) == evicted) {
+        metaCache.remove(endRow);
+      }
+    }
   }
 
   @Override
@@ -465,6 +514,9 @@ public class TabletLocatorImpl extends TabletLocator {
     try {
       invalidatedCount = metaCache.size();
       metaCache.clear();
+      if (extentCache != null) {
+        extentCache.invalidateAll();
+      }
     } finally {
       wLock.unlock();
     }
@@ -596,6 +648,9 @@ public class TabletLocatorImpl extends TabletLocator {
       er = MAX_TEXT;
     }
     metaCache.put(er, tabletLocation);
+    if (extentCache != null) {
+      extentCache.put(tabletLocation.tablet_extent, tabletLocation);
+    }
 
     if (!badExtents.isEmpty()) {
       removeOverlapping(badExtents, tabletLocation.tablet_extent);
@@ -648,9 +703,14 @@ public class TabletLocatorImpl extends TabletLocator {
     Entry<Text,TabletLocation> entry = metaCache.ceilingEntry(row);
 
     if (entry != null) {
-      KeyExtent ke = entry.getValue().tablet_extent;
+      TabletLocation location = extentCache == null ? entry.getValue()
+          : extentCache.getIfPresent(entry.getValue().tablet_extent);
+      if (location == null) {
+        return null;
+      }
+      KeyExtent ke = location.tablet_extent;
       if (ke.prevEndRow() == null || ke.prevEndRow().compareTo(row) < 0) {
-        return entry.getValue();
+        return location;
       }
     }
     return null;
@@ -714,7 +774,7 @@ public class TabletLocatorImpl extends TabletLocator {
   private void processInvalidated(ClientContext context, LockCheckerSession lcSession)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
 
-    if (badExtents.isEmpty() && badServers.isEmpty()) {
+    if (badExtents.isEmpty() && badServers.isEmpty() && evictedExtents.isEmpty()) {
       return;
     }
 
@@ -723,9 +783,14 @@ public class TabletLocatorImpl extends TabletLocator {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.isEmpty() && badServers.isEmpty()) {
+        if (badExtents.isEmpty() && badServers.isEmpty() && evictedExtents.isEmpty()) {
           return;
         }
+      }
+
+      processEvictedExtents();
+      if (badExtents.isEmpty() && badServers.isEmpty()) {
+        return;
       }
 
       List<Range> lookups = new ArrayList<>(badExtents.size());
