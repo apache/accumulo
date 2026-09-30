@@ -45,6 +45,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
@@ -305,7 +307,6 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         }
 
         if (retryCountDownTimer.isExpired()) {
-          // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
         }
@@ -386,6 +387,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     return context.getPrintableTableInfoFromId(tableId);
   }
 
+  @NotThreadSafe
   private class QueryTask implements Runnable {
 
     private final String tsLocation;

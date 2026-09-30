@@ -26,8 +26,10 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -38,8 +40,14 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.file.rfile.compression.Bzip2;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lz4;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lzo;
+import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
+import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -277,6 +285,11 @@ public enum Property {
           + "org.apache.accumulo.server.rpc.ThriftServerType for more information. "
           + "Only useful for benchmarking thrift servers.",
       "1.7.0"),
+  GENERAL_RPC_SERVER_SELECTOR_THREADS("general.rpc.server.threaded.selector.threads", "2",
+      PropertyType.COUNT,
+      "The number of selector threads to use for the TThreadedSelectorServer. "
+          + " If the value ends with C, then it will be multiplied by the number of cores on the system.",
+      "2.1.7"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH,
       "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs.", "1.4.1"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING,
@@ -1093,7 +1106,9 @@ public enum Property {
       "Options for the table scan dispatcher.", "2.0.0"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
-          + "Once this limit is reached, the buffered data is sent to the client.",
+          + "Once this limit is reached, the buffered data is sent to the client. This is an "
+          + "estimate of heap usage and includes per entry object overhead, so it will always "
+          + "exceed the size of the key value data actually sent to the client.",
       "1.3.5"),
   TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "100", PropertyType.COUNT,
       "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited.",
@@ -1421,6 +1436,12 @@ public enum Property {
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors.", "2.1.0"),
+  COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS("compaction.coordinator.compactor.wakeup.threads",
+      "0", PropertyType.COUNT,
+      "The number of threads the Coordinator should use to wake Compactors that are in a wait state. A value of zero"
+          + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
+          + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
+      "2.1.7"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
       "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
@@ -1851,6 +1872,26 @@ public enum Property {
       Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
+  }
+
+  /**
+   * A set Map of identified System Properties to be used in ConfigurationDocGen.java
+   *
+   * @return A Map of each property's value and description as Strings
+   */
+  public static TreeMap<String,String> getSystemProperties() {
+    TreeMap<String,String> systemProps = new TreeMap<>(Map.of());
+    systemProps.put(TServerClient.DEBUG_HOST,
+        "Set to host:port for the client to connect to a specific server.");
+    systemProps.put(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "Path to accumulo.properties file.");
+    systemProps.put(Bzip2.CODEC_BZIP2, "BZip2 Codec Compression Algorithm.");
+    systemProps.put(Lz4.CODEC_LZ4, "LZ4 Codec Compression Algorithm.");
+    systemProps.put(Lzo.CODEC_LZO, "LZO Codec Compression Algorithm.");
+    systemProps.put(Snappy.CODEC_SNAPPY, "Snappy Codec Compression Algorithm.");
+    systemProps.put(ZStandard.CODEC_ZSTANDARD, "ZStandard Codec Compression Algorithm.");
+
+    return systemProps;
   }
 
   static {

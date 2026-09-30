@@ -47,6 +47,7 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
@@ -424,6 +425,10 @@ public abstract class AbstractServer
           }
         }
       });
+    } else {
+      log.warn("getMetrics() called, likely by the Monitor, but {} not configured in property {}",
+          AccumuloMonitorMeterRegistryFactory.class.getName(),
+          Property.GENERAL_MICROMETER_FACTORY.getKey());
     }
 
     builder.clear();

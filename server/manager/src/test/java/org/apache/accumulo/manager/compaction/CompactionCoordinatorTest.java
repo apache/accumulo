@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -80,6 +81,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
+import com.google.common.net.HostAndPort;
+
 public class CompactionCoordinatorTest {
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
@@ -100,8 +103,9 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected int countCompactors(ResourceGroupId groupName) {
-      return 3;
+    protected Set<HostAndPort> getCompactors(ResourceGroupId groupName) {
+      return Set.of(HostAndPort.fromString("localhost:10000"),
+          HostAndPort.fromString("localhost:10001"), HostAndPort.fromString("localhost:10002"));
     }
 
     @Override
@@ -122,6 +126,9 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {}
+
+    @Override
+    protected void startWakeIdleCompactorThread(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,

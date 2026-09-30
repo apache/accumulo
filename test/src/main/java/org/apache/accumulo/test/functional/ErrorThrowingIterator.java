@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -40,6 +42,7 @@ import com.google.common.base.Preconditions;
  * Iterator used in tests *and* the test class must spawn a new MAC instance for each test since the
  * timesThrown variable is static.
  */
+@NotThreadSafe
 public class ErrorThrowingIterator extends WrappingIterator {
 
   private static final Logger log = LoggerFactory.getLogger(ErrorThrowingIterator.class);

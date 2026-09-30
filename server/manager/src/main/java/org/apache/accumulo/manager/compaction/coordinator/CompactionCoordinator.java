@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -61,6 +63,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -190,7 +193,7 @@ public class CompactionCoordinator
   private final QueueMetrics queueMetrics;
   private final Manager manager;
 
-  private final LoadingCache<ResourceGroupId,Integer> compactorCounts;
+  private final LoadingCache<ResourceGroupId,Set<HostAndPort>> compactorAddrs;
 
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
@@ -242,13 +245,13 @@ public class CompactionCoordinator
     reservationPools = Map.of(Ample.DataLevel.ROOT, rootReservationPool, Ample.DataLevel.METADATA,
         metaReservationPool, Ample.DataLevel.USER, userReservationPool);
 
-    compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
-        .expireAfterWrite(2, TimeUnit.MINUTES).build(this::countCompactors);
+    compactorAddrs = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
+        .expireAfterWrite(2, TimeUnit.MINUTES).build(this::getCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
-  protected int countCompactors(ResourceGroupId groupName) {
-    return ExternalCompactionUtil.countCompactors(groupName, ctx);
+  protected Set<HostAndPort> getCompactors(ResourceGroupId groupName) {
+    return ExternalCompactionUtil.getCompactorAddrs(ctx, groupName);
   }
 
   private volatile Thread serviceThread = null;
@@ -292,6 +295,12 @@ public class CompactionCoordinator
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
+  protected void startWakeIdleCompactorThread(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future =
+        schedExecutor.scheduleWithFixedDelay(this::wakeIdleCompactors, 0, 1, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
   private void checkForConfigChanges() {
     long jobQueueMaxSize =
         ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
@@ -306,6 +315,7 @@ public class CompactionCoordinator
     startDeadCompactionDetector();
     startFailureSummaryLogging();
     startInternalStateCleaner(ctx.getScheduledExecutor());
+    startWakeIdleCompactorThread(ctx.getScheduledExecutor());
 
     try {
       shutdown.await();
@@ -387,7 +397,7 @@ public class CompactionCoordinator
       result = new TExternalCompactionJob();
     }
 
-    return new TNextCompactionJob(result, compactorCounts.get(groupId));
+    return new TNextCompactionJob(result, compactorAddrs.get(groupId).size());
   }
 
   private void checkTabletDir(KeyExtent extent, Path path) {
@@ -877,5 +887,64 @@ public class CompactionCoordinator
         Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
     ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
         Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
+  }
+
+  private void wakeIdleCompactors() {
+    final int wakeThreads =
+        ctx.getConfiguration().getCount(Property.COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS);
+    if (wakeThreads <= 0) {
+      LOG.info("{} is not a positive number, not waking compactors",
+          Property.COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS.getKey());
+      return;
+    }
+    final Map<ResourceGroupId,Set<HostAndPort>> knownCompactors = compactorAddrs.asMap();
+    final Map<ResourceGroupId,Set<HostAndPort>> compactorsBusy = new HashMap<>();
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
+    try {
+      List<ServerId> failures =
+          ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx, executor, tec -> {
+            compactorsBusy
+                .computeIfAbsent(ResourceGroupId.of(tec.getGroupName()),
+                    k -> new HashSet<HostAndPort>())
+                .add(HostAndPort.fromString(tec.getCompactor()));
+          });
+      final Set<HostAndPort> failed = new HashSet<>();
+      failures.forEach(f -> failed.add(HostAndPort.fromParts(f.getHost(), f.getPort())));
+      for (Entry<ResourceGroupId,Set<HostAndPort>> e : knownCompactors.entrySet()) {
+        var rgid = e.getKey();
+        if (e.getValue().size() == 0) {
+          LOG.debug("There are no known compactors for queue {}", rgid);
+          continue;
+        }
+        var queue = getJobQueues().getQueue(rgid);
+        if (queue != null) {
+          var numQueuedJobs = queue.getQueuedJobs();
+          LOG.debug("There are {} queued compactions for queue: {}", numQueuedJobs, rgid);
+          if (numQueuedJobs > 0) {
+            // Make a copy of the set because we are going to modify it
+            List<HostAndPort> groupCompactors = new ArrayList<>(e.getValue());
+            LOG.debug("There are {} compactors for queue {}", groupCompactors.size(), rgid);
+            if (failed.size() > 0) {
+              groupCompactors.removeAll(failed);
+            }
+            if (compactorsBusy.containsKey(rgid)) {
+              groupCompactors.removeAll(compactorsBusy.get(rgid));
+            }
+            LOG.debug(
+                "There are {} compactors for queue {} after removing failed and busy compactors",
+                groupCompactors.size(), rgid);
+            ExternalCompactionUtil.wakeCompactors(ctx,
+                groupCompactors.subList(0, Math.min(groupCompactors.size(), (int) numQueuedJobs)),
+                wakeThreads);
+          }
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(e);
+    } finally {
+      executor.shutdownNow();
+    }
   }
 }

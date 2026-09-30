@@ -20,6 +20,7 @@ package org.apache.accumulo.test.tracing;
 
 import static org.apache.accumulo.core.trace.TraceAttributes.EXECUTOR_KEY;
 import static org.apache.accumulo.core.trace.TraceAttributes.EXTENT_KEY;
+import static org.apache.accumulo.tserver.tablet.KVEntry.MEMORY_OVERHEAD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,6 +46,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -237,6 +239,8 @@ class ScanTracingIT extends ConfigurableMacBase {
       double colMultiplier = 10.0 / expectedColumns;
       assertClose((long) (results.scanSize * colMultiplier), stats.getBytesRead(), .05);
       assertClose(results.scanSize, stats.getBytesReturned(), .05);
+      assertEquals(stats.getBytesReturned() + KVEntry.MEMORY_OVERHEAD * stats.getEntriesReturned(),
+          stats.getMemoryUsed(), stats::toString);
       if (secondScanFitsInCache && i == 1) {
         assertEquals(0, stats.getFileBytesRead(), stats::toString);
         assertEquals(0, stats.getDataCacheMisses(), stats::toString);
@@ -342,6 +346,10 @@ class ScanTracingIT extends ConfigurableMacBase {
 
     long getBytesReturned() {
       return scanStats.getOrDefault(TraceAttributes.BYTES_RETURNED_KEY.getKey(), 0L);
+    }
+
+    long getMemoryUsed() {
+      return scanStats.getOrDefault(TraceAttributes.MEMORY_USED_KEY.getKey(), 0L);
     }
 
     long getDataCacheHits() {

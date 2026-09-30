@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.monitor.view;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
@@ -292,24 +291,6 @@ public class WebViews {
   }
 
   /**
-   * Returns the compactions template
-   *
-   * @return Scans model
-   */
-  @GET
-  @Path("compactions")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getCompactions() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Active Compactions");
-    model.put("template", "compactions.ftl");
-    model.put("js", "compactions.js");
-
-    return model;
-  }
-
-  /**
    * Returns the active compactions template.
    *
    * @return Active compactions model
@@ -437,30 +418,4 @@ public class WebViews {
 
     return model;
   }
-
-  /**
-   * Returns problem report template
-   *
-   * @param table Table ID to display problem details
-   * @return Problem report model
-   */
-  @GET
-  @Path("problems")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getProblems(
-      @QueryParam(TABLE_PARAM_KEY) @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Per-Table Problem Report");
-
-    model.put("template", "problems.ftl");
-    model.put("js", "problems.js");
-
-    if (table != null && !table.isBlank()) {
-      model.put("table", table);
-    }
-
-    return model;
-  }
-
 }

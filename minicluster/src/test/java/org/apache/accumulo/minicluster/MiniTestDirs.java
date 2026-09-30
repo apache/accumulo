@@ -16,35 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.file.rfile.compression;
+package org.apache.accumulo.minicluster;
 
-public class Lzo implements CompressionAlgorithmConfiguration {
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-  public static final String CODEC_LZO = "io.compression.codec.lzo.class";
+import org.apache.commons.io.FileUtils;
 
-  @Override
-  public String getName() {
-    return "lzo";
-  }
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-  @Override
-  public String getCodecClassName() {
-    return "org.apache.hadoop.io.compress.LzoCodec";
-  }
+// Trimmed copy of AccumuloITBase.createTestDir (can't depend on the test module). Keeps MAC
+// dirs under target/mini-tests so their logs still exist in case of failure for CI to upload.
+public class MiniTestDirs {
 
-  @Override
-  public String getCodecClassNameProperty() {
-    return CODEC_LZO;
-  }
-
-  @Override
-  public int getDefaultBufferSize() {
-    return 64 * 1024;
-  }
-
-  @Override
-  public String getBufferSizeProperty() {
-    return "io.compression.codec.lzo.buffersize";
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  public static Path createTestDir(String name) throws IOException {
+    Path testDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests", name);
+    FileUtils.deleteQuietly(testDir.toFile());
+    return Files.createDirectories(testDir);
   }
 
 }
