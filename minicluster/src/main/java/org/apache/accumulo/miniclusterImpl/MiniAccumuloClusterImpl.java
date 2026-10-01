@@ -744,7 +744,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               log.info("TServer " + tsActualCount + " present in ZooKeeper");
             }
           }
-          Thread.sleep(500);
+          if (tsActualCount < tsExpectedCount) {
+            Thread.sleep(500);
+          }
         }
       } catch (KeeperException e) {
         throw new IllegalStateException("Unable to read TServer information from zookeeper.", e);
