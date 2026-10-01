@@ -20,12 +20,13 @@ package org.apache.accumulo.core.classloader;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.spi.common.ContextClassLoaderEnvironment;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +53,8 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
 
   public static final String URL_PATTERN_PROPERTY =
       Property.GENERAL_ARBITRARY_PROP_PREFIX + "factory.class.loader.url.allowed.patterns";
+
+  private static final Pattern ENCODED_PATH_TRAVERSAL = Pattern.compile("(?i)%(?:25|2e|2f|5c)");
 
   // Cache the class loaders for re-use
   // WeakReferences are used so that the class loaders can be cleaned up when no longer needed
@@ -72,9 +77,28 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
   }
 
   // visible for tests
-  protected URL testContextAgainstPattern(String context)
-      throws MalformedURLException, URISyntaxException {
-    URL url = new URI(context).normalize().toURL();
+  protected URL testContextAgainstPattern(String context) throws IOException, URISyntaxException {
+    final URI uri = new URI(context).normalize();
+    URL url;
+    if ("file".equalsIgnoreCase(uri.getScheme())) {
+      // Match and return the actual filesystem target, not the possibly traversing URL spelling.
+      // toRealPath also resolves symbolic links, so an allowed path cannot escape via a symlink.
+      Path realPath = Path.of(uri).toRealPath();
+      url = realPath.toUri().toURL();
+    } else if ("hdfs".equalsIgnoreCase(uri.getScheme())) {
+      // Match and return the actual filesystem target, not the possibly traversing URL spelling.
+      // resolvePath also resolves symbolic links, so an allowed path cannot escape via a symlink.
+      // This may subsequently fail if the HdfsURLStreamHandlerProvider is not on the classpath
+      org.apache.hadoop.fs.Path resolved =
+          FileSystem.get(uri, new Configuration()).resolvePath(new org.apache.hadoop.fs.Path(uri));
+      url = resolved.toUri().toURL();
+    } else {
+      String rawPath = uri.getRawPath();
+      checkArgument(rawPath == null || !ENCODED_PATH_TRAVERSAL.matcher(rawPath).find(),
+          "Context %s contains encoded path traversal characters in URL path (%s)", context,
+          rawPath);
+      url = uri.toURL();
+    }
     checkArgument(urlPattern.matcher(url.toExternalForm()).matches(),
         "Context %s URL (%s) not allowed by pattern (%s)", context, url.toExternalForm(),
         urlPattern.pattern());
@@ -94,10 +118,10 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
 
     return classloaders.get(context, k -> {
       LOG.debug("Creating URLClassLoader for context, uris: {}", context);
-      return new URLClassLoader(Arrays.stream(context.split(",")).map(p -> {
+      return new URLClassLoader(Arrays.stream(context.split(",")).map(ctx -> {
         try {
-          return testContextAgainstPattern(p);
-        } catch (MalformedURLException e) {
+          return testContextAgainstPattern(ctx);
+        } catch (IOException e) {
           throw new UncheckedIOException(e);
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(e);
