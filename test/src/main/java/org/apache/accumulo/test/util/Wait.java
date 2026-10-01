@@ -58,8 +58,9 @@ public class Wait {
   }
 
   /**
-   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
-   * default wait period of 30 seconds and a retry period of 1 second.
+   * Wait for the provided condition - will throw an IllegalStateException if the wait exceeds the
+   * default wait period of {@link #MAX_WAIT_MILLIS} with a retry period of {@link #SLEEP_MILLIS}.
+   * Both are scaled by the timeout factor.
    *
    * @param condition when condition evaluates true, return from wait
    */
@@ -68,8 +69,22 @@ public class Wait {
   }
 
   /**
-   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
-   * wait duration with a default retry period of 1 second.
+   * Wait for the provided condition - will throw an IllegalStateException if the wait exceeds the
+   * default wait period of {@link #MAX_WAIT_MILLIS} with a retry period of {@link #SLEEP_MILLIS}.
+   * Both are scaled by the timeout factor.
+   *
+   * @param condition when condition evaluates true, return from wait
+   * @param failMessage optional message to include in IllegalStateException if condition not met
+   *        before expiration.
+   */
+  public static void waitFor(final Condition condition, final String failMessage) {
+    waitFor(condition, MAX_WAIT_MILLIS, SLEEP_MILLIS, failMessage);
+  }
+
+  /**
+   * Wait for the provided condition - will throw an IllegalStateException if the wait exceeds the
+   * given wait duration with a default retry period of {@link #SLEEP_MILLIS}. Both are scaled by
+   * the timeout factor.
    *
    * @param condition when condition evaluates true, return from wait
    * @param duration maximum total time to wait (milliseconds)
@@ -79,8 +94,8 @@ public class Wait {
   }
 
   /**
-   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
-   * wait period.
+   * Wait for the provided condition - will throw an IllegalStateException if the wait exceeds the
+   * given wait duration.
    *
    * @param condition when condition evaluates true, return from wait
    * @param duration maximum total time to wait (milliseconds)
@@ -92,8 +107,8 @@ public class Wait {
   }
 
   /**
-   * Wait for the provided condition - will throw an IllegalStateException is the wait exceeds the
-   * wait period.
+   * Wait for the provided condition - will throw an IllegalStateException if the wait exceeds the
+   * given wait duration.
    *
    * @param condition when condition evaluates true, return from wait
    * @param duration maximum total time to wait (milliseconds)
