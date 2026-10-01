@@ -349,6 +349,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           try {
+            tabletServerProcesses.forEach(Process::destroy); // signal all first to stop in parallel
             for (Process tserver : tabletServerProcesses) {
               try {
                 cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
@@ -379,6 +380,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
           try {
+            scanServerProcesses.forEach(Process::destroy); // signal all first to stop in parallel
             for (Process sserver : scanServerProcesses) {
               try {
                 cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
@@ -409,6 +411,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case COMPACTOR:
         synchronized (compactorProcesses) {
           try {
+            compactorProcesses.forEach(Process::destroy); // signal all first to stop in parallel
             for (Process compactor : compactorProcesses) {
               try {
                 cluster.stopProcessWithTimeout(compactor, 30, TimeUnit.SECONDS);
