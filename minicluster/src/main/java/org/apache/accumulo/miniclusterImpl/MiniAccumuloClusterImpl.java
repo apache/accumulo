@@ -869,7 +869,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
-      Thread.sleep(500);
+      if (tsActualCount < tsExpectedCount) {
+        Thread.sleep(500);
+      }
     }
 
     int ssActualCount = 0;
@@ -878,7 +880,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
-      Thread.sleep(500);
+      if (ssActualCount < ssExpectedCount) {
+        Thread.sleep(500);
+      }
     }
 
     int ecActualCount = 0;
@@ -887,7 +891,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
-      Thread.sleep(500);
+      if (ecActualCount < ecExpectedCount) {
+        Thread.sleep(500);
+      }
     }
 
     while (context.getServerPaths().getManager(true) == null) {
