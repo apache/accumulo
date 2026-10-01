@@ -22,6 +22,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
@@ -64,8 +66,19 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
     if (urlPatternProperty == null) {
       LOG.warn("Property " + URL_PATTERN_PROPERTY + " not set, no contexts are allowed");
     } else {
-      urlPattern = Pattern.compile(urlPatternProperty);
+      urlPattern =
+          Pattern.compile(urlPatternProperty.replaceAll(":///", ":/").replaceAll("://", ":/"));
     }
+  }
+
+  // visible for tests
+  protected URL testContextAgainstPattern(String context)
+      throws MalformedURLException, URISyntaxException {
+    URL url = new URI(context).normalize().toURL();
+    checkArgument(urlPattern.matcher(url.toExternalForm()).matches(),
+        "Context %s URL (%s) not allowed by pattern (%s)", context, url.toExternalForm(),
+        urlPattern.pattern());
+    return url;
   }
 
   @Override
@@ -83,13 +96,11 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
       LOG.debug("Creating URLClassLoader for context, uris: {}", context);
       return new URLClassLoader(Arrays.stream(context.split(",")).map(p -> {
         try {
-          URL url = new URL(p);
-          checkArgument(urlPattern.matcher(url.toExternalForm()).matches(),
-              "Context %s URL (%s) not allowed by pattern (%s)", context, url.toExternalForm(),
-              urlPattern.pattern());
-          return url;
+          return testContextAgainstPattern(p);
         } catch (MalformedURLException e) {
           throw new UncheckedIOException(e);
+        } catch (URISyntaxException e) {
+          throw new IllegalArgumentException(e);
         }
       }).toArray(URL[]::new), ClassLoader.getSystemClassLoader());
     });
