@@ -46,6 +46,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -596,13 +597,12 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
 
       for (int i = 4; i > 0; i--) {
+        final int expectedChildren = i;
+        Wait.waitFor(() -> zk.getChildren(parent.toString(), null).size() == expectedChildren,
+            30_000, 100, "Unexpected number of lock children");
         List<String> children =
             ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString(), null));
-        while (children.size() != i) {
-          Thread.sleep(100);
-          children = zk.getChildren(parent.toString(), null);
-        }
-        assertEquals(i, children.size());
+        assertEquals(expectedChildren, children.size());
         String first = children.get(0);
         int workerWithLock = parseLockWorkerName(first);
         LockWorker worker = workers.get(workerWithLock);

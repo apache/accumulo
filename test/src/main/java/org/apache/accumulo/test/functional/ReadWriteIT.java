@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.HostnameVerifier;
@@ -47,7 +46,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -56,6 +54,7 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Tag;
@@ -97,14 +96,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
       ingest(accumuloClient, ROWS, COLS, 50, 0, tableName);
       verify(accumuloClient, ROWS, COLS, 50, 0, tableName);
-      String monitorLocation = null;
-      while (monitorLocation == null) {
-        monitorLocation = MonitorUtil.getLocation((ClientContext) accumuloClient);
-        if (monitorLocation == null) {
-          log.debug("Could not fetch monitor HTTP address from zookeeper");
-          Thread.sleep(2000);
-        }
-      }
+      String[] monitorLocation = {null};
+      Wait.waitFor(() -> {
+        monitorLocation[0] = MonitorUtil.getLocation((ClientContext) accumuloClient);
+        return monitorLocation[0] != null;
+      }, 30_000, 250, "Monitor location was not published to ZooKeeper");
+      String monitorAddress = monitorLocation[0];
       if (getCluster() instanceof StandaloneAccumuloCluster) {
         String monitorSslKeystore =
             getCluster().getSiteConfiguration().get(Property.MONITOR_SSL_KEYSTORE);
@@ -119,22 +116,17 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
-      var url = new URI(monitorLocation).toURL();
+      var url = new URI(monitorAddress).toURL();
       log.debug("Fetching web page {}", url);
       String result = FunctionalTestUtils.readWebPage(url).body();
       assertTrue(result.length() > 100);
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();
       control.adminStopAll();
-      Optional<ServiceLockData> managerLockData;
-      do {
-        managerLockData = ServiceLock.getLockData(cluster.getServerContext().getZooCache(),
-            getServerContext().getServerPaths().createManagerPath(), null);
-        if (managerLockData.isPresent()) {
-          log.info("Manager lock is still held");
-          Thread.sleep(1000);
-        }
-      } while (managerLockData.isPresent());
+      Wait.waitFor(
+          () -> ServiceLock.getLockData(cluster.getServerContext().getZooCache(),
+              getServerContext().getServerPaths().createManagerPath(), null).isEmpty(),
+          30_000, 250, "Manager lock was not released during shutdown");
       control.stopAllServers(ServerType.MANAGER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
