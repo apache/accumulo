@@ -328,7 +328,7 @@ public class TabletServerLogger {
             // it's possible the log was advertised in ZK even though we got an
             // exception. If there's a chance the WAL marker may have been created,
             // this will ensure it's closed. Either the close will be written and
-            // the GC will clean it up, or the tserver is about to die due to sesson
+            // the GC will clean it up, or the tserver is about to die due to session
             // expiration and the GC will also clean it up.
             try {
               tserver.walogClosed(alog);
@@ -371,6 +371,8 @@ public class TabletServerLogger {
       if (currentLog != null) {
         try {
           currentLog.close();
+          log.info("Closing write-ahead log: {}, entries written: {}, bytes written: {}",
+              currentLog.getFileName(), currentLog.getWrites(), currentLog.getBytesWritten());
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Exception ex) {
