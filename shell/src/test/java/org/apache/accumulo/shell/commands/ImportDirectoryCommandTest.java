@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -126,5 +127,11 @@ public class ImportDirectoryCommandTest {
 
     replay(client, cli, shellState, tableOperations, bulkImport);
     cmd.execute("importdirectory in_dir false", cli, shellState);
+  }
+
+  @Test
+  public void testDescriptionDoesNotContainLineBreak() {
+    replay(client, cli, shellState, tableOperations, bulkImport);
+    assertFalse(cmd.description().contains("\n"));
   }
 }

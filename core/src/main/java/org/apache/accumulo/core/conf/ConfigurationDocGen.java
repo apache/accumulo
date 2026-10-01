@@ -88,8 +88,12 @@ public class ConfigurationDocGen {
     if (depr) {
       description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
       if (prefix.isReplaced()) {
-        description += "*Replaced by:* <a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
-            + "prefix\">" + prefix.replacedBy() + "</a><br>";
+        Property replacement = prefix.replacedBy();
+        String anchor = replacement.getKey().replace(".", "_");
+        if (replacement.getType() == PropertyType.PREFIX) {
+          anchor += "prefix";
+        }
+        description += "*Replaced by:* <a href=\"#" + anchor + "\">" + replacement + "</a><br>";
       }
     }
     description += strike(sanitize(prefix.getDescription()), depr);
