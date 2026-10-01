@@ -568,7 +568,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return writes;
   }
 
-  public synchronized long size() {
+  public synchronized long getBytesWritten() {
     Objects.requireNonNull(logFile, "logFile is null");
     return logFile.getPos();
   }

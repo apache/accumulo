@@ -372,7 +372,7 @@ public class TabletServerLogger {
         try {
           currentLog.close();
           log.info("Closing write-ahead log: {}, entries written: {}, bytes written: {}",
-              currentLog.getFileName(), currentLog.getWrites(), currentLog.size());
+              currentLog.getFileName(), currentLog.getWrites(), currentLog.getBytesWritten());
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Exception ex) {
