@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -97,9 +96,9 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Collections2;
 
 @SuppressWarnings("removal")
@@ -108,7 +107,7 @@ public class CompactableUtils {
   private static final Logger log = LoggerFactory.getLogger(CompactableUtils.class);
 
   private final static Cache<TableId,Boolean> strategyWarningsCache =
-      CacheBuilder.newBuilder().maximumSize(1000).build();
+      Caffeine.newBuilder().maximumSize(1000).build();
 
   public static Map<StoredTabletFile,Pair<Key,Key>> getFirstAndLastKeys(Tablet tablet,
       Set<StoredTabletFile> allFiles) throws IOException {
@@ -510,18 +509,14 @@ public class CompactableUtils {
       var stratClassName = tconf.get(Property.TABLE_COMPACTION_STRATEGY);
       if (cselCfg == null && tconf.isPropertySet(Property.TABLE_COMPACTION_STRATEGY)
           && stratClassName != null && !stratClassName.isBlank()) {
-        try {
-          strategyWarningsCache.get(tablet.getExtent().tableId(), () -> {
-            log.warn(
-                "Table id {} set {} to {}.  Compaction strategies are deprecated.  See the Javadoc"
-                    + " for class {} for more details.",
-                tablet.getExtent().tableId(), Property.TABLE_COMPACTION_STRATEGY.getKey(),
-                stratClassName, CompactionStrategyConfig.class.getName());
-            return true;
-          });
-        } catch (ExecutionException e) {
-          throw new RuntimeException(e);
-        }
+        var unused = strategyWarningsCache.get(tablet.getExtent().tableId(), k -> {
+          log.warn(
+              "Table id {} set {} to {}.  Compaction strategies are deprecated.  See the Javadoc"
+                  + " for class {} for more details.",
+              tablet.getExtent().tableId(), Property.TABLE_COMPACTION_STRATEGY.getKey(),
+              stratClassName, CompactionStrategyConfig.class.getName());
+          return true;
+        });
 
         var opts =
             tconf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
