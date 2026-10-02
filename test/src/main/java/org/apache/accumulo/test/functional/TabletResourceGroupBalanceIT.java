@@ -301,14 +301,20 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     locations = getLocations(ample, tableId);
     // wait for GROUP1 to show up in the list of locations as the current location
-    while ((locations == null || locations.isEmpty() || locations.size() != numExpectedSplits
-        || locations.get(0).getLocation() == null
-        || locations.get(0).getLocation().getType() == LocationType.FUTURE)
-        || (locations.get(0).getLocation().getType() == LocationType.CURRENT
-            && !tserverGroups.get(locations.get(0).getLocation().getHostAndPort().toString())
-                .equals(ResourceGroupId.of("GROUP1")))) {
-      locations = getLocations(ample, tableId);
-    }
+    AtomicReference<List<TabletMetadata>> locationsRef = new AtomicReference<>(locations);
+    Wait.waitFor(() -> {
+      List<TabletMetadata> currentLocations = getLocations(ample, tableId);
+      locationsRef.set(currentLocations);
+      return !((currentLocations == null || currentLocations.isEmpty()
+          || currentLocations.size() != numExpectedSplits
+          || currentLocations.get(0).getLocation() == null
+          || currentLocations.get(0).getLocation().getType() == LocationType.FUTURE)
+          || (currentLocations.get(0).getLocation().getType() == LocationType.CURRENT
+              && !tserverGroups
+                  .get(currentLocations.get(0).getLocation().getHostAndPort().toString())
+                  .equals(ResourceGroupId.of("GROUP1"))));
+    }, 30_000, 250, "Tablets were not assigned to GROUP1");
+    locations = locationsRef.get();
     Location group1Location = locations.get(0).getLocation();
     assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString())
         .equals(ResourceGroupId.of("GROUP1")));
@@ -317,9 +323,14 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     // validate that all tablets have the same location as the first tablet
     locations = getLocations(ample, tableId);
-    while (locations == null || locations.isEmpty() || locations.size() != numExpectedSplits) {
-      locations = getLocations(ample, tableId);
-    }
+    locationsRef.set(locations);
+    Wait.waitFor(() -> {
+      List<TabletMetadata> currentLocations = getLocations(ample, tableId);
+      locationsRef.set(currentLocations);
+      return currentLocations != null && !currentLocations.isEmpty()
+          && currentLocations.size() == numExpectedSplits;
+    }, 30_000, 250, "Tablets did not reach the expected count");
+    locations = locationsRef.get();
     if (locations.stream().map(TabletMetadata::getLocation)
         .allMatch((l) -> group1Location.equals(l))) {
       LOG.info("Group1 location: {} matches all tablet locations: {}", group1Location,

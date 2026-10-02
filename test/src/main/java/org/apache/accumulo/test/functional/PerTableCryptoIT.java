@@ -54,6 +54,7 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.logger.LogReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -218,30 +219,24 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
 
   private void checkWALEncryption() throws Exception {
     Set<String> walsSeen = new HashSet<>();
-    int open = 0;
-    int attempts = 0;
-    boolean foundWal = false;
-    while (open == 0) {
-      attempts++;
+    int[] attempts = {0};
+    Wait.waitFor(() -> {
+      attempts[0]++;
+      walsSeen.clear();
       Map<String,WalStateManager.WalState> wals = WALSunnyDayIT._getWals(getServerContext());
       for (var entry : wals.entrySet()) {
         if (entry.getValue() == WalStateManager.WalState.OPEN) {
-          open++;
           walsSeen.add(entry.getKey());
-          foundWal = true;
         } else {
           // log CLOSED or UNREFERENCED to help debug this test
           log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue());
         }
       }
-
-      if (!foundWal) {
-        Thread.sleep(50);
-        if (attempts % 50 == 0) {
-          log.debug("No open WALs found in {} attempts.", attempts);
-        }
+      if (walsSeen.isEmpty() && attempts[0] % 50 == 0) {
+        log.debug("No open WALs found in {} attempts.", attempts[0]);
       }
-    }
+      return !walsSeen.isEmpty();
+    }, 30_000, 50, "No open WALs found");
 
     assertFalse(walsSeen.isEmpty(), "Did not see any WALs");
 

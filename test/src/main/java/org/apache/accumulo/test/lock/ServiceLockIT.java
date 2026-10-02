@@ -36,7 +36,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -483,9 +482,7 @@ public class ServiceLockIT {
       assertFalse(zl1.verifyLockAtSource());
       zk1.close();
 
-      while (!zlw2.isLockHeld()) {
-        LockSupport.parkNanos(50);
-      }
+      Wait.waitFor(zlw2::isLockHeld, 5_000, 50, "Second lock worker did not acquire the lock");
 
       assertTrue(zlw2.isLockHeld());
       assertTrue(zl2.verifyLockAtSource());

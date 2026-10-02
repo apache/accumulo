@@ -81,6 +81,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -560,21 +561,21 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
 
     c.namespaceOperations().addConstraint(namespace, constraintClassName);
     // loop until constraint is seen (or until test timeout)
-    while (!c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)
-        || !c.tableOperations().listConstraints(t1).containsKey(constraintClassName)) {
-      Thread.sleep(500);
-    }
+    Wait.waitFor(
+        () -> c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)
+            && c.tableOperations().listConstraints(t1).containsKey(constraintClassName),
+        30_000, 250, "Constraint was not propagated to the namespace and table");
 
-    Integer namespaceNum = null;
-    Integer tableNum = null;
+    Integer[] constraintNums = new Integer[2];
     // loop until constraint is seen in namespace and table (or until test times out)
-    while (namespaceNum == null || tableNum == null) {
-      namespaceNum = c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
-      tableNum = c.tableOperations().listConstraints(t1).get(constraintClassName);
-      if (namespaceNum == null || tableNum == null) {
-        Thread.sleep(500);
-      }
-    }
+    Wait.waitFor(() -> {
+      constraintNums[0] = c.namespaceOperations().listConstraints(namespace)
+          .get(constraintClassName);
+      constraintNums[1] = c.tableOperations().listConstraints(t1).get(constraintClassName);
+      return constraintNums[0] != null && constraintNums[1] != null;
+    }, 30_000, 250, "Constraint IDs were not propagated to the namespace and table");
+    Integer namespaceNum = constraintNums[0];
+    Integer tableNum = constraintNums[1];
     assertEquals(namespaceNum, tableNum);
 
     Mutation m1 = new Mutation("r1");
@@ -585,41 +586,39 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     m3.put("c", "d", new Value("zyxwv"));
 
     // loop until constraint is activated and rejects mutations (or until test timeout)
-    boolean mutationsRejected = false;
-    while (!mutationsRejected) {
+    Wait.waitFor(() -> {
       BatchWriter bw = c.createBatchWriter(t1);
       bw.addMutations(Arrays.asList(m1, m2, m3));
       try {
         bw.close();
-        Thread.sleep(500);
+        return false;
       } catch (MutationsRejectedException e) {
-        mutationsRejected = true;
         assertEquals(1, e.getConstraintViolationSummaries().size());
         assertEquals(2, e.getConstraintViolationSummaries().get(0).getNumberOfViolatingMutations());
+        return true;
       }
-    }
+    }, 30_000, 250, "Constraint did not become active and reject invalid mutations");
 
     assertNotNull(namespaceNum, "Namespace constraint ID should not be null");
     c.namespaceOperations().removeConstraint(namespace, namespaceNum);
 
     // loop until constraint is removed from config (or until test timeout)
-    while (c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)
-        || c.tableOperations().listConstraints(t1).containsKey(constraintClassName)) {
-      Thread.sleep(500);
-    }
+    Wait.waitFor(
+        () -> !c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)
+            && !c.tableOperations().listConstraints(t1).containsKey(constraintClassName),
+        30_000, 250, "Constraint was not removed from the namespace and table");
 
     // loop until constraint is removed and stops rejecting (or until test timeout)
-    boolean mutationsAccepted = false;
-    while (!mutationsAccepted) {
+    Wait.waitFor(() -> {
       BatchWriter bw = c.createBatchWriter(t1);
       try {
         bw.addMutations(Arrays.asList(m1, m2, m3));
         bw.close();
-        mutationsAccepted = true;
+        return true;
       } catch (MutationsRejectedException e) {
-        Thread.sleep(500);
+        return false;
       }
-    }
+    }, 30_000, 250, "Mutations continued to be rejected after constraint removal");
   }
 
   @Test

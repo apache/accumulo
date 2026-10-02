@@ -170,35 +170,32 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private void addOpenWals(ServerContext c, Set<String> allWalsSeen) throws Exception {
 
-    int open = 0;
-    int attempts = 0;
-    boolean foundWal = false;
+    int[] open = {0};
+    int[] attempts = {0};
 
-    while (open == 0) {
-      attempts++;
+    Wait.waitFor(() -> {
+      attempts[0]++;
+      open[0] = 0;
       Map<String,WalState> wals = WALSunnyDayIT._getWals(c);
       Set<Entry<String,WalState>> es = wals.entrySet();
       for (Entry<String,WalState> entry : es) {
         if (entry.getValue() == WalState.OPEN) {
-          open++;
+          open[0]++;
           allWalsSeen.add(entry.getKey());
-          foundWal = true;
         } else {
           // log CLOSED or UNREFERENCED to help debug this test
           log.debug("The WalState for {} is {}", entry.getKey(), entry.getValue());
         }
       }
 
-      if (!foundWal) {
-        Thread.sleep(50);
-        if (attempts % 50 == 0) {
-          log.debug("No open WALs found in {} attempts.", attempts);
-        }
+      if (open[0] == 0 && attempts[0] % 50 == 0) {
+        log.debug("No open WALs found in {} attempts.", attempts[0]);
       }
-    }
+      return open[0] > 0;
+    }, 30_000, 250, "No open WALs found");
 
-    log.debug("It took {} attempt(s) to find {} open WALs", attempts, open);
-    assertTrue(open > 0 && open < 4, "Open WALs not in expected range " + open);
+    log.debug("It took {} attempt(s) to find {} open WALs", attempts[0], open[0]);
+    assertTrue(open[0] > 0 && open[0] < 4, "Open WALs not in expected range " + open[0]);
   }
 
   private int countClosedWals(ServerContext c) throws Exception {

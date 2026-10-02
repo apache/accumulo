@@ -453,18 +453,15 @@ public class CompactionIT extends CompactionITBase {
       };
 
       // wait until the filtering done by all three compactions is seen
-      while (!expected.equals(actualSupplier.get())) {
-        Thread.sleep(250);
-      }
+      Wait.waitFor(() -> expected.equals(actualSupplier.get()), 30_000, 250,
+          "Concurrent compactions did not filter the expected data");
 
       // eventually the compactions should clean up all of their metadata, wait for this to happen
-      while (countTablets(tableName,
+      Wait.waitFor(() -> countTablets(tableName,
           tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
               || tabletMetadata.getSelectedFiles() != null
-              || !tabletMetadata.getExternalCompactions().isEmpty())
-          > 0) {
-        Thread.sleep(250);
-      }
+              || !tabletMetadata.getExternalCompactions().isEmpty()) == 0,
+          30_000, 250, "Concurrent compactions did not clean up their metadata");
     }
   }
 
@@ -555,18 +552,15 @@ public class CompactionIT extends CompactionITBase {
       };
 
       // wait until the filtering done by all three compactions is seen
-      while (!expected.equals(actualSupplier.get())) {
-        Thread.sleep(250);
-      }
+      Wait.waitFor(() -> expected.equals(actualSupplier.get()), 30_000, 250,
+          "Concurrent compactions did not filter the expected data");
 
       // eventually the compactions should clean up all of their metadata, wait for this to happen
-      while (countTablets(tableName,
+      Wait.waitFor(() -> countTablets(tableName,
           tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
               || tabletMetadata.getSelectedFiles() != null
-              || !tabletMetadata.getExternalCompactions().isEmpty())
-          > 0) {
-        Thread.sleep(250);
-      }
+              || !tabletMetadata.getExternalCompactions().isEmpty()) == 0,
+          30_000, 250, "Concurrent compactions did not clean up their metadata");
     }
   }
 
@@ -1174,7 +1168,8 @@ public class CompactionIT extends CompactionITBase {
       started.await();
 
       List<ActiveCompaction> compactions = new ArrayList<>();
-      do {
+      Wait.waitFor(() -> {
+        compactions.clear();
         getActiveCompactions(client.instanceOperations()).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
@@ -1184,15 +1179,16 @@ public class CompactionIT extends CompactionITBase {
             fail("Table was deleted during test, should not happen");
           }
         });
-        Thread.sleep(1000);
-      } while (compactions.isEmpty());
+        return !compactions.isEmpty();
+      }, 30_000, 1_000, "Compaction did not become active");
 
       ActiveCompaction running1 = compactions.get(0);
       ServerId host = running1.getServerId();
       assertTrue(host.getType() == ServerId.Type.COMPACTOR);
 
       compactions.clear();
-      do {
+      Wait.waitFor(() -> {
+        compactions.clear();
         client.instanceOperations().getActiveCompactions(List.of(host)).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
@@ -1202,8 +1198,8 @@ public class CompactionIT extends CompactionITBase {
             fail("Table was deleted during test, should not happen");
           }
         });
-        Thread.sleep(1000);
-      } while (compactions.isEmpty());
+        return !compactions.isEmpty();
+      }, 30_000, 1_000, "Compaction did not resume on the compactor");
 
       ActiveCompaction running2 = compactions.get(0);
       assertEquals(running1.getInputFiles(), running2.getInputFiles());

@@ -391,9 +391,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       addFiles(client, "dst1", 1);
       addFiles(client, "dst2", 1);
 
-      while (getFiles(client, "dst1").size() > 3 || getFiles(client, "dst2").size() > 2) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(
+          () -> getFiles(client, "dst1").size() <= 3 && getFiles(client, "dst2").size() <= 2, 30_000,
+          100, "Compaction did not reduce dst1 and dst2 to the expected file counts");
 
       assertEquals(3, getFiles(client, "dst1").size());
       assertEquals(2, getFiles(client, "dst2").size());
@@ -425,9 +425,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       client.tableOperations().compact("dut2", new CompactionConfig().setWait(false)
           .setExecutionHints(Map.of("compaction_type", "special")));
 
-      while (getFiles(client, "dut1").size() > 2 || getFiles(client, "dut2").size() > 3) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(
+          () -> getFiles(client, "dut1").size() <= 2 && getFiles(client, "dut2").size() <= 3, 30_000,
+          100, "Compaction did not reduce dut1 and dut2 to the expected file counts");
 
       assertEquals(2, getFiles(client, "dut1").size());
       assertEquals(3, getFiles(client, "dut2").size());

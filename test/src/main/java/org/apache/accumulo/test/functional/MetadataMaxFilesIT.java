@@ -32,6 +32,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -76,15 +77,12 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       TableId tid0 = TableId.of(c.tableOperations().tableIdMap().get("table0"));
       TableId tid1 = TableId.of(c.tableOperations().tableIdMap().get("table1"));
 
-      while (true) {
+      Wait.waitFor(() -> {
         long hostedTabletCount = ManagerAssignmentIT.countTabletsWithLocation(c, tid0)
             + ManagerAssignmentIT.countTabletsWithLocation(c, tid1);
         log.info("Online tablets " + hostedTabletCount);
-        if (hostedTabletCount == 2002) {
-          break;
-        }
-        Thread.sleep(SECONDS.toMillis(1));
-      }
+        return hostedTabletCount == 2002;
+      }, 30_000, SECONDS.toMillis(1), "Hosted tablet count did not reach 2002");
     }
   }
 }
