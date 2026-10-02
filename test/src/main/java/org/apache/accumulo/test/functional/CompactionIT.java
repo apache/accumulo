@@ -457,10 +457,12 @@ public class CompactionIT extends CompactionITBase {
           "Concurrent compactions did not filter the expected data");
 
       // eventually the compactions should clean up all of their metadata, wait for this to happen
-      Wait.waitFor(() -> countTablets(tableName,
-          tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
-              || tabletMetadata.getSelectedFiles() != null
-              || !tabletMetadata.getExternalCompactions().isEmpty()) == 0,
+      Wait.waitFor(
+          () -> countTablets(tableName,
+              tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
+                  || tabletMetadata.getSelectedFiles() != null
+                  || !tabletMetadata.getExternalCompactions().isEmpty())
+              == 0,
           30_000, 250, "Concurrent compactions did not clean up their metadata");
     }
   }
@@ -556,10 +558,12 @@ public class CompactionIT extends CompactionITBase {
           "Concurrent compactions did not filter the expected data");
 
       // eventually the compactions should clean up all of their metadata, wait for this to happen
-      Wait.waitFor(() -> countTablets(tableName,
-          tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
-              || tabletMetadata.getSelectedFiles() != null
-              || !tabletMetadata.getExternalCompactions().isEmpty()) == 0,
+      Wait.waitFor(
+          () -> countTablets(tableName,
+              tabletMetadata -> !tabletMetadata.getCompacted().isEmpty()
+                  || tabletMetadata.getSelectedFiles() != null
+                  || !tabletMetadata.getExternalCompactions().isEmpty())
+              == 0,
           30_000, 250, "Concurrent compactions did not clean up their metadata");
     }
   }

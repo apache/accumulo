@@ -263,13 +263,11 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
 
     // Wait for there to be the expected number of managers in zookeeper. After manager processes
     // are killed these entries in zookeeper may persist for a bit.
-    Wait.waitFor(
-        () -> context.getServerPaths()
-            .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true).size()
-                == expectedManagers,
-        120_000, 250, "Expected manager count was not reached");
-    var assistants = context.getServerPaths()
-        .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
+    Wait.waitFor(() -> context.getServerPaths()
+        .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true).size()
+        == expectedManagers, 120_000, 250, "Expected manager count was not reached");
+    var assistants =
+        context.getServerPaths().getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
 
     var expectedServers = assistants.stream().map(ServiceLockPath::getServer)
         .map(HostAndPort::fromString).collect(toSet());

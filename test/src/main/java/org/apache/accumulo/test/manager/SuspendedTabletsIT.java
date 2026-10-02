@@ -290,7 +290,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         Wait.waitFor(() -> {
           observed[0] = TabletLocations.retrieve(ctx, tableName);
           return observed[0].hostedCount == TABLETS;
-        }, 120_000, 250, "Remaining suspended tablets were not reassigned after suspension timeout");
+        }, 120_000, 250,
+            "Remaining suspended tablets were not reassigned after suspension timeout");
         ds = observed[0];
 
         // Ensure all suspension markers in the metadata table were cleared.

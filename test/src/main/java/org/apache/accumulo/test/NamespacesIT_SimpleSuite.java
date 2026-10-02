@@ -569,8 +569,8 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     Integer[] constraintNums = new Integer[2];
     // loop until constraint is seen in namespace and table (or until test times out)
     Wait.waitFor(() -> {
-      constraintNums[0] = c.namespaceOperations().listConstraints(namespace)
-          .get(constraintClassName);
+      constraintNums[0] =
+          c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
       constraintNums[1] = c.tableOperations().listConstraints(t1).get(constraintClassName);
       return constraintNums[0] != null && constraintNums[1] != null;
     }, 30_000, 250, "Constraint IDs were not propagated to the namespace and table");

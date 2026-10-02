@@ -209,10 +209,11 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
           }
           return found;
         } catch (Exception ex) {
-          log.debug("Find fate failed for table name {} with exception, will retry", aTableName, ex);
+          log.debug("Find fate failed for table name {} with exception, will retry", aTableName,
+              ex);
           return false;
         }
-      // Keep the original five lookup attempts at 150 ms intervals.
+        // Keep the original five lookup attempts at 150 ms intervals.
       }, 600, 150, "FATE operation was not found for table " + aTableName);
       return true;
     } catch (IllegalStateException ex) {

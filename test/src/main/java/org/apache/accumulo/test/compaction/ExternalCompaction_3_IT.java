@@ -142,9 +142,9 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       Wait.waitFor(() -> {
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forTable(tid).fetch(ColumnType.ECOMP).build()) {
-          Set<ExternalCompactionId> ecids2 = tm.stream()
-              .flatMap(t -> t.getExternalCompactions().keySet().stream())
-              .collect(Collectors.toSet());
+          Set<ExternalCompactionId> ecids2 =
+              tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
+                  .collect(Collectors.toSet());
           return Collections.disjoint(ecids, ecids2);
         }
       });
@@ -229,8 +229,8 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
     }
   }
 
-  private Map<ExternalCompactionId,RunningCompactionInfo> getRunningCompactionInformation(
-      ServerContext ctx, Set<ExternalCompactionId> ecids) {
+  private Map<ExternalCompactionId,RunningCompactionInfo>
+      getRunningCompactionInformation(ServerContext ctx, Set<ExternalCompactionId> ecids) {
 
     final Map<ExternalCompactionId,RunningCompactionInfo> results = new HashMap<>();
 
@@ -254,7 +254,8 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             // an actual update from the Compactor.
             TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(tec.getUpdates());
             var lastEntry = sorted.lastEntry();
-            if (lastEntry.getValue().getMessage().equals(CompactionCoordinator.RESTART_UPDATE_MSG)) {
+            if (lastEntry.getValue().getMessage()
+                .equals(CompactionCoordinator.RESTART_UPDATE_MSG)) {
               continue;
             }
             results.put(ecid, new RunningCompactionInfo(tec));

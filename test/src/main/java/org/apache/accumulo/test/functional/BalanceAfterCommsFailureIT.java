@@ -100,8 +100,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
     Wait.waitFor(() -> {
       Map<String,Integer> tableLocations = BalanceIT.countLocations(c, "test");
-      long unassignedTablets = tableLocations.entrySet().stream()
-          .filter(e -> e.getKey().equals("none")).count();
+      long unassignedTablets =
+          tableLocations.entrySet().stream().filter(e -> e.getKey().equals("none")).count();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
             unassignedTablets);
@@ -110,8 +110,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     }, 30_000, 3_000, "Unassigned tablets were not assigned within 30 seconds");
 
     Map<String,Integer> tableLocations = BalanceIT.countLocations(c, "test");
-    long unassignedTablets = tableLocations.entrySet().stream()
-        .filter(e -> e.getKey().equals("none")).count();
+    long unassignedTablets =
+        tableLocations.entrySet().stream().filter(e -> e.getKey().equals("none")).count();
     assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 30 seconds");
     assertNotNull(tableLocations);
     assertTrue(tableLocations.size() > 1, "Expected to have at least two TabletServers");
