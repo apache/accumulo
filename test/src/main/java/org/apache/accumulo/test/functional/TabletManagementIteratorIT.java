@@ -96,7 +96,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -104,6 +103,7 @@ import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -191,14 +191,15 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       Map<KeyExtent,Set<TabletManagement.ManagementAction>> expected;
 
       TabletManagementParameters tabletMgmtParams = createParameters(client);
-      Map<KeyExtent,Set<TabletManagement.ManagementAction>> tabletsInFlux =
-          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false);
-      while (!tabletsInFlux.isEmpty()) {
-        log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
-        UtilWaitThread.sleep(500);
+      Wait.waitFor(() -> {
         copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
-        tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false);
-      }
+        Map<KeyExtent,Set<TabletManagement.ManagementAction>> tabletsInFlux =
+            findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false);
+        if (!tabletsInFlux.isEmpty()) {
+          log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
+        }
+        return tabletsInFlux.isEmpty();
+      }, 30_000, 250, "Tablets remained in flux");
       expected = Map.of();
       assertEquals(expected,
           findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false),

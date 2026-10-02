@@ -62,6 +62,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -153,22 +154,20 @@ public class ScanIdIT extends AccumuloClusterHarness {
       }
 
       // wait for scanners to report a result.
-      while (testInProgress.get()) {
-
+      Wait.waitFor(() -> {
         if (resultsByWorker.size() < NUM_TOTAL_SCANNERS) {
           log.trace("Results reported {}", resultsByWorker.size());
-          Thread.sleep(750);
-        } else {
-          // each worker has reported at least one result.
-          testInProgress.set(false);
-
-          log.debug("Final result count {}", resultsByWorker.size());
-
-          // delay to allow scanners to react to end of test and cleanly close.
-          Thread.sleep(SECONDS.toMillis(1));
+          return false;
         }
+        return true;
+      }, 30_000, 100, "Not all scanner workers reported a result");
+      // each worker has reported at least one result.
+      testInProgress.set(false);
 
-      }
+      log.debug("Final result count {}", resultsByWorker.size());
+
+      // delay to allow scanners to react to end of test and cleanly close.
+      Thread.sleep(SECONDS.toMillis(1));
 
       Set<Long> scanIds = getScanIds(client);
       assertTrue(scanIds.size() >= NUM_TOTAL_SCANNERS,
@@ -180,10 +179,8 @@ public class ScanIdIT extends AccumuloClusterHarness {
       scanThreadsToClose.forEach(st -> st.scanner.close());
       batchScanThreadsToClose.forEach(bst -> bst.bs.close());
 
-      while (!getScanIds(client).isEmpty()) {
-        log.debug("Waiting for active scans to stop...");
-        Thread.sleep(200);
-      }
+      Wait.waitFor(() -> getScanIds(client).isEmpty(), 30_000, 100,
+          "Scan IDs remained active after scanners closed");
     }
   }
 

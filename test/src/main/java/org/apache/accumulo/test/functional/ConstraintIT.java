@@ -43,6 +43,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.constraints.NumericValueConstraint;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -66,20 +67,14 @@ public class ConstraintIT extends AccumuloClusterHarness {
         c.tableOperations().addConstraint(table, AlphaNumKeyConstraint.class.getName());
       }
 
-      // A static sleep to just let ZK do its thing
-      Thread.sleep(10_000);
-
-      // Then check that the client has at least gotten the updates
+      // Wait for both constraints to become visible
       for (String table : tableNames) {
-        log.debug("Checking constraints on {}", table);
-        Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
-        while (!constraints.containsKey(NumericValueConstraint.class.getName())
-            || !constraints.containsKey(AlphaNumKeyConstraint.class.getName())) {
-          log.debug("Failed to verify constraints. Sleeping and retrying");
-          Thread.sleep(2000);
-          constraints = c.tableOperations().listConstraints(table);
-        }
-        log.debug("Verified all constraints on {}", table);
+        Wait.waitFor(() -> {
+          log.debug("Checking constraints on {}", table);
+          Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
+          return constraints.containsKey(NumericValueConstraint.class.getName())
+              && constraints.containsKey(AlphaNumKeyConstraint.class.getName());
+        }, 30_000, 250, "Constraints did not propagate for " + table);
       }
 
       log.debug("Verified constraints on all tables. Running tests");

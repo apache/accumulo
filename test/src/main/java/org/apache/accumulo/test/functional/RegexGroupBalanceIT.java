@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.RegexGroupBalancer;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -92,9 +93,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       client.tableOperations().create(tablename, new NewTableConfiguration().setProperties(props)
           .withSplits(splits).withInitialTabletAvailability(TabletAvailability.HOSTED));
 
-      while (true) {
-        Thread.sleep(250);
-
+      Wait.waitFor(() -> {
         Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
         boolean allGood = true;
@@ -102,11 +101,11 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
         allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
         allGood &= checkTabletsPerTserver(groupLocationCounts, 3, 3, 4);
-
-        if (allGood) {
-          break;
-        }
-      }
+        return allGood;
+      }, 30_000, 250,
+          "Expected initial distribution was not reached (group 01: 1 tablet on 3 servers, "
+              + "group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
+              + "3 tablets per server)");
 
       splits.clear();
       splits.add(new Text("01b"));
@@ -115,9 +114,7 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
       splits.add(new Text("01r"));
       client.tableOperations().addSplits(tablename, splits);
 
-      while (true) {
-        Thread.sleep(250);
-
+      Wait.waitFor(() -> {
         Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
         boolean allGood = true;
@@ -125,18 +122,16 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
         allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
         allGood &= checkTabletsPerTserver(groupLocationCounts, 4, 4, 4);
-
-        if (allGood) {
-          break;
-        }
-      }
+        return allGood;
+      }, 30_000, 250,
+          "Expected distribution after adding splits was not reached (group 01: 1-2 tablets on "
+              + "4 servers, group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
+              + "4 tablets per server)");
 
       // merge group 01 down to one tablet
       client.tableOperations().merge(tablename, null, new Text("01z"));
 
-      while (true) {
-        Thread.sleep(250);
-
+      Wait.waitFor(() -> {
         Table<String,String,MutableInt> groupLocationCounts = getCounts(client, tablename);
 
         boolean allGood = true;
@@ -144,11 +139,11 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         allGood &= checkGroup(groupLocationCounts, "02", 1, 1, 4);
         allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
         allGood &= checkTabletsPerTserver(groupLocationCounts, 2, 3, 4);
-
-        if (allGood) {
-          break;
-        }
-      }
+        return allGood;
+      }, 30_000, 250,
+          "Expected distribution after merging group 01 was not reached (group 01: 1 tablet on "
+              + "1 server, group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
+              + "2-3 tablets per server)");
     }
   }
 

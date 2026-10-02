@@ -98,13 +98,10 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
       compact(client, tableName, 2, GROUP7, false);
 
       // wait for the compaction to start
-      var expected =
+      Wait.waitFor(() -> !ExternalCompactionTestUtils
+          .getRunningCompactions(getCluster().getServerContext()).isEmpty(), 10_000, 250);
+      final var expected =
           ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
-      while (expected.isEmpty()) {
-        Thread.sleep(1000);
-        expected =
-            ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
-      }
 
       final List<RunningCompactionSummary> running = new ArrayList<>();
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();

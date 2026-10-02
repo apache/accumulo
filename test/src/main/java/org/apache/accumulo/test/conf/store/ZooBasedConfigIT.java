@@ -59,6 +59,7 @@ import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
@@ -278,10 +279,8 @@ public class ZooBasedConfigIT {
 
     // allow ZooKeeper notification time to propagate
 
-    int retries = 5;
-    do {
-      Thread.sleep(25);
-    } while (changeCount >= testListener.getZkChangeCount() && --retries > 0);
+    Wait.waitFor(() -> changeCount < testListener.getZkChangeCount(), 30_000, 250,
+        "ZooKeeper change notification was not received");
 
     assertTrue(changeCount < testListener.getZkChangeCount());
 

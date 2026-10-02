@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -56,9 +57,9 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // wait until a tablet server is up
-      while (client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty()) {
-        Thread.sleep(50);
-      }
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty(),
+          30_000, 250, "Tablet server did not start");
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       try (BatchWriter bw = client.createBatchWriter(tableName)) {

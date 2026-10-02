@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -90,9 +88,9 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
       });
       backgroundWriter.start();
       // wait for the tserver to give up on writing to the WAL
-      while (client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1) {
-        Thread.sleep(SECONDS.toMillis(1));
-      }
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() != 1,
+          30_000, 250, "Tablet server did not leave the live list");
     }
   }
 }

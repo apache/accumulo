@@ -22,6 +22,7 @@ import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.util.Collection;
@@ -41,6 +42,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -72,57 +74,59 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       getClusterControl().start(ServerType.MONITOR, "localhost");
     }
 
-    while (true) {
+    String[] monitorLocation = {null};
+    Wait.waitFor(() -> {
       try {
-        MonitorUtil.getLocation(getServerContext());
-        break;
+        monitorLocation[0] = MonitorUtil.getLocation(getServerContext());
       } catch (Exception e) {
         LOG.debug("Failed to find active monitor location, retrying", e);
-        Thread.sleep(1000);
       }
-    }
+      return monitorLocation[0] != null;
+    }, 30_000, 250, "Active monitor location was not published to ZooKeeper");
 
     LOG.debug("Found active monitor");
 
-    int freePort = PortUtils.getRandomFreePort();
-    String monitorUrl = "http://localhost:" + freePort;
-    Process monitor = null;
+    int[] freePort = {PortUtils.getRandomFreePort()};
+    Process[] monitor = {null};
     try {
-      LOG.debug("Starting standby monitor on {}", freePort);
-      monitor = startProcess(cluster, ServerType.MONITOR, freePort);
+      LOG.debug("Starting standby monitor on {}", freePort[0]);
+      monitor[0] = startProcess(cluster, ServerType.MONITOR, freePort[0]);
 
-      while (true) {
-        var url = new URI(monitorUrl).toURL();
+      Wait.waitFor(() -> {
+        var url = new URI("http://localhost:" + freePort[0]).toURL();
         try {
           HttpURLConnection cnxn = (HttpURLConnection) url.openConnection();
-          final int responseCode = cnxn.getResponseCode();
-          String errorText;
-          // This is our "assertion", but we want to re-check it if it's not what we expect
-          if (responseCode == HttpURLConnection.HTTP_OK) {
-            return;
-          } else {
-            errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
+          cnxn.setConnectTimeout(1000);
+          cnxn.setReadTimeout(1000);
+          try {
+            final int responseCode = cnxn.getResponseCode();
+            String errorText;
+            // This is our "assertion", but we want to re-check it if it's not what we expect
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+              return true;
+            } else {
+              errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
+            }
+            LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
+                responseCode, errorText);
+          } finally {
+            cnxn.disconnect();
           }
-          LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
-              responseCode, errorText);
         } catch (Exception e) {
           LOG.debug("Caught exception trying to fetch monitor info", e);
         }
-        // Wait before trying again
-        Thread.sleep(1000);
         // Make sure the process is still up. Possible the "randomFreePort" we got wasn't actually
-        // free and the process
-        // died trying to bind it. Pick a new port and restart it in that case.
-        if (!monitor.isAlive()) {
-          freePort = PortUtils.getRandomFreePort();
-          monitorUrl = "http://localhost:" + freePort;
-          LOG.debug("Monitor died, restarting it listening on {}", freePort);
-          monitor = startProcess(cluster, ServerType.MONITOR, freePort);
+        // free and the process died trying to bind it. Pick a new port and restart it in that case.
+        if (!monitor[0].isAlive()) {
+          freePort[0] = PortUtils.getRandomFreePort();
+          LOG.debug("Monitor died, restarting it listening on {}", freePort[0]);
+          monitor[0] = startProcess(cluster, ServerType.MONITOR, freePort[0]);
         }
-      }
+        return false;
+      }, 30_000, 250, "Standby monitor did not serve requests");
     } finally {
-      if (monitor != null) {
-        monitor.destroyForcibly();
+      if (monitor[0] != null) {
+        monitor[0].destroyForcibly();
       }
     }
   }
@@ -135,50 +139,43 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       // Wait for the Manager to grab its lock
-      while (true) {
+      Wait.waitFor(() -> {
         try {
           ServiceLockPath managerLockPath = getServerContext().getServerPaths().getManager(true);
-          if (managerLockPath != null) {
-            break;
-          }
+          return managerLockPath != null;
         } catch (Exception e) {
           LOG.debug("Failed to find active manager location, retrying", e);
-          Thread.sleep(1000);
+          return false;
         }
-      }
+      }, 30_000, 250, "Active manager lock was not acquired");
 
       LOG.debug("Found active manager");
 
-      int freePort = PortUtils.getRandomFreePort();
-      Process manager = null;
+      int[] freePort = {PortUtils.getRandomFreePort()};
+      Process[] manager = {null};
       try {
-        LOG.debug("Starting standby manager on {}", freePort);
-        manager = startProcess(cluster, ServerType.MANAGER, freePort);
+        LOG.debug("Starting standby manager on {}", freePort[0]);
+        manager[0] = startProcess(cluster, ServerType.MANAGER, freePort[0]);
 
-        while (true) {
-          try (Socket s = new Socket("localhost", freePort)) {
-            if (s.isConnected()) {
-              // Pass
-              return;
-            }
+        Wait.waitFor(() -> {
+          try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress("localhost", freePort[0]), 1000);
+            return s.isConnected();
           } catch (Exception e) {
             LOG.debug("Caught exception trying to connect to Manager", e);
           }
-          // Wait before trying again
-          Thread.sleep(1000);
           // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
-          // actually
-          // free and the process
-          // died trying to bind it. Pick a new port and restart it in that case.
-          if (!manager.isAlive()) {
-            freePort = PortUtils.getRandomFreePort();
-            LOG.debug("Manager died, restarting it listening on {}", freePort);
-            manager = startProcess(cluster, ServerType.MANAGER, freePort);
+          // actually free and the process died trying to bind it. Pick a new port and restart it.
+          if (!manager[0].isAlive()) {
+            freePort[0] = PortUtils.getRandomFreePort();
+            LOG.debug("Manager died, restarting it listening on {}", freePort[0]);
+            manager[0] = startProcess(cluster, ServerType.MANAGER, freePort[0]);
           }
-        }
+          return false;
+        }, 30_000, 250, "Standby manager did not accept connections");
       } finally {
-        if (manager != null) {
-          manager.destroyForcibly();
+        if (manager[0] != null) {
+          manager[0].destroyForcibly();
         }
       }
     }
@@ -192,50 +189,43 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       // Wait for the Manager to grab its lock
-      while (true) {
+      Wait.waitFor(() -> {
         try {
           ServiceLockPath slp = getServerContext().getServerPaths().getGarbageCollector(true);
-          if (slp != null) {
-            break;
-          }
+          return slp != null;
         } catch (Exception e) {
           LOG.debug("Failed to find active gc location, retrying", e);
-          Thread.sleep(1000);
+          return false;
         }
-      }
+      }, 30_000, 250, "Active garbage collector lock was not acquired");
 
       LOG.debug("Found active gc");
 
-      int freePort = PortUtils.getRandomFreePort();
-      Process manager = null;
+      int[] freePort = {PortUtils.getRandomFreePort()};
+      Process[] manager = {null};
       try {
-        LOG.debug("Starting standby gc on {}", freePort);
-        manager = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+        LOG.debug("Starting standby gc on {}", freePort[0]);
+        manager[0] = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort[0]);
 
-        while (true) {
-          try (Socket s = new Socket("localhost", freePort)) {
-            if (s.isConnected()) {
-              // Pass
-              return;
-            }
+        Wait.waitFor(() -> {
+          try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress("localhost", freePort[0]), 1000);
+            return s.isConnected();
           } catch (Exception e) {
             LOG.debug("Caught exception trying to connect to GC", e);
           }
-          // Wait before trying again
-          Thread.sleep(1000);
           // Make sure the process is still up. Possible the "randomFreePort" we got wasn't
-          // actually
-          // free and the process
-          // died trying to bind it. Pick a new port and restart it in that case.
-          if (!manager.isAlive()) {
-            freePort = PortUtils.getRandomFreePort();
-            LOG.debug("GC died, restarting it listening on {}", freePort);
-            manager = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+          // actually free and the process died trying to bind it. Pick a new port and restart it.
+          if (!manager[0].isAlive()) {
+            freePort[0] = PortUtils.getRandomFreePort();
+            LOG.debug("GC died, restarting it listening on {}", freePort[0]);
+            manager[0] = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort[0]);
           }
-        }
+          return false;
+        }, 30_000, 250, "Standby garbage collector did not accept connections");
       } finally {
-        if (manager != null) {
-          manager.destroyForcibly();
+        if (manager[0] != null) {
+          manager[0].destroyForcibly();
         }
       }
     }

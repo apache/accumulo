@@ -53,7 +53,6 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.minicluster.ServerType;
@@ -62,6 +61,7 @@ import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FastFate;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -261,15 +261,13 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
             .stream().map(FateStore.FateReservation::getReservationUUID).collect(toSet());
     log.debug("existingReservationUUIDs {}", existingReservationUUIDs);
 
+    // Wait for there to be the expected number of managers in zookeeper. After manager processes
+    // are killed these entries in zookeeper may persist for a bit.
+    Wait.waitFor(() -> context.getServerPaths()
+        .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true).size()
+        == expectedManagers, 120_000, 250, "Expected manager count was not reached");
     var assistants =
         context.getServerPaths().getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
-    // Wait for there to be the expected number of managers in zookeeper. After manager processes
-    // are kill these entries in zookeeper may persist for a bit.
-    while (assistants.size() != expectedManagers) {
-      UtilWaitThread.sleep(1);
-      assistants = context.getServerPaths()
-          .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
-    }
 
     var expectedServers = assistants.stream().map(ServiceLockPath::getServer)
         .map(HostAndPort::fromString).collect(toSet());
@@ -285,7 +283,7 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
     // reassigned.
     Set<Character> seenPrefixes = new HashSet<>();
 
-    while (reservationsSeen.size() < expectedManagers || !seenPrefixes.equals(expectedPrefixes)) {
+    Wait.waitFor(() -> {
       var reservations =
           store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
       reservations.forEach((fateId, reservation) -> {
@@ -308,8 +306,8 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
           }
         }
       });
-      UtilWaitThread.sleep(1);
-    }
+      return reservationsSeen.size() >= expectedManagers && seenPrefixes.equals(expectedPrefixes);
+    }, 120_000, 250, "Expected manager FATE reservations and UUID prefixes were not seen");
 
     log.debug("managers seen in fate reservations :{}", reservationsSeen);
     if (managersKilled) {
