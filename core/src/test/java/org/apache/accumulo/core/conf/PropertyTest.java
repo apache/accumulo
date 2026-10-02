@@ -52,6 +52,7 @@ public class PropertyTest {
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(prop.getKey());
+        assertFalse(prop.getIsRequired());
       }
     }
 
@@ -62,19 +63,21 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
-        // default values shouldn't be null, but they can be an empty string
-        assertNotNull(prop.getDefaultValue());
-        // default values shouldn't start or end with whitespace
-        assertEquals(prop.getDefaultValue().strip(), prop.getDefaultValue(),
-            "Property " + prop.name() + " starts or ends with whitespace");
-        // default values shouldn't contain newline characters or tabs
-        assertFalse(prop.getDefaultValue().contains("\t"),
-            "Property " + prop.name() + " contains a tab character");
-        assertFalse(prop.getDefaultValue().contains("\n"),
-            "Property " + prop.name() + " contains a newline (\\n) character");
-        assertFalse(prop.getDefaultValue().contains("\r"),
-            "Property " + prop.name() + " contains a return (\\r) character");
-
+        // default values shouldn't be null (unless the property is required), but they can be an
+        // empty string
+        if (!prop.getIsRequired()) {
+          assertNotNull(prop.getDefaultValue());
+          // default values shouldn't start or end with whitespace
+          assertEquals(prop.getDefaultValue().strip(), prop.getDefaultValue(),
+              "Property " + prop.name() + " starts or ends with whitespace");
+          // default values shouldn't contain newline characters or tabs
+          assertFalse(prop.getDefaultValue().contains("\t"),
+              "Property " + prop.name() + " contains a tab character");
+          assertFalse(prop.getDefaultValue().contains("\n"),
+              "Property " + prop.name() + " contains a newline (\\n) character");
+          assertFalse(prop.getDefaultValue().contains("\r"),
+              "Property " + prop.name() + " contains a return (\\r) character");
+        }
         assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
             "Property " + prop.name() + " has invalid default value " + prop.getDefaultValue()
                 + " for type " + prop.getType());
