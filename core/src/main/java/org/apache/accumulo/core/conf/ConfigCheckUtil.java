@@ -56,7 +56,8 @@ public class ConfigCheckUtil {
         continue; // unknown valid property (i.e. has proper prefix)
       } else if (prop == null) {
         log.warn(PREFIX + "unrecognized property key ({}) for {}", key, source);
-      } else if (prop.getType() == PropertyType.PREFIX) {
+      } else if (prop.getType() == PropertyType.PREFIX
+          || prop.getType() == PropertyType.CLOSED_PREFIX) {
         fatal(PREFIX + "incomplete property key (" + key + ") for " + source);
       } else if (!prop.getType().isValidFormat(value)) {
         fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType()
