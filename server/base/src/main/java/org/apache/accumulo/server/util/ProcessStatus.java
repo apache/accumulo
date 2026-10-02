@@ -110,7 +110,7 @@ public class ProcessStatus extends ServerKeywordExecutable<ProcessStatus.Process
         ResourceGroupId group = groupEntry.getKey();
         OptionalInt maybeExpected = expected.getExpectedCount(serverType, group);
         if (maybeExpected.isEmpty()) {
-          continue; // defensive — should not happen since we're iterating expected.all()
+          continue; // defensive, should not happen since we're iterating expected.all()
         }
         int expectedCount = maybeExpected.getAsInt();
         if (!rgp.test(group)) {
