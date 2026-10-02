@@ -1032,12 +1032,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
 
-    try {
-      setPropertyNoChecks(tableName, property, value);
-      checkLocalityGroups(tableName, property);
-    } catch (TableNotFoundException | IllegalArgumentException e) {
-      throw new TableNotFoundException((ThriftTableOperationException) e);
-    }
+    setPropertyNoChecks(tableName, property, value);
+    checkLocalityGroups(tableName, property);
   }
 
   private Map<String,String> tryToModifyProperties(String tableName,
