@@ -204,6 +204,7 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
         new ScheduledThreadPoolExecutor(2));
     fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    fate.start();
     return fate;
   }
 
