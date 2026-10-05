@@ -26,7 +26,7 @@ import java.util.function.ToIntFunction;
 public class Wait {
 
   public static final long MAX_WAIT_MILLIS = SECONDS.toMillis(30);
-  public static final long SLEEP_MILLIS = 1000;
+  public static final long SLEEP_MILLIS = 250;
 
   /**
    * Get the user-specified timeout.factor value from the system properties. The parsed value must
