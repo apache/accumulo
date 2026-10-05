@@ -121,7 +121,6 @@ function refreshTabletTables() {
  */
 function initTabletsTable() {
   tabletsTable = new DataTable('#tabletsList', {
-    scrollX: true,
     "stateSave": true,
     "columnDefs": [{
         "targets": "big-num",
@@ -179,7 +178,6 @@ function initTabletsTable() {
  */
 function initTabletServersTable() {
   tabletServersTable = new DataTable('#tabletServersList', {
-    scrollX: true,
     "stateSave": true,
     "colReorder": true,
     "searching": false,

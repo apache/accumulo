@@ -68,7 +68,6 @@ $(function () {
 
   // Create a table for scans list
   tableRunning = new DataTable(runningTableHtmlTable, {
-    scrollX: true,
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(RUNNING_COMPACTIONS_BY_TABLE)
@@ -100,7 +99,6 @@ $(function () {
   });
 
   queueRunning = new DataTable(runningQueueHtmlTable, {
-    scrollX: true,
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(RUNNING_COMPACTIONS_BY_GROUP)
