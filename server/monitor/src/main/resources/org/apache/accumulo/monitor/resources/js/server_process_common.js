@@ -257,7 +257,15 @@ function createDataTable(table, storageKey) {
       "extend": 'colvis',
       "text": '<i class="bi bi-gear"></i>',
       "titleAttr": 'Columns'
-    }],
+      },
+      {
+        "extend": 'spacer'
+      },
+      {
+        "text": 'Reset',
+        "titleAttr": 'Reset column selection and ordering',
+        "action": function ( e, dt, node, config ) { table.colReorder.reset(); dt.columns( config.show ).visible( true ); }
+      }],
     "layout": {
       "topStart": "pageLength",
       "topEnd": ["search", "buttons"],
