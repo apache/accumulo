@@ -246,7 +246,7 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
  */
 function createDataTable(table, storageKey) {
   var dataTableRef = new DataTable(table, {
-    scrollX: true,
+    "scrollX": true,
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
@@ -264,7 +264,10 @@ function createDataTable(table, storageKey) {
       {
         "text": 'Reset',
         "titleAttr": 'Reset column selection and ordering',
-        "action": function ( e, dt, node, config ) { table.colReorder.reset(); dt.columns( config.show ).visible( true ); }
+        "action": function ( e, dt, node, config ) {
+          table.colReorder.reset();
+          dt.columns( config.show ).visible( true )
+        }
       }],
     "layout": {
       "topStart": "pageLength",
