@@ -21,7 +21,7 @@ package org.apache.accumulo.test.functional;
 import java.time.Duration;
 import java.util.Map;
 
-import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.server.cluster.ClusterControl;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;

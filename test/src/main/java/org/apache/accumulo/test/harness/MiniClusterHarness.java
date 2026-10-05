@@ -32,7 +32,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.server.cluster.ClusterUser;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
