@@ -254,9 +254,9 @@ function createDataTable(table, storageKey) {
       });
     },
     "buttons": [{
-      "extend": 'colvis',
-      "text": '<i class="bi bi-gear"></i>',
-      "titleAttr": 'Columns'
+        "extend": 'colvis',
+        "text": '<i class="bi bi-gear"></i>',
+        "titleAttr": 'Columns',
       },
       {
         "extend": 'spacer'
@@ -264,11 +264,15 @@ function createDataTable(table, storageKey) {
       {
         "text": 'Reset',
         "titleAttr": 'Reset column selection and ordering',
-        "action": function ( e, dt, node, config ) {
-          table.colReorder.reset();
-          dt.columns( config.show ).visible( true )
+        action: function (e, table) {
+          // reset column selection
+          table.columns().visible(true);
+          // reset column ordering
+          if (table.colReorder) {
+            table.colReorder.reset();
+          }
         }
-      }],
+    }],
     "layout": {
       "topStart": "pageLength",
       "topEnd": ["search", "buttons"],
