@@ -263,11 +263,11 @@ function createDataTable(table, storageKey) {
       },
       {
         "text": 'Reset',
-        "titleAttr": 'Reset column selection and ordering',
+        "titleAttr": 'Reset column selection and order',
         action: function (e, table) {
           // reset column selection
           table.columns().visible(true);
-          // reset column ordering
+          // reset column order
           if (table.colReorder) {
             table.colReorder.reset();
           }
