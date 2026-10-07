@@ -82,6 +82,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
@@ -985,6 +986,32 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @VisibleForTesting
   protected ExecutorService getShutdownExecutor() {
     return executor;
+  }
+
+  /**
+   * Stops the processes in parallel. The given timeout is the total wait for all given processes.
+   */
+  public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
+      final long timeout, final TimeUnit unit) {
+
+    // signal all first so they stop in parallel
+    procs.forEach(Process::destroy);
+
+    final Timer timer = Timer.startNew();
+    final long timeoutNanos = unit.toNanos(timeout);
+    try {
+      for (Process proc : procs) {
+        long remainingNanos = timeoutNanos - timer.elapsed(TimeUnit.NANOSECONDS);
+        boolean stopped = proc.waitFor(remainingNanos, TimeUnit.NANOSECONDS);
+        if (!stopped) {
+          log.warn("{} (pid {}) did not fully stop after {} seconds", type, proc.pid(),
+              unit.toSeconds(timeout));
+        }
+      }
+    } catch (InterruptedException e) {
+      log.warn("Interrupted while trying to stop {} processes.", type);
+      Thread.currentThread().interrupt();
+    }
   }
 
   public int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
