@@ -91,7 +91,7 @@ function updateServerCount(elementId, status) {
 
   if (!status || Number(status.serverCount) <= 0) {
     $element.text('0/0');
-    return;
+    return STATUS.OK;
   }
 
   const total = Number(status.serverCount);
@@ -144,7 +144,6 @@ function updateServerNotifications(statusData) {
     if (index === 0) {
       return;
     }
-
     updateElementStatus(component.indicatorId, serverStatus);
   });
 
