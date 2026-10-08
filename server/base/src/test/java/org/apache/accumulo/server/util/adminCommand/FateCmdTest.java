@@ -22,11 +22,13 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -151,4 +153,25 @@ public class FateCmdTest {
     assertEquals(Map.of(), found);
   }
 
+  @Test
+  public void testGenerateFateSplits() {
+    // count is correct
+    assertEquals(4, Fate.generateSplits(4).size());
+    assertEquals(1, Fate.generateSplits(1).size());
+
+    // all valid UUIDs, ascending
+    List<String> splits = Fate.generateSplits(8);
+    for (String s : splits) {
+      assertEquals(s, UUID.fromString(s).toString());
+    }
+    for (int i = 0; i < splits.size() - 1; i++) {
+      assertTrue(splits.get(i).compareTo(splits.get(i + 1)) < 0);
+    }
+
+    // single split is the midpoint (UUID space bisected)
+    assertEquals(new UUID(Long.MIN_VALUE, 0).toString(), Fate.generateSplits(1).get(0));
+
+    // invalid input
+    assertThrows(IllegalArgumentException.class, () -> Fate.generateSplits(0));
+  }
 }
