@@ -204,6 +204,11 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
+  public void testTypeCLOSED_PREFIX() {
+    invalid(null, "", "whatever");
+  }
+
+  @Test
   public void testTypeSTRING() {
     valid(null, "", "whatever");
   }

@@ -76,7 +76,8 @@ public class ConfigurationImpl implements Configuration {
   @Override
   public Map<String,String> getWithPrefix(String prefix) {
     Property propertyPrefix = Property.getPropertyByKey(prefix);
-    if (propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX) {
+    if (propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX
+        || propertyPrefix.getType() == PropertyType.CLOSED_PREFIX) {
       return acfg.getAllPropertiesWithPrefix(propertyPrefix);
     } else {
       return StreamSupport.stream(acfg.spliterator(), false)

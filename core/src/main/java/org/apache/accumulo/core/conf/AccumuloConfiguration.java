@@ -173,7 +173,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   private static void checkType(Property property, PropertyType type) {
-    if (!property.getType().equals(type)) {
+    // PREFIX and CLOSED_PREFIX are both "prefix-shaped" properties; either is acceptable
+    // wherever PropertyType.PREFIX was previously required.
+    boolean isPrefixType = property.getType() == PropertyType.PREFIX
+        || property.getType() == PropertyType.CLOSED_PREFIX;
+    boolean typeMatches = type == PropertyType.PREFIX ? isPrefixType : property.getType() == type;
+    if (!typeMatches) {
       String msg = "Configuration method intended for type " + type + " called with a "
           + property.getType() + " argument (" + property.getKey() + ")";
       IllegalArgumentException err = new IllegalArgumentException(msg);

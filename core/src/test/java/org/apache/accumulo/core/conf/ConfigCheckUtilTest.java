@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
@@ -52,7 +53,34 @@ public class ConfigCheckUtilTest {
   public void testPass_UnrecognizedValidProperty() {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MANAGER_PREFIX.getKey() + "something", "abcdefg");
+    // Manger is now a closed prefix, this will pass but will now log a warnning instead of throwing
     ConfigCheckUtil.validate(m.entrySet(), "test");
+  }
+
+  @Test
+  public void testWarn_ClosedPrefixUnknownKey_doesNotThrow() {
+    // Reproduces the exact scenario from #6216: a removed/stale tserver. property should not be
+    // silently accepted. It should not throw (kept non-fatal to preserve compatibility), but the
+    // key is no longer considered "valid" under Property.isValidPropertyKey.
+    m.put(Property.TSERV_CLIENTPORT.getKey(), "9800-9899");
+    m.put(Property.TSERV_PREFIX.getKey() + "port.search.removed.property", "true");
+    assertFalse(Property
+        .isValidPropertyKey(Property.TSERV_PREFIX.getKey() + "port.search.removed.property"));
+    ConfigCheckUtil.validate(m.entrySet(), "test"); // logs a warning, does not throw
+  }
+
+  @Test
+  public void testPass_NestedOpenPrefixUnderClosedPrefix() {
+    // tserver.scan.executors. is a nested, open PREFIX even though tserver. itself is closed.
+    m.put(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "myExecutor.threads", "4");
+    ConfigCheckUtil.validate(m.entrySet(), "test");
+  }
+
+  @Test
+  public void testFail_ClosedPrefixAlone() {
+    // setting the bare closed prefix itself is still an incomplete key, same as PREFIX today.
+    m.put(Property.TSERV_PREFIX.getKey(), "oops");
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet(), "test"));
   }
 
   @Test
