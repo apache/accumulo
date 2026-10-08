@@ -24,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -131,6 +132,8 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 
 import io.opentelemetry.api.trace.Span;
@@ -139,7 +142,7 @@ import io.opentelemetry.context.Scope;
 public class TabletClientHandler implements TabletClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
-  private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
+  private final Supplier<Long> scanResultWaitTime;
   private static final long RECENTLY_SPLIT_MILLIES = MINUTES.toMillis(1);
   private final TabletServer server;
   protected final TransactionWatcher watcher;
@@ -155,8 +158,12 @@ public class TabletClientHandler implements TabletClientService.Iface {
     this.writeTracker = writeTracker;
     this.security = context.getSecurityOperation();
     this.server = server;
-    MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
-        .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
+    scanResultWaitTime =
+        Suppliers
+            .memoizeWithExpiration(
+                () -> server.getContext().getConfiguration()
+                    .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT),
+                Duration.ofSeconds(10));
     log.debug("{} created", TabletClientHandler.class.getName());
   }
 
@@ -1534,8 +1541,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   private TSummaries getSummaries(Future<SummaryCollection> future) throws TimeoutException {
     try {
-      SummaryCollection sc =
-          future.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
+      SummaryCollection sc = future.get(scanResultWaitTime.get(), TimeUnit.MILLISECONDS);
       return sc.toThrift();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
