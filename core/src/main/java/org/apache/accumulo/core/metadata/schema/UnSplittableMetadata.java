@@ -40,8 +40,9 @@ public class UnSplittableMetadata {
   private final HashCode hashOfSplitParameters;
 
   private UnSplittableMetadata(KeyExtent keyExtent, long splitThreshold, long maxEndRowSize,
-      int maxFilesToOpen, Set<StoredTabletFile> files) {
-    this(calculateSplitParamsHash(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen, files));
+      int maxFilesToOpen, int maxFilesBeforeSplit, Set<StoredTabletFile> files) {
+    this(calculateSplitParamsHash(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen,
+        maxFilesBeforeSplit, files));
   }
 
   private UnSplittableMetadata(HashCode hashOfSplitParameters) {
@@ -75,26 +76,30 @@ public class UnSplittableMetadata {
   }
 
   private static HashCode calculateSplitParamsHash(KeyExtent keyExtent, long splitThreshold,
-      long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files) {
+      long maxEndRowSize, int maxFilesToOpen, int maxFilesBeforeSplit,
+      Set<StoredTabletFile> files) {
     Preconditions.checkArgument(splitThreshold > 0, "splitThreshold must be greater than 0");
     Preconditions.checkArgument(maxEndRowSize > 0, "maxEndRowSize must be greater than 0");
     Preconditions.checkArgument(maxFilesToOpen > 0, "maxFilesToOpen must be greater than 0");
+    Preconditions.checkArgument(maxFilesBeforeSplit > 0,
+        "maxFilesBeforeSplit must be greater than 0");
 
     // Use static call to murmur3_128() so the seed is always the same
     // Hashing.goodFastHash will seed with the current time, and we need the seed to be
     // the same across restarts and instances
     var hasher = Hashing.murmur3_128().newHasher();
     hasher.putBytes(serializeKeyExtent(keyExtent)).putLong(splitThreshold).putLong(maxEndRowSize)
-        .putInt(maxFilesToOpen);
+        .putInt(maxFilesToOpen).putInt(maxFilesBeforeSplit);
     files.stream().map(StoredTabletFile::getMetadata).sorted()
         .forEach(path -> hasher.putString(path, UTF_8));
     return hasher.hash();
   }
 
   public static UnSplittableMetadata toUnSplittable(KeyExtent keyExtent, long splitThreshold,
-      long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files) {
+      long maxEndRowSize, int maxFilesToOpen, int maxFilesBeforeSplit,
+      Set<StoredTabletFile> files) {
     return new UnSplittableMetadata(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen,
-        files);
+        maxFilesBeforeSplit, files);
   }
 
   public static UnSplittableMetadata toUnSplittable(String base64HashOfSplitParameters) {
