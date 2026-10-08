@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -29,8 +30,10 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
@@ -147,6 +150,28 @@ class AssignmentHandler implements Runnable {
       if (tablet.getNumEntriesInMemory() > 0
           && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
+      }
+
+      final Location expectedLocation = Location.future(this.server.getTabletSession());
+      try (Ample.ConditionalTabletsMutator mutator =
+          tablet.getContext().getAmple().conditionallyMutateTablets()) {
+        Ample.ConditionalTabletMutator mut =
+            mutator.mutateTablet(extent).requireAbsentOperation().requireLocation(expectedLocation);
+
+        // Deleting WALogs (if necessary)
+        List<LogEntry> walogsToDelete = tablet.getWALogsToDelete();
+        if (walogsToDelete != null) {
+          walogsToDelete.forEach(mut::deleteWal);
+        }
+
+        // mut.putLocation(tabletLocation);
+        mut.submit(metadata -> metadata.getLogs().isEmpty());
+
+        Ample.ConditionalResult res = mutator.process().get(extent);
+        if (res.getStatus() == Ample.ConditionalResult.Status.REJECTED) {
+          throw new IllegalStateException(
+              "Unable to remove logs in metadata for extent: " + extent);
+        }
       }
 
       Assignment assignment =
