@@ -49,7 +49,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -1145,39 +1144,27 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return executor;
   }
 
+  /**
+   * Stops the processes in parallel. The given timeout is the total wait for all given processes.
+   */
   public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
       final long timeout, final TimeUnit unit) {
 
-    final List<Future<Integer>> futures = new ArrayList<>();
-    for (Process proc : procs) {
-      futures.add(executor.submit(() -> {
-        proc.destroy();
-        proc.waitFor(timeout, unit);
-        return proc.exitValue();
-      }));
-    }
+    // signal all first so they stop in parallel
+    procs.forEach(Process::destroy);
 
-    while (!futures.isEmpty()) {
-      futures.removeIf(f -> {
-        if (f.isDone()) {
-          try {
-            f.get();
-          } catch (ExecutionException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-              Thread.currentThread().interrupt();
-            }
-            log.warn("{} did not fully stop after {} seconds", type, unit.toSeconds(timeout), e);
-          }
-          return true;
+    final CountDownTimer timer = CountDownTimer.startNew(timeout, unit);
+    try {
+      for (Process proc : procs) {
+        boolean stopped = proc.waitFor(timer.timeLeft(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+        if (!stopped) {
+          log.warn("{} (pid {}) did not fully stop after {} seconds", type, proc.pid(),
+              unit.toSeconds(timeout));
         }
-        return false;
-      });
-      try {
-        Thread.sleep(250);
-      } catch (InterruptedException e) {
-        log.warn("Interrupted while trying to stop " + type + " processes.");
-        Thread.currentThread().interrupt();
       }
+    } catch (InterruptedException e) {
+      log.warn("Interrupted while trying to stop {} processes.", type);
+      Thread.currentThread().interrupt();
     }
   }
 
