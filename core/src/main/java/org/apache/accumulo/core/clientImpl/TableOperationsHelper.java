@@ -179,7 +179,7 @@ public abstract class TableOperationsHelper implements TableOperations {
 
   @Override
   public void removeConstraint(String tableName, int number)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     this.removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
 
