@@ -349,15 +349,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           try {
-            for (Process tserver : tabletServerProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(tserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("TabletServer did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              }
-            }
+            cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, tabletServerProcesses, 30,
+                TimeUnit.SECONDS);
           } finally {
             tabletServerProcesses.clear();
           }
@@ -379,15 +372,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
           try {
-            for (Process sserver : scanServerProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("ScanServer did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              }
-            }
+            cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, scanServerProcesses, 30,
+                TimeUnit.SECONDS);
           } finally {
             scanServerProcesses.clear();
           }
@@ -409,15 +395,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case COMPACTOR:
         synchronized (compactorProcesses) {
           try {
-            for (Process compactor : compactorProcesses) {
-              try {
-                cluster.stopProcessWithTimeout(compactor, 30, TimeUnit.SECONDS);
-              } catch (ExecutionException | TimeoutException e) {
-                log.warn("Compactor did not fully stop after 30 seconds", e);
-              } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-              }
-            }
+            cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, compactorProcesses, 30,
+                TimeUnit.SECONDS);
           } finally {
             compactorProcesses.clear();
           }
