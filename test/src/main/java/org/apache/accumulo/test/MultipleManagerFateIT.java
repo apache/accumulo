@@ -95,7 +95,9 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
         ServerContext context) {
       LoggerFactory.getLogger(FastFateCleanupManager.class)
           .info("Creating Fast fate cleanup manager for {}", store.type());
-      return new FastFate<>(env, store, true, TraceRepo::toLogString, getConfiguration());
+      var fate = new FastFate<>(env, store, true, TraceRepo::toLogString, getConfiguration());
+      fate.start();
+      return fate;
     }
 
     public static void main(String[] args) throws Exception {

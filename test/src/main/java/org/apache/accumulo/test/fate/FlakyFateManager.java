@@ -39,7 +39,9 @@ public class FlakyFateManager extends Manager {
       ServerContext context) {
     LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate for {}",
         store.type());
-    return new FlakyFate<>(env, store, TraceRepo::toLogString, getConfiguration());
+    var fate = new FlakyFate<>(env, store, TraceRepo::toLogString, getConfiguration());
+    fate.start();
+    return fate;
   }
 
   public static void main(String[] args) throws Exception {
