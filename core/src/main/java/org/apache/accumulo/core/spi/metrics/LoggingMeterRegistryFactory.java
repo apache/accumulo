@@ -18,14 +18,19 @@
  */
 package org.apache.accumulo.core.spi.metrics;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.logging.LoggingMeterRegistry;
 import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
 
@@ -48,6 +53,21 @@ import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
  *
  * <pre>
  *     general.custom.metrics.opts.logging.step = 10s
+ * </pre>
+ *
+ * To filter out meters that start with any particular prefix, set
+ * {@code general.custom.metrics.opts.meter.id.filters} in the Accumulo configuration.
+ *
+ * <pre>
+ *      general.custom.metrics.opts.meter.id.filters = prefix1,prefix2,prefix3
+ *
+ * </pre>
+ *
+ * To assign a custom delimiter to filters, set
+ * {@code general.custom.metrics.opts.meter.id.delimiter} in the Accumulo configuration.
+ *
+ * <pre>
+ * general.custom.metrics.opts.meter.id.delimiter = delimiter
  * </pre>
  */
 public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
@@ -76,6 +96,49 @@ public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
 
     LOG.info("Creating logging metrics registry with params: {}", params);
     metricsProps.putAll(params.getOptions());
-    return LoggingMeterRegistry.builder(lconf).loggingSink(metricConsumer).build();
+
+    MeterRegistry registry =
+        LoggingMeterRegistry.builder(lconf).loggingSink(metricConsumer).build();
+    String filters = metricsProps.get("meter.id.filters");
+    // Sets the default delimiter if none is specified
+    String delimiter = metricsProps.getOrDefault("meter.id.delimiter", ",");
+
+    if (filters != null && delimiter != null) {
+      registry.config().meterFilter(getMeterFilter(filters, delimiter));
+    }
+    return registry;
+  }
+
+  /**
+   * This function uses terms specified in the patternList parameter to filter out specific metrics
+   * that the user doesn't want.
+   *
+   * @param patternList a delimited set of terms that will filter out meters that start with any one
+   *        of those terms.
+   * @param delimiter that contains either a user specified delimiter, or the default comma
+   *        delimiter to split the patternList.
+   * @return a predicate with the type of MeterFilter, that describes which metrics to deny and
+   *         subsequently filter out.
+   */
+  public static MeterFilter getMeterFilter(String patternList, String delimiter) {
+    requireNonNull(patternList, "patternList must not be null");
+
+    // Trims whitespace and all other non-visible characters.
+    patternList = patternList.replaceAll("\\s+", "");
+
+    // Gets the default delimiter or the delimiter the user supplied
+    String[] patterns = patternList.split(delimiter);
+    Predicate<Meter.Id> finalPredicate = id -> false;
+
+    if (patternList.isEmpty()) {
+      return MeterFilter.deny(finalPredicate);
+    }
+
+    for (String prefix : patterns) {
+      Predicate<Meter.Id> predicate = id -> id.getName().startsWith(prefix);
+      finalPredicate = finalPredicate.or(predicate);
+
+    }
+    return MeterFilter.deny(finalPredicate);
   }
 }
