@@ -27,12 +27,15 @@ final class Batch {
   private final List<KVEntry> results;
   private final Key continueKey;
   private final long numBytes;
+  private final int duplicatesToSkip;
 
-  Batch(boolean skipContinueKey, List<KVEntry> results, Key continueKey, long numBytes) {
+  Batch(boolean skipContinueKey, List<KVEntry> results, Key continueKey, long numBytes,
+      int duplicatesToSkip) {
     this.skipContinueKey = skipContinueKey;
     this.results = results;
     this.continueKey = continueKey;
     this.numBytes = numBytes;
+    this.duplicatesToSkip = duplicatesToSkip;
   }
 
   public boolean isSkipContinueKey() {
@@ -49,5 +52,9 @@ final class Batch {
 
   public long getNumBytes() {
     return numBytes;
+  }
+
+  public int getDuplicatesToSkip() {
+    return duplicatesToSkip;
   }
 }
