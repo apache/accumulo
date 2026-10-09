@@ -110,9 +110,9 @@ function getServerCounts(component)
 }
 
 /**
-* Updates the notifications of the servers dropdown notification as well as the individual server notifications.
-* @param {JSON} statusData object containing the status info for the servers
-*/
+  * Updates the notifications of the servers dropdown notification as well as the individual server notifications.
+  * @param {JSON} statusData object containing the status info for the servers
+  */
 function updateServerNotifications(statusData) {
   const managerGoalState = statusData.managerGoalState;
   const isSafeMode = managerGoalState === 'SAFE_MODE';
