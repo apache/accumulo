@@ -577,8 +577,9 @@ function getStoredStatusData() {
 function getComponentStatus(statusData, componentType) {
   const status = statusData.componentStatuses[componentType];
 
-  // trying to add a variable for the component's countId to get the server count
-  //const componentStatusCount = NAVBAR_COMPONENTS[componentType].countId;
+  // trying to get the component's server counts
+  const respondingServers = getServerCounts().at(0);
+  const totalServers = getServerCounts().at(1);
 
   if (!status.hasServers && componentType === 'SCAN_SERVER'){
     return 'OK';

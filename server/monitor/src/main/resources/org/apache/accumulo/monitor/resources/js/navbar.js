@@ -93,12 +93,21 @@ function updateServerCount(elementId, status) {
     $element.text('0/0');
     return;
   }
-  
+
   const total = Number(status.serverCount);
   const problem = Number(status.problemServerCount || 0);
   const responding = Math.max(0, total - problem);
 
   $element.text(`${responding}/${total}`);
+}
+
+function getServerCounts(component)
+{
+  const total = Number(component.serverCount);
+  const problem = Number(component.problemServerCount || 0);
+  const responding = Math.max(0, total - problem);
+
+  return [responding, total];
 }
 
 /**
