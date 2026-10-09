@@ -94,16 +94,11 @@ function updateServerCount(elementId, status) {
     return;
   }
 
-  let total = Number(status.serverCount);
+  const total = Number(status.serverCount);
   const problem = Number(status.problemServerCount || 0);
-  let responding = Math.max(0, total - problem);
+  const responding = Math.max(0, total - problem);
 
-if (elementId === 'sserverStatusCount'){
-  total = 3;
-  responding = 0;
-}
-
-$element.text(`${responding}/${total}`);
+  $element.text(`${responding}/${total}`);
 }
 
 function getServerCounts(component)
