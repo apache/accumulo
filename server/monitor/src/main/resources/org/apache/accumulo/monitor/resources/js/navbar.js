@@ -91,8 +91,8 @@ function updateServerCount(elementId, status) {
 
   if (!status || Number(status.serverCount) <= 0) {
     $element.text('0/0');
+    return;
   }
-  
   const total = Number(status.serverCount);
   const problem = Number(status.problemServerCount || 0);
   const responding = Math.max(0, total - problem);
@@ -133,7 +133,7 @@ function updateServerNotifications(statusData) {
     if (index === 0) {
       return;
     }
-    updateElementStatus(component.indicatorId,componentStatuses[index]);
+    updateElementStatus(component.indicatorId, componentStatuses[index]);
   });
 
   // Setting overall servers status notification
