@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.test.URLContextClassLoaderFactory;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -74,6 +75,8 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1G");
+    site.put(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),
+        URLContextClassLoaderFactory.class.getName());
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
