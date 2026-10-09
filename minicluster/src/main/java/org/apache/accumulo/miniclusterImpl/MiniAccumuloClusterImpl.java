@@ -614,18 +614,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     control.start(ServerType.TABLET_SERVER);
 
-    int ret = 0;
-    for (int i = 0; i < 5; i++) {
-      ret = exec(Main.class, SetGoalState.class.getName(), ManagerGoalState.NORMAL.toString())
-          .getProcess().waitFor();
-      if (ret == 0) {
-        break;
-      }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-    if (ret != 0) {
-      throw new IllegalStateException("Could not set manager goal state, process returned " + ret
-          + ". Check the logs in " + config.getLogDir() + " for errors.");
+    try {
+      SetGoalState.setGoalState(getServerContext(), ManagerGoalState.NORMAL);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Could not set manager goal state", e);
     }
 
     control.start(ServerType.MANAGER);
