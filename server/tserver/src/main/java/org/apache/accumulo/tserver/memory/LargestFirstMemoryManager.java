@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -194,17 +193,11 @@ public class LargestFirstMemoryManager {
           if (idleTime > getMinCIdleThreshold(tablet)) {
             largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
           }
-        } catch (IllegalArgumentException e) {
-          Throwable cause = e.getCause();
-          if (cause != null && cause instanceof TableNotFoundException) {
-            log.trace("Ignoring extent for deleted table: {}", tablet);
-
-            // The table might have been deleted during the iteration of the tablets
-            // We just want to eat this exception, do nothing with this tablet, and continue
-            continue;
-          }
-
-          throw e;
+        } catch (NullPointerException e) {
+          log.trace("Table config is null. Ignoring extent for deleted table: {}", tablet);
+          // The table might have been deleted during the iteration of the tablets
+          // We just want to eat this exception, do nothing with this tablet, and continue
+          continue;
         }
         // Only place the tablet into largestMemTablets map when the table still exists
         largestMemTablets.put(timeMemoryLoad, tabletInfo);
