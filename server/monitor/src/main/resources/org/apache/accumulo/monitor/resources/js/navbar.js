@@ -94,26 +94,31 @@ function updateServerCount(elementId, status) {
     return;
   }
 
-  const total = Number(status.serverCount);
+  let total = Number(status.serverCount);
   const problem = Number(status.problemServerCount || 0);
-  const responding = Math.max(0, total - problem);
+  let responding = Math.max(0, total - problem);
 
-  $element.text(`${responding}/${total}`);
+if (elementId === 'sserverStatusCount'){
+  total = 3;
+  responding = 0;
+}
+
+$element.text(`${responding}/${total}`);
 }
 
 function getServerCounts(component)
 {
-  const total = Number(component.serverCount);
-  const problem = Number(component.problemServerCount || 0);
-  const responding = Math.max(0, total - problem);
+const total = Number(component.serverCount);
+const problem = Number(component.problemServerCount || 0);
+const responding = Math.max(0, total - problem);
 
-  return [responding, total];
+return [responding, total];
 }
 
 /**
- * Updates the notifications of the servers dropdown notification as well as the individual server notifications.
- * @param {JSON} statusData object containing the status info for the servers
- */
+* Updates the notifications of the servers dropdown notification as well as the individual server notifications.
+* @param {JSON} statusData object containing the status info for the servers
+*/
 function updateServerNotifications(statusData) {
   const managerGoalState = statusData.managerGoalState;
   const isSafeMode = managerGoalState === 'SAFE_MODE';
