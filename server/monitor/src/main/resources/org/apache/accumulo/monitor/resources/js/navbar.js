@@ -103,11 +103,10 @@ function updateServerCount(elementId, status) {
 
 function getServerCounts(component)
 {
-const total = Number(component.serverCount);
-const problem = Number(component.problemServerCount || 0);
-const responding = Math.max(0, total - problem);
-
-return [responding, total];
+  const total = Number(component.serverCount);
+  const problem = Number(component.problemServerCount || 0);
+  const responding = Math.max(0, total - problem);
+  return [responding, total];
 }
 
 /**
