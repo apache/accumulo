@@ -83,6 +83,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
@@ -614,9 +615,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.start(ServerType.TABLET_SERVER);
 
     try {
-      getServerContext().getZooReaderWriter().putPersistentData(
-          getServerContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
-          ManagerGoalState.NORMAL.name().getBytes(UTF_8), ZooUtil.NodeExistsPolicy.OVERWRITE);
+      SetGoalState.setGoalState(getServerContext(), ManagerGoalState.NORMAL);
     } catch (KeeperException e) {
       throw new IllegalStateException("Could not set manager goal state", e);
     }
