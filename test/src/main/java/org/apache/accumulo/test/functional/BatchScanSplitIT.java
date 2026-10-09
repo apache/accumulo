@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -69,13 +69,8 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "4K");
 
-      Collection<Text> splits = c.tableOperations().listSplits(tableName);
-      while (splits.size() < 2) {
-        Thread.sleep(1);
-        splits = c.tableOperations().listSplits(tableName);
-      }
-
-      System.out.println("splits : " + splits);
+      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() >= 2, 30_000, 100,
+          "Expected table splits were not created");
 
       HashMap<Text,Value> expected = new HashMap<>();
       ArrayList<Range> ranges = new ArrayList<>();
@@ -113,7 +108,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
         }
       }
 
-      splits = c.tableOperations().listSplits(tableName);
+      var splits = c.tableOperations().listSplits(tableName);
       log.info("splits : {}", splits);
     }
   }

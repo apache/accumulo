@@ -518,30 +518,26 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
     // addauths
     ts.exec("createtable " + table + " -evc");
-    boolean success = false;
     // Rely on the timeout rule in AccumuloIT
-    while (!success) {
+    Wait.waitFor(() -> {
       try {
         ts.exec("insert a b c d -l foo", false, "does not have authorization", true,
             new ErrorMessageCallback(getClientProps()));
-        success = true;
+        return true;
       } catch (AssertionError e) {
-        Thread.sleep(500);
+        return false;
       }
-    }
+    }, 30_000, 250, "Insert did not succeed after granting authorization");
     ts.exec("addauths -s foo,bar", true);
-    boolean passed = false;
-    // Rely on the timeout rule in AccumuloIT
-    while (!passed) {
+    Wait.waitFor(() -> {
       try {
         ts.exec("getauths", true, "foo", true);
         ts.exec("getauths", true, "bar", true);
-        passed = true;
+        return true;
       } catch (AssertionError | Exception e) {
-        Thread.sleep(500);
+        return false;
       }
-    }
-    assertTrue(passed, "Could not successfully see updated authoriations");
+    }, 30_000, 250, "Could not successfully see updated authoriations");
     ts.exec("insert a b c d -l foo");
     ts.exec("scan", true, "[foo]");
     ts.exec("scan -s bar", true, "[foo]", false);

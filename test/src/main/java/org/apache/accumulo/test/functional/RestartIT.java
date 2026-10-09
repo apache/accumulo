@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -36,7 +35,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.minicluster.ServerType;
@@ -46,6 +44,7 @@ import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.AfterEach;
@@ -132,27 +131,15 @@ public class RestartIT extends AccumuloClusterHarness {
 
       ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();
-      Optional<ServiceLockData> managerLockData;
-      do {
-        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData.isPresent()) {
-          log.info("Manager lock is still held");
-          Thread.sleep(1000);
-        }
-      } while (managerLockData.isPresent());
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(), 30_000, 250,
+          "Manager lock was not released before restart");
 
       cluster.start();
       Thread.sleep(5);
       control.stopAllServers(ServerType.MANAGER);
 
-      managerLockData = null;
-      do {
-        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData.isPresent()) {
-          log.info("Manager lock is still held");
-          Thread.sleep(1000);
-        }
-      } while (managerLockData.isPresent());
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(), 30_000, 250,
+          "Manager lock was not released before second restart");
       cluster.start();
       VerifyIngest.verifyIngest(c, params);
     }
@@ -182,14 +169,8 @@ public class RestartIT extends AccumuloClusterHarness {
 
       ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();
-      Optional<ServiceLockData> managerLockData;
-      do {
-        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData.isPresent()) {
-          log.info("Manager lock is still held");
-          Thread.sleep(1000);
-        }
-      } while (managerLockData.isPresent());
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(), 30_000, 250,
+          "Manager lock was not released before restart");
 
       cluster.start();
       assertEquals(0, ret.get().intValue());

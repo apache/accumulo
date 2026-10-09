@@ -44,6 +44,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.BeforeAll;
@@ -159,10 +160,10 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     assumeTrue(sharedLibBuilt.get(), "Shared library did not build");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty()) {
-        // wait until the tserver that we need to kill is running
-        Thread.sleep(50);
-      }
+      // wait until the tserver that we need to kill is running
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty(),
+          30_000, 250, "Tablet server did not start");
 
       // create our own tablet server with the special test library
       Path confDirPath = cluster.getConfig().getDir().toPath();
