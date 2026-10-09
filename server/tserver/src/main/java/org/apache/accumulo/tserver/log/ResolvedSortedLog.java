@@ -87,7 +87,7 @@ public class ResolvedSortedLog {
 
     // convert the path of on unsorted logs to the expected path for the corresponding sorted log
     // dir
-    Path sortedLogPath = RecoveryPath.getRecoveryPath(new Path(logEntry.getPath()));
+    Path sortedLogPath = new Path(RecoveryPath.getRecoveryPath(logEntry.getPath()));
 
     boolean foundFinish = false;
     // Path::getName compares the last component of each Path value. In this case, the last
