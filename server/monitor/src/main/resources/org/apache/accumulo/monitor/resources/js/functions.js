@@ -575,11 +575,19 @@ function getStoredStatusData() {
 }
 
 function getComponentStatus(statusData, componentType) {
+  const status = statusData.componentStatuses[componentType];
+
+  // trying to add a variable for the component's countId to get the server count
+  //const componentStatusCount = NAVBAR_COMPONENTS[componentType].countId;
+
+  if (!status.hasServers && componentType === 'SCAN_SERVER'){
+    return 'OK';
+  }
+
   if (!statusData || !statusData.componentStatuses) {
     return 'ERROR';
   }
 
-  var status = statusData.componentStatuses[componentType];
   if (!status || !status.hasServers) {
     return 'ERROR';
   }

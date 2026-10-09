@@ -91,24 +91,13 @@ function updateServerCount(elementId, status) {
 
   if (!status || Number(status.serverCount) <= 0) {
     $element.text('0/0');
-    return STATUS.OK;
   }
-
+  
   const total = Number(status.serverCount);
   const problem = Number(status.problemServerCount || 0);
   const responding = Math.max(0, total - problem);
 
   $element.text(`${responding}/${total}`);
-
-  if (responding === total){
-    return STATUS.OK;
-  }
-  else if (responding !== 0 && responding < total){
-    return STATUS.WARN;
-  }
-  else if (responding === 0 && total > 0){
-    return STATUS.ERROR;
-  }
 }
 
 /**
@@ -140,11 +129,11 @@ function updateServerNotifications(statusData) {
   }
 
   NAVBAR_COMPONENTS.forEach(function (component, index) {
-    const serverStatus = updateServerCount(component.countId, componentData[index]);
+    updateServerCount(component.countId, componentData[index]);
     if (index === 0) {
       return;
     }
-    updateElementStatus(component.indicatorId, serverStatus);
+    updateElementStatus(component.indicatorId,componentStatuses[index]);
   });
 
   // Setting overall servers status notification
