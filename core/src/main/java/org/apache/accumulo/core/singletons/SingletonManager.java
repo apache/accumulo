@@ -48,6 +48,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class SingletonManager {
 
   private static final Logger log = LoggerFactory.getLogger(SingletonManager.class);
+  private static final Object lock = new Object();
 
   /**
    * These enums determine the behavior of the SingletonManager.
@@ -116,16 +117,18 @@ public class SingletonManager {
   /**
    * Register a static singleton that should be disabled and enabled as needed.
    */
-  public static synchronized void register(SingletonService service) {
-    if (enabled && !service.isEnabled()) {
-      enable(service);
-    }
+  public static void register(SingletonService service) {
+    synchronized (lock) {
+      if (enabled && !service.isEnabled()) {
+        enable(service);
+      }
 
-    if (!enabled && service.isEnabled()) {
-      disable(service);
-    }
+      if (!enabled && service.isEnabled()) {
+        disable(service);
+      }
 
-    services.add(service);
+      services.add(service);
+    }
   }
 
   /**
@@ -136,11 +139,13 @@ public class SingletonManager {
    *
    * @return A reservation that must be closed when the AccumuloClient is closed.
    */
-  public static synchronized SingletonReservation getClientReservation() {
-    Preconditions.checkState(reservations >= 0);
-    reservations++;
-    transition();
-    return new SingletonReservation();
+  public static SingletonReservation getClientReservation() {
+    synchronized (lock) {
+      Preconditions.checkState(reservations >= 0);
+      reservations++;
+      transition();
+      return new SingletonReservation();
+    }
   }
 
   static synchronized void releaseReservation() {
@@ -157,38 +162,42 @@ public class SingletonManager {
   /**
    * Change how singletons are managed. The default mode is {@link Mode#CLIENT}
    */
-  public static synchronized void setMode(Mode mode) {
-    if (SingletonManager.mode == mode) {
-      return;
-    }
-    if (SingletonManager.mode == Mode.CLOSED) {
-      throw new IllegalStateException("Cannot leave closed mode once entered");
-    }
-    if (SingletonManager.mode == Mode.CLIENT && mode == Mode.CONNECTOR) {
-      if (transitionedFromClientToConnector) {
-        throw new IllegalStateException("Can only transition from " + Mode.CLIENT + " to "
-            + Mode.CONNECTOR + " once.  This error indicates that "
-            + "org.apache.accumulo.core.util.CleanUp.shutdownNow() was called and then later a "
-            + "Connector was created.  Connectors can not be created after CleanUp.shutdownNow()"
-            + " is called.");
+  public static void setMode(Mode mode) {
+    synchronized (lock) {
+      if (SingletonManager.mode == mode) {
+        return;
+      }
+      if (SingletonManager.mode == Mode.CLOSED) {
+        throw new IllegalStateException("Cannot leave closed mode once entered");
+      }
+      if (SingletonManager.mode == Mode.CLIENT && mode == Mode.CONNECTOR) {
+        if (transitionedFromClientToConnector) {
+          throw new IllegalStateException("Can only transition from " + Mode.CLIENT + " to "
+              + Mode.CONNECTOR + " once.  This error indicates that "
+              + "org.apache.accumulo.core.util.CleanUp.shutdownNow() was called and then later a "
+              + "Connector was created.  Connectors can not be created after CleanUp.shutdownNow()"
+              + " is called.");
+        }
+
+        transitionedFromClientToConnector = true;
       }
 
-      transitionedFromClientToConnector = true;
+      /*
+       * Always allow transition to closed and only allow transition to client/connector when the
+       * current mode is not server.
+       */
+      if (SingletonManager.mode != Mode.SERVER || mode == Mode.CLOSED) {
+        SingletonManager.mode = mode;
+      }
+      transition();
     }
-
-    /*
-     * Always allow transition to closed and only allow transition to client/connector when the
-     * current mode is not server.
-     */
-    if (SingletonManager.mode != Mode.SERVER || mode == Mode.CLOSED) {
-      SingletonManager.mode = mode;
-    }
-    transition();
   }
 
   @VisibleForTesting
-  public static synchronized Mode getMode() {
-    return mode;
+  public static Mode getMode() {
+    synchronized (lock) {
+      return mode;
+    }
   }
 
   private static void transition() {

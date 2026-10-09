@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 public class SharedRateLimiterFactory {
   private static final long REPORT_RATE = 60000;
   private static final long UPDATE_RATE = 1000;
+  private static final Object INSTANCE_LOCK = new Object();
   private static SharedRateLimiterFactory instance = null;
   private static ScheduledFuture<?> updateTaskFuture;
   private final Logger log = LoggerFactory.getLogger(SharedRateLimiterFactory.class);
@@ -51,22 +52,23 @@ public class SharedRateLimiterFactory {
   private SharedRateLimiterFactory() {}
 
   /** Get the singleton instance of the SharedRateLimiterFactory. */
-  public static synchronized SharedRateLimiterFactory
-      getInstance(ScheduledThreadPoolExecutor executor) {
-    if (instance == null) {
-      instance = new SharedRateLimiterFactory();
+  public static SharedRateLimiterFactory getInstance(ScheduledThreadPoolExecutor executor) {
+    synchronized (INSTANCE_LOCK) {
+      if (instance == null) {
+        instance = new SharedRateLimiterFactory();
 
-      updateTaskFuture = executor.scheduleWithFixedDelay(Threads
-          .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
-          UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
+        updateTaskFuture = executor.scheduleWithFixedDelay(Threads
+            .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
+            UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
 
-      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(Threads
-          .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
-          REPORT_RATE, REPORT_RATE, MILLISECONDS);
-      ThreadPools.watchNonCriticalScheduledTask(future);
+        ScheduledFuture<?> future = executor.scheduleWithFixedDelay(Threads
+            .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
+            REPORT_RATE, REPORT_RATE, MILLISECONDS);
+        ThreadPools.watchNonCriticalScheduledTask(future);
 
+      }
+      return instance;
     }
-    return instance;
   }
 
   /**

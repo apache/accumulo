@@ -33,6 +33,8 @@ import org.apache.accumulo.core.spi.cache.CacheEntry.Weighable;
 
 public class BlockIndex implements Weighable {
 
+  private final Object lock = new Object();
+
   private BlockIndex() {}
 
   public static BlockIndex getIndex(CachedBlockRead cacheBlock, IndexEntry indexEntry)
@@ -214,16 +216,18 @@ public class BlockIndex implements Weighable {
   }
 
   @Override
-  public synchronized int weight() {
-    int weight = 0;
-    if (blockIndex != null) {
-      for (BlockIndexEntry blockIndexEntry : blockIndex) {
-        weight += blockIndexEntry.weight();
+  public int weight() {
+    synchronized (lock) {
+      int weight = 0;
+      if (blockIndex != null) {
+        for (BlockIndexEntry blockIndexEntry : blockIndex) {
+          weight += blockIndexEntry.weight();
+        }
       }
-    }
 
-    weight +=
-        ClassSize.ATOMIC_INTEGER + ClassSize.OBJECT + 2 * ClassSize.REFERENCE + ClassSize.ARRAY;
-    return weight;
+      weight +=
+          ClassSize.ATOMIC_INTEGER + ClassSize.OBJECT + 2 * ClassSize.REFERENCE + ClassSize.ARRAY;
+      return weight;
+    }
   }
 }

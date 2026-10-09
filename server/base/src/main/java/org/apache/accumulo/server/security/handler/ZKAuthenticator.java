@@ -48,6 +48,7 @@ public final class ZKAuthenticator implements Authenticator {
   private ServerContext context;
   private String ZKUserPath;
   private ZooCache zooCache;
+  private final Object zooCacheLock = new Object();
 
   @Override
   public void initialize(ServerContext context) {
@@ -88,7 +89,7 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       // remove old settings from zookeeper first, if any
       ZooReaderWriter zoo = context.getZooReaderWriter();
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zooCache.clear();
         if (zoo.exists(ZKUserPath)) {
           zoo.recursiveDelete(ZKUserPath, NodeMissingPolicy.SKIP);
@@ -115,7 +116,7 @@ public final class ZKAuthenticator implements Authenticator {
    */
   private void constructUser(String user, byte[] pass)
       throws KeeperException, InterruptedException {
-    synchronized (zooCache) {
+    synchronized (zooCacheLock) {
       zooCache.clear();
       ZooReaderWriter zoo = context.getZooReaderWriter();
       zoo.putPrivatePersistentData(ZKUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
@@ -154,7 +155,7 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
+      synchronized (zooCacheLock) {
         zooCache.clear();
         context.getZooReaderWriter().recursiveDelete(ZKUserPath + "/" + user,
             NodeMissingPolicy.FAIL);
@@ -181,7 +182,7 @@ public final class ZKAuthenticator implements Authenticator {
     PasswordToken pt = (PasswordToken) token;
     if (userExists(principal)) {
       try {
-        synchronized (zooCache) {
+        synchronized (zooCacheLock) {
           zooCache.clear(ZKUserPath + "/" + principal);
           context.getZooReaderWriter().putPrivatePersistentData(ZKUserPath + "/" + principal,
               ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);

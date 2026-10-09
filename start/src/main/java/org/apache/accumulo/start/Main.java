@@ -40,6 +40,7 @@ public class Main {
   private static ClassLoader classLoader;
   private static Class<?> vfsClassLoader;
   private static Map<String,KeywordExecutable> servicesMap;
+  private static final Object lock = new Object();
 
   public static void main(final String[] args) throws Exception {
     // Preload classes that cause a deadlock between the ServiceLoader and the DFSClient when
@@ -91,29 +92,32 @@ public class Main {
 
   }
 
-  public static synchronized ClassLoader getClassLoader() {
-    if (classLoader == null) {
-      try {
-        classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
-        Thread.currentThread().setContextClassLoader(classLoader);
-      } catch (IOException | IllegalArgumentException | ReflectiveOperationException
-          | SecurityException e) {
-        die(e, "Problem initializing the class loader");
+  public static ClassLoader getClassLoader() {
+    synchronized (lock) {
+      if (classLoader == null) {
+        try {
+          classLoader = (ClassLoader) getVFSClassLoader().getMethod("getClassLoader").invoke(null);
+          Thread.currentThread().setContextClassLoader(classLoader);
+        } catch (IOException | IllegalArgumentException | ReflectiveOperationException
+            | SecurityException e) {
+          die(e, "Problem initializing the class loader");
+        }
       }
+      return classLoader;
     }
-    return classLoader;
   }
 
   @Deprecated
-  private static synchronized Class<?> getVFSClassLoader()
-      throws IOException, ClassNotFoundException {
-    if (vfsClassLoader == null) {
-      Thread.currentThread().setContextClassLoader(
-          org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader());
-      vfsClassLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader()
-          .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
+  private static Class<?> getVFSClassLoader() throws IOException, ClassNotFoundException {
+    synchronized (lock) {
+      if (vfsClassLoader == null) {
+        Thread.currentThread().setContextClassLoader(
+            org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader());
+        vfsClassLoader = org.apache.accumulo.start.classloader.AccumuloClassLoader.getClassLoader()
+            .loadClass("org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader");
+      }
+      return vfsClassLoader;
     }
-    return vfsClassLoader;
   }
 
   private static void execKeyword(final KeywordExecutable keywordExec, final String[] args) {
@@ -226,11 +230,13 @@ public class Main {
     System.out.println();
   }
 
-  public static synchronized Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
-    if (servicesMap == null) {
-      servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
+  public static Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
+    synchronized (lock) {
+      if (servicesMap == null) {
+        servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
+      }
+      return servicesMap;
     }
-    return servicesMap;
   }
 
   public static Map<String,KeywordExecutable>

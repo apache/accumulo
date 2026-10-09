@@ -65,6 +65,8 @@ public class ReplicationTableUtil {
   public static final String STATUS_FORMATTER_CLASS_NAME =
       org.apache.accumulo.server.replication.StatusFormatter.class.getName();
 
+  private static final Object lock = new Object();
+
   private ReplicationTableUtil() {}
 
   /**
@@ -89,62 +91,65 @@ public class ReplicationTableUtil {
     return replicationTable;
   }
 
-  public synchronized static void configureMetadataTable(AccumuloClient client, String tableName) {
-    TableOperations tops = client.tableOperations();
-    Map<String,EnumSet<IteratorScope>> iterators = null;
-    try {
-      iterators = tops.listIterators(tableName);
-    } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
-    if (!iterators.containsKey(COMBINER_NAME)) {
-      // Set our combiner and combine all columns
-      // Need to set the combiner beneath versioning since we don't want to turn it off
-      @SuppressWarnings("deprecation")
-      var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
-      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, statusCombinerClass);
-      Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
+  public static void configureMetadataTable(AccumuloClient client, String tableName) {
+    synchronized (lock) {
+      TableOperations tops = client.tableOperations();
+      Map<String,EnumSet<IteratorScope>> iterators = null;
       try {
-        tops.attachIterator(tableName, setting);
+        iterators = tops.listIterators(tableName);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
         throw new RuntimeException(e);
       }
-    }
 
-    // Make sure the StatusFormatter is set on the metadata table
-    Map<String,String> properties;
-    try {
-      properties = tops.getConfiguration(tableName);
-    } catch (AccumuloException | TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
-    for (Entry<String,String> property : properties.entrySet()) {
-      if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
-        if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
-          log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(),
-              STATUS_FORMATTER_CLASS_NAME);
-          try {
-            tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
-                STATUS_FORMATTER_CLASS_NAME);
-          } catch (AccumuloException | AccumuloSecurityException e) {
-            throw new RuntimeException(e);
-          }
+      if (!iterators.containsKey(COMBINER_NAME)) {
+        // Set our combiner and combine all columns
+        // Need to set the combiner beneath versioning since we don't want to turn it off
+        @SuppressWarnings("deprecation")
+        var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
+        IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, statusCombinerClass);
+        Combiner.setColumns(setting,
+            Collections.singletonList(new Column(ReplicationSection.COLF)));
+        try {
+          tops.attachIterator(tableName, setting);
+        } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
+          throw new RuntimeException(e);
         }
-
-        // Don't need to keep iterating over the properties after we found the one we were looking
-        // for
-        return;
       }
-    }
 
-    // Set the formatter on the table because it wasn't already there
-    try {
-      tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
-          STATUS_FORMATTER_CLASS_NAME);
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new RuntimeException(e);
+      // Make sure the StatusFormatter is set on the metadata table
+      Map<String,String> properties;
+      try {
+        properties = tops.getConfiguration(tableName);
+      } catch (AccumuloException | TableNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+
+      for (Entry<String,String> property : properties.entrySet()) {
+        if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
+          if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
+            log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(),
+                STATUS_FORMATTER_CLASS_NAME);
+            try {
+              tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
+                  STATUS_FORMATTER_CLASS_NAME);
+            } catch (AccumuloException | AccumuloSecurityException e) {
+              throw new RuntimeException(e);
+            }
+          }
+
+          // Don't need to keep iterating over the properties after we found the one we were looking
+          // for
+          return;
+        }
+      }
+
+      // Set the formatter on the table because it wasn't already there
+      try {
+        tops.setProperty(tableName, Property.TABLE_FORMATTER_CLASS.getKey(),
+            STATUS_FORMATTER_CLASS_NAME);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 

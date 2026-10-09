@@ -45,6 +45,7 @@ public class CompactionWatcher implements Runnable {
   private final AccumuloConfiguration config;
   private static boolean watching = false;
   private static LongTaskTimer timer = null;
+  private static final Object lock = new Object();
 
   private static class ObservedCompactionInfo {
     final CompactionInfo compactionInfo;
@@ -121,11 +122,14 @@ public class CompactionWatcher implements Runnable {
     }
   }
 
-  public static synchronized void startWatching(ServerContext context) {
-    if (!watching) {
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-          new CompactionWatcher(context.getConfiguration()), 10000, 10000, TimeUnit.MILLISECONDS));
-      watching = true;
+  public static void startWatching(ServerContext context) {
+    synchronized (lock) {
+      if (!watching) {
+        ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+            .scheduleWithFixedDelay(new CompactionWatcher(context.getConfiguration()), 10000, 10000,
+                TimeUnit.MILLISECONDS));
+        watching = true;
+      }
     }
   }
 
