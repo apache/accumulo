@@ -93,6 +93,7 @@ function updateServerCount(elementId, status) {
     $element.text('0/0');
     return;
   }
+  
   const total = Number(status.serverCount);
   const problem = Number(status.problemServerCount || 0);
   const responding = Math.max(0, total - problem);
