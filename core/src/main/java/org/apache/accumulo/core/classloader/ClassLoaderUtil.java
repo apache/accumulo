@@ -44,9 +44,9 @@ public class ClassLoaderUtil {
       String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
       if (factoryName == null || factoryName.isEmpty()) {
         // load the default implementation
-        LOG.info("Using default {}, which is subject to change in a future release",
-            ContextClassLoaderFactory.class.getName());
-        FACTORY = new DefaultContextClassLoaderFactory();
+        LOG.info("{} not set, using System ClassLoader for all contexts",
+            Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey());
+        FACTORY = context -> ClassLoader.getSystemClassLoader();
       } else {
         // load user's selected implementation and provide it with the service environment
         try {
