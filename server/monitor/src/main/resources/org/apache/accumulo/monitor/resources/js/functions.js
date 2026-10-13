@@ -578,8 +578,9 @@ function getComponentStatus(statusData, componentType) {
   const status = statusData.componentStatuses[componentType];
 
   if (componentType === 'SCAN_SERVER'){
-    const respondingServers = getServerCounts(status).at(0);
-    const totalServers = getServerCounts(status).at(1);
+    const serverCounts = getServerCounts(status);
+    const respondingServers = serverCounts.at(0);
+    const totalServers = serverCounts.at(1);
     if (respondingServers === totalServers) {
       return 'OK';
     } else if (respondingServers === 0 && totalServers > 0) {
