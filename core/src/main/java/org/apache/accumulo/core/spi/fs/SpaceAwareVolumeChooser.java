@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.AtomicDouble;
 
 /**
  * A {@link PreferredVolumeChooser} that takes remaining HDFS space into account when making a
@@ -98,11 +99,11 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
   private class WeightedRandomCollection {
     private final NavigableMap<Double,String> map = new TreeMap<>();
-    private double total = 0;
+    private AtomicDouble total = new AtomicDouble(0);
 
     private WeightedRandomCollection(Set<String> options, VolumeChooserEnvironment env) {
 
-      if (options.size() < 1) {
+      if (options.isEmpty()) {
         throw new IllegalStateException("Options was empty! No valid volumes to choose from.");
       }
 
@@ -116,7 +117,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
         }
       }
 
-      if (map.size() < 1) {
+      if (map.isEmpty()) {
         throw new IllegalStateException(
             "Weighted options was empty! Could indicate an issue getting file system status or "
                 + "no free space on any volume");
@@ -125,16 +126,16 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
     public WeightedRandomCollection add(double weight, String result) {
       if (weight <= 0) {
-        log.info("Weight was 0. Not adding " + result);
+        log.info("Weight was 0. Not adding {}", result);
         return this;
       }
-      total += weight;
-      map.put(total, result);
+      total.getAndAdd(weight);
+      map.put(total.get(), result);
       return this;
     }
 
     public String next() {
-      double value = random.nextDouble() * total;
+      double value = random.nextDouble() * total.get();
       return map.higherEntry(value).getValue();
     }
   }

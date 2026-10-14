@@ -42,6 +42,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -124,21 +125,21 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private class RQIterator implements Iterator<Result> {
 
     private final BlockingQueue<Result> rq;
-    private int count;
+    private final AtomicInteger count = new AtomicInteger();
 
     public RQIterator(BlockingQueue<Result> resultQueue, int count) {
       this.rq = resultQueue;
-      this.count = count;
+      this.count.getAndSet(count);
     }
 
     @Override
     public boolean hasNext() {
-      return count > 0;
+      return count.get() > 0;
     }
 
     @Override
     public Result next() {
-      if (count <= 0) {
+      if (count.get() <= 0) {
         throw new NoSuchElementException();
       }
 
@@ -152,7 +153,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
           result = rq.poll(1, SECONDS);
         }
-        count--;
+        count.getAndDecrement();
         return result;
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();

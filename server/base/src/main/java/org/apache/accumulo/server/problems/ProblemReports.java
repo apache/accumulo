@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -191,7 +192,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       return new Iterator<>() {
 
         final ZooReaderWriter zoo = context.getZooReaderWriter();
-        private int iter1Count = 0;
+        private AtomicInteger iter1Count = new AtomicInteger(0);
         private Iterator<String> iter1;
 
         private Iterator<String> getIter1() {
@@ -217,7 +218,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         private Iterator<Entry<Key,Value>> getIter2() {
           if (iter2 == null) {
             try {
-              if ((table == null || !isMeta(table)) && iter1Count == 0) {
+              if ((table == null || !isMeta(table)) && iter1Count.get() == 0) {
                 Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
                 scanner.setTimeout(3, TimeUnit.SECONDS);
 
@@ -253,7 +254,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
         public ProblemReport next() {
           try {
             if (getIter1().hasNext()) {
-              iter1Count++;
+              iter1Count.getAndIncrement();
               return ProblemReport.decodeZooKeeperEntry(context, getIter1().next());
             }
 

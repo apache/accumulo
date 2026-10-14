@@ -436,6 +436,9 @@ public class ThreadPools {
     }
   }
 
+  @SuppressFBWarnings(
+      value = {"AT_STALE_THREAD_WRITE_OF_PRIMITIVE", "AT_NONATOMIC_64BIT_PRIMITIVE"},
+      justification = "This is a builder class and should not be referenced by multiple threads")
   public class ThreadPoolExecutorBuilder {
     final String name;
     int coreThreads = 0;
