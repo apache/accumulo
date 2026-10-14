@@ -37,23 +37,26 @@ public class NativeMapLoader {
   private static final Pattern dotSuffix = Pattern.compile("[.][^.]*$");
   private static final String PROP_NAME = "accumulo.native.lib.path";
   private static final AtomicBoolean loaded = new AtomicBoolean(false);
+  private static final Object lock = new Object();
 
   // don't allow instantiation
   private NativeMapLoader() {}
 
-  public synchronized static void load() {
-    // load at most once; System.exit if loading fails
-    if (loaded.compareAndSet(false, true)) {
-      if (loadFromSearchPath(System.getProperty(PROP_NAME)) || loadFromSystemLinker()) {
-        return;
+  public static void load() {
+    synchronized (lock) {
+      // load at most once; System.exit if loading fails
+      if (loaded.compareAndSet(false, true)) {
+        if (loadFromSearchPath(System.getProperty(PROP_NAME)) || loadFromSystemLinker()) {
+          return;
+        }
+        log.error(
+            "FATAL! Accumulo native libraries were requested but could not"
+                + " be be loaded. Either set '{}' to false in accumulo.properties or make"
+                + " sure native libraries are created in directories set by the JVM"
+                + " system property '{}' in accumulo-env.sh!",
+            Property.TSERV_NATIVEMAP_ENABLED, PROP_NAME);
+        System.exit(1);
       }
-      log.error(
-          "FATAL! Accumulo native libraries were requested but could not"
-              + " be be loaded. Either set '{}' to false in accumulo.properties or make"
-              + " sure native libraries are created in directories set by the JVM"
-              + " system property '{}' in accumulo-env.sh!",
-          Property.TSERV_NATIVEMAP_ENABLED, PROP_NAME);
-      System.exit(1);
     }
   }
 

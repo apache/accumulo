@@ -86,6 +86,7 @@ public class RecoveryManager {
   }
 
   private class LogSortTask implements Runnable {
+    private final Object lock = new Object();
     private final String source;
     private final String destination;
     private final String sortId;
@@ -118,7 +119,7 @@ public class RecoveryManager {
         log.warn("Failed to initiate log sort " + source, e);
       } finally {
         if (!rescheduled) {
-          synchronized (RecoveryManager.this) {
+          synchronized (lock) {
             closeTasksQueued.remove(sortId);
           }
         }
