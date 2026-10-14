@@ -32,6 +32,7 @@ public class ClassLoaderUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(ClassLoaderUtil.class);
   private static ContextClassLoaderFactory FACTORY;
+  private static final Object FACTORY_LOCK = new Object();
 
   private ClassLoaderUtil() {
     // cannot construct; static utilities only
@@ -40,29 +41,33 @@ public class ClassLoaderUtil {
   /**
    * Initialize the ContextClassLoaderFactory
    */
-  public static synchronized void initContextFactory(AccumuloConfiguration conf) {
-    if (FACTORY == null) {
-      LOG.debug("Creating {}", ContextClassLoaderFactory.class.getName());
-      String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
-      if (factoryName == null || factoryName.isEmpty()) {
-        // load the default implementation
-        LOG.info("Using default {}, which is subject to change in a future release",
-            ContextClassLoaderFactory.class.getName());
-        FACTORY = new DefaultContextClassLoaderFactory(conf);
-      } else {
-        // load user's selected implementation and provide it with the service environment
-        try {
-          var factoryClass = Class.forName(factoryName).asSubclass(ContextClassLoaderFactory.class);
-          LOG.info("Creating {}: {}", ContextClassLoaderFactory.class.getName(), factoryName);
-          FACTORY = factoryClass.getDeclaredConstructor().newInstance();
-          FACTORY.init(() -> new ConfigurationImpl(conf));
-        } catch (ReflectiveOperationException e) {
-          throw new IllegalStateException("Unable to load and initialize class: " + factoryName, e);
+  public static void initContextFactory(AccumuloConfiguration conf) {
+    synchronized (FACTORY_LOCK) {
+      if (FACTORY == null) {
+        LOG.debug("Creating {}", ContextClassLoaderFactory.class.getName());
+        String factoryName = conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY);
+        if (factoryName == null || factoryName.isEmpty()) {
+          // load the default implementation
+          LOG.info("Using default {}, which is subject to change in a future release",
+              ContextClassLoaderFactory.class.getName());
+          FACTORY = new DefaultContextClassLoaderFactory(conf);
+        } else {
+          // load user's selected implementation and provide it with the service environment
+          try {
+            var factoryClass =
+                Class.forName(factoryName).asSubclass(ContextClassLoaderFactory.class);
+            LOG.info("Creating {}: {}", ContextClassLoaderFactory.class.getName(), factoryName);
+            FACTORY = factoryClass.getDeclaredConstructor().newInstance();
+            FACTORY.init(() -> new ConfigurationImpl(conf));
+          } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Unable to load and initialize class: " + factoryName,
+                e);
+          }
         }
+      } else {
+        LOG.debug("{} already initialized with {}.", ContextClassLoaderFactory.class.getName(),
+            FACTORY.getClass().getName());
       }
-    } else {
-      LOG.debug("{} already initialized with {}.", ContextClassLoaderFactory.class.getName(),
-          FACTORY.getClass().getName());
     }
   }
 
@@ -72,8 +77,10 @@ public class ClassLoaderUtil {
   }
 
   // for testing
-  public static synchronized void resetContextFactoryForTests() {
-    FACTORY = null;
+  public static void resetContextFactoryForTests() {
+    synchronized (FACTORY_LOCK) {
+      FACTORY = null;
+    }
   }
 
   @SuppressWarnings("deprecation")

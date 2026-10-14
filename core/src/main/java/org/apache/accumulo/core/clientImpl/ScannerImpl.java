@@ -82,6 +82,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
       return size() > MAX_ENTRIES;
     }
   };
+  private final Object scannerLock = new Object();
 
   /**
    * This is used for ScannerIterators to report their activity back to the scanner that created
@@ -90,7 +91,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   class Reporter {
 
     void readBatch(ScannerIterator iter) {
-      synchronized (ScannerImpl.this) {
+      synchronized (scannerLock) {
         // This iter just had some activity, so access it in map so it becomes the most recently
         // used.
         iters.get(iter);
@@ -98,7 +99,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     }
 
     void finished(ScannerIterator iter) {
-      synchronized (ScannerImpl.this) {
+      synchronized (scannerLock) {
         iters.remove(iter);
       }
     }

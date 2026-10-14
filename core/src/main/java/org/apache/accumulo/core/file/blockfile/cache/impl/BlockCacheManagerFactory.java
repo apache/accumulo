@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 public class BlockCacheManagerFactory {
 
   private static final Logger LOG = LoggerFactory.getLogger(BlockCacheManager.class);
+  private static final Object lock = new Object();
 
   /**
    * Get the BlockCacheFactory specified by the property 'tserver.cache.factory.class' using the
@@ -37,16 +38,17 @@ public class BlockCacheManagerFactory {
    * @return block cache manager instance
    * @throws Exception error loading block cache manager implementation class
    */
-  public static synchronized BlockCacheManager getInstance(AccumuloConfiguration conf)
-      throws Exception {
-    @SuppressWarnings("deprecation")
-    var cacheManagerProp =
-        conf.resolve(Property.GENERAL_CACHE_MANAGER_IMPL, Property.TSERV_CACHE_MANAGER_IMPL);
-    String impl = conf.get(cacheManagerProp);
-    Class<? extends BlockCacheManager> clazz =
-        ClassLoaderUtil.loadClass(impl, BlockCacheManager.class);
-    LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
-    return clazz.getDeclaredConstructor().newInstance();
+  public static BlockCacheManager getInstance(AccumuloConfiguration conf) throws Exception {
+    synchronized (lock) {
+      @SuppressWarnings("deprecation")
+      var cacheManagerProp =
+          conf.resolve(Property.GENERAL_CACHE_MANAGER_IMPL, Property.TSERV_CACHE_MANAGER_IMPL);
+      String impl = conf.get(cacheManagerProp);
+      Class<? extends BlockCacheManager> clazz =
+          ClassLoaderUtil.loadClass(impl, BlockCacheManager.class);
+      LOG.info("Created new block cache manager of type: {}", clazz.getSimpleName());
+      return clazz.getDeclaredConstructor().newInstance();
+    }
   }
 
   /**
@@ -56,15 +58,16 @@ public class BlockCacheManagerFactory {
    * @return block cache manager instance
    * @throws Exception error loading block cache manager implementation class
    */
-  public static synchronized BlockCacheManager getClientInstance(AccumuloConfiguration conf)
-      throws Exception {
-    @SuppressWarnings("deprecation")
-    var cacheManagerProp =
-        conf.resolve(Property.GENERAL_CACHE_MANAGER_IMPL, Property.TSERV_CACHE_MANAGER_IMPL);
-    String impl = conf.get(cacheManagerProp);
-    Class<? extends BlockCacheManager> clazz =
-        Class.forName(impl).asSubclass(BlockCacheManager.class);
-    LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
-    return clazz.getDeclaredConstructor().newInstance();
+  public static BlockCacheManager getClientInstance(AccumuloConfiguration conf) throws Exception {
+    synchronized (lock) {
+      @SuppressWarnings("deprecation")
+      var cacheManagerProp =
+          conf.resolve(Property.GENERAL_CACHE_MANAGER_IMPL, Property.TSERV_CACHE_MANAGER_IMPL);
+      String impl = conf.get(cacheManagerProp);
+      Class<? extends BlockCacheManager> clazz =
+          Class.forName(impl).asSubclass(BlockCacheManager.class);
+      LOG.info("Created new block cache factory of type: {}", clazz.getSimpleName());
+      return clazz.getDeclaredConstructor().newInstance();
+    }
   }
 }
