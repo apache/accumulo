@@ -82,6 +82,7 @@ public class ClientPropertyTest {
 
   @Test
   public void validateThrowsNPEOnNullProperties() {
-    assertThrows(NullPointerException.class, () -> ClientProperty.validate(null));
+    Properties nullProperties = null;
+    assertThrows(NullPointerException.class, () -> ClientProperty.validate(nullProperties));
   }
 }

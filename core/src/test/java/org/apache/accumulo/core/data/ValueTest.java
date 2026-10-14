@@ -64,23 +64,27 @@ public class ValueTest {
 
   @Test
   public void testNullBytesConstructor() {
-    assertThrows(NullPointerException.class, () -> new Value((byte[]) null));
+    byte[] nullByte = null;
+    assertThrows(NullPointerException.class, () -> new Value(nullByte));
   }
 
   @Test
   public void testNullCopyConstructor() {
-    assertThrows(NullPointerException.class, () -> new Value((Value) null));
+    Value nullValue = null;
+    assertThrows(NullPointerException.class, () -> new Value(nullValue));
   }
 
   @Test
   public void testNullByteBufferConstructor() {
-    assertThrows(NullPointerException.class, () -> new Value((ByteBuffer) null));
+    ByteBuffer nullByteBuffer = null;
+    assertThrows(NullPointerException.class, () -> new Value(nullByteBuffer));
   }
 
   @Test
   public void testNullSet() {
     Value v = new Value();
-    assertThrows(NullPointerException.class, () -> v.set(null));
+    byte[] nullByte = null;
+    assertThrows(NullPointerException.class, () -> v.set(nullByte));
   }
 
   @Test
@@ -202,7 +206,8 @@ public class ValueTest {
 
   @Test
   public void testNullCharSequence() {
-    assertThrows(NullPointerException.class, () -> new Value((CharSequence) null));
+    CharSequence nullCharSeq = null;
+    assertThrows(NullPointerException.class, () -> new Value(nullCharSeq));
   }
 
   @Test
@@ -214,6 +219,7 @@ public class ValueTest {
 
   @Test
   public void testNullText() {
-    assertThrows(NullPointerException.class, () -> new Value((Text) null));
+    Text nullText = null;
+    assertThrows(NullPointerException.class, () -> new Value(nullText));
   }
 }

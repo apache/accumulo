@@ -164,8 +164,9 @@ public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetNumberOfThreadsNullFailure() {
-    Exception exception =
-        assertThrows(NullPointerException.class, () -> ConfigurationTypeHelper.getNumThreads(null));
+    String nullString = null;
+    Exception exception = assertThrows(NullPointerException.class,
+        () -> ConfigurationTypeHelper.getNumThreads(nullString));
     assertEquals("Threads value cannot be null", exception.getMessage());
   }
 

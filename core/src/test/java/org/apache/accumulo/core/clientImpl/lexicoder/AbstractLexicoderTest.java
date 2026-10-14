@@ -67,8 +67,9 @@ public abstract class AbstractLexicoderTest extends LexicoderTest {
   }
 
   protected static <T> void assertOutOfBoundsFails(AbstractLexicoder<T> lexicoder, byte[] encoded) {
+    byte[] nullByte = null;
     // decode null; should fail
-    assertThrows(NullPointerException.class, () -> lexicoder.decode(null, 0, encoded.length),
+    assertThrows(NullPointerException.class, () -> lexicoder.decode(nullByte, 0, encoded.length),
         "Should throw on null bytes.");
 
     // decode out of bounds, expect an exception

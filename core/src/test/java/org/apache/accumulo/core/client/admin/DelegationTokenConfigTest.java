@@ -24,6 +24,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.Test;
 
 public class DelegationTokenConfigTest {
@@ -59,13 +61,15 @@ public class DelegationTokenConfigTest {
 
   @Test
   public void testSetInvalidTimeUnit() {
+    final TimeUnit nullUnit = null;
     assertThrows(NullPointerException.class,
-        () -> new DelegationTokenConfig().setTokenLifetime(5, null));
+        () -> new DelegationTokenConfig().setTokenLifetime(5, nullUnit));
   }
 
   @Test
   public void testGetInvalidTimeUnit() {
+    final TimeUnit nullUnit = null;
     assertThrows(NullPointerException.class,
-        () -> new DelegationTokenConfig().getTokenLifetime(null));
+        () -> new DelegationTokenConfig().getTokenLifetime(nullUnit));
   }
 }
