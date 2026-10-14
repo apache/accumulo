@@ -1152,7 +1152,10 @@ public class SystemInformation {
     transactions.forEach(t -> {
       FateOperation op = t.getFateOp();
       TStatus status = t.getStatus();
-      if (status == TStatus.SUBMITTED) {
+      if (status == TStatus.UNKNOWN) {
+        // the transaction was deleted while its info was being read, skip it
+        return;
+      } else if (status == TStatus.SUBMITTED) {
         instanceOverview.getTotalFateSubmitted().incrementAndGet();
         if (op == FateOperation.TABLE_BULK_IMPORT2) {
           instanceOverview.getIngestBulkImportQueued().incrementAndGet();
