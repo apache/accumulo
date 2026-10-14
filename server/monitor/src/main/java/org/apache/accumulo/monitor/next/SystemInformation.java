@@ -1152,7 +1152,7 @@ public class SystemInformation {
     transactions.forEach(t -> {
       FateOperation op = t.getFateOp();
       TStatus status = t.getStatus();
-      if (status == TStatus.UNKNOWN) {
+      if (status == TStatus.UNKNOWN || t.getTimeCreated() == 0) {
         // the transaction was deleted while its info was being read, skip it
         return;
       } else if (status == TStatus.SUBMITTED) {
