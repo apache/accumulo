@@ -35,6 +35,8 @@ import org.apache.accumulo.tserver.tablet.Tablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 class UnloadTabletHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(UnloadTabletHandler.class);
   private final KeyExtent extent;
@@ -51,6 +53,8 @@ class UnloadTabletHandler implements Runnable {
   }
 
   @Override
+  @SuppressFBWarnings(value = "USO_UNSAFE_OBJECT_SYNCHRONIZATION",
+      justification = "Will be addressed in issue #6587")
   public void run() {
 
     Tablet t = null;

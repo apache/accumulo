@@ -49,6 +49,8 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 class AssignmentHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AssignmentHandler.class);
   private static final String METADATA_ISSUE = "Saw metadata issue when loading tablet : ";
@@ -67,6 +69,8 @@ class AssignmentHandler implements Runnable {
   }
 
   @Override
+  @SuppressFBWarnings(value = "USO_UNSAFE_OBJECT_SYNCHRONIZATION",
+      justification = "Will be addressed in issue #6587")
   public void run() {
     synchronized (server.unopenedTablets) {
       synchronized (server.openingTablets) {
@@ -137,7 +141,7 @@ class AssignmentHandler implements Runnable {
         server.openingTablets.remove(extent);
         server.openingTablets.notifyAll();
       }
-      log.warn("Failed to verify tablet " + extent, e);
+      log.warn("Failed to verify tablet {}", extent, e);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       throw new RuntimeException(e);
     }
@@ -153,47 +157,15 @@ class AssignmentHandler implements Runnable {
       return;
     }
 
-    Tablet tablet = null;
     boolean successful = false;
 
     try {
-      server.acquireRecoveryMemory(extent);
-
-      TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
-          server.getTableConfiguration(extent));
-      TabletData data = new TabletData(tabletMetadata);
-
-      tablet = new Tablet(server, extent, trm, data);
-      // If a minor compaction starts after a tablet opens, this indicates a log recovery
-      // occurred. This recovered data must be minor compacted.
-      // There are three reasons to wait for this minor compaction to finish before placing the
-      // tablet in online tablets.
-      //
-      // 1) The log recovery code does not handle data written to the tablet on multiple tablet
-      // servers.
-      // 2) The log recovery code does not block if memory is full. Therefore recovering lots of
-      // tablets that use a lot of memory could run out of memory.
-      // 3) The minor compaction finish event did not make it to the logs (the file will be in
-      // metadata, preventing replay of compacted data)... but do not
-      // want a majc to wipe the file out from metadata and then have another process failure...
-      // this could cause duplicate data to replay.
-      if (tablet.getNumEntriesInMemory() > 0
-          && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
-        throw new RuntimeException("Minor compaction after recovery fails for " + extent);
-      }
-      Assignment assignment =
-          new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
-      TabletStateStore.setLocation(server.getContext(), assignment);
-
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
-          server.openingTablets.remove(extent);
-          server.onlineTablets.put(extent, tablet);
-          server.openingTablets.notifyAll();
-          server.recentlyUnloadedCache.remove(tablet.getExtent());
-        }
-      }
-      tablet = null; // release this reference
+      TabletMetadata finalTabletMetadata = tabletMetadata;
+      server.recoverWithMemory(extent, () -> {
+        openTablet(finalTabletMetadata);
+        // Must return null since it's a callable
+        return null;
+      });
       successful = true;
     } catch (Exception e) {
       log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
@@ -205,8 +177,6 @@ class AssignmentHandler implements Runnable {
       TableId tableId = extent.tableId();
       ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
           extent.getUUID().toString(), server.getClientAddressString(), e));
-    } finally {
-      server.releaseRecoveryMemory(extent);
     }
 
     if (successful) {
@@ -241,6 +211,45 @@ class AssignmentHandler implements Runnable {
               }
             }
           }, reschedule, TimeUnit.MILLISECONDS));
+    }
+  }
+
+  @SuppressFBWarnings(value = "USO_UNSAFE_OBJECT_SYNCHRONIZATION",
+      justification = "Will be addressed in issue #6587")
+  private void openTablet(TabletMetadata tabletMetadata) throws Exception {
+    TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
+        server.getTableConfiguration(extent));
+    TabletData data = new TabletData(tabletMetadata);
+
+    Tablet tablet = new Tablet(server, extent, trm, data);
+    // If a minor compaction starts after a tablet opens, this indicates a log recovery
+    // occurred. This recovered data must be minor compacted.
+    // There are three reasons to wait for this minor compaction to finish before placing the
+    // tablet in online tablets.
+    //
+    // 1) The log recovery code does not handle data written to the tablet on multiple tablet
+    // servers.
+    // 2) The log recovery code does not block if memory is full. Therefore, recovering lots of
+    // tablets that use a lot of memory could run out of memory.
+    // 3) The minor compaction finish event did not make it to the logs (the file will be in
+    // metadata, preventing replay of compacted data)... but do not
+    // want a majc to wipe the file out from metadata and then have another process failure...
+    // this could cause duplicate data to replay.
+    if (tablet.getNumEntriesInMemory() > 0
+        && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
+      throw new RuntimeException("Minor compaction after recovery fails for " + extent);
+    }
+    Assignment assignment =
+        new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
+    TabletStateStore.setLocation(server.getContext(), assignment);
+
+    synchronized (server.openingTablets) {
+      synchronized (server.onlineTablets) {
+        server.openingTablets.remove(extent);
+        server.onlineTablets.put(extent, tablet);
+        server.openingTablets.notifyAll();
+        server.recentlyUnloadedCache.remove(tablet.getExtent());
+      }
     }
   }
 

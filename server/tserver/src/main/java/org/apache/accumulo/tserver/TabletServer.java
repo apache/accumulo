@@ -53,6 +53,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
@@ -547,14 +548,15 @@ public class TabletServer extends AbstractServer
     managerMessages.addLast(m);
   }
 
-  void acquireRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
-      recoveryLock.lock();
+  // Combines the locking into a single method.
+  <T> T recoverWithMemory(KeyExtent extent, Callable<T> task) throws Exception {
+    if (extent.isMeta()) {
+      return task.call();
     }
-  }
-
-  void releaseRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
+    recoveryLock.lock();
+    try {
+      return task.call();
+    } finally {
       recoveryLock.unlock();
     }
   }
@@ -1345,7 +1347,7 @@ public class TabletServer extends AbstractServer
   // is used because its very import to know the order in which WALs were closed when deciding if a
   // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
   // task because there is only one active log at a time.
-  final LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
+  private final LinkedHashSet<DfsLogger> closedLogs = new LinkedHashSet<>();
 
   /**
    * For a closed WAL to be eligible for removal it must be unreferenced AND all closed WALs older
