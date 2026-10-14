@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
+import org.apache.accumulo.compactor.CompactionJobHolder;
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -60,6 +61,8 @@ public class ExternalDoNothingCompactor extends Compactor
   protected FileCompactorRunnable createCompactionJob(TExternalCompactionJob job,
       LongAdder totalInputEntries, LongAdder totalInputBytes, CountDownLatch started,
       CountDownLatch stopped, AtomicReference<Throwable> err) {
+    // Get a local reference so we don't throw unsafe spotbugs errors.
+    CompactionJobHolder jobHolder = JOB_HOLDER;
 
     // Set this to true so that only 1 external compaction is run
     gracefulShutdown(getContext().rpcCreds());
@@ -90,7 +93,7 @@ public class ExternalDoNothingCompactor extends Compactor
           LOG.info("Starting compactor");
           started.countDown();
 
-          while (!JOB_HOLDER.isCancelled()) {
+          while (!jobHolder.isCancelled()) {
             LOG.info("Sleeping while job is not cancelled");
             UtilWaitThread.sleep(1000);
           }
