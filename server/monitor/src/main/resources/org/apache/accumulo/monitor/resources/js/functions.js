@@ -575,26 +575,14 @@ function getStoredStatusData() {
 }
 
 function getComponentStatus(statusData, componentType) {
-  const status = statusData.componentStatuses[componentType];
-
-  if (componentType === 'SCAN_SERVER'){
-    const serverCounts = getServerCounts(status);
-    const respondingServers = serverCounts.at(0);
-    const totalServers = serverCounts.at(1);
-    if (respondingServers === totalServers) {
-      return 'OK';
-    } else if (respondingServers === 0 && totalServers > 0) {
-      return 'ERROR';
-    } else if (respondingServers > 0 && respondingServers < totalServers){
-      return 'WARN'
-    }
-  }
-
   if (!statusData || !statusData.componentStatuses) {
     return 'ERROR';
   }
+  
+  const status = statusData.componentStatuses[componentType];
 
-  if (!status || !status.hasServers) {
+  // scan servers are optional, so having none is not an error
+  if (!status || (!status.hasServers && componentType !== 'SCAN_SERVER')) {
     return 'ERROR';
   }
 
