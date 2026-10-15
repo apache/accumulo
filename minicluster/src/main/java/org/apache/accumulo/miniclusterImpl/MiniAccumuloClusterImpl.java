@@ -80,6 +80,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Timer;
@@ -614,8 +615,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     control.start(ServerType.TABLET_SERVER);
 
-    try {
-      SetGoalState.setGoalState(getServerContext(), ManagerGoalState.NORMAL);
+    try (var reservation = SingletonManager.getClientReservation()) {
+      var zrw = new ZooReaderWriter(getSiteConfiguration());
+      String instanceNamePath =
+          Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName();
+      byte[] bytes = zrw.getData(instanceNamePath);
+      InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
+      SetGoalState.setGoalState(zrw, ZooUtil.getRoot(iid), ManagerGoalState.NORMAL);
     } catch (KeeperException e) {
       throw new IllegalStateException("Could not set manager goal state", e);
     }
