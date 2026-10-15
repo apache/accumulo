@@ -22,9 +22,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.IntBinaryOperator;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -35,16 +32,14 @@ import javax.annotation.concurrent.NotThreadSafe;
 @NotThreadSafe
 public class SeekableByteArrayInputStream extends InputStream {
 
-  private final byte[] buffer;
-  private final AtomicInteger cur = new AtomicInteger(0);
+  private byte[] buffer;
+  private int cur;
   private final int max;
 
   @Override
   public int read() {
-    // advance the pointer by 1 if we haven't reached the end
-    final int currentValue = cur.getAndAccumulate(1, (v, x) -> v < max ? v + x : v);
-    if (currentValue < max) {
-      return buffer[currentValue] & 0xff;
+    if (cur < max) {
+      return buffer[cur++] & 0xff;
     } else {
       return -1;
     }
@@ -64,20 +59,7 @@ public class SeekableByteArrayInputStream extends InputStream {
       return 0;
     }
 
-    // compute how much to read, based on what's left available
-    IntBinaryOperator add = (cur1, length1) -> {
-      final int available = max - cur1;
-      if (available <= 0) {
-        return cur1;
-      } else if (length1 > available) {
-        length1 = available;
-      }
-      return cur1 + length1;
-    };
-
-    final int currentValue = cur.getAndAccumulate(length, add);
-
-    final int avail = max - currentValue;
+    int avail = max - cur;
 
     if (avail <= 0) {
       return -1;
@@ -87,29 +69,28 @@ public class SeekableByteArrayInputStream extends InputStream {
       length = avail;
     }
 
-    System.arraycopy(buffer, currentValue, b, offset, length);
+    System.arraycopy(buffer, cur, b, offset, length);
+    cur += length;
     return length;
   }
 
   @Override
   public long skip(long requestedSkip) {
-
-    // actual skip is at least 0, but no more than what's available
-    BiFunction<Integer,Integer,Integer> skipValue =
-        (current, skip) -> Math.max(0, Math.min(max - current, skip));
-
-    // compute how much to advance, based on actual amount skipped
-    IntBinaryOperator add = (cur1, skip) -> cur1 + skipValue.apply(cur1, skip);
-
-    // advance the pointer and return the actual amount skipped
-    int currentValue = cur.getAndAccumulate((int) requestedSkip, add);
-
-    return skipValue.apply(currentValue, (int) requestedSkip);
+    int actualSkip = max - cur;
+    if (requestedSkip < actualSkip) {
+      if (requestedSkip < 0) {
+        actualSkip = 0;
+      } else {
+        actualSkip = (int) requestedSkip;
+      }
+    }
+    cur += actualSkip;
+    return actualSkip;
   }
 
   @Override
   public int available() {
-    return max - cur.get();
+    return max - cur;
   }
 
   @Override
@@ -133,12 +114,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   public SeekableByteArrayInputStream(byte[] buf) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
+    this.cur = 0;
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
+    this.cur = 0;
     this.max = maxOffset;
   }
 
@@ -146,11 +129,11 @@ public class SeekableByteArrayInputStream extends InputStream {
     if (position < 0 || position >= max) {
       throw new IllegalArgumentException("position = " + position + " maxOffset = " + max);
     }
-    this.cur.set(position);
+    this.cur = position;
   }
 
   public int getPosition() {
-    return this.cur.get();
+    return this.cur;
   }
 
   byte[] getBuffer() {
