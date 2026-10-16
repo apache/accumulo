@@ -107,6 +107,22 @@ public class PropertyTest {
   }
 
   @Test
+  public void testInstanceWalProviderProperties() {
+    assertEquals("instance.wal.providers", Property.INSTANCE_WAL_PROVIDERS.getKey());
+    assertEquals("instance.wal.provider", Property.INSTANCE_WAL_PROVIDER.getKey());
+    assertEquals("{}", Property.INSTANCE_WAL_PROVIDERS.getDefaultValue());
+    assertEquals("", Property.INSTANCE_WAL_PROVIDER.getDefaultValue());
+    assertEquals(PropertyType.JSON, Property.INSTANCE_WAL_PROVIDERS.getType());
+    assertEquals(PropertyType.CLASSNAME, Property.INSTANCE_WAL_PROVIDER.getType());
+    assertTrue(Property.isValidProperty(Property.INSTANCE_WAL_PROVIDERS.getKey(),
+        Property.INSTANCE_WAL_PROVIDERS.getDefaultValue()));
+    assertFalse(Property.isValidZooPropertyKey(Property.INSTANCE_WAL_PROVIDERS.getKey()));
+    assertFalse(Property.isFixedZooPropertyKey(Property.INSTANCE_WAL_PROVIDERS));
+    assertFalse(Property.isValidZooPropertyKey(Property.INSTANCE_WAL_PROVIDER.getKey()));
+    assertFalse(Property.isFixedZooPropertyKey(Property.INSTANCE_WAL_PROVIDER));
+  }
+
+  @Test
   public void testPorts() {
     HashSet<Integer> usedPorts = new HashSet<>();
     for (Property prop : Property.values()) {

@@ -75,6 +75,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.WalProviderRegistry;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.metrics.MetricsInfoImpl;
@@ -112,6 +113,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
+  private final Supplier<WalProviderRegistry> walProviderRegistry;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
@@ -148,6 +150,7 @@ public class ServerContext extends ClientContext {
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
+    walProviderRegistry = memoize(() -> new WalProviderRegistry(this));
     sharedScheduledThreadPool = memoize(() -> ThreadPools.getServerThreadPools()
         .createGeneralScheduledExecutorService(getConfiguration()));
     securityOperation =
@@ -319,6 +322,10 @@ public class ServerContext extends ClientContext {
 
   public CryptoServiceFactory getCryptoFactory() {
     return cryptoFactorySupplier.get();
+  }
+
+  public WalProviderRegistry getWalProviderRegistry() {
+    return walProviderRegistry.get();
   }
 
   @Override

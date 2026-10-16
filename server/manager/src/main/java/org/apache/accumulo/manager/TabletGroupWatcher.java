@@ -86,6 +86,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
@@ -111,7 +112,6 @@ import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
-import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -257,7 +257,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final List<TabletMetadata> assignedToDeadServers = new ArrayList<>();
     private final List<TabletMetadata> suspendedToGoneServers = new ArrayList<>();
     private final Map<KeyExtent,UnassignedTablet> unassigned = new HashMap<>();
-    private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
+    private final Map<TServerInstance,List<LogEntry>> logsForDeadServers = new TreeMap<>();
     // read only list of tablet servers that are not shutting down
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
     private final Map<ResourceGroupId,Set<TServerInstance>> currentTServerGrouping;
@@ -1206,10 +1206,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private static void markDeadServerLogsAsClosed(WalStateManager mgr,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws WalMarkerException {
-    for (Entry<TServerInstance,List<Path>> server : logsForDeadServers.entrySet()) {
-      for (Path path : server.getValue()) {
-        mgr.closeWal(server.getKey(), path);
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers) throws WalMarkerException {
+    for (Entry<TServerInstance,List<LogEntry>> server : logsForDeadServers.entrySet()) {
+      for (LogEntry log : server.getValue()) {
+        mgr.closeWal(server.getKey(), log);
       }
     }
   }

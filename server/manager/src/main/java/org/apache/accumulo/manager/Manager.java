@@ -34,6 +34,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -104,8 +105,10 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
@@ -133,6 +136,9 @@ import org.apache.accumulo.server.PrimaryManagerThriftService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.WalProviderRegistry;
+import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.log.WalStateManager.WalStatePath;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -486,6 +492,7 @@ public class Manager extends AbstractServer
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
+    context.getWalProviderRegistry();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balanceManager = new BalanceManager();
 
@@ -917,6 +924,36 @@ public class Manager extends AbstractServer
     }
   }
 
+  private void validateWalProviderReferences() {
+    getBalanceManager().waitForBalance(EnumSet.of(DataLevel.ROOT, DataLevel.METADATA));
+    WalProviderRegistry registry = getContext().getWalProviderRegistry();
+    Set<String> referencedIds = new HashSet<>();
+    for (DataLevel level : DataLevel.values()) {
+      try (var tablets = getContext().getAmple().readTablets().forLevel(level)
+          .fetch(TabletMetadata.ColumnType.LOGS).build()) {
+        for (TabletMetadata tablet : tablets) {
+          for (LogEntry entry : tablet.getLogs()) {
+            referencedIds.add(entry.getProviderId());
+          }
+        }
+      }
+    }
+    try {
+      for (WalStatePath state : new WalStateManager(getContext()).getAllState()) {
+        referencedIds.add(state.providerId());
+      }
+    } catch (WalStateManager.WalMarkerException e) {
+      throw new IllegalStateException("Unable to audit WAL provider markers", e);
+    }
+    referencedIds.removeAll(registry.getIds());
+    if (!referencedIds.isEmpty()) {
+      throw new IllegalStateException("WAL provider IDs referenced by tablet metadata or WAL "
+          + "markers are not configured in " + Property.INSTANCE_WAL_PROVIDERS + ": "
+          + referencedIds);
+    }
+    log.info("Validated configured WAL providers against all tablet metadata and WAL markers");
+  }
+
   @Override
   public void run() {
     final ServerContext context = getContext();
@@ -1207,6 +1244,11 @@ public class Manager extends AbstractServer
       // And log when we are initialized
       log.info("AuthenticationTokenSecretManager is initialized");
     }
+
+    // Validate that the wals in the tables use
+    // known providers. If that's not the case,
+    // then abort.
+    validateWalProviderReferences();
 
     // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager

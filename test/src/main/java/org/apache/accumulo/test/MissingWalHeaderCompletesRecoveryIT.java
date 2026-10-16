@@ -41,6 +41,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.hadoop.conf.Configuration;
@@ -136,7 +137,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = LogEntry.fromPath(emptyWalog.toUri().toString());
+      LogEntry logEntry =
+          LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, emptyWalog.toUri().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -196,7 +198,8 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = LogEntry.fromPath(partialHeaderWalog.toUri().toString());
+      LogEntry logEntry =
+          LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, partialHeaderWalog.toUri().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);

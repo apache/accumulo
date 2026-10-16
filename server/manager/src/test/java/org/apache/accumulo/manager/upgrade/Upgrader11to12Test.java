@@ -72,6 +72,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -82,6 +83,8 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.log.DfsWalProvider;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -187,6 +190,80 @@ public class Upgrader11to12Test extends WithTestNames {
     assertEquals(3, u2.getUpdates().size());
     assertEquals(2, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
 
+  }
+
+  @Test
+  void upgradeWalReferenceTest() {
+    String path = "hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
+    Key key = Key.builder().row("123").family(LogColumnFamily.NAME).qualifier("-/" + path).build();
+    Value value = new Value();
+    ArrayList<Mutation> mutations = new ArrayList<>();
+    new Upgrader11to12().processReferences(mutations::add, List.of(Map.entry(key, value)),
+        "accumulo.metadata");
+
+    assertTrue(UPGRADE_FAMILIES.contains(LogColumnFamily.NAME));
+    assertEquals(1, mutations.size());
+    Mutation mutation = mutations.get(0);
+    var updates = mutation.getUpdates();
+    assertEquals(2, updates.size());
+    var added = updates.stream().filter(update -> !update.isDeleted()).findFirst().orElseThrow();
+    var deleted = updates.stream().filter(ColumnUpdate::isDeleted).findFirst().orElseThrow();
+    assertEquals(DfsWalProvider.PROVIDER_ID + "/" + path,
+        new Text(added.getColumnQualifier()).toString());
+    assertEquals("-/" + path, new Text(deleted.getColumnQualifier()).toString());
+
+    Key upgradedKey = Key.builder().row("123").family(LogColumnFamily.NAME)
+        .qualifier(DfsWalProvider.PROVIDER_ID + "/" + path).build();
+    ArrayList<Mutation> retryMutations = new ArrayList<>();
+    new Upgrader11to12().processReferences(retryMutations::add,
+        List.of(Map.entry(upgradedKey, value)), "accumulo.metadata");
+    assertTrue(retryMutations.isEmpty());
+  }
+
+  @Test
+  void upgradeWalMarkerIsIdempotentAndRejectsInvalidProviderIds() {
+    String oldData = "CLOSED,hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
+    String upgraded = "CLOSED," + DfsWalProvider.PROVIDER_ID
+        + ",hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
+    assertEquals(upgraded, Upgrader11to12.upgradeWalMarker(oldData));
+    assertEquals(upgraded, Upgrader11to12.upgradeWalMarker(upgraded));
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader11to12.upgradeWalMarker("CLOSED,provider-id,path"));
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader11to12.upgradeWalMarker("CLOSED,-,path"));
+  }
+
+  @Test
+  void upgradeWalMarkersTest() throws Exception {
+    ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createMock(ZooSession.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+    String server = "localhost:9997[1]";
+    String uuid = "11111111-1111-1111-1111-111111111111";
+    String markerPath = WalStateManager.ZWALS + "/" + server + "/" + uuid;
+    String oldData = "CLOSED,hdfs://nn/accumulo/wal/host+1234/" + uuid;
+    String newData = "OPEN," + DfsWalProvider.PROVIDER_ID
+        + ",hdfs://nn/accumulo/wal/host+1234/22222222-2222-2222-2222-222222222222";
+
+    expect(context.getZooSession()).andReturn(zk);
+    expect(zk.asReaderWriter()).andReturn(zrw);
+    expect(zrw.exists(WalStateManager.ZWALS)).andReturn(true);
+    expect(zrw.getChildren(WalStateManager.ZWALS)).andReturn(List.of(server));
+    expect(zrw.getChildren(WalStateManager.ZWALS + "/" + server)).andReturn(List.of(uuid, "222"));
+    expect(zrw.getData(markerPath)).andReturn(oldData.getBytes(UTF_8));
+    expect(zrw.putPersistentData(markerPath,
+        ("CLOSED," + DfsWalProvider.PROVIDER_ID + "," + oldData.substring("CLOSED,".length()))
+            .getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.OVERWRITE)).andReturn(true);
+    expect(zrw.getData(markerPath)).andReturn(
+        ("CLOSED," + DfsWalProvider.PROVIDER_ID + "," + oldData.substring("CLOSED,".length()))
+            .getBytes(UTF_8));
+    expect(zrw.getData(WalStateManager.ZWALS + "/" + server + "/222"))
+        .andReturn(newData.getBytes(UTF_8));
+
+    replay(context, zk, zrw);
+    new Upgrader11to12().upgradeWalMarkers(context);
+    verify(context, zk, zrw);
   }
 
   @Test
