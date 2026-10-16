@@ -39,6 +39,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.BalanceIT;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -97,19 +98,20 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   private void checkBalance(AccumuloClient c) throws Exception {
 
-    Map<String,Integer> tableLocations = null;
-    long unassignedTablets = 1;
-    for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      tableLocations = BalanceIT.countLocations(c, "test");
-      unassignedTablets =
+    Wait.waitFor(() -> {
+      Map<String,Integer> tableLocations = BalanceIT.countLocations(c, "test");
+      long unassignedTablets =
           tableLocations.entrySet().stream().filter(e -> e.getKey().equals("none")).count();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
             unassignedTablets);
-        Thread.sleep(3000);
       }
-    }
+      return unassignedTablets == 0;
+    }, 30_000, 3_000, "Unassigned tablets were not assigned within 30 seconds");
 
+    Map<String,Integer> tableLocations = BalanceIT.countLocations(c, "test");
+    long unassignedTablets =
+        tableLocations.entrySet().stream().filter(e -> e.getKey().equals("none")).count();
     assertEquals(0, unassignedTablets, "Unassigned tablets were not assigned within 30 seconds");
     assertNotNull(tableLocations);
     assertTrue(tableLocations.size() > 1, "Expected to have at least two TabletServers");

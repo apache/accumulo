@@ -207,21 +207,23 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
       // Wait for all of the tablets to hosted ...
       log.info("Waiting on hosting and balance");
-      TabletLocations ds;
-      for (ds = TabletLocations.retrieve(ctx, tableName); ds.hostedCount != TABLETS;
-          ds = TabletLocations.retrieve(ctx, tableName)) {
-        Thread.sleep(1000);
-      }
+      TabletLocations[] observed = {null};
+      Wait.waitFor(() -> {
+        observed[0] = TabletLocations.retrieve(ctx, tableName);
+        return observed[0].hostedCount == TABLETS;
+      }, 30_000, 250, "Tablets were not hosted");
+      TabletLocations ds = observed[0];
       log.info("Tablets hosted");
 
       // ... and balanced.
       ctx.instanceOperations().waitForBalance();
       log.info("Tablets balanced.");
-      do {
-        // Keep checking until all tablets are hosted and spread out across the tablet servers
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      } while (ds.hostedCount != TABLETS || ds.hosted.keySet().size() != (TSERVERS - 1));
+      Wait.waitFor(() -> {
+        observed[0] = TabletLocations.retrieve(ctx, tableName);
+        return observed[0].hostedCount == TABLETS
+            && observed[0].hosted.keySet().size() == (TSERVERS - 1);
+      }, 30_000, 250, "Tablets were not balanced across the tablet servers");
+      ds = observed[0];
 
       // Given the loop exit condition above, at this point we're sure that all tablets are hosted
       // and some are hosted on each of the tablet servers other than the one reserved for hosting
@@ -237,11 +239,12 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
       // All tablets should be either hosted or suspended.
       log.info("Waiting on suspended tablets");
-      do {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      } while (ds.suspended.keySet().size() != (TSERVERS - 1)
-          || (ds.suspendedCount + ds.hostedCount) != TABLETS);
+      Wait.waitFor(() -> {
+        observed[0] = TabletLocations.retrieve(ctx, tableName);
+        return observed[0].suspended.keySet().size() == (TSERVERS - 1)
+            && (observed[0].suspendedCount + observed[0].hostedCount) == TABLETS;
+      }, 30_000, 250, "Tablets were not suspended after tablet servers stopped");
+      ds = observed[0];
 
       SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
 
@@ -258,11 +261,12 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       if (action == AfterSuspendAction.OFFLINE) {
         client.tableOperations().offline(tableName, true);
 
-        while (ds.suspendedCount > 0) {
-          Thread.sleep(1000);
-          ds = TabletLocations.retrieve(ctx, tableName);
-          log.info("Waiting for suspended {}", ds.suspended);
-        }
+        Wait.waitFor(() -> {
+          observed[0] = TabletLocations.retrieve(ctx, tableName);
+          return observed[0].suspendedCount == 0;
+        }, 30_000, 250, "Suspended tablets were not cleared when taking the table offline");
+        ds = observed[0];
+        log.info("Suspended tablets cleared after taking the table offline");
       } else if (action == AfterSuspendAction.RESUME) {
         // Restart the first tablet server, making sure it ends up on the same port
         HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
@@ -273,18 +277,22 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
         // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
         log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-        while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
-          Thread.sleep(1000);
-          ds = TabletLocations.retrieve(ctx, tableName);
-        }
+        Wait.waitFor(() -> {
+          observed[0] = TabletLocations.retrieve(ctx, tableName);
+          return !observed[0].suspended.containsKey(restartedServer)
+              && observed[0].assignedCount == 0;
+        }, 30_000, 250, "Tablets were not unsuspended after the tablet server restarted");
+        ds = observed[0];
         assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
         // Finally, after much longer, remaining suspended tablets should be reassigned.
         log.info("Awaiting tablet reassignment for remaining tablets (suspension timeout)");
-        while (ds.hostedCount != TABLETS) {
-          Thread.sleep(1000);
-          ds = TabletLocations.retrieve(ctx, tableName);
-        }
+        Wait.waitFor(() -> {
+          observed[0] = TabletLocations.retrieve(ctx, tableName);
+          return observed[0].hostedCount == TABLETS;
+        }, 120_000, 250,
+            "Remaining suspended tablets were not reassigned after suspension timeout");
+        ds = observed[0];
 
         // Ensure all suspension markers in the metadata table were cleared.
         assertTrue(ds.suspended.isEmpty());

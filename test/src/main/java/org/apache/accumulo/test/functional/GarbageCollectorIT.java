@@ -73,6 +73,7 @@ import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -148,14 +149,16 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       int before = countFiles(pathString);
       log.info("Counted {} files in path: {}", before, pathString);
 
-      while (true) {
-        Thread.sleep(SECONDS.toMillis(1));
+      int[] previous = {before};
+      Wait.waitFor(() -> {
         int more = countFiles(pathString);
-        if (more <= before) {
-          break;
+        if (more > previous[0]) {
+          previous[0] = more;
+          return false;
         }
-        before = more;
-      }
+        return true;
+      }, 30_000, SECONDS.toMillis(1), "File count did not stabilize in " + pathString);
+      before = previous[0];
 
       // restart GC
       log.info("Restarting GC...");
@@ -181,17 +184,21 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       cluster.getConfig().setDefaultMemory(32, MemoryUnit.MEGABYTE);
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       Thread.sleep(SECONDS.toMillis(20));
-      String output = "";
-      while (!output.contains("has exceeded the threshold")) {
-        try {
-          output = gc.readStdOut();
-        } catch (UncheckedIOException ex) {
-          log.error("IO error reading the IT's accumulo-gc STDOUT", ex);
-          break;
-        }
+      String[] output = {""};
+      try {
+        Wait.waitFor(() -> {
+          try {
+            output[0] = gc.readStdOut();
+          } catch (UncheckedIOException ex) {
+            log.error("IO error reading the IT's accumulo-gc STDOUT", ex);
+            return true;
+          }
+          return output[0].contains("has exceeded the threshold");
+        }, 30_000, 100, "GC output did not contain the threshold message");
+      } finally {
+        gc.getProcess().destroy();
       }
-      gc.getProcess().destroy();
-      assertTrue(output.contains("has exceeded the threshold"));
+      assertTrue(output[0].contains("has exceeded the threshold"));
     }
   }
 
@@ -256,15 +263,15 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       try {
-        String output = "";
-        while (!output.contains("Ignoring invalid deletion candidate")) {
-          Thread.sleep(250);
+        String[] output = {""};
+        Wait.waitFor(() -> {
           try {
-            output = gc.readStdOut();
+            output[0] = gc.readStdOut();
           } catch (UncheckedIOException ioe) {
             log.error("Could not read all from cluster.", ioe);
           }
-        }
+          return output[0].contains("Ignoring invalid deletion candidate");
+        }, 30_000, 250, "GC output did not contain the invalid deletion candidate message");
       } finally {
         gc.getProcess().destroy();
       }

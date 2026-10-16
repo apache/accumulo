@@ -37,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
@@ -139,17 +139,15 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // ensure compaction ids were deleted by merge operation from metadata table
-      try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
-          .forTable(tid).fetch(ColumnType.ECOMP).build()) {
-        Set<ExternalCompactionId> ecids2 = tm.stream()
-            .flatMap(t -> t.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
-        // keep checking until test times out
-        while (!Collections.disjoint(ecids, ecids2)) {
-          UtilWaitThread.sleep(25);
-          ecids2 = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
-              .collect(Collectors.toSet());
+      Wait.waitFor(() -> {
+        try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
+            .forTable(tid).fetch(ColumnType.ECOMP).build()) {
+          Set<ExternalCompactionId> ecids2 =
+              tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
+                  .collect(Collectors.toSet());
+          return Collections.disjoint(ecids, ecids2);
         }
-      }
+      });
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
@@ -193,11 +191,16 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       ServerContext ctx = getCluster().getServerContext();
 
       // Wait for all compactions to start
-      Map<ExternalCompactionId,RunningCompactionInfo> originalRunningInfo = null;
-      do {
-        originalRunningInfo = getRunningCompactionInformation(ctx, ecids);
-      } while (originalRunningInfo == null
-          || originalRunningInfo.values().stream().allMatch(rci -> rci.duration == 0));
+      AtomicReference<Map<ExternalCompactionId,RunningCompactionInfo>> originalRunningInfoRef =
+          new AtomicReference<>();
+      Wait.waitFor(() -> {
+        Map<ExternalCompactionId,RunningCompactionInfo> runningInfo =
+            getRunningCompactionInformation(ctx, ecids);
+        originalRunningInfoRef.set(runningInfo);
+        return runningInfo.values().stream().anyMatch(rci -> rci.duration > 0);
+      }, 30_000, 250, "Compaction did not start");
+      Map<ExternalCompactionId,RunningCompactionInfo> originalRunningInfo =
+          originalRunningInfoRef.get();
 
       // Stop the Manager (Coordinator)
       getCluster().getClusterControl().stop(ServerType.MANAGER);
@@ -226,42 +229,43 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
     }
   }
 
-  private Map<ExternalCompactionId,RunningCompactionInfo> getRunningCompactionInformation(
-      ServerContext ctx, Set<ExternalCompactionId> ecids) throws InterruptedException {
+  private Map<ExternalCompactionId,RunningCompactionInfo>
+      getRunningCompactionInformation(ServerContext ctx, Set<ExternalCompactionId> ecids) {
 
     final Map<ExternalCompactionId,RunningCompactionInfo> results = new HashMap<>();
 
-    while (results.isEmpty()) {
-      Map<String,TExternalCompaction> running = null;
-      while (running == null || running.isEmpty()) {
-        try {
-          Optional<HostAndPort> coordinatorHost =
-              ExternalCompactionUtil.findCompactionCoordinator(ctx);
-          if (coordinatorHost.isEmpty()) {
-            throw new TTransportException(
-                "Unable to get CompactionCoordinator address from ZooKeeper");
-          }
-          running = getRunningCompactions(ctx);
-        } catch (TException t) {
-          running = null;
-          Thread.sleep(2000);
+    Wait.waitFor(() -> {
+      try {
+        Optional<HostAndPort> coordinatorHost =
+            ExternalCompactionUtil.findCompactionCoordinator(ctx);
+        if (coordinatorHost.isEmpty()) {
+          throw new TTransportException(
+              "Unable to get CompactionCoordinator address from ZooKeeper");
         }
-      }
-      for (ExternalCompactionId ecid : ecids) {
-        final TExternalCompaction tec = running.get(ecid.canonical());
-        if (tec != null && tec.getUpdatesSize() > 0) {
-          // When the coordinator restarts it inserts a message into the updates. If this
-          // is the last message, then don't insert this into the results. We want to get
-          // an actual update from the Compactor.
-          TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(tec.getUpdates());
-          var lastEntry = sorted.lastEntry();
-          if (lastEntry.getValue().getMessage().equals(CompactionCoordinator.RESTART_UPDATE_MSG)) {
-            continue;
-          }
-          results.put(ecid, new RunningCompactionInfo(tec));
+        Map<String,TExternalCompaction> running = getRunningCompactions(ctx);
+        if (running.isEmpty()) {
+          return false;
         }
+        for (ExternalCompactionId ecid : ecids) {
+          final TExternalCompaction tec = running.get(ecid.canonical());
+          if (tec != null && tec.getUpdatesSize() > 0) {
+            // When the coordinator restarts it inserts a message into the updates. If this
+            // is the last message, then don't insert this into the results. We want to get
+            // an actual update from the Compactor.
+            TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(tec.getUpdates());
+            var lastEntry = sorted.lastEntry();
+            if (lastEntry.getValue().getMessage()
+                .equals(CompactionCoordinator.RESTART_UPDATE_MSG)) {
+              continue;
+            }
+            results.put(ecid, new RunningCompactionInfo(tec));
+          }
+        }
+        return !results.isEmpty();
+      } catch (TException t) {
+        return false;
       }
-    }
+    }, 30_000, 250, "No running compaction information was reported");
     return results;
   }
 

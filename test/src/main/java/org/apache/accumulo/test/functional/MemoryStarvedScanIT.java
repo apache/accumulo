@@ -256,11 +256,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         LOG.info("Waiting for memory to be consumed");
 
         // Wait until the dataConsumingScanner has started fetching data
-        int currentCount = fetched.get();
-        while (currentCount == 0) {
-          Thread.sleep(500);
-          currentCount = fetched.get();
-        }
+        waitFor(() -> fetched.get() > 0, MINUTES.toMillis(5), 200,
+            "Data-consuming scan did not fetch any rows");
 
         // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
@@ -268,7 +265,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         assertTrue(consumingIter.hasNext());
 
         // Confirm that some data was fetched by the memoryConsumingScanner
-        currentCount = fetched.get();
+        int currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
         LOG.info("Memory consumed after reading {} rows", currentCount);
 
@@ -382,10 +379,13 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         waitFor(() -> fetched.get() > 0, MINUTES.toMillis(5), 200);
 
         // Make sure memory is free before trying to consume memory
-        while (LOW_MEM_DETECTED.get() == 1) {
-          freeServerMemory(client);
-          Thread.sleep(5000);
-        }
+        waitFor(() -> {
+          if (LOW_MEM_DETECTED.get() == 1) {
+            freeServerMemory(client);
+          }
+          return LOW_MEM_DETECTED.get() == 0;
+        }, MINUTES.toMillis(2), SECONDS.toMillis(5),
+            "Tablet server low-memory condition did not clear");
 
         // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
@@ -491,11 +491,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         t.start();
 
         // Wait until the dataConsumingScanner has started fetching data
-        int currentCount = fetched.get();
-        while (currentCount == 0) {
-          Thread.sleep(500);
-          currentCount = fetched.get();
-        }
+        waitFor(() -> fetched.get() > 0, MINUTES.toMillis(5), 200,
+            "Data-consuming scan did not fetch any rows");
 
         // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
@@ -503,7 +500,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         assertTrue(consumingIter.hasNext());
 
         // Confirm that some data was fetched by the dataConsumingScanner
-        currentCount = fetched.get();
+        int currentCount = fetched.get();
         assertTrue(currentCount > 0 && currentCount < 100);
 
         // Grab the current paused count, wait two seconds and then confirm that

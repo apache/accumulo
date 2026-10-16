@@ -163,10 +163,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
 
         ingestThread.start();
 
-        while (paused <= 0) {
-          Thread.sleep(1000);
-          paused = MINC_PAUSED_COUNT.intValue();
-        }
+        waitFor(() -> MINC_PAUSED_COUNT.intValue() > 0);
         assertTrue(getActiveCompactions(client.instanceOperations()).stream()
             .anyMatch(ac -> ac.getPausedCount() > 0));
 

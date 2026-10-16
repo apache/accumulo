@@ -85,6 +85,7 @@ import org.apache.accumulo.test.fate.FateTestUtil;
 import org.apache.accumulo.test.fate.SlowFateSplitManager;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -506,9 +507,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cc.setWait(false);
     client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
     client.tableOperations().delete(tableName);
-    while (client.tableOperations().exists(tableName)) {
-      Thread.sleep(1000);
-    }
+    Wait.waitFor(() -> !client.tableOperations().exists(tableName), 30_000, 250,
+        "Deleted table remained visible");
   }
 
   @Override

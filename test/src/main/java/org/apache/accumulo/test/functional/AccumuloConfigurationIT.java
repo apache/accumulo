@@ -29,6 +29,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,16 +72,19 @@ public class AccumuloConfigurationIT extends SharedMiniClusterBase {
 
     ctx.getConfiguration().invalidateCache();
 
-    int oldValueReturned = 0;
-    while (ctx.getConfiguration().get(fakeProperty).equals(initialThreads)) {
-      oldValueReturned++;
-      Thread.sleep(25);
-    }
-    System.out.println("Configuration returned old value " + oldValueReturned + " times and took "
-        + timer.elapsed(TimeUnit.MILLISECONDS) + "ms");
+    int[] oldValueReturned = {0};
+    Wait.waitFor(() -> {
+      String value = ctx.getConfiguration().get(fakeProperty);
+      if (initialThreads.equals(value)) {
+        oldValueReturned[0]++;
+      }
+      return !initialThreads.equals(value);
+    }, 30_000, 250, "Configuration did not return updated value after cache invalidation");
+    System.out.println("Configuration returned old value " + oldValueReturned[0]
+        + " times and took " + timer.elapsed(TimeUnit.MILLISECONDS) + "ms");
 
+    assertEquals(0, oldValueReturned[0]);
     assertEquals("4", ctx.getConfiguration().get(fakeProperty));
-    assertEquals(0, oldValueReturned);
 
   }
 

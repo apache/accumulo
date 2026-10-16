@@ -39,7 +39,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -165,15 +164,14 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       // Calling getRunningCompaction on the MemoryConsumingCompactor
       // will consume the free memory
       LOG.info("Calling getRunningCompaction on {}", compactorAddr);
-      boolean success = false;
-      while (!success) {
+      waitFor(() -> {
         try {
           ExternalCompactionUtil.getRunningCompaction(compactorAddr, ctx);
-          success = true;
+          return true;
         } catch (Exception e) {
-          UtilWaitThread.sleep(3000);
+          return false;
         }
-      }
+      }, 30_000, 250, "getRunningCompaction RPC did not succeed");
 
       ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
       compactionThread.start();

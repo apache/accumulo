@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -38,7 +37,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
@@ -98,28 +96,15 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
         ClientContext context = (ClientContext) client) {
       ZooCache zcache = context.getZooCache();
       var path = context.getServerPaths().createGarbageCollectorPath();
-      Optional<ServiceLockData> gcLockData;
-      do {
-        gcLockData = ServiceLock.getLockData(zcache, path, null);
-        if (gcLockData.isPresent()) {
-          log.info("Waiting for GC ZooKeeper lock to expire");
-          Thread.sleep(2000);
-        }
-      } while (gcLockData.isPresent());
-
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, path, null).isEmpty(), 30_000, 250,
+          "GC ZooKeeper lock did not expire");
       log.info("GC lock was lost");
 
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
       log.info("Garbage collector was restarted");
 
-      do {
-        gcLockData = ServiceLock.getLockData(zcache, path, null);
-        if (gcLockData.isEmpty()) {
-          log.info("Waiting for GC ZooKeeper lock to be acquired");
-          Thread.sleep(2000);
-        }
-      } while (gcLockData.isEmpty());
-
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, path, null).isPresent(), 30_000, 250,
+          "GC ZooKeeper lock was not acquired");
       log.info("GC lock was acquired");
     }
   }

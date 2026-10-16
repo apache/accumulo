@@ -44,6 +44,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -129,21 +130,18 @@ public class MonitorSslIT extends ConfigurableMacBase {
   public void test() throws Exception {
     log.debug("Starting Monitor");
     cluster.getClusterControl().startAllServers(ServerType.MONITOR);
-    String monitorLocation = null;
+    String[] monitorLocation = {null};
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (monitorLocation == null) {
+      Wait.waitFor(() -> {
         try {
-          monitorLocation = MonitorUtil.getLocation((ClientContext) client);
+          monitorLocation[0] = MonitorUtil.getLocation((ClientContext) client);
         } catch (Exception e) {
-          // ignored
+          // The monitor may not have published its location yet.
         }
-        if (monitorLocation == null) {
-          log.debug("Could not fetch monitor HTTP address from zookeeper");
-          Thread.sleep(2000);
-        }
-      }
+        return monitorLocation[0] != null;
+      }, 30_000, 250, "Monitor location was not published to ZooKeeper");
     }
-    var url = new URI(monitorLocation).toURL();
+    var url = new URI(monitorLocation[0]).toURL();
     log.debug("Fetching web page {}", url);
     String result = FunctionalTestUtils.readWebPage(url).body();
     assertTrue(result.length() > 100);

@@ -59,6 +59,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -194,9 +195,8 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
   }
 
   private void waitFor(FateStore<FeoTestEnv> store, FateId txid) throws Exception {
-    while (store.read(txid).getStatus() != SUCCESSFUL) {
-      Thread.sleep(50);
-    }
+    Wait.waitFor(() -> store.read(txid).getStatus() == SUCCESSFUL, 30_000, 50,
+        "FATE transaction did not complete successfully");
   }
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {

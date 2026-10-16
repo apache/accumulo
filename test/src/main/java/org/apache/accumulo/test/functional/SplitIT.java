@@ -218,9 +218,8 @@ public class SplitIT extends SharedMiniClusterBase {
       VerifyParams params = new VerifyParams(getClientProps(), table, 100_000);
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
-      while (c.tableOperations().listSplits(table).size() < 10) {
-        Thread.sleep(SECONDS.toMillis(15));
-      }
+      Wait.waitFor(() -> c.tableOperations().listSplits(table).size() >= 10, 30_000, 100,
+          "Expected table splits were not created");
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(table));
       try (Scanner s = c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         KeyExtent extent = new KeyExtent(id, null, null);
@@ -266,12 +265,9 @@ public class SplitIT extends SharedMiniClusterBase {
       Thread.sleep(SECONDS.toMillis(5));
       ReadWriteIT.interleaveTest(c, tableName);
       Thread.sleep(SECONDS.toMillis(5));
+      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() > 20, 30_000, 100,
+          "Expected at least 20 splits");
       int numSplits = c.tableOperations().listSplits(tableName).size();
-      while (numSplits <= 20) {
-        log.info("Waiting for splits to happen");
-        Thread.sleep(2000);
-        numSplits = c.tableOperations().listSplits(tableName).size();
-      }
       assertTrue(numSplits > 20, "Expected at least 20 splits, saw " + numSplits);
     }
   }
@@ -285,12 +281,8 @@ public class SplitIT extends SharedMiniClusterBase {
               "10K", Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K")));
       DeleteIT.deleteTest(c, getCluster(), tableName);
       c.tableOperations().flush(tableName, null, null, true);
-      for (int i = 0; i < 5; i++) {
-        Thread.sleep(SECONDS.toMillis(10));
-        if (c.tableOperations().listSplits(tableName).size() > 20) {
-          break;
-        }
-      }
+      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() > 20, 50_000, 250,
+          "Expected more than 20 splits");
       assertTrue(c.tableOperations().listSplits(tableName).size() > 20);
     }
   }

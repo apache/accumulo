@@ -20,7 +20,6 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Map;
@@ -41,6 +40,7 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -87,31 +87,18 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
       PropUtil.setProperties(context, tablePropKey,
           Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-      // add a sleep to give the property change time to propagate
-      properties = client.tableOperations().getConfiguration(tableName);
-      while (properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false")) {
-        try {
-          Thread.sleep(250);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          fail("Thread interrupted while waiting for tablePropUtil update");
-        }
-        properties = client.tableOperations().getConfiguration(tableName);
-      }
+      Wait.waitFor(
+          () -> !client.tableOperations().getConfiguration(tableName)
+              .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"),
+          30_000, 250, "Table property update did not propagate");
 
       PropUtil.removeProperties(context, tablePropKey,
           List.of(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      properties = client.tableOperations().getConfiguration(tableName);
-      while (properties.get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true")) {
-        try {
-          Thread.sleep(250);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          fail("Thread interrupted while waiting for tablePropUtil update");
-        }
-        properties = client.tableOperations().getConfiguration(tableName);
-      }
+      Wait.waitFor(
+          () -> !client.tableOperations().getConfiguration(tableName)
+              .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"),
+          30_000, 250, "Table property removal did not propagate");
 
       // Add invalid property
       assertThrows(IllegalArgumentException.class,
@@ -142,31 +129,18 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
       PropUtil.setProperties(context, namespacePropKey,
           Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
 
-      // add a sleep to give the property change time to propagate
-      properties = client.namespaceOperations().getConfiguration(namespace);
-      while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("31")) {
-        try {
-          Thread.sleep(250);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          fail("Thread interrupted while waiting for namespacePropUtil update");
-        }
-        properties = client.namespaceOperations().getConfiguration(namespace);
-      }
+      Wait.waitFor(
+          () -> client.namespaceOperations().getConfiguration(namespace)
+              .get(Property.TABLE_FILE_MAX.getKey()).equals("31"),
+          30_000, 250, "Namespace property update did not propagate");
 
       PropUtil.removeProperties(context, namespacePropKey,
           List.of(Property.TABLE_FILE_MAX.getKey()));
 
-      properties = client.namespaceOperations().getConfiguration(namespace);
-      while (!properties.get(Property.TABLE_FILE_MAX.getKey()).equals("15")) {
-        try {
-          Thread.sleep(250);
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          fail("Thread interrupted while waiting for namespacePropUtil update");
-        }
-        properties = client.namespaceOperations().getConfiguration(namespace);
-      }
+      Wait.waitFor(
+          () -> client.namespaceOperations().getConfiguration(namespace)
+              .get(Property.TABLE_FILE_MAX.getKey()).equals("15"),
+          30_000, 250, "Namespace property removal did not propagate");
 
       // Add invalid property
       assertThrows(IllegalArgumentException.class,
