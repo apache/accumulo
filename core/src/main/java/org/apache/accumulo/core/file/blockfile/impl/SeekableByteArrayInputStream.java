@@ -32,8 +32,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 @NotThreadSafe
 public class SeekableByteArrayInputStream extends InputStream {
 
-  private byte[] buffer;
-  private int cur;
+  private final byte[] buffer;
+  private volatile int cur;
   private final int max;
 
   @Override
