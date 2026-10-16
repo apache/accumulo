@@ -90,6 +90,7 @@ import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.manager.tableOps.split.SplitInfo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.test.LargeSplitRowIT;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
@@ -161,7 +162,8 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       // Write a WAL to the test metadata and then re-run the repo to check for an error
       try (TabletsMutator tm = testAmple.mutateTablets()) {
         var walFilePath = Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
-        tm.mutateTablet(extent).putWal(LogEntry.fromPath(walFilePath)).mutate();
+        tm.mutateTablet(extent).putWal(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, walFilePath))
+            .mutate();
       }
 
       // Should not be ready due to the presence of a WAL

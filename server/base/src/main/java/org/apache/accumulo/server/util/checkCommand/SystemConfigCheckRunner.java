@@ -171,7 +171,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
     Map<TServerInstance,Set<WalStatePath>> missingWals = new HashMap<>();
     for (var instanceAndWals : walsBefore.entrySet()) {
       for (var wal : instanceAndWals.getValue()) {
-        if (!context.getVolumeManager().exists(wal.path())) {
+        if (!context.getWalProviderRegistry().get(wal.providerId()).exists(wal.path().toString())) {
           missingWals.computeIfAbsent(instanceAndWals.getKey(), k -> new HashSet<>()).add(wal);
         }
       }

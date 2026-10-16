@@ -43,11 +43,11 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,7 +177,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   @Override
   public void unassign(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers) throws DistributedStoreException {
     validateTablets(tablets);
 
     super.unassign(tablets, logsForDeadServers);
@@ -187,7 +187,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     validateTablets(tablets);
     super.suspend(tablets, logsForDeadServers, suspensionTimestamp);

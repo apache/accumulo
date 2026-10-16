@@ -80,6 +80,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -87,6 +88,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.wal.WalProvider;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -101,6 +103,8 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.log.DfsWalProvider;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -226,7 +230,7 @@ public class Upgrader11to12 implements Upgrader {
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
+      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME, LogColumnFamily.NAME);
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";
@@ -238,6 +242,8 @@ public class Upgrader11to12 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
+    LOG.info("Upgrading WAL provider IDs in ZooKeeper markers");
+    upgradeWalMarkers(context);
     LOG.info("Removing ZTracer node");
     removeZTracersNode(context);
     LOG.info("Updating file references in root tablet");
@@ -430,6 +436,10 @@ public class Upgrader11to12 implements Upgrader {
         zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
+      RootTabletMetadata upgraded =
+          new RootTabletMetadata(new String(zrw.getData(ZROOT_TABLET), UTF_8));
+      upgraded.getKeyValues()
+          .forEach(entry -> verifyNoLegacyWalReference(entry.getKey(), "root tablet metadata"));
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
@@ -862,6 +872,8 @@ public class Upgrader11to12 implements Upgrader {
               tableName, key.getRow());
           update.at().family(ExternalCompactionColumnFamily.NAME)
               .qualifier(key.getColumnQualifier()).delete();
+        } else if (family.equals(LogColumnFamily.NAME)) {
+          upgradeWalReference(key, value, update);
         } else {
           throw new IllegalStateException("Processing: " + tableName
               + " Received unexpected column family processing references: " + family);
@@ -876,6 +888,81 @@ public class Upgrader11to12 implements Upgrader {
       LOG.warn("Failed to update reference for table: " + tableName);
       LOG.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
       throw new IllegalStateException("Failed to process table: " + tableName, mex);
+    }
+  }
+
+  @VisibleForTesting
+  static void upgradeWalReference(Key key, Value value, Mutation mutation) {
+    String qualifier = key.getColumnQualifier().toString();
+    if (qualifier.startsWith("-/")) {
+      Text upgradedQualifier = new Text(DfsWalProvider.PROVIDER_ID + qualifier.substring(1));
+      mutation.at().family(LogColumnFamily.NAME).qualifier(upgradedQualifier).put(value);
+      mutation.at().family(LogColumnFamily.NAME).qualifier(key.getColumnQualifier()).delete();
+    }
+  }
+
+  private static void verifyNoLegacyWalReference(Key key, String source) {
+    if (key.getColumnFamily().equals(LogColumnFamily.NAME)
+        && key.getColumnQualifier().toString().startsWith("-/")) {
+      throw new IllegalStateException(
+          "Legacy WAL reference remains after upgrade in " + source + ": " + key);
+    }
+  }
+
+  static String upgradeWalMarker(String markerData) {
+    String[] fields = markerData.split(",", 3);
+    String upgraded;
+    if (fields.length == 2) {
+      upgraded = fields[0] + "," + DfsWalProvider.PROVIDER_ID + "," + fields[1];
+    } else if (fields.length == 3) {
+      upgraded = markerData;
+    } else {
+      throw new IllegalStateException("Malformed WAL marker: " + markerData);
+    }
+
+    String[] upgradedFields = upgraded.split(",", 3);
+    try {
+      WalStateManager.WalState.valueOf(upgradedFields[0]);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("Malformed WAL marker: " + markerData, e);
+    }
+    if (!upgradedFields[1].matches(WalProvider.PROVIDER_ID_REGEX) || upgradedFields[2].isBlank()) {
+      throw new IllegalStateException("Malformed WAL marker: " + markerData);
+    }
+    return upgraded;
+  }
+
+  @VisibleForTesting
+  void upgradeWalMarkers(ServerContext context) {
+    var zrw = context.getZooSession().asReaderWriter();
+    try {
+      String walRoot = WalStateManager.ZWALS;
+      if (!zrw.exists(walRoot)) {
+        return;
+      }
+      for (String server : zrw.getChildren(walRoot)) {
+        String serverPath = walRoot + "/" + server;
+        for (String marker : zrw.getChildren(serverPath)) {
+          String markerPath = serverPath + "/" + marker;
+          byte[] markerData = zrw.getData(markerPath);
+          String data = new String(markerData, UTF_8);
+          String upgraded = upgradeWalMarker(data);
+          if (!upgraded.equals(data)) {
+            zrw.putPersistentData(markerPath, upgraded.getBytes(UTF_8),
+                ZooUtil.NodeExistsPolicy.OVERWRITE);
+            String persisted = new String(zrw.getData(markerPath), UTF_8);
+            if (!persisted.equals(upgraded)) {
+              throw new IllegalStateException("Failed to upgrade WAL marker " + markerPath
+                  + ": expected " + upgraded + " but found " + persisted);
+            }
+          }
+        }
+      }
+    } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      throw new IllegalStateException("Error upgrading WAL provider IDs in ZooKeeper", e);
     }
   }
 
@@ -956,6 +1043,19 @@ public class Upgrader11to12 implements Upgrader {
       LOG.warn("Failed to update reference for table: " + metaName);
       LOG.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
       throw new IllegalStateException("Failed to process table: " + metaName, mex);
+    }
+    verifyNoLegacyWalReferences(context, metaName);
+  }
+
+  private void verifyNoLegacyWalReferences(ServerContext context, String metaName) {
+    try (Scanner scanner = context.createScanner(metaName, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      for (Entry<Key,Value> entry : scanner) {
+        verifyNoLegacyWalReference(entry.getKey(), metaName);
+      }
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Failed to verify WAL references in " + metaName, e);
     }
   }
 

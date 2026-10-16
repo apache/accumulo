@@ -101,6 +101,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.init.Initialize;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.ZooZap;
@@ -179,6 +180,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (!config.getSiteConfig()
         .containsKey(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL.getKey())) {
       config.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
+    }
+
+    if (!config.useExistingInstance()) {
+      if (!config.getSiteConfig().containsKey(Property.INSTANCE_WAL_PROVIDERS.getKey())) {
+        config.setProperty(Property.INSTANCE_WAL_PROVIDERS,
+            "{\"" + DfsWalProvider.class.getName() + "\":{}}");
+      }
+      if (!config.getSiteConfig().containsKey(Property.INSTANCE_WAL_PROVIDER.getKey())) {
+        config.setProperty(Property.INSTANCE_WAL_PROVIDER, DfsWalProvider.class.getName());
+      }
     }
 
     this.config = config.initialize();

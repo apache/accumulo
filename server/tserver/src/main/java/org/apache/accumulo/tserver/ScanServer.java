@@ -215,6 +215,7 @@ public class ScanServer extends AbstractServer
   public ScanServer(ServerOpts opts, String[] args) {
     super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
     context = super.getContext();
+    context.getWalProviderRegistry();
     LOG.info("Version " + Constants.VERSION);
     LOG.info("Instance " + getContext().getInstanceID());
     this.sessionManager = new SessionManager(context);

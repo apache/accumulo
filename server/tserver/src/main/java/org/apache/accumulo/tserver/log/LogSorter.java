@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,18 +52,19 @@ import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -84,7 +86,7 @@ public class LogSorter implements MetricsProducer {
 
   class LogProcessor implements Processor {
 
-    private FSDataInputStream input;
+    private CountingInputStream input;
     private DataInputStream decryptingInput;
     private long bytesCopied = -1;
     private long sortStart = 0;
@@ -99,8 +101,9 @@ public class LogSorter implements MetricsProducer {
     public void process(String child, byte[] data) {
       String work = new String(data, UTF_8);
       String[] parts = work.split("\\|");
-      String src = parts[0];
-      String dest = parts[1];
+      String providerId = parts.length == 2 ? DfsWalProvider.PROVIDER_ID : parts[0];
+      String src = parts.length == 2 ? parts[0] : parts[1];
+      String dest = parts.length == 2 ? parts[1] : parts[2];
       String sortId = new Path(src).getName();
       log.debug("Sorting {} to {} using sortId {}", src, dest, sortId);
 
@@ -119,7 +122,7 @@ public class LogSorter implements MetricsProducer {
 
       String formerThreadName = Thread.currentThread().getName();
       try {
-        sort(fs, sortId, new Path(src), dest);
+        sort(fs, sortId, providerId, new Path(src), dest);
       } catch (Exception t) {
         try {
           // parent dir may not exist
@@ -145,6 +148,11 @@ public class LogSorter implements MetricsProducer {
 
     public void sort(VolumeManager fs, String name, Path srcPath, String destPath)
         throws IOException {
+      sort(fs, name, DfsWalProvider.PROVIDER_ID, srcPath, destPath);
+    }
+
+    public void sort(VolumeManager fs, String name, String providerId, Path srcPath,
+        String destPath) throws IOException {
       int part = 0;
 
       // check for finished first since another thread may have already done the sort
@@ -157,16 +165,9 @@ public class LogSorter implements MetricsProducer {
       // the following call does not throw an exception if the file/dir does not exist
       fs.deleteRecursively(new Path(destPath));
 
-      input = fs.open(srcPath);
-
-      // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
-      try {
-        input.setDropBehind(Boolean.TRUE);
-      } catch (UnsupportedOperationException e) {
-        log.debug("setDropBehind reads not enabled for wal file: {}", input);
-      } catch (IOException e) {
-        log.debug("IOException setting drop behind for file: {}, msg: {}", input, e.getMessage());
-      }
+      InputStream source = providerId.equals(DfsWalProvider.PROVIDER_ID) ? fs.open(srcPath)
+          : context.getWalProviderRegistry().get(providerId).open(srcPath.toString());
+      input = new CountingInputStream(source);
 
       try {
         decryptingInput = DfsLogger.getDecryptingStream(input, cryptoService);
@@ -187,8 +188,8 @@ public class LogSorter implements MetricsProducer {
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>(512);
         try {
-          long start = input.getPos();
-          while (input.getPos() - start < bufferSize) {
+          long start = input.getCount();
+          while (input.getCount() - start < bufferSize) {
             LogFileKey key = new LogFileKey();
             LogFileValue value = new LogFileValue();
             key.readFields(decryptingInput);
@@ -211,7 +212,7 @@ public class LogSorter implements MetricsProducer {
       // If we receive an empty or malformed-header WAL, we won't
       // have input streams that need closing. Avoid the NPE.
       if (input != null) {
-        bytesCopied = input.getPos();
+        bytesCopied = input.getCount();
         input.close();
         if (decryptingInput != null) {
           decryptingInput.close();
@@ -231,7 +232,7 @@ public class LogSorter implements MetricsProducer {
     }
 
     synchronized long getBytesCopied() throws IOException {
-      return input == null ? bytesCopied : input.getPos();
+      return input == null ? bytesCopied : input.getCount();
     }
   }
 

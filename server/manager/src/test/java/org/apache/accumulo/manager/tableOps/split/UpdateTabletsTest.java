@@ -72,6 +72,7 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -466,7 +467,8 @@ public class UpdateTabletsTest {
     assertTrue(e.getMessage().contains(opid2.toString()));
 
     // Test splitting a tablet with walogs
-    var walog = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    var walog =
+        LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
     var tablet4 = TabletMetadata.builder(origExtent).putOperation(opid).putWal(walog)
         .build(ColumnType.LOCATION);
     e = assertThrows(IllegalStateException.class, () -> testError(origExtent, tablet4, fateId));
