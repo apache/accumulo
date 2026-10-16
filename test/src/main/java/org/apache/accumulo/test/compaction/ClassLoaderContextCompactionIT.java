@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.EnumSet;
 import java.util.List;
@@ -39,6 +40,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.classloader.URLContextClassLoaderFactory;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -95,6 +97,13 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+    try {
+      cfg.setProperty(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY,
+          new URL("file:" + cfg.getDir().toString() + "/accumulo/classpath/.*").toExternalForm());
+    } catch (MalformedURLException e) {
+      throw new RuntimeException(e);
+    }
+
     // After 1 failure start backing off by 5s.
     // After 3 failures, terminate the Compactor
     cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD, "1");
@@ -220,7 +229,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
 
       // Set the context on the table
       client.tableOperations().setProperty(table1, Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
-          dst.toUri().toString());
+          dst.toUri().toURL().toExternalForm());
 
       final IteratorSetting cfg =
           new IteratorSetting(101, "FooFilter", "org.apache.accumulo.test.FooFilter");

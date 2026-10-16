@@ -25,11 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.classloader.URLContextClassLoaderFactory;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -44,7 +47,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +67,16 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    try {
+      cfg.setProperty(URLContextClassLoaderFactory.URL_PATTERN_PROPERTY,
+          new URL(CONTEXT_DIR + "/.*").toExternalForm());
+    } catch (MalformedURLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @BeforeEach
@@ -131,7 +146,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       // that contains nothing. The ScanContextIT context will point to the test iterators jar
       String tableContextProperty = Property.TABLE_CLASSLOADER_CONTEXT.getKey();
       String tableContextDir = "file://" + System.getProperty("user.dir") + "/target";
-      String tableContextClasspath = tableContextDir + "/TestFoo.jar";
+      String tableContextClasspath = new URL(tableContextDir + "/TestFoo.jar").toExternalForm();
 
       // Set the ScanContextIT context on the namespace
       c.namespaceOperations().setProperty(Namespace.DEFAULT.name(), tableContextProperty, CONTEXT);
@@ -194,7 +209,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
         IteratorSetting cfg = new IteratorSetting(21, "reverse",
             "org.apache.accumulo.test.functional.ValueReversingIterator");
         one.addScanIterator(cfg);
-        one.setClassLoaderContext(CONTEXT);
+        one.setClassLoaderContext(new URL(CONTEXT).toExternalForm());
 
         Iterator<Entry<Key,Value>> iterator = one.iterator();
         for (int i = 0; i < ITERATIONS; i++) {
@@ -236,7 +251,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
         IteratorSetting cfg = new IteratorSetting(21, "reverse",
             "org.apache.accumulo.test.functional.ValueReversingIterator");
         one.addScanIterator(cfg);
-        one.setClassLoaderContext(CONTEXT);
+        one.setClassLoaderContext(new URL(CONTEXT).toExternalForm());
 
         Iterator<Entry<Key,Value>> iterator = one.iterator();
         for (int i = 0; i < ITERATIONS; i++) {
@@ -264,7 +279,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
       String expected) throws Exception {
     try (Scanner bs = c.createScanner(tableName, Authorizations.EMPTY)) {
       if (context != null) {
-        bs.setClassLoaderContext(context);
+        bs.setClassLoaderContext(new URL(context).toExternalForm());
       }
       if (cfg != null) {
         bs.addScanIterator(cfg);
@@ -284,7 +299,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     try (BatchScanner bs = c.createBatchScanner(tableName)) {
       bs.setRanges(Collections.singleton(new Range()));
       if (context != null) {
-        bs.setClassLoaderContext(context);
+        bs.setClassLoaderContext(new URL(context).toExternalForm());
       }
       if (cfg != null) {
         bs.addScanIterator(cfg);
