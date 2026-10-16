@@ -45,7 +45,8 @@ public class ReplicationSchemaTest {
   @Test
   public void failOnNullKeyForFileExtract() {
     Text extractedFile = new Text();
-    assertThrows(NullPointerException.class, () -> StatusSection.getFile(null, extractedFile));
+    Key nullKey = null;
+    assertThrows(NullPointerException.class, () -> StatusSection.getFile(nullKey, extractedFile));
   }
 
   @Test
@@ -82,7 +83,8 @@ public class ReplicationSchemaTest {
   @Test
   public void failOnNullKeyForTableIdExtract() {
     Text extractedFile = new Text();
-    assertThrows(NullPointerException.class, () -> StatusSection.getFile(null, extractedFile));
+    Key nullKey = null;
+    assertThrows(NullPointerException.class, () -> StatusSection.getFile(nullKey, extractedFile));
   }
 
   @Test

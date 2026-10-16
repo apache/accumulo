@@ -393,17 +393,17 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private class BlockBucket implements Comparable<BlockBucket> {
 
     private final CachedBlockQueue queue;
-    private long totalSize;
+    private AtomicLong totalSize;
     private final long bucketSize;
 
     public BlockBucket(long bytesToFree, long blockSize, long bucketSize) {
       this.bucketSize = bucketSize;
       queue = new CachedBlockQueue(bytesToFree, blockSize);
-      totalSize = 0;
+      totalSize = new AtomicLong(0);
     }
 
     public void add(CachedBlock block) {
-      totalSize += block.heapSize();
+      totalSize.getAndAdd(block.heapSize());
       queue.add(block);
     }
 
@@ -420,11 +420,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     }
 
     public long overflow() {
-      return totalSize - bucketSize;
+      return totalSize.get() - bucketSize;
     }
 
     public long totalSize() {
-      return totalSize;
+      return totalSize.get();
     }
 
     @Override

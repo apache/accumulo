@@ -136,6 +136,7 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -1206,6 +1207,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
+  @SuppressFBWarnings(value = "USO_UNSAFE_OBJECT_SYNCHRONIZATION",
+      justification = "Will be addressed in issue #6587")
   public void loadTablet(TInfo tinfo, TCredentials credentials, String lock,
       final TKeyExtent textent) {
 

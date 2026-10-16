@@ -34,9 +34,12 @@ public class ZooAclUtilTest {
 
   @Test
   public void extractAuthNameTest() {
-    assertThrows(NullPointerException.class, () -> ZooAclUtil.extractAuthName(null));
+
+    ACL nullACL = null;
+    assertThrows(NullPointerException.class, () -> ZooAclUtil.extractAuthName(nullACL));
+    String nullString = null;
     assertEquals("",
-        ZooAclUtil.extractAuthName(new ACL(ZooDefs.Perms.ALL, new Id("digest", null))));
+        ZooAclUtil.extractAuthName(new ACL(ZooDefs.Perms.ALL, new Id("digest", nullString))));
     assertEquals("accumulo", ZooAclUtil
         .extractAuthName(new ACL(ZooDefs.Perms.ALL, new Id("digest", "accumulo:abcd123"))));
     assertEquals("noauth",

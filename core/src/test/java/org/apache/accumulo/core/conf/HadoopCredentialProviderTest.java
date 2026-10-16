@@ -72,14 +72,16 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void testNullConfigOnGetValue() {
+    Configuration nullConfig = null;
     assertThrows(NullPointerException.class,
-        () -> HadoopCredentialProvider.getValue(null, "alias"));
+        () -> HadoopCredentialProvider.getValue(nullConfig, "alias"));
   }
 
   @Test
   public void testNullAliasOnGetValue() {
+    String nullString = null;
     assertThrows(NullPointerException.class,
-        () -> HadoopCredentialProvider.getValue(new Configuration(false), null));
+        () -> HadoopCredentialProvider.getValue(new Configuration(false), nullString));
   }
 
   protected void checkCredentialProviders(Configuration conf, Map<String,String> expectation) {

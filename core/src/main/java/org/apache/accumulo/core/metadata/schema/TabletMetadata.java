@@ -133,6 +133,8 @@ public class TabletMetadata {
     ECOMP
   }
 
+  private static final Object lock = new Object();
+
   public static class Location {
     private final TServerInstance tServerInstance;
     private final LocationType lt;
@@ -534,18 +536,20 @@ public class TabletMetadata {
    * Get the tservers that are live from ZK. Live servers will have a valid ZooLock. This method was
    * pulled from org.apache.accumulo.server.manager.LiveTServerSet
    */
-  public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
+  public static Set<TServerInstance> getLiveTServers(ClientContext context) {
+    synchronized (lock) {
 
-    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    final List<String> children = context.getZooCache().getChildren(path);
-    final Set<TServerInstance> liveServers = new HashSet<>(children.size());
+      final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+      final List<String> children = context.getZooCache().getChildren(path);
+      final Set<TServerInstance> liveServers = new HashSet<>(children.size());
 
-    for (String child : children) {
-      checkServer(context, path, child).ifPresent(liveServers::add);
+      for (String child : children) {
+        checkServer(context, path, child).ifPresent(liveServers::add);
+      }
+      log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
+
+      return liveServers;
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
-
-    return liveServers;
   }
 
   /**

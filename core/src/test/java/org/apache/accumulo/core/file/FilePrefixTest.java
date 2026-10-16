@@ -32,7 +32,8 @@ public class FilePrefixTest {
 
   @Test
   public void testCreateFileName() {
-    assertThrows(NullPointerException.class, () -> FLUSH.createFileName(null));
+    String nullSuffix = null;
+    assertThrows(NullPointerException.class, () -> FLUSH.createFileName(nullSuffix));
     assertThrows(IllegalArgumentException.class, () -> FLUSH.createFileName(""));
     assertThrows(IllegalStateException.class,
         () -> MERGING_MINOR_COMPACTION.createFileName("file.rf"));
@@ -59,7 +60,8 @@ public class FilePrefixTest {
 
   @Test
   public void fromFileName() {
-    assertThrows(NullPointerException.class, () -> FilePrefix.fromFileName(null));
+    String nullFileName = null;
+    assertThrows(NullPointerException.class, () -> FilePrefix.fromFileName(nullFileName));
     assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName(""));
     assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("*file.rf"));
     assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("cfile.rf"));

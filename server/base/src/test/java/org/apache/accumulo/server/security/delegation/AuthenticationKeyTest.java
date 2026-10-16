@@ -49,7 +49,8 @@ public class AuthenticationKeyTest {
 
   @Test
   public void testNullSecretKey() {
-    assertThrows(NullPointerException.class, () -> new AuthenticationKey(0, 0, 0, null));
+    SecretKey nullKey = null;
+    assertThrows(NullPointerException.class, () -> new AuthenticationKey(0, 0, 0, nullKey));
   }
 
   @Test

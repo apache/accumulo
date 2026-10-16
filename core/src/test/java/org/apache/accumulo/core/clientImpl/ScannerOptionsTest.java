@@ -76,9 +76,10 @@ public class ScannerOptionsTest {
 
   @Test
   public void testFetchNullColumn() {
+    IteratorSetting.Column nullColumn = null;
     try (ScannerOptions options = new ScannerOptions()) {
       // Require a non-null instance of Column
-      assertThrows(IllegalArgumentException.class, () -> options.fetchColumn(null));
+      assertThrows(IllegalArgumentException.class, () -> options.fetchColumn(nullColumn));
     }
   }
 }

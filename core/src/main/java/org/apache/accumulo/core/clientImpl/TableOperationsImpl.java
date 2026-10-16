@@ -59,6 +59,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -1976,7 +1977,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       private Text endRow = null;
       private List<TSummarizerConfiguration> summariesToFetch = Collections.emptyList();
       private String summarizerClassRegex;
-      private boolean flush = false;
+      private final AtomicBoolean flush = new AtomicBoolean(false);
 
       @Override
       public SummaryRetriever startRow(Text startRow) {
@@ -2004,7 +2005,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
         TSummaryRequest request =
             new TSummaryRequest(tableId.canonical(), range, summariesToFetch, summarizerClassRegex);
-        if (flush) {
+        if (flush.get()) {
           _flush(tableId, startRow, endRow, true);
         }
 
@@ -2061,7 +2062,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       @Override
       public SummaryRetriever flush(boolean b) {
-        this.flush = b;
+        this.flush.getAndSet(b);
         return this;
       }
     };

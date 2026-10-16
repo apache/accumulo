@@ -45,6 +45,7 @@ public class ValidationUtilTest {
 
   @Test
   public void testValidateFileNameNull() {
-    assertThrows(NullPointerException.class, () -> validateFileName(null));
+    String nullFileName = null;
+    assertThrows(NullPointerException.class, () -> validateFileName(nullFileName));
   }
 }

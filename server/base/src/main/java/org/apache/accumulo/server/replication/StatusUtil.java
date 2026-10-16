@@ -35,6 +35,7 @@ public class StatusUtil {
   private static final Value INF_END_REPLICATION_STATUS_VALUE, CLOSED_STATUS_VALUE;
 
   private static final Status.Builder CREATED_STATUS_BUILDER;
+  private static final Object lock = new Object();
 
   static {
     CREATED_STATUS_BUILDER = Status.newBuilder();
@@ -119,11 +120,13 @@ public class StatusUtil {
   /**
    * @return A {@link Status} for a new file that was just created
    */
-  public static synchronized Status fileCreated(long timeCreated) {
-    // We're using a shared builder, so we need to synchronize access on it until we make a Status
-    // (which is then immutable)
-    CREATED_STATUS_BUILDER.setCreatedTime(timeCreated);
-    return CREATED_STATUS_BUILDER.build();
+  public static Status fileCreated(long timeCreated) {
+    synchronized (lock) {
+      // We're using a shared builder, so we need to synchronize access on it until we make a Status
+      // (which is then immutable)
+      CREATED_STATUS_BUILDER.setCreatedTime(timeCreated);
+      return CREATED_STATUS_BUILDER.build();
+    }
   }
 
   /**

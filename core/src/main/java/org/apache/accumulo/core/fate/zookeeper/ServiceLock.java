@@ -69,6 +69,8 @@ public class ServiceLock implements Watcher {
 
   private static final String ZLOCK_PREFIX = "zlock#";
 
+  private static final Object lock = new Object();
+
   private static class Prefix {
     private final String prefix;
 
@@ -370,7 +372,7 @@ public class ServiceLock implements Watcher {
           if (event.getType() == EventType.NodeDeleted && event.getPath().equals(nodeToWatch)) {
             LOG.debug("[{}] Detected deletion of prior node {}, attempting to acquire lock; {}",
                 vmLockPrefix, nodeToWatch, event);
-            synchronized (ServiceLock.this) {
+            synchronized (lock) {
               try {
                 if (createdNodeName != null) {
                   determineLockOwnership(lw);
@@ -390,7 +392,7 @@ public class ServiceLock implements Watcher {
 
           if (event.getState() == KeeperState.Expired
               || event.getState() == KeeperState.Disconnected) {
-            synchronized (ServiceLock.this) {
+            synchronized (lock) {
               if (lockNodeName == null) {
                 LOG.info("Zookeeper Session expired / disconnected; {}", event);
                 lw.failedToAcquireLock(
@@ -400,7 +402,7 @@ public class ServiceLock implements Watcher {
             renew = false;
           }
           if (renew) {
-            synchronized (ServiceLock.this) {
+            synchronized (lock) {
               if (createdNodeName != null) {
                 try {
                   Stat restat = zooKeeper.exists(nodeToWatch, this);
@@ -524,7 +526,7 @@ public class ServiceLock implements Watcher {
 
         @Override
         public void process(WatchedEvent event) {
-          synchronized (ServiceLock.this) {
+          synchronized (lock) {
             if (lockNodeName != null && event.getType() == EventType.NodeDeleted
                 && event.getPath().equals(path + "/" + lockNodeName)) {
               LOG.debug("[{}] {} was deleted; {}", vmLockPrefix, lockNodeName, event);
