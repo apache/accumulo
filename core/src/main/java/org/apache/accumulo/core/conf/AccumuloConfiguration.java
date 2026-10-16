@@ -627,15 +627,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public void invalidateCache() {}
 
-  /**
-   * get a parent configuration or null if it does not exist.
-   *
-   * @since 2.1.0
-   */
-  public AccumuloConfiguration getParent() {
-    return null;
-  }
-
   public Stream<Entry<String,String>> stream() {
     return StreamSupport.stream(this.spliterator(), false);
   }
