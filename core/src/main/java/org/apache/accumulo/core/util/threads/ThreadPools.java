@@ -62,6 +62,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -437,6 +439,7 @@ public class ThreadPools {
     }
   }
 
+  @NotThreadSafe
   public class ThreadPoolExecutorBuilder {
     final String name;
     int coreThreads = 0;
