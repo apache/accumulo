@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -108,6 +110,25 @@ public class BulkIT extends AccumuloClusterHarness {
     verifyParams.startRow = N;
     verifyParams.rows = 1;
     VerifyIngest.verifyIngest(c, verifyParams);
+
+    // Create a subdirectory that is not allowed and try to bulk import from
+    // that location
+    Path a = new Path(base, "accumulo");
+    fs.deleteOnExit(a);
+    Path t = new Path(a, "tables");
+    fs.deleteOnExit(t);
+    fs.mkdirs(t);
+    params = new IngestParams(c.properties(), tableName, N);
+    params.outputFile = new Path(t, String.format(fileFormat, N)).toString();
+    params.startRow = N;
+    params.rows = 1;
+    // create an rfile with one entry, there was a bug with this:
+    TestIngest.ingest(c, fs, params);
+    AccumuloSecurityException ase = assertThrows(AccumuloSecurityException.class,
+        () -> bulkLoad(c, tableName, bulkFailures, t, useOld));
+    assertTrue(
+        ase.getMessage().contains("Error PERMISSION_DENIED for user root on table BulkIT_test"));
+
   }
 
   @SuppressWarnings("deprecation")
