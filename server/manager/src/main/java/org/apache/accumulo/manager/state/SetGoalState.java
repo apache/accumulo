@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -56,7 +57,7 @@ public class SetGoalState {
       var context = new ServerContext(siteConfig);
       RenameMasterDirInZK.renameMasterDirInZK(context);
       context.waitForZookeeperAndHdfs();
-      setGoalState(context, targetGoalState);
+      setGoalState(context.getZooReaderWriter(), context.getZooKeeperRoot(), targetGoalState);
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }
@@ -65,10 +66,9 @@ public class SetGoalState {
   /**
    * Writes the manager goal state to ZooKeeper, overwriting the current value.
    */
-  public static void setGoalState(ServerContext context, ManagerGoalState targetGoalState)
-      throws KeeperException, InterruptedException {
-    context.getZooReaderWriter().putPersistentData(
-        context.getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
+  public static void setGoalState(ZooReaderWriter zrw, String zkRoot,
+      ManagerGoalState targetGoalState) throws KeeperException, InterruptedException {
+    zrw.putPersistentData(zkRoot + Constants.ZMANAGER_GOAL_STATE,
         targetGoalState.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
   }
 
