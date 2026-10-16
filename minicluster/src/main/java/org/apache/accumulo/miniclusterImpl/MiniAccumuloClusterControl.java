@@ -349,7 +349,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case TABLET_SERVER:
         synchronized (tabletServerProcesses) {
           try {
-            cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, tabletServerProcesses, 30,
+            cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, tabletServerProcesses, 60,
                 TimeUnit.SECONDS);
           } finally {
             tabletServerProcesses.clear();
@@ -372,7 +372,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case SCAN_SERVER:
         synchronized (scanServerProcesses) {
           try {
-            cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, scanServerProcesses, 30,
+            cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, scanServerProcesses, 60,
                 TimeUnit.SECONDS);
           } finally {
             scanServerProcesses.clear();
@@ -395,7 +395,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case COMPACTOR:
         synchronized (compactorProcesses) {
           try {
-            cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, compactorProcesses, 30,
+            cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, compactorProcesses, 60,
                 TimeUnit.SECONDS);
           } finally {
             compactorProcesses.clear();
