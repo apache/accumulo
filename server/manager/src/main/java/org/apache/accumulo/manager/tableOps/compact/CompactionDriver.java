@@ -159,7 +159,7 @@ public class CompactionDriver extends AbstractFateOperation {
 
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
       if (result.getStatus() == Status.REJECTED) {
-        log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+        TabletLogger.updateRejected(fateId, result);
       }
 
       // always remove extents from the map even if not successful in order to avoid placing too
@@ -378,7 +378,7 @@ public class CompactionDriver extends AbstractFateOperation {
       AtomicLong rejectedCount = new AtomicLong(0);
       Consumer<Ample.ConditionalResult> resultConsumer = result -> {
         if (result.getStatus() == Status.REJECTED) {
-          log.debug("{} update for {} was rejected ", fateId, result.getExtent());
+          TabletLogger.updateRejected(fateId, result);
           rejectedCount.incrementAndGet();
         }
       };
