@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.cluster.standalone;
+package org.apache.accumulo.server.cluster.standalone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
