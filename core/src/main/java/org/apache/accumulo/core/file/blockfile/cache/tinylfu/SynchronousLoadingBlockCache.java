@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache.lru;
+package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
 
 import java.util.Collections;
 import java.util.HashMap;
