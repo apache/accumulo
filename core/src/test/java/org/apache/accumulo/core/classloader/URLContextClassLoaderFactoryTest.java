@@ -30,6 +30,7 @@ import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
+import org.apache.accumulo.core.util.test.URLContextClassLoaderFactory;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,7 @@ import org.junit.jupiter.api.io.TempDir;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class ContextClassLoaderFactoryTest extends WithTestNames {
+public class URLContextClassLoaderFactoryTest extends WithTestNames {
 
   @TempDir
   private static Path tempFolder;
