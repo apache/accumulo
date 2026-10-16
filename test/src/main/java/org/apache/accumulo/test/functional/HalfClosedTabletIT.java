@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
@@ -266,7 +267,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
     try {
       client.tableOperations().removeProperty(tableName,
           Property.TABLE_CLASSLOADER_CONTEXT.getKey());
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
   }
