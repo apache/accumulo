@@ -316,7 +316,7 @@ public class NullTserver {
             TabletManagementClientService.Iface.class, tch, context));
 
     ServerAddress sa = TServerUtils.createThriftServer(context.getConfiguration(),
-        ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "NullTServer", 2,
+        ThriftServerType.HS_HA, muxProcessor, context.getInstanceID(), "NullTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
         context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(),
         HostAndPort.fromParts(ServerOpts.BIND_ALL_ADDRESSES, opts.port));
