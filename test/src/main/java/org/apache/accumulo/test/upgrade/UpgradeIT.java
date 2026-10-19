@@ -45,6 +45,7 @@ import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
 public class UpgradeIT extends AccumuloClusterHarness {
 
@@ -124,7 +125,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
     Wait.waitFor(() -> getServerContext().getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
 
-    assertThrows(IllegalStateException.class,
+    assertThrows(AssertionFailedError.class,
         () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
 
     // Confirm no servers started
