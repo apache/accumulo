@@ -613,19 +613,25 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(),
         config.getZooKeepers());
 
-    control.start(ServerType.TABLET_SERVER);
-
     try (var reservation = SingletonManager.getClientReservation()) {
       var zrw = new ZooReaderWriter(getSiteConfiguration());
       String instanceNamePath =
           Constants.ZROOT + Constants.ZINSTANCES + "/" + config.getInstanceName();
       byte[] bytes = zrw.getData(instanceNamePath);
       InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
+
+      // fail fast before starting servers - they'll fail to start if this node exists already
+      final String upgradePrepNode = ZooUtil.getRoot(iid) + Constants.ZPREPARE_FOR_UPGRADE;
+      if (zrw.exists(upgradePrepNode)) {
+        throw new IllegalStateException(
+            "Cannot start, instance is prepared for upgrade: " + upgradePrepNode + " exists");
+      }
       SetGoalState.setGoalState(zrw, ZooUtil.getRoot(iid), ManagerGoalState.NORMAL);
     } catch (KeeperException e) {
       throw new IllegalStateException("Could not set manager goal state", e);
     }
 
+    control.start(ServerType.TABLET_SERVER);
     control.start(ServerType.MANAGER);
     control.start(ServerType.GARBAGE_COLLECTOR);
 

@@ -99,4 +99,18 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
   }
 
+  @Test
+  public void testStartWhenAlreadyPrepared() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+
+    ctx.getZooReaderWriter().putPersistentData(
+        ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE, new byte[0],
+        NodeExistsPolicy.SKIP);
+
+    getCluster().stop();
+    IllegalStateException ise = assertThrows(IllegalStateException.class, getCluster()::start);
+    assertTrue(ise.getMessage().startsWith("Cannot start, instance is prepared for upgrade"));
+
+  }
+
 }
