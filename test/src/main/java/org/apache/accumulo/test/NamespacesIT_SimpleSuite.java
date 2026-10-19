@@ -564,7 +564,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     Wait.waitFor(
         () -> c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)
             && c.tableOperations().listConstraints(t1).containsKey(constraintClassName),
-        30_000, 250, "Constraint was not propagated to the namespace and table");
+        "Constraint was not propagated to the namespace and table");
 
     Integer[] constraintNums = new Integer[2];
     // loop until constraint is seen in namespace and table (or until test times out)
@@ -573,7 +573,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
           c.namespaceOperations().listConstraints(namespace).get(constraintClassName);
       constraintNums[1] = c.tableOperations().listConstraints(t1).get(constraintClassName);
       return constraintNums[0] != null && constraintNums[1] != null;
-    }, 30_000, 250, "Constraint IDs were not propagated to the namespace and table");
+    }, "Constraint IDs were not propagated to the namespace and table");
     Integer namespaceNum = constraintNums[0];
     Integer tableNum = constraintNums[1];
     assertEquals(namespaceNum, tableNum);
@@ -597,7 +597,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
         assertEquals(2, e.getConstraintViolationSummaries().get(0).getNumberOfViolatingMutations());
         return true;
       }
-    }, 30_000, 250, "Constraint did not become active and reject invalid mutations");
+    }, "Constraint did not become active and reject invalid mutations");
 
     assertNotNull(namespaceNum, "Namespace constraint ID should not be null");
     c.namespaceOperations().removeConstraint(namespace, namespaceNum);
@@ -606,7 +606,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     Wait.waitFor(
         () -> !c.namespaceOperations().listConstraints(namespace).containsKey(constraintClassName)
             && !c.tableOperations().listConstraints(t1).containsKey(constraintClassName),
-        30_000, 250, "Constraint was not removed from the namespace and table");
+        "Constraint was not removed from the namespace and table");
 
     // loop until constraint is removed and stops rejecting (or until test timeout)
     Wait.waitFor(() -> {
@@ -618,7 +618,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
       } catch (MutationsRejectedException e) {
         return false;
       }
-    }, 30_000, 250, "Mutations continued to be rejected after constraint removal");
+    }, "Mutations continued to be rejected after constraint removal");
   }
 
   @Test

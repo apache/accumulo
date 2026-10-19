@@ -102,10 +102,9 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
         allGood &= checkTabletsPerTserver(groupLocationCounts, 3, 3, 4);
         return allGood;
-      }, 30_000, 250,
-          "Expected initial distribution was not reached (group 01: 1 tablet on 3 servers, "
-              + "group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
-              + "3 tablets per server)");
+      }, "Expected initial distribution was not reached (group 01: 1 tablet on 3 servers, "
+          + "group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
+          + "3 tablets per server)");
 
       splits.clear();
       splits.add(new Text("01b"));
@@ -123,10 +122,9 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
         allGood &= checkTabletsPerTserver(groupLocationCounts, 4, 4, 4);
         return allGood;
-      }, 30_000, 250,
-          "Expected distribution after adding splits was not reached (group 01: 1-2 tablets on "
-              + "4 servers, group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
-              + "4 tablets per server)");
+      }, "Expected distribution after adding splits was not reached (group 01: 1-2 tablets on "
+          + "4 servers, group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
+          + "4 tablets per server)");
 
       // merge group 01 down to one tablet
       client.tableOperations().merge(tablename, null, new Text("01z"));
@@ -140,10 +138,9 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         allGood &= checkGroup(groupLocationCounts, "03", 1, 2, 4);
         allGood &= checkTabletsPerTserver(groupLocationCounts, 2, 3, 4);
         return allGood;
-      }, 30_000, 250,
-          "Expected distribution after merging group 01 was not reached (group 01: 1 tablet on "
-              + "1 server, group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
-              + "2-3 tablets per server)");
+      }, "Expected distribution after merging group 01 was not reached (group 01: 1 tablet on "
+          + "1 server, group 02: 1 tablet on 4 servers, group 03: 1-2 tablets on 4 servers, "
+          + "2-3 tablets per server)");
     }
   }
 

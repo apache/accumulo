@@ -507,7 +507,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cc.setWait(false);
     client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
     client.tableOperations().delete(tableName);
-    Wait.waitFor(() -> !client.tableOperations().exists(tableName), 30_000, 250,
+    Wait.waitFor(() -> !client.tableOperations().exists(tableName),
         "Deleted table remained visible");
   }
 

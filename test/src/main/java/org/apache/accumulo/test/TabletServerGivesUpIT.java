@@ -90,7 +90,7 @@ public class TabletServerGivesUpIT extends ConfigurableMacBase {
       // wait for the tserver to give up on writing to the WAL
       Wait.waitFor(
           () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() != 1,
-          30_000, 250, "Tablet server did not leave the live list");
+          "Tablet server did not leave the live list");
     }
   }
 }

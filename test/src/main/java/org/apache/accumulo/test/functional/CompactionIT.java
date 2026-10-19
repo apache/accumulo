@@ -453,7 +453,7 @@ public class CompactionIT extends CompactionITBase {
       };
 
       // wait until the filtering done by all three compactions is seen
-      Wait.waitFor(() -> expected.equals(actualSupplier.get()), 30_000, 250,
+      Wait.waitFor(() -> expected.equals(actualSupplier.get()),
           "Concurrent compactions did not filter the expected data");
 
       // eventually the compactions should clean up all of their metadata, wait for this to happen
@@ -463,7 +463,7 @@ public class CompactionIT extends CompactionITBase {
                   || tabletMetadata.getSelectedFiles() != null
                   || !tabletMetadata.getExternalCompactions().isEmpty())
               == 0,
-          30_000, 250, "Concurrent compactions did not clean up their metadata");
+          "Concurrent compactions did not clean up their metadata");
     }
   }
 
@@ -554,7 +554,7 @@ public class CompactionIT extends CompactionITBase {
       };
 
       // wait until the filtering done by all three compactions is seen
-      Wait.waitFor(() -> expected.equals(actualSupplier.get()), 30_000, 250,
+      Wait.waitFor(() -> expected.equals(actualSupplier.get()),
           "Concurrent compactions did not filter the expected data");
 
       // eventually the compactions should clean up all of their metadata, wait for this to happen
@@ -564,7 +564,7 @@ public class CompactionIT extends CompactionITBase {
                   || tabletMetadata.getSelectedFiles() != null
                   || !tabletMetadata.getExternalCompactions().isEmpty())
               == 0,
-          30_000, 250, "Concurrent compactions did not clean up their metadata");
+          "Concurrent compactions did not clean up their metadata");
     }
   }
 

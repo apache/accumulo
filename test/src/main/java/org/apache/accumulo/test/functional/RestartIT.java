@@ -131,14 +131,14 @@ public class RestartIT extends AccumuloClusterHarness {
 
       ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();
-      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(), 30_000, 250,
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(),
           "Manager lock was not released before restart");
 
       cluster.start();
       Thread.sleep(5);
       control.stopAllServers(ServerType.MANAGER);
 
-      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(), 30_000, 250,
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(),
           "Manager lock was not released before second restart");
       cluster.start();
       VerifyIngest.verifyIngest(c, params);
@@ -169,7 +169,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();
-      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(), 30_000, 250,
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, zLockPath, null).isEmpty(),
           "Manager lock was not released before restart");
 
       cluster.start();

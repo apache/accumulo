@@ -100,7 +100,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       Wait.waitFor(() -> {
         monitorLocation[0] = MonitorUtil.getLocation((ClientContext) accumuloClient);
         return monitorLocation[0] != null;
-      }, 30_000, 250, "Monitor location was not published to ZooKeeper");
+      }, "Monitor location was not published to ZooKeeper");
       String monitorAddress = monitorLocation[0];
       if (getCluster() instanceof StandaloneAccumuloCluster) {
         String monitorSslKeystore =
@@ -126,7 +126,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       Wait.waitFor(
           () -> ServiceLock.getLockData(cluster.getServerContext().getZooCache(),
               getServerContext().getServerPaths().createManagerPath(), null).isEmpty(),
-          30_000, 250, "Manager lock was not released during shutdown");
+          "Manager lock was not released during shutdown");
       control.stopAllServers(ServerType.MANAGER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);

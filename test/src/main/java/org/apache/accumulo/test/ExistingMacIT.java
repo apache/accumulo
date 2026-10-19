@@ -117,7 +117,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
       }
     }
 
-    Wait.waitFor(() -> AccumuloStatus.isAccumuloOffline((ClientContext) client), 30_000, 250,
+    Wait.waitFor(() -> AccumuloStatus.isAccumuloOffline((ClientContext) client),
         "Accumulo services still have ZooKeeper locks after processes were killed");
 
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");

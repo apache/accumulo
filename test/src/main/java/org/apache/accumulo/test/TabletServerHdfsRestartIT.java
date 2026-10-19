@@ -59,7 +59,7 @@ public class TabletServerHdfsRestartIT extends ConfigurableMacBase {
       // wait until a tablet server is up
       Wait.waitFor(
           () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty(),
-          30_000, 250, "Tablet server did not start");
+          "Tablet server did not start");
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
       try (BatchWriter bw = client.createBatchWriter(tableName)) {

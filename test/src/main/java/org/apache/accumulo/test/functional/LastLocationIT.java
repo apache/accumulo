@@ -57,7 +57,7 @@ public class LastLocationIT extends ConfigurableMacBase {
       Wait.waitFor(() -> {
         newTablet[0] = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
         return newTablet[0].hasCurrent();
-      }, 30_000, 250, "Tablet was not assigned");
+      }, "Tablet was not assigned");
       TabletMetadata assignedTablet = newTablet[0];
       // this would be null if the mode was not "assign"
       assertEquals(assignedTablet.getLocation().getHostPort(),

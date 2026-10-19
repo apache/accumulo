@@ -139,7 +139,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
           // The monitor may not have published its location yet.
         }
         return monitorLocation[0] != null;
-      }, 30_000, 250, "Monitor location was not published to ZooKeeper");
+      }, "Monitor location was not published to ZooKeeper");
     }
     var url = new URI(monitorLocation[0]).toURL();
     log.debug("Fetching web page {}", url);

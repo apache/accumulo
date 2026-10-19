@@ -163,8 +163,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           "Number of WALs seen was less than expected " + allWalsSeen.size());
 
       // the total number of closed write ahead logs should get small
-      Wait.waitFor(() -> countClosedWals(context) <= 3, 30_000, 250,
-          "Closed WAL count did not decrease");
+      Wait.waitFor(() -> countClosedWals(context) <= 3, "Closed WAL count did not decrease");
     }
   }
 
@@ -192,7 +191,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
         log.debug("No open WALs found in {} attempts.", attempts[0]);
       }
       return open[0] > 0;
-    }, 30_000, 250, "No open WALs found");
+    }, "No open WALs found");
 
     log.debug("It took {} attempt(s) to find {} open WALs", attempts[0], open[0]);
     assertTrue(open[0] > 0 && open[0] < 4, "Open WALs not in expected range " + open[0]);

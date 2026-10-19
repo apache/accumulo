@@ -90,7 +90,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(
           () -> !client.tableOperations().getConfiguration(tableName)
               .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"),
-          30_000, 250, "Table property update did not propagate");
+          "Table property update did not propagate");
 
       PropUtil.removeProperties(context, tablePropKey,
           List.of(Property.TABLE_BLOOM_ENABLED.getKey()));
@@ -98,7 +98,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(
           () -> !client.tableOperations().getConfiguration(tableName)
               .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"),
-          30_000, 250, "Table property removal did not propagate");
+          "Table property removal did not propagate");
 
       // Add invalid property
       assertThrows(IllegalArgumentException.class,
@@ -132,7 +132,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(
           () -> client.namespaceOperations().getConfiguration(namespace)
               .get(Property.TABLE_FILE_MAX.getKey()).equals("31"),
-          30_000, 250, "Namespace property update did not propagate");
+          "Namespace property update did not propagate");
 
       PropUtil.removeProperties(context, namespacePropKey,
           List.of(Property.TABLE_FILE_MAX.getKey()));
@@ -140,7 +140,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(
           () -> client.namespaceOperations().getConfiguration(namespace)
               .get(Property.TABLE_FILE_MAX.getKey()).equals("15"),
-          30_000, 250, "Namespace property removal did not propagate");
+          "Namespace property removal did not propagate");
 
       // Add invalid property
       assertThrows(IllegalArgumentException.class,

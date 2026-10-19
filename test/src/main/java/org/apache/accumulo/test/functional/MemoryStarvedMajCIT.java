@@ -171,7 +171,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
         } catch (Exception e) {
           return false;
         }
-      }, 30_000, 250, "getRunningCompaction RPC did not succeed");
+      }, "getRunningCompaction RPC did not succeed");
 
       ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
       compactionThread.start();

@@ -313,7 +313,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
               && !tserverGroups
                   .get(currentLocations.get(0).getLocation().getHostAndPort().toString())
                   .equals(ResourceGroupId.of("GROUP1"))));
-    }, 30_000, 250, "Tablets were not assigned to GROUP1");
+    }, "Tablets were not assigned to GROUP1");
     locations = locationsRef.get();
     Location group1Location = locations.get(0).getLocation();
     assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString())
@@ -329,7 +329,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       locationsRef.set(currentLocations);
       return currentLocations != null && !currentLocations.isEmpty()
           && currentLocations.size() == numExpectedSplits;
-    }, 30_000, 250, "Tablets did not reach the expected count");
+    }, "Tablets did not reach the expected count");
     locations = locationsRef.get();
     if (locations.stream().map(TabletMetadata::getLocation)
         .allMatch((l) -> group1Location.equals(l))) {

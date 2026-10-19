@@ -96,14 +96,14 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
         ClientContext context = (ClientContext) client) {
       ZooCache zcache = context.getZooCache();
       var path = context.getServerPaths().createGarbageCollectorPath();
-      Wait.waitFor(() -> ServiceLock.getLockData(zcache, path, null).isEmpty(), 30_000, 250,
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, path, null).isEmpty(),
           "GC ZooKeeper lock did not expire");
       log.info("GC lock was lost");
 
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
       log.info("Garbage collector was restarted");
 
-      Wait.waitFor(() -> ServiceLock.getLockData(zcache, path, null).isPresent(), 30_000, 250,
+      Wait.waitFor(() -> ServiceLock.getLockData(zcache, path, null).isPresent(),
           "GC ZooKeeper lock was not acquired");
       log.info("GC lock was acquired");
     }

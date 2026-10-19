@@ -82,7 +82,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
         LOG.debug("Failed to find active monitor location, retrying", e);
       }
       return monitorLocation[0] != null;
-    }, 30_000, 250, "Active monitor location was not published to ZooKeeper");
+    }, "Active monitor location was not published to ZooKeeper");
 
     LOG.debug("Found active monitor");
 
@@ -123,7 +123,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           monitor[0] = startProcess(cluster, ServerType.MONITOR, freePort[0]);
         }
         return false;
-      }, 30_000, 250, "Standby monitor did not serve requests");
+      }, "Standby monitor did not serve requests");
     } finally {
       if (monitor[0] != null) {
         monitor[0].destroyForcibly();
@@ -147,7 +147,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           LOG.debug("Failed to find active manager location, retrying", e);
           return false;
         }
-      }, 30_000, 250, "Active manager lock was not acquired");
+      }, "Active manager lock was not acquired");
 
       LOG.debug("Found active manager");
 
@@ -172,7 +172,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             manager[0] = startProcess(cluster, ServerType.MANAGER, freePort[0]);
           }
           return false;
-        }, 30_000, 250, "Standby manager did not accept connections");
+        }, "Standby manager did not accept connections");
       } finally {
         if (manager[0] != null) {
           manager[0].destroyForcibly();
@@ -197,7 +197,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           LOG.debug("Failed to find active gc location, retrying", e);
           return false;
         }
-      }, 30_000, 250, "Active garbage collector lock was not acquired");
+      }, "Active garbage collector lock was not acquired");
 
       LOG.debug("Found active gc");
 
@@ -222,7 +222,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
             manager[0] = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort[0]);
           }
           return false;
-        }, 30_000, 250, "Standby garbage collector did not accept connections");
+        }, "Standby garbage collector did not accept connections");
       } finally {
         if (manager[0] != null) {
           manager[0].destroyForcibly();

@@ -163,7 +163,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       // wait until the tserver that we need to kill is running
       Wait.waitFor(
           () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty(),
-          30_000, 250, "Tablet server did not start");
+          "Tablet server did not start");
 
       // create our own tablet server with the special test library
       Path confDirPath = cluster.getConfig().getDir().toPath();

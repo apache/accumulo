@@ -198,7 +198,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             getRunningCompactionInformation(ctx, ecids);
         originalRunningInfoRef.set(runningInfo);
         return runningInfo.values().stream().anyMatch(rci -> rci.duration > 0);
-      }, 30_000, 250, "Compaction did not start");
+      }, "Compaction did not start");
       Map<ExternalCompactionId,RunningCompactionInfo> originalRunningInfo =
           originalRunningInfoRef.get();
 
@@ -265,7 +265,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       } catch (TException t) {
         return false;
       }
-    }, 30_000, 250, "No running compaction information was reported");
+    }, "No running compaction information was reported");
     return results;
   }
 

@@ -527,7 +527,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       } catch (AssertionError e) {
         return false;
       }
-    }, 30_000, 250, "Insert did not succeed after granting authorization");
+    }, "Insert did not succeed after granting authorization");
     ts.exec("addauths -s foo,bar", true);
     Wait.waitFor(() -> {
       try {
@@ -537,7 +537,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       } catch (AssertionError | Exception e) {
         return false;
       }
-    }, 30_000, 250, "Could not successfully see updated authoriations");
+    }, "Could not successfully see updated authoriations");
     ts.exec("insert a b c d -l foo");
     ts.exec("scan", true, "[foo]");
     ts.exec("scan -s bar", true, "[foo]", false);

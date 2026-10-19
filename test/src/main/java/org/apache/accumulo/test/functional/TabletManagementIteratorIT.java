@@ -190,19 +190,19 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       KeyExtent prevR4 = new KeyExtent(tableId4, null, new Text("some split"));
       Map<KeyExtent,Set<TabletManagement.ManagementAction>> expected;
 
-      TabletManagementParameters tabletMgmtParams = createParameters(client);
+      final TabletManagementParameters tabletMgmtParams1 = createParameters(client);
       Wait.waitFor(() -> {
         copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
         Map<KeyExtent,Set<TabletManagement.ManagementAction>> tabletsInFlux =
-            findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false);
+            findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams1, false);
         if (!tabletsInFlux.isEmpty()) {
           log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         }
         return tabletsInFlux.isEmpty();
-      }, 30_000, 250, "Tablets remained in flux");
+      }, "Tablets remained in flux");
       expected = Map.of();
       assertEquals(expected,
-          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false),
+          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams1, false),
           "No tables should need attention");
 
       // The metadata table stabilized and metaCopy1 contains a copy suitable for testing. Before
@@ -217,7 +217,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       setTabletAvailability(client, metaCopy1, t1, TabletAvailability.HOSTED.name());
       // t3 is hosted, setting to never will generate a change to unhost tablets
       setTabletAvailability(client, metaCopy1, t3, TabletAvailability.UNHOSTED.name());
-      tabletMgmtParams = createParameters(client);
+      TabletManagementParameters tabletMgmtParams = createParameters(client);
       expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE), prevR1, Set.of(NEEDS_LOCATION_UPDATE),
           endR3, Set.of(NEEDS_LOCATION_UPDATE), prevR3, Set.of(NEEDS_LOCATION_UPDATE));
       assertEquals(expected,

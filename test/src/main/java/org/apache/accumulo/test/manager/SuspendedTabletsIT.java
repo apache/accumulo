@@ -211,7 +211,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       Wait.waitFor(() -> {
         observed[0] = TabletLocations.retrieve(ctx, tableName);
         return observed[0].hostedCount == TABLETS;
-      }, 30_000, 250, "Tablets were not hosted");
+      }, "Tablets were not hosted");
       TabletLocations ds = observed[0];
       log.info("Tablets hosted");
 
@@ -222,7 +222,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         observed[0] = TabletLocations.retrieve(ctx, tableName);
         return observed[0].hostedCount == TABLETS
             && observed[0].hosted.keySet().size() == (TSERVERS - 1);
-      }, 30_000, 250, "Tablets were not balanced across the tablet servers");
+      }, "Tablets were not balanced across the tablet servers");
       ds = observed[0];
 
       // Given the loop exit condition above, at this point we're sure that all tablets are hosted
@@ -243,7 +243,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         observed[0] = TabletLocations.retrieve(ctx, tableName);
         return observed[0].suspended.keySet().size() == (TSERVERS - 1)
             && (observed[0].suspendedCount + observed[0].hostedCount) == TABLETS;
-      }, 30_000, 250, "Tablets were not suspended after tablet servers stopped");
+      }, "Tablets were not suspended after tablet servers stopped");
       ds = observed[0];
 
       SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
@@ -264,7 +264,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         Wait.waitFor(() -> {
           observed[0] = TabletLocations.retrieve(ctx, tableName);
           return observed[0].suspendedCount == 0;
-        }, 30_000, 250, "Suspended tablets were not cleared when taking the table offline");
+        }, "Suspended tablets were not cleared when taking the table offline");
         ds = observed[0];
         log.info("Suspended tablets cleared after taking the table offline");
       } else if (action == AfterSuspendAction.RESUME) {
@@ -281,7 +281,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           observed[0] = TabletLocations.retrieve(ctx, tableName);
           return !observed[0].suspended.containsKey(restartedServer)
               && observed[0].assignedCount == 0;
-        }, 30_000, 250, "Tablets were not unsuspended after the tablet server restarted");
+        }, "Tablets were not unsuspended after the tablet server restarted");
         ds = observed[0];
         assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 

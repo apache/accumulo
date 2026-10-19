@@ -79,7 +79,7 @@ public class AccumuloConfigurationIT extends SharedMiniClusterBase {
         oldValueReturned[0]++;
       }
       return !initialThreads.equals(value);
-    }, 30_000, 250, "Configuration did not return updated value after cache invalidation");
+    }, "Configuration did not return updated value after cache invalidation");
     System.out.println("Configuration returned old value " + oldValueReturned[0]
         + " times and took " + timer.elapsed(TimeUnit.MILLISECONDS) + "ms");
 

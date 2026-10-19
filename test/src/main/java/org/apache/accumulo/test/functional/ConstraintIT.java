@@ -74,7 +74,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
           Map<String,Integer> constraints = c.tableOperations().listConstraints(table);
           return constraints.containsKey(NumericValueConstraint.class.getName())
               && constraints.containsKey(AlphaNumKeyConstraint.class.getName());
-        }, 30_000, 250, "Constraints did not propagate for " + table);
+        }, "Constraints did not propagate for " + table);
       }
 
       log.debug("Verified constraints on all tables. Running tests");

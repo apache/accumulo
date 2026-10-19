@@ -271,7 +271,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
             log.error("Could not read all from cluster.", ioe);
           }
           return output[0].contains("Ignoring invalid deletion candidate");
-        }, 30_000, 250, "GC output did not contain the invalid deletion candidate message");
+        }, "GC output did not contain the invalid deletion candidate message");
       } finally {
         gc.getProcess().destroy();
       }

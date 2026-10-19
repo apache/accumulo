@@ -279,7 +279,7 @@ public class ZooBasedConfigIT {
 
     // allow ZooKeeper notification time to propagate
 
-    Wait.waitFor(() -> changeCount < testListener.getZkChangeCount(), 30_000, 250,
+    Wait.waitFor(() -> changeCount < testListener.getZkChangeCount(),
         "ZooKeeper change notification was not received");
 
     assertTrue(changeCount < testListener.getZkChangeCount());
