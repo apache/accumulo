@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache.tinylfu;
+package org.apache.accumulo.core.spi.cache;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,9 +25,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.apache.accumulo.core.spi.cache.BlockCache;
-import org.apache.accumulo.core.spi.cache.CacheEntry;
 
 /**
  * This class implements loading in such a way that load operations for the same block will not run
