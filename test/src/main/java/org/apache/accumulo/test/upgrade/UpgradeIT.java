@@ -120,6 +120,8 @@ public class UpgradeIT extends AccumuloClusterHarness {
     Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getAssistantManagers(AddressSelector.all(), true).isEmpty());
+    Wait.waitFor(() -> getServerContext().getServerPaths()
         .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
@@ -133,6 +135,8 @@ public class UpgradeIT extends AccumuloClusterHarness {
         .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getAssistantManagers(AddressSelector.all(), true).isEmpty());
     Wait.waitFor(() -> getServerContext().getServerPaths()
         .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths()
