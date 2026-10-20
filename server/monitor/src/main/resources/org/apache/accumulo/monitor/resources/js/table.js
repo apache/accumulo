@@ -183,7 +183,10 @@ function initTabletServersTable() {
     "searching": false,
     "paging": true,
     "pageLength": 10,
-    "lengthMenu": [10, 25, 50, 100],
+    "lengthMenu": [
+      [10, 25, 50, 100, -1],
+      [10, 25, 50, 100, "All"]
+    ],
     "info": true,
     "order": [
       // Sort by tablet count to surface uneven tablet distribution.
