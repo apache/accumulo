@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.upgrade;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,12 +31,11 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
-import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -48,7 +48,7 @@ import org.junit.jupiter.api.Test;
 
 public class UpgradeIT extends AccumuloClusterHarness {
 
-  private class ServerThatWontStart extends AbstractServer {
+  private static class ServerThatWontStart extends AbstractServer {
 
     protected ServerThatWontStart(String[] args) {
       super(ServerId.Type.TABLET_SERVER, new ServerOpts(), (conf, rgid) -> new ServerContext(conf),
@@ -72,7 +72,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   }
 
   // This class exists because Manager constructor is not visible
-  private class TestManager extends Manager {
+  private static class TestManager extends Manager {
 
     protected TestManager(String[] args) throws IOException {
       super(new ServerOpts(), (conf, rgid) -> new ServerContext(conf), args);
@@ -105,42 +105,22 @@ public class UpgradeIT extends AccumuloClusterHarness {
     // test, so we will create the node after MAC starts, then try to restart
     // MAC.
 
-    final ZooSession zs = getServerContext().getZooSession();
-    final ZooReaderWriter zrw = zs.asReaderWriter();
-    final String upgradePath = Constants.ZPREPARE_FOR_UPGRADE;
-    zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
+    getServerContext().getZooSession().asReaderWriter()
+        .putPersistentData(Constants.ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
 
     getCluster().stop();
 
     getCluster().getClusterControl().startAllServers(ServerType.ZOOKEEPER);
 
     // Confirm all servers down
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
-    Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
-    Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getAssistantManagers(AddressSelector.all(), true).isEmpty());
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
+    waitForNoServers();
 
     var startIse = assertThrows(IllegalStateException.class,
         () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
     assertTrue(startIse.getMessage().startsWith("Cannot start, instance is prepared for upgrade"));
 
     // Confirm no servers started
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
-    Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
-    Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getAssistantManagers(AddressSelector.all(), true).isEmpty());
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
-    Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
+    waitForNoServers();
 
     // Validate the exception from the servers
     System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
@@ -154,6 +134,19 @@ public class UpgradeIT extends AccumuloClusterHarness {
       System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
 
+  }
+
+  private static void waitForNoServers() {
+    final ServiceLockPaths paths = getServerContext().getServerPaths();
+    Wait.waitFor(() -> paths.getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
+        .isEmpty());
+    Wait.waitFor(() -> paths.getGarbageCollector(true) == null);
+    Wait.waitFor(() -> paths.getManager(true) == null);
+    Wait.waitFor(() -> paths.getAssistantManagers(AddressSelector.all(), true).isEmpty());
+    Wait.waitFor(() -> paths.getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
+        .isEmpty());
+    Wait.waitFor(() -> paths
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
   }
 
   @Test
@@ -171,9 +164,11 @@ public class UpgradeIT extends AccumuloClusterHarness {
         "file://" + getCluster().getAccumuloPropertiesPath());
 
     try (TestManager mgr = new TestManager(new String[0])) {
-      IllegalStateException ise = assertThrows(IllegalStateException.class, () -> mgr.runServer());
-      assertTrue(ise.getMessage().equals("Upgrade not started, " + Constants.ZUPGRADE_PROGRESS
-          + " node does not exist. Did you run 'accumulo upgrade --start'?"));
+      IllegalStateException ise = assertThrows(IllegalStateException.class, mgr::runServer);
+      assertEquals("Upgrade not started, " + Constants.ZUPGRADE_PROGRESS
+          + " node does not exist. Did you run 'accumulo upgrade --start'?", ise.getMessage());
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
