@@ -124,8 +124,9 @@ public class UpgradeIT extends AccumuloClusterHarness {
     Wait.waitFor(() -> getServerContext().getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
 
-    assertThrows(AssertionError.class,
+    var startIse = assertThrows(IllegalStateException.class,
         () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
+    assertTrue(startIse.getMessage().startsWith("Cannot start, instance is prepared for upgrade"));
 
     // Confirm no servers started
     Wait.waitFor(() -> getServerContext().getServerPaths()
