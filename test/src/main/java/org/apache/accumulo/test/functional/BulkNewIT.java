@@ -164,6 +164,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       aconf = getCluster().getServerContext().getConfiguration();
       fs = getCluster().getFileSystem();
       rootPath = getCluster().getTemporaryPath().toString();
+      BulkIT.setBulkSourceLocations(c, fs, getCluster().getTemporaryPath());
+
     }
   }
 

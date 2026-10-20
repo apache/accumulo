@@ -105,7 +105,10 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
   public void setupCluster() throws Exception {
     super.setupCluster();
     // prime the zk connection
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {}
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      BulkIT.setBulkSourceLocations(c, getCluster().getFileSystem(),
+          getCluster().getTemporaryPath());
+    }
   }
 
   @ParameterizedTest
