@@ -95,7 +95,7 @@ public class BulkSplitOptimizationIT extends AccumuloClusterHarness {
       FileSystem fs = cluster.getFileSystem();
       Path testDir = new Path(cluster.getTemporaryPath(), "testmf");
       fs.deleteOnExit(testDir);
-      BulkIT.setBulkSourceLocations(c, fs, testDir);
+      BulkIT.setBulkSourceLocations(c, fs, cluster.getTemporaryPath());
       FunctionalTestUtils.createRFiles(c, fs, testDir.toString(), ROWS, SPLITS, 8);
       FileStatus[] stats = fs.listStatus(testDir);
 

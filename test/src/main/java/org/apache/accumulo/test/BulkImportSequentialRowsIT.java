@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
@@ -103,6 +104,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
       // because
       // of the balancer moving tablets around
       // and then we get to verify that the bug is actually fixed.
+      BulkIT.setBulkSourceLocations(client, fs, bulk.getParent());
       to.importDirectory(bulk.toString()).to(tableName).load();
 
       // The bug is that some tablets don't get imported into.

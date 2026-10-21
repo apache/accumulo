@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Tag;
@@ -61,6 +63,14 @@ public class BulkIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(4);
+  }
+
+  public static void setBulkSourceLocations(AccumuloClient client, FileSystem fs,
+      File localDirectory)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException, IOException {
+    Path p = FileSystem.get(localDirectory.toURI(), new Configuration())
+        .makeQualified(new Path(localDirectory.toString()));
+    setBulkSourceLocations(client, fs, p);
   }
 
   public static void setBulkSourceLocations(AccumuloClient client, FileSystem fs, Path basePath)

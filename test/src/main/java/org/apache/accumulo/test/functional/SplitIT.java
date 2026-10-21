@@ -247,6 +247,7 @@ public class SplitIT extends AccumuloClusterHarness {
       Random random = new Random();
       byte[] val = new byte[100];
 
+      BulkIT.setBulkSourceLocations(c, getFileSystem(), getCluster().getTemporaryPath());
       String dir = getDir();
       String file = dir + "/f1.rf";
 

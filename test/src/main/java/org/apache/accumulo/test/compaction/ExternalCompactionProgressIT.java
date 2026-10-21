@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -61,6 +62,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
@@ -378,6 +380,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       String dir = getDir(client, tableName1);
 
       log.info("Bulk importing files in dir " + dir + " to table " + tableName2);
+      BulkIT.setBulkSourceLocations(client, getFileSystem(), new File(dir).getParentFile());
       client.tableOperations().importDirectory(dir).to(tableName2).load();
       log.info("Finished bulk import");
 

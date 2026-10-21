@@ -549,11 +549,11 @@ public class SecurityOperation {
     final boolean tablePerm =
         hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
 
+    final String user = c.getPrincipal();
     final String allowedLocations =
         context.getConfiguration().get(Property.GENERAL_BULK_SOURCE_DIRS);
     boolean locationAllowed = false;
     try {
-      final String user = c.getPrincipal();
       final Map<String,String> allowedLocationsMap = gson.fromJson(allowedLocations, jsonMapType);
       final String userSourceLocationPattern = allowedLocationsMap.get(user);
       if (userSourceLocationPattern == null) {
@@ -569,8 +569,8 @@ public class SecurityOperation {
 
     if (!locationAllowed) {
       log.error(
-          "Bulk Import into table {} not allowed from directory {}, check table property {} value: {}",
-          tableId, dir, Property.GENERAL_BULK_SOURCE_DIRS.getKey(), allowedLocations);
+          "Bulk Import into table {} by user {} not allowed from directory {}, check table property {} value: {}",
+          tableId, user, dir, Property.GENERAL_BULK_SOURCE_DIRS.getKey(), allowedLocations);
     }
     return tablePerm && locationAllowed;
   }
