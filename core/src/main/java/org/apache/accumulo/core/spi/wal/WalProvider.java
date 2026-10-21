@@ -60,25 +60,14 @@ public interface WalProvider {
   String getId();
 
   /**
-   * Initializes the provider once after construction. Implementations may retain the environment
-   * for accessing system configuration and must not assume that properties change during this
-   * process lifetime. Throwing an exception prevents the server process from starting.
-   *
-   * @param environment system configuration and Accumulo service information
-   */
-  default void init(ServiceEnvironment environment) {}
-
-  /**
-   * Initializes this provider with its configured options. The default implementation calls
-   * {@link #init(ServiceEnvironment)} for compatibility with providers that only implement that
-   * method.
+   * Initializes this provider with its configured options. Implementations may retain the service
+   * environment for accessing system configuration and must not assume that properties change
+   * during this process lifetime. Throwing an exception prevents the server process from starting.
    *
    * @param params the service environment and options configured for this provider
    * @since 4.0.0
    */
-  default void init(InitParameters params) {
-    init(params.getServiceEnvironment());
-  }
+  default void init(InitParameters params) {}
 
   /** Parameters passed to {@link #init(InitParameters)}. */
   interface InitParameters {

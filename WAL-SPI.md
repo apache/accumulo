@@ -53,8 +53,6 @@ Each implementation needs a public no-argument constructor and a stable `getId()
 `[A-Za-z0-9]+`. The ID `dfs` is reserved for `DfsWalProvider` and legacy filesystem WALs. The
 [registry][registry] loads each configured class, passes its options to `init(InitParameters)` once per
 server process, rejects duplicate provider IDs, and selects the current class by class name. The
-default `init(InitParameters)` implementation calls `init(ServiceEnvironment)`, preserving providers
-that implement the older initialization method. A
 [memoized registry][context] is accessed by the Manager, TabletServers, ScanServers, and GC. The
 [Manager][manager] also checks WAL IDs in tablet metadata and ZooKeeper markers against the
 configured IDs at startup.
@@ -89,13 +87,13 @@ raw WAL format or the sorted-log recovery process.
 
 [`WalProvider`][spi] exposes:
 
-| Method                          | Use                                                   |
-| ------------------------------- | ----------------------------------------------------- |
-| `create(serverAddress, UUID)`   | Exclusively create a WAL and return its `Writer`.      |
-| `open(reference)`               | Read a WAL from byte zero for sorting/recovery.        |
-| `exists(reference)`             | Check a WAL, including while it may still be written. |
-| `delete(reference)`             | Remove an unreferenced WAL; should be idempotent.      |
-| `getId()` / `init(environment)`  | Supply the persisted ID and initialize the provider.  |
+| Method                              | Use                                                   |
+| ----------------------------------- | ----------------------------------------------------- |
+| `create(serverAddress, UUID)`       | Exclusively create a WAL and return its `Writer`.      |
+| `open(reference)`                   | Read a WAL from byte zero for sorting/recovery.        |
+| `exists(reference)`                 | Check a WAL, including while it may still be written. |
+| `delete(reference)`                 | Remove an unreferenced WAL; should be idempotent.      |
+| `getId()` / `init(InitParameters)` | Supply the persisted ID and initialize the provider. |
 
 The nested `Writer` supplies `getReference()`, `getOutputStream()`, `sync(Durability)`,
 `getLength()`, and `close()`. It can optionally report `getCurrentReplication()` and

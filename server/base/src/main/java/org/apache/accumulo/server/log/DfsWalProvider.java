@@ -25,7 +25,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.wal.WalProvider;
 import org.apache.accumulo.server.ServerContext;
@@ -51,7 +50,8 @@ public class DfsWalProvider implements WalProvider {
   }
 
   @Override
-  public void init(ServiceEnvironment environment) {
+  public void init(InitParameters params) {
+    var environment = params.getServiceEnvironment();
     if (!(environment instanceof ServiceEnvironmentImpl serviceEnvironment)) {
       throw new IllegalArgumentException("DfsWalProvider requires the server service environment");
     }
