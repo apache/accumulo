@@ -123,6 +123,9 @@ public class MinorCompactor extends FileCompactor {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
           retryCounter++;
         } catch (CompactionCanceledException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new IllegalStateException(e);
         }
 

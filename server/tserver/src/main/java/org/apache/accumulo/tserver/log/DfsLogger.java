@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -152,8 +153,10 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         try {
           work.add(workQueue.take());
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           continue;
         }
+        work.ensureCapacity(work.size() + workQueue.size());
         workQueue.drainTo(work);
 
         Optional<Boolean> shouldHSync = Optional.empty();
@@ -256,6 +259,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       try {
         work.latch.await();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
 
@@ -521,6 +525,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       try {
         syncThread.join();
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }
@@ -544,6 +549,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   public synchronized long getWrites() {
     Preconditions.checkState(writes >= 0);
     return writes;
+  }
+
+  public synchronized long getBytesWritten() {
+    Objects.requireNonNull(logFile, "logFile is null");
+    return logFile.getPos();
   }
 
   public LoggerOperation defineTablet(CommitSession cs) throws IOException {
@@ -601,7 +611,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   public LoggerOperation logManyTablets(Collection<TabletMutations> mutations) throws IOException {
     Durability durability = Durability.NONE;
-    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
+    List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>(mutations.size());
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
       key.setEvent(MANY_MUTATIONS);

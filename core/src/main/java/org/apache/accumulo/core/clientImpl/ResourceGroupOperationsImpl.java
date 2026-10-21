@@ -208,6 +208,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
               "Unable to modify resource group properties for because of concurrent modification");
           retry.waitForNextAttempt(log, "Modify resource group properties");
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       } finally {

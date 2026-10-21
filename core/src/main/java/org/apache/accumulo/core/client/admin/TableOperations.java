@@ -224,7 +224,9 @@ public interface TableOperations {
 
   /**
    * @param tableName the name of the table
-   * @param maxSplits specifies the maximum number of splits to return
+   * @param maxSplits specifies the maximum number of selected splits to return. The selection of
+   *        split points is defined by the implementation and may not always be in immediate
+   *        sequential order.
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @return the split points (end-row names) for the table's current split profile, grouped into

@@ -74,6 +74,7 @@ public class FateWorkerEnv implements FateEnv {
     try {
       eventSendThread.join();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
   }
@@ -104,6 +105,7 @@ public class FateWorkerEnv implements FateEnv {
           }
 
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
         }
       }

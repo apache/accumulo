@@ -16,99 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
-    ajaxReloadTable
-*/
 "use strict";
 
 const htmlBanner = '#tserversStatusBanner'
 const htmlBannerMessage = '#tservers-banner-message'
 const htmlTable = '#tservers'
-const visibleColumnFilter = (col) => col != "Server Type";
-
 var tserversTable;
-var recoveryList = [];
-
-/**
- * Checks if the given server is in the global recoveryList variable
- * 
- * @param {JSON} server json server object
- * @returns true if the server is in the recoveryList, else false
- */
-function serverIsInRecoveryList(server) {
-  return recoveryList.includes(server.hostname);
-}
-
-/**
- * Refreshes the list of recovering tservers and shows/hides the recovery caption
- */
-function refreshRecoveryList() {
-  getRecoveryList().then(function () {
-    var sessionStorageRecoveryList, sessionStorageTserversList;
-
-    // get list of recovering servers and online servers from sessionStorage
-    sessionStorageRecoveryList = sessionStorage.recoveryList === undefined ? [] : JSON.parse(sessionStorage.recoveryList).recoveryList;
-    sessionStorageTserversList = sessionStorage.tservers === undefined ? [] : JSON.parse(sessionStorage.tservers).servers;
-
-    // update global recovery list variable
-    recoveryList = sessionStorageRecoveryList.map(function (entry) {
-      return entry.server;
-    });
-
-    // show the recovery caption if any online servers are in the recovery list
-    if (sessionStorageTserversList.some(serverIsInRecoveryList)) {
-      $('#recovery-caption').show();
-    } else {
-      $('#recovery-caption').hide();
-    }
-  });
-}
 
 /**
  * Show a page banner that matches the tablet server status shown in the navbar.
  */
 function refreshTServersBanner() {
-  var statusData = JSON.parse(sessionStorage.status);
-  if (statusData.managerStatus === 'ERROR') {
-    $('#tserversManagerBanner').show();
-    $('#tserversWarnBanner').hide();
-    $('#tserversErrorBanner').hide();
-    $('#tservers_wrapper').hide();
-    $('#recovery-caption').hide();
-  } else {
-    $('#tserversManagerBanner').hide();
-    $('#tservers_wrapper').show();
-    if (statusData.tServerStatus === 'ERROR') {
-      $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').show();
-    } else if (statusData.tServerStatus === 'WARN') {
-      $('#tserversWarnBanner').show();
-      $('#tserversErrorBanner').hide();
+  getStatus().then(function () {
+    var statusData = getStoredStatusData();
+    if (getComponentStatus(statusData, 'MANAGER') === 'ERROR') {
+      $('#tserversManagerBanner').show();
+      $(htmlBanner).hide();
+      $('#recovery-caption').hide();
     } else {
-      $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').hide();
+      $('#tserversManagerBanner').hide();
     }
-  }
+  });
 }
 
 
 function refresh() {
-  refreshRecoveryList();
+  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
   refreshTServersBanner();
-  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
 }
 
 $(function () {
-
-  refreshRecoveryList();
-
   sessionStorage[TABLET_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
-  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
+  refreshTServersBanner();
 });

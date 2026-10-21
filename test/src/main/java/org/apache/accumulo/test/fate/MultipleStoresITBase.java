@@ -48,7 +48,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
@@ -428,6 +428,11 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
     public String getReturn() {
       return null;
     }
+
+    @Override
+    public String getDetails() {
+      return null;
+    }
   }
 
   public static class SleepingTestEnv extends MultipleStoresTestEnv {
@@ -469,6 +474,11 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
     @Override
     public String getReturn() {
+      return null;
+    }
+
+    @Override
+    public String getDetails() {
       return null;
     }
   }

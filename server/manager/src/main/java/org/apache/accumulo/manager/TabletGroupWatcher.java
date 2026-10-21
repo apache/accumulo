@@ -27,8 +27,11 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTION_META_SVC_ERRORS
 import static org.apache.accumulo.core.metrics.Metric.COMPACTION_ROOT_SVC_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTION_USER_SVC_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_RECOVERY;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_RECOVERY;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_RECOVERY;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -141,6 +144,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private static class TabletGroupWatcherMetrics implements MetricsProducer {
     private final AtomicLong errorsGauge = new AtomicLong(0);
+    private final AtomicLong recoveryGauge = new AtomicLong(0);
     private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
     private final Ample.DataLevel level;
 
@@ -150,6 +154,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     public void incrementTabletGroupWatcherError() {
       errorsGauge.incrementAndGet();
+    }
+
+    public void setTabletGroupWatcherRecovery(long recoveries) {
+      recoveryGauge.set(recoveries);
     }
 
     public void setCompactionServiceConfigurationError() {
@@ -164,24 +172,30 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     public void registerMetrics(MeterRegistry registry) {
 
       Metric errorMetric;
+      Metric recoveryMetric;
       Metric svcCfgErrorMetric;
       switch (level) {
         case USER -> {
           errorMetric = MANAGER_USER_TGW_ERRORS;
+          recoveryMetric = MANAGER_USER_TGW_RECOVERY;
           svcCfgErrorMetric = COMPACTION_USER_SVC_ERRORS;
         }
         case METADATA -> {
           errorMetric = MANAGER_META_TGW_ERRORS;
+          recoveryMetric = MANAGER_META_TGW_RECOVERY;
           svcCfgErrorMetric = COMPACTION_META_SVC_ERRORS;
         }
         case ROOT -> {
           errorMetric = MANAGER_ROOT_TGW_ERRORS;
+          recoveryMetric = MANAGER_ROOT_TGW_RECOVERY;
           svcCfgErrorMetric = COMPACTION_ROOT_SVC_ERRORS;
         }
         default -> throw new IllegalStateException("Unknown level " + level);
       }
       Gauge.builder(errorMetric.getName(), errorsGauge, AtomicLong::get)
           .description(errorMetric.getDescription()).register(registry);
+      Gauge.builder(recoveryMetric.getName(), recoveryGauge, AtomicLong::get)
+          .description(recoveryMetric.getDescription()).register(registry);
       Gauge.builder(svcCfgErrorMetric.getName(), compactionConfigurationError, AtomicInteger::get)
           .description(svcCfgErrorMetric.getDescription()).register(registry);
 
@@ -331,6 +345,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             }
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }
@@ -365,6 +380,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         try {
           wait(millis);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }
@@ -543,6 +559,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
 
+    long tabletsNeedingRecovery = 0;
+
     while (iter.hasNext() && !manager.isShutdownRequested()) {
       final TabletManagement mti = iter.next();
       if (mti == null) {
@@ -619,8 +637,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final Set<ManagementAction> actions = mti.getActions();
 
       if (actions.contains(ManagementAction.NEEDS_RECOVERY) && goal != TabletGoalState.HOSTED) {
-        LOG.warn("Tablet has wals, but goal is not hosted. Tablet: {}, goal:{}", tm.getExtent(),
-            goal);
+        LOG.warn("Tablet has wals, but goal is not hosted. This is an error. Tablet: {}, goal:{}",
+            tm.getExtent(), goal);
       }
 
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {
@@ -720,6 +738,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               && recoverySession.recoverLogs(tm.getLogs())) {
             LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
                 tm.getLogs().size());
+            tabletsNeedingRecovery++;
             continue;
           }
           switch (state) {
@@ -771,6 +790,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         }
       }
     }
+
+    this.metrics.setTabletGroupWatcherRecovery(tabletsNeedingRecovery);
 
     flushChanges(tLists);
 

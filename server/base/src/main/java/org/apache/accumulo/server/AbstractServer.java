@@ -41,11 +41,13 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
@@ -67,7 +69,6 @@ import com.google.common.net.HostAndPort;
 import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
@@ -99,6 +100,7 @@ public abstract class AbstractServer
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final Set<String> monitorMetricExclusions;
 
+  @SuppressWarnings("deprecation")
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
@@ -106,10 +108,10 @@ public abstract class AbstractServer
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(siteConfig
+        .resolve(Property.RPC_PROCESS_BIND_ADDRESS, Property.GENERAL_PROCESS_BIND_ADDRESS));
     // If new bind parameter passed on command line or in file, then use it.
-    if (newBindParameter != null
-        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (newBindParameter != null && !newBindParameter.isBlank()) {
       this.bindAddress = newBindParameter;
     } else {
       this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
@@ -137,6 +139,9 @@ public abstract class AbstractServer
                 + Constants.ZPREPARE_FOR_UPGRADE);
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error checking for upgrade preparation node ("
           + Constants.ZPREPARE_FOR_UPGRADE + ") in zookeeper", e);
     }
@@ -223,9 +228,10 @@ public abstract class AbstractServer
   public void gracefulShutdown(TCredentials credentials) {
 
     try {
-      if (!context.getSecurityOperation().canPerformSystemActions(credentials)) {
-        log.warn("Ignoring shutdown request, user " + credentials.getPrincipal()
-            + " does not have the appropriate permissions.");
+      if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
+        log.warn("Ignoring shutdown request, user {} does not have the appropriate permissions",
+            credentials.getPrincipal());
+        return;
       }
     } catch (ThriftSecurityException e) {
       log.error(
@@ -238,9 +244,10 @@ public abstract class AbstractServer
       // Don't interrupt the server thread, that will cause
       // IO operations to fail as the servers are finishing
       // their work.
-      log.info("Graceful shutdown initiated.");
+      log.info("Graceful shutdown initiated by user {}", credentials.getPrincipal());
     } else {
-      log.warn("Graceful shutdown previously requested.");
+      log.warn("Graceful shutdown previously requested. Requested again by user {}",
+          credentials.getPrincipal());
     }
   }
 
@@ -289,10 +296,10 @@ public abstract class AbstractServer
       verificationThread.interrupt();
       verificationThread.join();
     }
-    log.info(getClass().getSimpleName() + " process shut down.");
+    log.info("{} process shut down", getClass().getSimpleName());
     Throwable thrown = err.get();
     if (thrown != null) {
-      System.err.println("Uncaught execption in AbstractServer.runServer");
+      System.err.println("Uncaught exception in AbstractServer.runServer");
       thrown.printStackTrace();
       System.err.flush();
       log.error("Uncaught exception ", thrown);
@@ -404,9 +411,12 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
-    if (context.getMetricsInfo().isMetricsEnabled()) {
-      Metrics.globalRegistry.getMeters().forEach(m -> {
-        if (m.getId().getName().startsWith("accumulo.")) {
+    final MetricsInfo mi = getContext().getMetricsInfo();
+    if (mi.isMonitorRegistryEnabled()) {
+      mi.getMonitorRegistry().getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")
+            || m.getId().getName().equals(Metric.EXECUTOR_COMPLETED.getName())
+            || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())) {
           if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
             m.match(response::writeMeter, response::writeMeter, response::writeTimer,
                 response::writeDistributionSummary, response::writeLongTaskTimer,
@@ -415,6 +425,10 @@ public abstract class AbstractServer
           }
         }
       });
+    } else {
+      log.warn("getMetrics() called, likely by the Monitor, but {} not configured in property {}",
+          AccumuloMonitorMeterRegistryFactory.class.getName(),
+          Property.GENERAL_MICROMETER_FACTORY.getKey());
     }
 
     builder.clear();
@@ -454,6 +468,7 @@ public abstract class AbstractServer
                     interval);
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 if (serverThread.isAlive()) {
                   // this is marked as a critical thread, and will halt the process when it dies
                   throw new IllegalStateException(

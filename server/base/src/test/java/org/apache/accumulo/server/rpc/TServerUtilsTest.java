@@ -217,7 +217,7 @@ public class TServerUtilsTest {
     String hostname = "localhost";
 
     ServerAddress sa = TServerUtils.createThriftServer(context, hostname, Property.TSERV_CLIENTPORT,
-        processor, "TServerUtilsTest", Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
+        processor, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
         Property.TSERV_THREADCHECK);
     sa.startThriftServer("TServerUtilsTestThread");
     return sa;

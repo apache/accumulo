@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.function.Predicate.not;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -171,5 +172,10 @@ public class ImportTable extends AbstractFateOperation {
     return exportDirs.stream().filter(not(String::isEmpty))
         .map(ImportedTableInfo.DirectoryMapping::new)
         .collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

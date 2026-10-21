@@ -612,7 +612,7 @@ public class SystemCheckIT extends ConfigurableMacBase {
     var wal = WalStateManager.parse(zrw.getData(fullWalPathZk));
 
     // delete from HDFS
-    context.getVolumeManager().delete(wal.getSecond());
+    context.getVolumeManager().delete(wal.path());
 
     var p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
     assertEquals(1, p.getProcess().waitFor());

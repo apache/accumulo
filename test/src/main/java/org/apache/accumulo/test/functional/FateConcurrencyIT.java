@@ -56,9 +56,9 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.KeeperException;
@@ -264,7 +264,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
             Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
 
-        withLocks = admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null);
+        withLocks = admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null, true);
 
         // call method that does not use locks.
         noLocks = admin.getTransactionStatus(readOnlyFateStores, null, null, null);
@@ -299,7 +299,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       if (isCompaction(tx)) {
 
-        log.trace("Fate id: {}, status: {}", tx.getFateId(), tx.getStatus());
+        log.info("Fate id: {}, status: {}, details: {}", tx.getFateId(), tx.getStatus(),
+            tx.getDetails());
+
+        assertNotNull(tx.getDetails());
 
         for (AdminUtil.TransactionStatus tx2 : noLocks) {
           if (tx2.getFateId().equals(tx.getFateId())) {
@@ -364,6 +367,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
 
     } catch (TableNotFoundException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
 
@@ -392,6 +398,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       }
 
     } catch (TableNotFoundException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(ex);
     }
 

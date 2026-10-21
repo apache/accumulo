@@ -29,6 +29,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -78,6 +80,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
+@NotThreadSafe
 final class RFileScanner extends ScannerOptions implements Scanner {
 
   private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {

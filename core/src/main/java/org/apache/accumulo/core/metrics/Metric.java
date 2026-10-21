@@ -210,10 +210,10 @@ public enum Metric {
       "Total number of minor compactions performed.", MetricDocSection.COMPACTION, "Minc Completed",
       null, NUMBER),
   TSERVER_TABLETS_ONLINE("accumulo.tablets.online", MetricType.GAUGE, "Number of online tablets.",
-      MetricDocSection.TABLET_SERVER, "Tablets Online", null, NUMBER),
+      MetricDocSection.TABLET_SERVER, "Tablets", null, NUMBER),
   TSERVER_TABLETS_LONG_ASSIGNMENTS("accumulo.tablets.assignments.warning", MetricType.GAUGE,
       "Number of tablet assignments that are taking longer than the configured warning duration.",
-      MetricDocSection.TABLET_SERVER, "Tablet Assignments Overdue", null, NUMBER),
+      MetricDocSection.TABLET_SERVER, "Slow Assignments", null, NUMBER),
   TSERVER_TABLETS_OPENING("accumulo.tablets.opening", MetricType.GAUGE,
       "Number of opening tablets.", MetricDocSection.TABLET_SERVER, "Tablets Opening", null,
       NUMBER),
@@ -228,9 +228,10 @@ public enum Metric {
   TSERVER_INGEST_BYTES("accumulo.ingest.bytes", MetricType.GAUGE,
       "Ingest byte count. The rate can be derived from this metric.",
       MetricDocSection.TABLET_SERVER, "Bytes Ingested", null, BYTES),
+  // TODO does this duration expect millis in javascript?
   TSERVER_HOLD("accumulo.ingest.hold", MetricType.GAUGE,
       "Duration for which commits have been held in milliseconds.", MetricDocSection.TABLET_SERVER,
-      "Ingest Commit Hold Time", null, NUMBER),
+      "Hold Time", null, DURATION),
   TSERVER_TABLETS_ONLINE_ONDEMAND("accumulo.tablets.ondemand.online", MetricType.GAUGE,
       "Number of online on-demand tablets", MetricDocSection.TABLET_SERVER,
       "Online On-Demand Tablets", null, NUMBER),
@@ -253,46 +254,50 @@ public enum Metric {
       null, NUMBER),
 
   // Scan Metrics
-  SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.COUNTER,
+  SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.FUNCTION_COUNTER,
       "Count of the scans where a busy timeout happened.", MetricDocSection.SCAN, "Scan Busy Count",
       null, NUMBER),
   SCAN_TIMES("accumulo.scan.times", MetricType.TIMER, "Scan session lifetime (creation to close).",
       MetricDocSection.SCAN, "Scan Session Total Time", null, NUMBER),
   SCAN_OPEN_FILES("accumulo.scan.files.open", MetricType.GAUGE, "Number of files open for scans.",
       MetricDocSection.SCAN, "Scan Files Open", null, NUMBER),
-  SCAN_RESULTS("accumulo.scan.result", MetricType.GAUGE, "Results per scan.", MetricDocSection.SCAN,
-      "Scan Result Count", null, NUMBER),
-  SCAN_YIELDS("accumulo.scan.yields", MetricType.GAUGE, "Counts scans that have yielded.",
-      MetricDocSection.SCAN, "Scan Yield Count", null, NUMBER),
-  SCAN_START("accumulo.scan.start", MetricType.COUNTER,
+  SCAN_RESULTS("accumulo.scan.result", MetricType.DISTRIBUTION_SUMMARY, "Results per scan.",
+      MetricDocSection.SCAN, "Scan Result Count", null, NUMBER),
+  SCAN_YIELDS("accumulo.scan.yields", MetricType.DISTRIBUTION_SUMMARY,
+      "Counts scans that have yielded.", MetricDocSection.SCAN, "Scan Yield Count", null, NUMBER),
+  SCAN_START("accumulo.scan.start", MetricType.FUNCTION_COUNTER,
       "Number of calls to start a scan or multiscan.", MetricDocSection.SCAN, "Scan Start Count",
       null, NUMBER),
-  SCAN_CONTINUE("accumulo.scan.continue", MetricType.COUNTER,
+  SCAN_CONTINUE("accumulo.scan.continue", MetricType.FUNCTION_COUNTER,
       "Number of calls to continue a scan or multiscan.", MetricDocSection.SCAN,
       "Scan Continue Count", null, NUMBER),
-  SCAN_CLOSE("accumulo.scan.close", MetricType.COUNTER,
+  SCAN_CLOSE("accumulo.scan.close", MetricType.FUNCTION_COUNTER,
       "Number of calls to close a scan or multiscan.", MetricDocSection.SCAN, "Scan Close Count",
       null, NUMBER),
-  SCAN_QUERIES("accumulo.scan.queries", MetricType.GAUGE, "Number of queries made during scans.",
-      MetricDocSection.SCAN, "Tablet Lookup Count", null, NUMBER),
-  SCAN_SCANNED_ENTRIES("accumulo.scan.query.scanned.entries", MetricType.GAUGE,
+  SCAN_QUERIES("accumulo.scan.queries", MetricType.FUNCTION_COUNTER,
+      "Number of queries made during scans.", MetricDocSection.SCAN, "Tablet Lookup Count", null,
+      NUMBER),
+  SCAN_SCANNED_ENTRIES("accumulo.scan.query.scanned.entries", MetricType.FUNCTION_COUNTER,
       "Count of scanned entries. The rate can be derived from this metric.", MetricDocSection.SCAN,
-      "Scanned Entry Count", null, NUMBER),
-  SCAN_QUERY_SCAN_RESULTS("accumulo.scan.query.results", MetricType.GAUGE,
+      "Scanned Entries", null, NUMBER),
+  SCAN_QUERY_SCAN_RESULTS("accumulo.scan.query.results", MetricType.FUNCTION_COUNTER,
       "Query count. The rate can be derived from this metric.", MetricDocSection.SCAN,
-      "Returned Entry Count", null, NUMBER),
-  SCAN_QUERY_SCAN_RESULTS_BYTES("accumulo.scan.query.results.bytes", MetricType.GAUGE,
+      "Returned Entries", null, NUMBER),
+  SCAN_QUERY_SCAN_RESULTS_BYTES("accumulo.scan.query.results.bytes", MetricType.FUNCTION_COUNTER,
       "Query byte count. The rate can be derived from this metric.", MetricDocSection.SCAN,
-      "Returned Bytes Count", null, BYTES),
-  SCAN_PAUSED_FOR_MEM("accumulo.scan.paused.for.memory", MetricType.COUNTER,
+      "Returned Bytes", null, BYTES),
+  SCAN_PAUSED_FOR_MEM("accumulo.scan.paused.for.memory", MetricType.FUNCTION_COUNTER,
       "Count of scans paused due to server being low on memory.", MetricDocSection.SCAN,
       "Scans Paused For Low Memory", null, NUMBER),
-  SCAN_RETURN_FOR_MEM("accumulo.scan.return.early.for.memory", MetricType.COUNTER,
+  SCAN_RETURN_FOR_MEM("accumulo.scan.return.early.for.memory", MetricType.FUNCTION_COUNTER,
       "Count of scans that returned results early due to server being low on memory.",
       MetricDocSection.SCAN, "Scans Returned Early For Low Memory", null, NUMBER),
   SCAN_ZOMBIE_THREADS("accumulo.scan.zombie.threads", MetricType.GAUGE,
       "Number of scan threads that have no associated client session.", MetricDocSection.SCAN,
       "Scan Zombie Thread Count", null, NUMBER),
+  SCAN_ERRORS("accumulo.scan.errors", MetricType.FUNCTION_COUNTER,
+      "Number of scan task that had an exception.", MetricDocSection.SCAN, "Failed scans", null,
+      NUMBER),
 
   // Major Compaction Metrics
   MAJC_PAUSED("accumulo.compaction.majc.paused", MetricType.COUNTER,
@@ -334,23 +339,22 @@ public enum Metric {
 
   // Block Cache Metrics
   BLOCKCACHE_INDEX_HITCOUNT("accumulo.blockcache.index.hitcount", MetricType.FUNCTION_COUNTER,
-      "Index block cache hit count.", MetricDocSection.BLOCK_CACHE, "Index Block Cache Hit Count",
-      null, NUMBER),
+      "Index block cache hit count.", MetricDocSection.BLOCK_CACHE, "Index Cache Hit", null,
+      NUMBER),
   BLOCKCACHE_INDEX_REQUESTCOUNT("accumulo.blockcache.index.requestcount",
       MetricType.FUNCTION_COUNTER, "Index block cache request count.", MetricDocSection.BLOCK_CACHE,
-      "Index Block Cache Request Count", null, NUMBER),
+      "Index Cache Request", null, NUMBER),
   BLOCKCACHE_INDEX_EVICTIONCOUNT("accumulo.blockcache.index.evictioncount",
       MetricType.FUNCTION_COUNTER, "Index block cache eviction count.",
-      MetricDocSection.BLOCK_CACHE, "Index Block Cache Eviction Count", null, NUMBER),
+      MetricDocSection.BLOCK_CACHE, "Index Cache Eviction", null, NUMBER),
   BLOCKCACHE_DATA_HITCOUNT("accumulo.blockcache.data.hitcount", MetricType.FUNCTION_COUNTER,
-      "Data block cache hit count.", MetricDocSection.BLOCK_CACHE, "Data Block Cache Hit Count",
-      null, NUMBER),
+      "Data block cache hit count.", MetricDocSection.BLOCK_CACHE, "Data Cache Hit", null, NUMBER),
   BLOCKCACHE_DATA_REQUESTCOUNT("accumulo.blockcache.data.requestcount", MetricType.FUNCTION_COUNTER,
-      "Data block cache request count.", MetricDocSection.BLOCK_CACHE,
-      "Data Block Cache Request Count", null, NUMBER),
+      "Data block cache request count.", MetricDocSection.BLOCK_CACHE, "Data Cache Request", null,
+      NUMBER),
   BLOCKCACHE_DATA_EVICTIONCOUNT("accumulo.blockcache.data.evictioncount",
       MetricType.FUNCTION_COUNTER, "Data block cache eviction count.", MetricDocSection.BLOCK_CACHE,
-      "Data Block Cache Eviction Count", null, NUMBER),
+      "Data Cache Eviction", null, NUMBER),
   BLOCKCACHE_SUMMARY_HITCOUNT("accumulo.blockcache.summary.hitcount", MetricType.FUNCTION_COUNTER,
       "Summary block cache hit count.", MetricDocSection.BLOCK_CACHE,
       "Summary Block Cache Hit Count", null, NUMBER),
@@ -368,35 +372,69 @@ public enum Metric {
   MANAGER_ROOT_TGW_ERRORS("accumulo.tabletmgmt.root.errors", MetricType.GAUGE,
       "Error count encountered by the TabletGroupWatcher for the ROOT data level.",
       MetricDocSection.MANAGER, "Root Tablet Watcher Errors", null, NUMBER),
+  MANAGER_ROOT_TGW_RECOVERY("accumulo.tabletmgmt.root.recovery", MetricType.GAUGE,
+      "Recovery count encountered by the TabletGroupWatcher for the ROOT data level.",
+      MetricDocSection.MANAGER, "Root Tablet Watcher Recoveries", null, NUMBER),
   MANAGER_META_TGW_ERRORS("accumulo.tabletmgmt.meta.errors", MetricType.GAUGE,
       "Error count encountered by the TabletGroupWatcher for the META data level.",
       MetricDocSection.MANAGER, "Meta Tablet Watcher Errors", null, NUMBER),
+  MANAGER_META_TGW_RECOVERY("accumulo.tabletmgmt.meta.recovery", MetricType.GAUGE,
+      "Recovery count encountered by the TabletGroupWatcher for the META data level.",
+      MetricDocSection.MANAGER, "Meta Tablet Watcher Recoveries", null, NUMBER),
   MANAGER_USER_TGW_ERRORS("accumulo.tabletmgmt.user.errors", MetricType.GAUGE,
       "Error count encountered by the TabletGroupWatcher for the USER data level.",
       MetricDocSection.MANAGER, "User Tablet Watcher Errors", null, NUMBER),
+  MANAGER_USER_TGW_RECOVERY("accumulo.tabletmgmt.user.recovery", MetricType.GAUGE,
+      "Recovery count encountered by the TabletGroupWatcher for the USER data level.",
+      MetricDocSection.MANAGER, "User Tablet Watcher Recoveries", null, NUMBER),
   MANAGER_GOAL_STATE("accumulo.manager.goal.state", MetricType.GAUGE,
       "Manager goal state: -1=unknown, 0=CLEAN_STOP, 1=SAFE_MODE, 2=NORMAL.",
       MetricDocSection.MANAGER, "Manager Goal State", null, NUMBER),
 
   // Recovery Metrics
-  RECOVERIES_IN_PROGRESS("accumulo.recoveries.in.progress", MetricType.GAUGE,
-      "The number of recoveries in progress.", MetricDocSection.GENERAL_SERVER,
-      "Tablet Recoveries In Progress", null, NUMBER),
-  RECOVERIES_LONGEST_RUNTIME("accumulo.recoveries.runtime.longest", MetricType.GAUGE,
-      "The time (in milliseconds) of the longest running recovery.",
+  RECOVERIES_SORTS_IN_PROGRESS("accumulo.recoveries.sorts.in.progress", MetricType.GAUGE,
+      "The number of log sorts in progress.", MetricDocSection.GENERAL_SERVER,
+      "Log Sorts In Progress", null, NUMBER),
+  RECOVERIES_SORTS_LONGEST_RUNTIME("accumulo.recoveries.sorts.runtime.longest", MetricType.GAUGE,
+      "The time (in milliseconds) of the longest running log sort.",
       MetricDocSection.GENERAL_SERVER, "Tablet Recovery Longest Time", null, DURATION),
-  RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
-      "The average percentage (0.0 - 99.9) of the in progress recoveries.",
-      MetricDocSection.GENERAL_SERVER, "Tablet Recovery Avg Percent Complete", null, PERCENT);
+  RECOVERIES_SORTS_AVG_PROGRESS("accumulo.recoveries.sorts.avg.progress", MetricType.GAUGE,
+      "The average percentage (0.0 - 99.9) of the in progress log sorts.",
+      MetricDocSection.GENERAL_SERVER, "Tablet Recovery Avg Percent Complete", null, PERCENT),
+  RECOVERIES_TABLETS_STARTED("accumulo.recoveries.tablets.started", MetricType.GAUGE,
+      "The number of tablet recoveries started", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries Started", null, NUMBER),
+  RECOVERIES_TABLETS_COMPLETED("accumulo.recoveries.tablets.completed", MetricType.GAUGE,
+      "The number of tablet recoveries completed", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries Completed", null, NUMBER),
+  RECOVERIES_TABLETS_FAILED("accumulo.recoveries.tablets.failed", MetricType.GAUGE,
+      "The number of tablet recoveries failed", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries Failed", null, NUMBER),
+  RECOVERIES_TABLETS_IN_PROGRESS("accumulo.recoveries.tablets.in.progress", MetricType.GAUGE,
+      "The number of tablet recoveries in progress", MetricDocSection.GENERAL_SERVER,
+      "Tablet Recoveries In Progress", null, NUMBER),
+  RECOVERIES_TABLETS_MUTATIONS_REPLAYED("accumulo.recoveries.tablets.mutations.replayed",
+      MetricType.GAUGE, "The number of mutations replayed for tablet recovery",
+      MetricDocSection.GENERAL_SERVER, "Tablet Recoveries Mutations Replayed", null, NUMBER),
 
-  public static enum MonitorCssClass {
+  // Executor metrics
+  EXECUTOR_COMPLETED("executor.completed", MetricType.FUNCTION_COUNTER,
+      "Task completed by a thread pool. Each thread pool emits this metric w/ a different tag.",
+      MetricDocSection.GENERAL_SERVER, "Completed task", null, NUMBER),
+  EXECUTOR_QUEUED("executor.queued", MetricType.GAUGE,
+      "Task queued for a thread pool. Each thread pool emits this metric w/ a different tag.",
+      MetricDocSection.GENERAL_SERVER, "Queued task", null, NUMBER);
+
+  public enum MonitorCssClass {
     BYTES("big-size"),
+    BYTES_RATE("rate-size"),
     DATE_END("end-date"),
     DATE_START("start-date"),
     DURATION("duration"),
     IDLE_STATE("idle-state"),
     MEMORY_STATE("memory-state"),
     NUMBER("big-num"),
+    RATE("rate-num"),
     PERCENT("percent");
 
     private final String cssClass;
@@ -479,8 +517,10 @@ public enum Metric {
     GENERAL_SERVER("General Server Metrics", "Metrics that are generated across all server types."),
     COMPACTION("Compaction Metrics",
         "Metrics specific to compactions, both minor and major. Metrics for major compactions"
-            + " will likely have a 'queue.id' tag. The CompactionCoordinator component in the Manager creates a queue for each CompactionService"
-            + " in the configuration. The 'queue.id' tag may map directly to the name of a Compactor resource group."),
+            + " will likely have a '" + MetricsInfo.QUEUE_TAG_KEY
+            + "' tag. The CompactionCoordinator component in the Manager creates a queue for each CompactionService"
+            + " in the configuration. The '" + MetricsInfo.QUEUE_TAG_KEY
+            + "' tag may map directly to the name of a Compactor resource group."),
     COMPACTOR("Compactor Metrics", "Metrics that are generated by the Compactor processes."),
     FATE("Fate Metrics",
         "Metrics that are generated by the Fate component in the Manager process."),
@@ -530,8 +570,10 @@ public enum Metric {
   public static Set<String> getMonitorExclusions(ServerId.Type serverType) {
     switch (serverType) {
       case COMPACTOR:
-        return Set.of(MINC_PAUSED.getName(), RECOVERIES_AVG_PROGRESS.getName(),
-            RECOVERIES_IN_PROGRESS.getName(), RECOVERIES_LONGEST_RUNTIME.getName());
+        return Set.of(MINC_PAUSED.getName(), RECOVERIES_TABLETS_STARTED.getName(),
+            RECOVERIES_TABLETS_COMPLETED.getName(), RECOVERIES_TABLETS_FAILED.getName(),
+            RECOVERIES_TABLETS_IN_PROGRESS.getName(),
+            RECOVERIES_TABLETS_MUTATIONS_REPLAYED.getName());
       case GARBAGE_COLLECTOR:
         return Set.of();
       case MANAGER:
@@ -539,8 +581,9 @@ public enum Metric {
       case MONITOR:
         return Set.of();
       case SCAN_SERVER:
-        return Set.of(RECOVERIES_AVG_PROGRESS.getName(), RECOVERIES_IN_PROGRESS.getName(),
-            RECOVERIES_LONGEST_RUNTIME.getName());
+        return Set.of(RECOVERIES_TABLETS_STARTED.getName(), RECOVERIES_TABLETS_COMPLETED.getName(),
+            RECOVERIES_TABLETS_FAILED.getName(), RECOVERIES_TABLETS_IN_PROGRESS.getName(),
+            RECOVERIES_TABLETS_MUTATIONS_REPLAYED.getName());
       case TABLET_SERVER:
         return Set.of(MAJC_PAUSED.getName());
       default:

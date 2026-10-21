@@ -67,19 +67,19 @@ public class ResolvedCompactionJob implements CompactionJob {
   private final boolean overlapsSelectedFiles;
 
   private ResolvedCompactionJob(TResolvedCompactionJob trj) {
-    selectedFateId = trj.selectedFateId == null ? null : FateId.from(trj.selectedFateId);
+    selectedFateId = trj.getSelectedFateId() == null ? null : FateId.from(trj.getSelectedFateId());
     jobFiles = new HashMap<>();
-    for (var inputFile : trj.jobFiles) {
-      jobFiles.put(StoredTabletFile.of(inputFile.metadataFileEntry),
-          new DataFileValue(inputFile.size, inputFile.entries, inputFile.timestamp));
+    for (var inputFile : trj.getJobFiles()) {
+      jobFiles.put(StoredTabletFile.of(inputFile.getMetadataFileEntry()),
+          new DataFileValue(inputFile.getSize(), inputFile.getEntries(), inputFile.getTimestamp()));
     }
-    kind = CompactionKind.valueOf(trj.kind);
-    compactingAll = trj.compactingAll;
-    extent = KeyExtent.fromThrift(trj.extent);
-    priority = trj.priority;
-    group = ResourceGroupId.of(trj.group);
-    tabletDir = trj.tabletDir;
-    overlapsSelectedFiles = trj.overlapsSelectedFiles;
+    kind = CompactionKind.valueOf(trj.getKind());
+    compactingAll = trj.isCompactingAll();
+    extent = KeyExtent.fromThrift(trj.getExtent());
+    priority = trj.getPriority();
+    group = ResourceGroupId.of(trj.getGroup());
+    tabletDir = trj.getTabletDir();
+    overlapsSelectedFiles = trj.isOverlapsSelectedFiles();
   }
 
   private static long weigh(RowRange rowRange) {

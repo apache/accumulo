@@ -48,7 +48,8 @@ public class Main {
       printUsage();
       System.exit(1);
     }
-    if (args[0].equals("-h") || args[0].equals("-help") || args[0].equals("--help")) {
+    if (args[0].equals("-h") || args[0].equals("-help") || args[0].equals("--help")
+        || args[0].equals("-?")) {
       printUsage();
       return;
     }
@@ -199,7 +200,7 @@ public class Main {
         """
 
             Usage one of:
-                accumulo --help
+                accumulo --help | -help | -h | -?
                     Prints this help
 
                 accumulo classpath

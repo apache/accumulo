@@ -73,6 +73,9 @@ public class RootTabletMetadata {
       byte[] bytes = zooReader.getData(RootTable.ZROOT_TABLET);
       return new RootTabletMetadata(new String(bytes, UTF_8));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }

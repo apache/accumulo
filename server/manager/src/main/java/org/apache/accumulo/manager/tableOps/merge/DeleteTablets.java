@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -36,6 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 /**
  * Delete tablets that were merged into another tablet.
@@ -123,5 +127,14 @@ public class DeleteTablets extends AbstractFateOperation {
     log.debug("{} deleted {} tablets", fateId, submitted);
 
     return new FinishTableRangeOp(data);
+  }
+
+  @Override
+  public String getDetails() {
+    Gson gson = GSON.get();
+    JsonObject details = gson.toJsonTree(data).getAsJsonObject();
+    details.addProperty("lastTabletEndRow",
+        lastTabletEndRow == null ? null : new Text(lastTabletEndRow).toString());
+    return gson.toJson(details);
   }
 }

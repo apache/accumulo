@@ -47,6 +47,11 @@
       <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
     </dependency>
@@ -148,7 +153,7 @@
     <dependency>
       <groupId>at.yawk.lz4</groupId>
       <artifactId>lz4-java</artifactId>
-      <version>1.10.3</version>
+      <version>1.11.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>

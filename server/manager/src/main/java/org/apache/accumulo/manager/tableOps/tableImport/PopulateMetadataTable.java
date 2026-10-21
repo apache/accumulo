@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.tableOps.tableExport.ExportTable.VERSION_2;
 
 import java.io.BufferedInputStream;
@@ -214,5 +215,10 @@ class PopulateMetadataTable extends AbstractFateOperation {
   public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
         environment.getServiceLock());
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

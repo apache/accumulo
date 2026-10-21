@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.conf.store;
 
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;

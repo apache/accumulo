@@ -48,6 +48,7 @@ public class EventCoordinator implements EventPublisher {
       try {
         wait(millis);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.debug("ignoring InterruptedException", e);
       }
     }

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.monitor.view;
 
-import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
@@ -76,6 +75,10 @@ public class WebViews {
    * A {@code String} constant representing TServer to show details for, used in query parameter.
    */
   private static final String TSERVER_PARAM_KEY = "s";
+
+  private static final String SERVER_TYPE_PARAM_KEY = "type";
+
+  private static final String RESOURCE_GROUP_PARAM_KEY = "resourceGroup";
 
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
@@ -163,6 +166,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the alerts template
+   *
+   * @return Alerts model
+   */
+  @GET
+  @Path("alerts")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getAlerts() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Alerts"); // Need this for the browser tab title
+    model.put("tablesTitle", "Alerts");
+    model.put("template", "alerts.ftl");
+    model.put("js", "alerts.js");
+    return model;
+  }
+
+  /**
    * Returns the tservers templates
    *
    * @param server TServer to show details
@@ -177,13 +198,41 @@ public class WebViews {
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
     if (server != null && !server.isBlank()) {
+      model.put("title", "Server Metrics");
       model.put("template", "server.ftl");
       model.put("js", "server.js");
       model.put("server", server);
+      model.put("serverType", "TABLET_SERVER");
+      model.put("resourceGroup", "");
       return model;
     }
     model.put("template", "tservers.ftl");
     model.put("js", "tservers.js");
+    return model;
+  }
+
+  /**
+   * Returns the server metrics template
+   *
+   * @param serverType Accumulo server process type
+   * @param resourceGroup server resource group
+   * @param server server address
+   * @return server metrics model
+   */
+  @GET
+  @Path("server")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getServerMetrics(@QueryParam(SERVER_TYPE_PARAM_KEY) String serverType,
+      @QueryParam(RESOURCE_GROUP_PARAM_KEY) String resourceGroup,
+      @QueryParam(TSERVER_PARAM_KEY) @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Server Metrics");
+    model.put("template", "server.ftl");
+    model.put("js", "server.js");
+    model.put("server", server);
+    model.put("serverType", serverType);
+    model.put("resourceGroup", resourceGroup == null ? "" : resourceGroup);
     return model;
   }
 
@@ -206,6 +255,24 @@ public class WebViews {
   }
 
   /**
+   * Returns the recovery template
+   *
+   * @return Recovery model
+   */
+  @GET
+  @Path("recovery")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getRecoveryInformation() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Tablet Recoveries");
+    model.put("template", "recovery.ftl");
+    model.put("js", "recovery.js");
+
+    return model;
+  }
+
+  /**
    * Returns the scans template
    *
    * @return Scans model
@@ -219,24 +286,6 @@ public class WebViews {
     model.put("title", "Active scans");
     model.put("template", "scans.ftl");
     model.put("js", "scans.js");
-
-    return model;
-  }
-
-  /**
-   * Returns the compactions template
-   *
-   * @return Scans model
-   */
-  @GET
-  @Path("compactions")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getCompactions() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Active Compactions");
-    model.put("template", "compactions.ftl");
-    model.put("js", "compactions.js");
 
     return model;
   }
@@ -264,6 +313,23 @@ public class WebViews {
    * @return Compactors model
    */
   @GET
+  @Path("coordinator")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactionOverview() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compaction Overview");
+    model.put("template", "coordinator.ftl");
+    model.put("js", "coordinator.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
   @Path("compactors")
   @Template(name = "/default.ftl")
   public Map<String,Object> getCompactors() {
@@ -276,19 +342,19 @@ public class WebViews {
   }
 
   /**
-   * Returns the bulk import template
+   * Returns the Fate template
    *
-   * @return Bulk Import model
+   * @return Fate model
    */
   @GET
-  @Path("bulkImports")
+  @Path("fate")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getBulkImports() {
+  public Map<String,Object> getFate() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Bulk Imports");
-    model.put("template", "bulkImport.ftl");
-    model.put("js", "bulkImport.js");
+    model.put("title", "Fate Transaction Details");
+    model.put("template", "fate.ftl");
+    model.put("js", "fate.js");
 
     return model;
   }
@@ -352,30 +418,4 @@ public class WebViews {
 
     return model;
   }
-
-  /**
-   * Returns problem report template
-   *
-   * @param table Table ID to display problem details
-   * @return Problem report model
-   */
-  @GET
-  @Path("problems")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getProblems(
-      @QueryParam(TABLE_PARAM_KEY) @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Per-Table Problem Report");
-
-    model.put("template", "problems.ftl");
-    model.put("js", "problems.js");
-
-    if (table != null && !table.isBlank()) {
-      model.put("table", table);
-    }
-
-    return model;
-  }
-
 }

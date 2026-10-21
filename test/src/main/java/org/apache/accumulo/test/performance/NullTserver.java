@@ -353,6 +353,9 @@ public class NullTserver {
       try {
         zk.asReaderWriter().mkdirs(slp.toString());
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
       ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,

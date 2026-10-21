@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.create;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -127,4 +128,8 @@ class ChooseDir extends AbstractFateOperation {
     }
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

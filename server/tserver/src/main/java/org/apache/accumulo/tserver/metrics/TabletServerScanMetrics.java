@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.metrics;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_CLOSE;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_CONTINUE;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_OPEN_FILES;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_PAUSED_FOR_MEM;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_QUERIES;
@@ -65,6 +66,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private final LongAdder queryResultCount = new LongAdder();
   private final LongAdder queryResultBytes = new LongAdder();
   private final LongAdder scannedCount = new LongAdder();
+  private final LongAdder scanErrorCount = new LongAdder();
 
   public void incrementLookupCount() {
     this.lookupCount.increment();
@@ -126,6 +128,10 @@ public class TabletServerScanMetrics implements MetricsProducer {
     return zombieScanThreads.get();
   }
 
+  public void incrementScanErrors() {
+    scanErrorCount.increment();
+  }
+
   public TabletServerScanMetrics(IntSupplier openFileSupplier) {
     openFiles = openFileSupplier;
   }
@@ -158,14 +164,18 @@ public class TabletServerScanMetrics implements MetricsProducer {
     FunctionCounter
         .builder(SCAN_RETURN_FOR_MEM.getName(), this.earlyReturnForMemory, AtomicLong::get)
         .description(SCAN_RETURN_FOR_MEM.getDescription()).register(registry);
-    Gauge.builder(SCAN_QUERY_SCAN_RESULTS.getName(), this.queryResultCount, LongAdder::sum)
+    FunctionCounter
+        .builder(SCAN_QUERY_SCAN_RESULTS.getName(), this.queryResultCount, LongAdder::sum)
         .description(SCAN_QUERY_SCAN_RESULTS.getDescription()).register(registry);
-    Gauge.builder(SCAN_QUERY_SCAN_RESULTS_BYTES.getName(), this.queryResultBytes, LongAdder::sum)
+    FunctionCounter
+        .builder(SCAN_QUERY_SCAN_RESULTS_BYTES.getName(), this.queryResultBytes, LongAdder::sum)
         .description(SCAN_QUERY_SCAN_RESULTS_BYTES.getDescription()).register(registry);
     Gauge
         .builder(SCAN_ZOMBIE_THREADS.getName(), this,
             TabletServerScanMetrics::getZombieThreadsCount)
         .description(SCAN_ZOMBIE_THREADS.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_ERRORS.getName(), this.scanErrorCount, LongAdder::sum)
+        .description(SCAN_ERRORS.getDescription()).register(registry);
   }
 
 }

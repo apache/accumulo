@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, SCAN_SERVER_PROCESS_VIEW, getSserversView, refreshServerInformation
-*/
 "use strict";
 
 const htmlBanner = '#sserversStatusBanner'
 const htmlBannerMessage = '#sservers-banner-message'
 const htmlTable = '#sservers'
-const visibleColumnFilter = (col) => col != "Server Type";
 
 function refresh() {
-  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
 }
 
 $(function () {
   sessionStorage[SCAN_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
-  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
 });

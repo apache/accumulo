@@ -102,10 +102,10 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
               .withSplits(splits).setProperties(props);
       c.tableOperations().create(tableName, ntc);
 
-      assertEquals(Map.of(" none", 11), BalanceIT.countLocations(c, tableName));
+      assertEquals(Map.of("none", 11), BalanceIT.countLocations(c, tableName));
       UtilWaitThread.sleep(5000);
       // scan should not be able to complete because the tablet should not be assigned
-      assertEquals(Map.of(" none", 11), BalanceIT.countLocations(c, tableName));
+      assertEquals(Map.of("none", 11), BalanceIT.countLocations(c, tableName));
 
       // fix the balancer config
       log.info("fixing per tablet balancer");

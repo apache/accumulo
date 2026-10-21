@@ -137,10 +137,6 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
         description = "[<FateId>...] Print a summary of FaTE transactions. Print only the FateId's specified or print all transactions if empty. Use -s to only print those with certain states. Use -t to only print those with certain FateInstanceTypes. Use -j to print the transactions in json.")
     boolean summarize;
 
-    @Parameter(names = {"-j", "--json"},
-        description = "Print transactions in json. Only useful for --summary command.")
-    boolean printJson;
-
     @Parameter(names = {"-s", "--state"},
         description = "<state>... Print transactions in the state(s) {NEW, IN_PROGRESS, FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}")
     List<String> states = new ArrayList<>();
@@ -148,6 +144,10 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     @Parameter(names = {"-t", "--type"},
         description = "<type>... Print transactions of fate instance type(s) {USER, META}")
     List<String> instanceTypes = new ArrayList<>();
+
+    @Parameter(names = {"-i", "--info"},
+        description = "Includes detailed transaction information when printing")
+    boolean printDetails;
   }
 
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
@@ -245,7 +245,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
             getCmdLineInstanceTypeFilters(options.instanceTypes);
         readOnlyFateStores = createReadOnlyFateStores(context, zk);
         admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
-            fateIdFilter, statusFilter, typesFilter);
+            fateIdFilter, statusFilter, typesFilter, options.printDetails);
         // print line break at the end
         System.out.println();
       }
@@ -298,6 +298,9 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
       zrw.putPersistentData(parentLockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
       zrw.putPersistentData(lockPath, new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating path in ZooKeeper", e);
     }
 
@@ -354,7 +357,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
       NamespaceNotFoundException {
 
     var zk = context.getZooSession();
-    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
+    var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null, false);
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.
@@ -379,8 +382,8 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
 
     // gather statistics
     transactions.getTransactions().forEach(report::gatherTxnStatus);
-    if (cmd.printJson) {
-      printLines(Collections.singletonList(report.toJson()));
+    if (cmd.json) {
+      printLines(Collections.singletonList(report.toEnvelopedJson(getInvokeCommand())));
     } else {
       printLines(report.formatLines());
     }

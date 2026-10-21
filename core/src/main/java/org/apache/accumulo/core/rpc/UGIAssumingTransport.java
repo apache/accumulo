@@ -60,6 +60,7 @@ public class UGIAssumingTransport extends FilterTransport {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
 

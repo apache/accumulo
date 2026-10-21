@@ -18,14 +18,20 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static org.apache.accumulo.core.metrics.MetricsInfo.HOST_TAG_KEY;
+import static org.apache.accumulo.core.metrics.MetricsInfo.INSTANCE_NAME_TAG_KEY;
+import static org.apache.accumulo.core.metrics.MetricsInfo.PORT_TAG_KEY;
+import static org.apache.accumulo.core.metrics.MetricsInfo.PROCESS_NAME_TAG_KEY;
+import static org.apache.accumulo.core.metrics.MetricsInfo.RESOURCE_GROUP_TAG_KEY;
+
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -47,6 +53,13 @@ import io.micrometer.core.instrument.distribution.ValueAtPercentile;
  * This class is not thread-safe
  */
 public class MetricResponseWrapper extends MetricResponse {
+
+  /**
+   * Set of tags that may be found on the metrics. These tags can be removed because this
+   * information is already set on the MetricResponse object.
+   */
+  private static final Set<String> DUPLICATE_TAGS = Set.of(INSTANCE_NAME_TAG_KEY,
+      PROCESS_NAME_TAG_KEY, RESOURCE_GROUP_TAG_KEY, HOST_TAG_KEY, PORT_TAG_KEY);
 
   private static class CommonRefs {
     int nameRef;
@@ -77,7 +90,7 @@ public class MetricResponseWrapper extends MetricResponse {
    */
   private List<Tag> reduceTags(List<Tag> tags, List<Tag> extraTags) {
     return Stream.concat(tags.stream(), extraTags.stream())
-        .filter(t -> !MetricsInfo.allTags.contains(t.getKey())).collect(Collectors.toList());
+        .filter(t -> !DUPLICATE_TAGS.contains(t.getKey())).collect(Collectors.toList());
   }
 
   private void parseAndCreateCommonInfo(Meter.Id id, List<Tag> extraTags) {

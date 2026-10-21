@@ -77,7 +77,7 @@ public class TabletInformationCollector {
       }
     });
 
-    List<Stream<TabletInformation>> tabletStreams = new ArrayList<>();
+    List<Stream<TabletInformation>> tabletStreams = new ArrayList<>(mergedRanges.size());
     for (RowRange rowRange : mergedRanges) {
 
       Text startRow = rowRange.getLowerBound();

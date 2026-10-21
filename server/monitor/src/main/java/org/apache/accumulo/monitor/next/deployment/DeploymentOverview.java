@@ -21,7 +21,6 @@ package org.apache.accumulo.monitor.next.deployment;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -30,7 +29,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 /**
  * Data Transfer Object for the Monitor Deployment page.
  */
-public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown) {
+public record DeploymentOverview(List<DeploymentRow> breakdown) {
 
   /**
    * Data Transfer Object containing counts of total and responding servers for a given resource
@@ -40,10 +39,10 @@ public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown)
       long responding) {
   }
 
-  public static DeploymentOverview fromSummary(
-      Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment, AtomicLong lastUpdate) {
+  public static DeploymentOverview
+      fromSummary(Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment) {
     if (deployment == null || deployment.isEmpty()) {
-      return new DeploymentOverview(lastUpdate.get(), List.of());
+      return new DeploymentOverview(List.of());
     }
 
     var breakdown =
@@ -64,7 +63,7 @@ public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown)
               });
         }).toList();
 
-    return new DeploymentOverview(lastUpdate.get(), breakdown);
+    return new DeploymentOverview(breakdown);
   }
 
   /**

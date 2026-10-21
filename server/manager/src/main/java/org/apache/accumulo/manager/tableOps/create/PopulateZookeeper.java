@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -78,4 +80,8 @@ class PopulateZookeeper extends AbstractFateOperation {
     env.getContext().clearTableListCache();
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

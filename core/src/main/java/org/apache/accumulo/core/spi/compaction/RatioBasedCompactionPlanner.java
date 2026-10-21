@@ -172,9 +172,9 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private List<CompactionGroup> groups;
-  private int maxFilesToCompact;
-  private double lowestRatio;
+  private volatile List<CompactionGroup> groups;
+  private volatile int maxFilesToCompact;
+  private volatile double lowestRatio;
 
   @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
       justification = "Field is written by Gson")
@@ -493,7 +493,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     int batches = sortedFiles.size() / maxFilesToCompact - 1;
 
     if (batches > 0) {
-      ArrayList<Collection<CompactableFile>> jobs = new ArrayList<>();
+      ArrayList<Collection<CompactableFile>> jobs = new ArrayList<>(batches);
       for (int i = 0; i < batches; i++) {
         jobs.add(sortedFiles.subList(i * maxFilesToCompact, (i + 1) * maxFilesToCompact));
       }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableExport;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
@@ -70,4 +72,8 @@ public class ExportTable extends AbstractFateOperation {
   public static final String DATA_VERSION_PROP = "srcDataVersion";
   public static final String EXPORT_VERSION_PROP = "exportVersion";
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

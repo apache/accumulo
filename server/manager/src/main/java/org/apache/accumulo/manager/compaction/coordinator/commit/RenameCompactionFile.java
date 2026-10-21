@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -96,4 +98,10 @@ public class RenameCompactionFile extends AbstractFateOperation {
     return new CommitCompaction(commitData,
         newDatafile == null ? null : newDatafile.getNormalizedPathStr());
   }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(commitData);
+  }
+
 }

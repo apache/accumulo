@@ -148,9 +148,9 @@ public class ClientContext implements AccumuloClient {
   private final ClientInfo info;
   private final Supplier<ZooCache> zooCache;
 
-  private Credentials creds;
-  private BatchWriterConfig batchWriterConfig;
-  private ConditionalWriterConfig conditionalWriterConfig;
+  private Supplier<Credentials> creds;
+  private final Supplier<BatchWriterConfig> batchWriterConfig;
+  private final Supplier<ConditionalWriterConfig> conditionalWriterConfig;
   private final AccumuloConfiguration accumuloConf;
   private final Configuration hadoopConf;
   private final Map<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>> tabletLocationCache;
@@ -165,19 +165,22 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<NamespaceMapping> namespaceMapping;
   private final Supplier<Cache<NamespaceId,TableMapping>> tableMappings;
   private TCredentials rpcCreds;
-  private ThriftTransportPool thriftTransportPool;
-  private ZookeeperLockChecker zkLockChecker;
+  protected Supplier<ThriftTransportPool> thriftTransportPool;
+  private final Supplier<ZookeeperLockChecker> zkLockChecker;
 
-  private final AtomicBoolean closed = new AtomicBoolean();
+  private final AtomicBoolean scannerReadAheadPoolCreated = new AtomicBoolean(false);
+  private final AtomicBoolean cleanupThreadPoolCreated = new AtomicBoolean(false);
+  private final AtomicBoolean thriftTransportPoolCreated = new AtomicBoolean(false);
+  protected final AtomicBoolean closed = new AtomicBoolean();
 
-  private SecurityOperations secops = null;
+  private final Supplier<SecurityOperations> secops;
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
-  private InstanceOperations instanceops = null;
   private ResourceGroupOperations rgOps = null;
+  private final Supplier<InstanceOperations> instanceops;
   private final Supplier<ThreadPools> clientThreadPools;
-  private ThreadPoolExecutor cleanupThreadPool;
-  private ThreadPoolExecutor scannerReadaheadPool;
+  private final Supplier<ThreadPoolExecutor> cleanupThreadPool;
+  private final Supplier<ThreadPoolExecutor> scannerReadaheadPool;
   private MeterRegistry micrometer;
   private Caches caches;
 
@@ -301,6 +304,41 @@ public class ClientContext implements AccumuloClient {
     this.tableMappings =
         memoize(() -> getCaches().createNewBuilder(Caches.CacheName.TABLE_MAPPING_CACHE, true)
             .expireAfterAccess(10, MINUTES).build());
+    scannerReadaheadPool = memoize(() -> clientThreadPools.get()
+        .getPoolBuilder(SCANNER_READ_AHEAD_POOL).numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE)
+        .withTimeOut(3L, SECONDS).withQueue(new SynchronousQueue<>()).build());
+    cleanupThreadPool =
+        memoize(() -> clientThreadPools.get().getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
+            .numCoreThreads(1).withTimeOut(3L, SECONDS).build());
+    creds = memoize(() -> new Credentials(info.getPrincipal(), info.getAuthenticationToken()));
+    batchWriterConfig = memoize(() -> getBatchWriterConfig(getClientProperties()));
+    conditionalWriterConfig = memoize(() -> getConditionalWriterConfig(getClientProperties()));
+    secops = memoize(() -> new SecurityOperationsImpl(this));
+    instanceops = memoize(() -> new InstanceOperationsImpl(this));
+    thriftTransportPool = memoize(() -> {
+      LongSupplier maxAgeSupplier = () -> {
+        try {
+          return getTransportPoolMaxAgeMillis();
+        } catch (IllegalStateException e) {
+          if (closed.get()) {
+            // The transport pool has a background thread that may call this supplier in the middle
+            // of closing. This is here to avoid spurious exceptions from race conditions that
+            // happen when closing a client.
+            return ConfigurationTypeHelper
+                .getTimeInMillis(ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getDefaultValue());
+          }
+          throw e;
+        }
+      };
+      return ThriftTransportPool.startNew(maxAgeSupplier, false);
+    });
+
+    zkLockChecker = memoize(() -> {
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
+          ZooUtil.getRoot(getInstanceID())).get();
+      return new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
+    });
+
   }
 
   public Ample getAmple() {
@@ -308,24 +346,16 @@ public class ClientContext implements AccumuloClient {
     return new AmpleImpl(this);
   }
 
-  public synchronized Future<List<KeyValue>>
-      submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
+  public Future<List<KeyValue>> submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
     ensureOpen();
-    if (scannerReadaheadPool == null) {
-      scannerReadaheadPool = clientThreadPools.get().getPoolBuilder(SCANNER_READ_AHEAD_POOL)
-          .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(3L, SECONDS)
-          .withQueue(new SynchronousQueue<>()).build();
-    }
-    return scannerReadaheadPool.submit(c);
+    scannerReadAheadPoolCreated.set(true);
+    return scannerReadaheadPool.get().submit(c);
   }
 
-  public synchronized void executeCleanupTask(Runnable r) {
+  public void executeCleanupTask(Runnable r) {
     ensureOpen();
-    if (cleanupThreadPool == null) {
-      cleanupThreadPool = clientThreadPools.get().getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
-          .numCoreThreads(1).withTimeOut(3L, SECONDS).build();
-    }
-    this.cleanupThreadPool.execute(r);
+    cleanupThreadPoolCreated.set(true);
+    this.cleanupThreadPool.get().execute(r);
   }
 
   /**
@@ -339,12 +369,9 @@ public class ClientContext implements AccumuloClient {
   /**
    * Retrieve the credentials used to construct this context
    */
-  public synchronized Credentials getCredentials() {
+  public Credentials getCredentials() {
     ensureOpen();
-    if (creds == null) {
-      creds = new Credentials(info.getPrincipal(), info.getAuthenticationToken());
-    }
-    return creds;
+    return creds.get();
   }
 
   public String getPrincipal() {
@@ -365,10 +392,10 @@ public class ClientContext implements AccumuloClient {
    * Update the credentials in the current context after changing the current user's password or
    * other auth token
    */
-  public synchronized void setCredentials(Credentials newCredentials) {
+  public void setCredentials(Credentials newCredentials) {
     ensureOpen();
     checkArgument(newCredentials != null, "newCredentials is null");
-    creds = newCredentials;
+    creds = memoize(() -> newCredentials);
     rpcCreds = null;
   }
 
@@ -438,12 +465,9 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
-  public synchronized BatchWriterConfig getBatchWriterConfig() {
+  public BatchWriterConfig getBatchWriterConfig() {
     ensureOpen();
-    if (batchWriterConfig == null) {
-      batchWriterConfig = getBatchWriterConfig(getClientProperties());
-    }
-    return batchWriterConfig;
+    return batchWriterConfig.get();
   }
 
   /**
@@ -499,12 +523,9 @@ public class ClientContext implements AccumuloClient {
     return conditionalWriterConfig;
   }
 
-  public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
+  public ConditionalWriterConfig getConditionalWriterConfig() {
     ensureOpen();
-    if (conditionalWriterConfig == null) {
-      conditionalWriterConfig = getConditionalWriterConfig(getClientProperties());
-    }
-    return conditionalWriterConfig;
+    return conditionalWriterConfig.get();
   }
 
   /**
@@ -599,14 +620,14 @@ public class ClientContext implements AccumuloClient {
    */
   public synchronized TableId getTableId(String tableName) throws TableNotFoundException {
     ensureOpen();
-    Pair<String,String> qualified = TableNameUtil.qualify(tableName);
+    var qualified = TableNameUtil.qualify(tableName);
     NamespaceId nid;
     try {
-      nid = getNamespaceId(qualified.getFirst());
+      nid = getNamespaceId(qualified.namespaceName());
     } catch (NamespaceNotFoundException e) {
       throw new TableNotFoundException(tableName, e);
     }
-    TableId tid = getTableMapping(nid).getNameToIdMap().get(qualified.getSecond());
+    TableId tid = getTableMapping(nid).getNameToIdMap().get(qualified.tableName());
     if (tid == null) {
       throw new TableNotFoundException(null, tableName,
           "No entry for this table found in the given namespace mapping");
@@ -748,7 +769,7 @@ public class ClientContext implements AccumuloClient {
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
     if (!tableNodeExists(tableId)) {
-      throw new TableDeletedException(tableId.canonical());
+      throw new TableDeletedException(tableId);
     }
     return tableId;
   }
@@ -874,35 +895,27 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
-  public synchronized TableOperations tableOperations() {
+  public TableOperations tableOperations() {
     ensureOpen();
     return tableops;
   }
 
   @Override
-  public synchronized NamespaceOperations namespaceOperations() {
+  public NamespaceOperations namespaceOperations() {
     ensureOpen();
     return namespaceops;
   }
 
   @Override
-  public synchronized SecurityOperations securityOperations() {
+  public SecurityOperations securityOperations() {
     ensureOpen();
-    if (secops == null) {
-      secops = new SecurityOperationsImpl(this);
-    }
-
-    return secops;
+    return secops.get();
   }
 
   @Override
-  public synchronized InstanceOperations instanceOperations() {
+  public InstanceOperations instanceOperations() {
     ensureOpen();
-    if (instanceops == null) {
-      instanceops = new InstanceOperationsImpl(this);
-    }
-
-    return instanceops;
+    return instanceops.get();
   }
 
   @Override
@@ -934,17 +947,17 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
-      if (thriftTransportPool != null) {
+      if (thriftTransportPoolCreated.get()) {
         log.debug("Closing Thrift Transport Pool");
-        thriftTransportPool.shutdown();
+        thriftTransportPool.get().shutdown();
       }
-      if (scannerReadaheadPool != null) {
+      if (scannerReadAheadPoolCreated.get()) {
         log.debug("Closing Scanner ReadAhead Pool");
-        scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
+        scannerReadaheadPool.get().shutdownNow(); // abort all tasks, client is shutting down
       }
-      if (cleanupThreadPool != null) {
+      if (cleanupThreadPoolCreated.get()) {
         log.debug("Closing Cleanup ThreadPool");
-        cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+        cleanupThreadPool.get().shutdown(); // wait for shutdown tasks to execute
       }
       if (zooCacheCreated.get()) {
         log.debug("Closing ZooCache");
@@ -1167,30 +1180,15 @@ public class ClientContext implements AccumuloClient {
     return ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getTimeInMillis(getClientProperties());
   }
 
-  public synchronized ThriftTransportPool getTransportPool() {
-    return getTransportPoolImpl(false);
+  public ThriftTransportPool getTransportPool() {
+    ensureOpen();
+    thriftTransportPoolCreated.set(true);
+    return thriftTransportPool.get();
   }
 
-  protected synchronized ThriftTransportPool getTransportPoolImpl(boolean shouldHalt) {
+  public ZookeeperLockChecker getTServerLockChecker() {
     ensureOpen();
-    if (thriftTransportPool == null) {
-      LongSupplier maxAgeSupplier = () -> {
-        try {
-          return getTransportPoolMaxAgeMillis();
-        } catch (IllegalStateException e) {
-          if (closed.get()) {
-            // The transport pool has a background thread that may call this supplier in the middle
-            // of closing. This is here to avoid spurious exceptions from race conditions that
-            // happen when closing a client.
-            return ConfigurationTypeHelper
-                .getTimeInMillis(ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getDefaultValue());
-          }
-          throw e;
-        }
-      };
-      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier, shouldHalt);
-    }
-    return thriftTransportPool;
+    return this.zkLockChecker.get();
   }
 
   public MeterRegistry getMeterRegistry() {
@@ -1208,27 +1206,12 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     if (caches == null) {
       caches = Caches.getInstance();
-      if (micrometer != null
+      if (micrometer != null && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED)
           && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
         caches.registerMetrics(micrometer);
       }
     }
     return caches;
-  }
-
-  public synchronized ZookeeperLockChecker getTServerLockChecker() {
-    ensureOpen();
-    if (this.zkLockChecker == null) {
-      // make this use its own ZooSession and ZooCache, because this is used by the
-      // tablet location cache, which is a static singleton reused by multiple clients
-      // so, it can't rely on being able to continue to use the same client's ZooCache,
-      // because that client could be closed, and its ZooSession also closed
-      // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
-          ZooUtil.getRoot(getInstanceID())).get();
-      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
-    }
-    return this.zkLockChecker;
   }
 
   public ServiceLockPaths getServerPaths() {
@@ -1327,12 +1310,11 @@ public class ClientContext implements AccumuloClient {
   }
 
   private static Set<String> createPersistentWatcherPaths() {
-    return Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
-        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
-        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
-        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS,
-        Constants.ZMANAGER_ASSIGNMENTS);
+    return Set.of(Constants.ZCOMPACTORS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK,
+        Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK, Constants.ZNAMESPACES, Constants.ZRECOVERY,
+        Constants.ZSSERVERS, Constants.ZTABLES, Constants.ZTSERVERS, Constants.ZUSERS,
+        RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK, Constants.ZMANAGER_ASSISTANT_LOCK,
+        Constants.ZRESOURCEGROUPS, Constants.ZMANAGER_ASSIGNMENTS);
   }
 
 }

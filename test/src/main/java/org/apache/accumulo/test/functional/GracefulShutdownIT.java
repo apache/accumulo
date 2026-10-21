@@ -56,14 +56,14 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.adminCommand.StopServers;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
@@ -247,9 +247,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
         control.refreshProcesses(ServerType.COMPACTOR);
         return control.getProcesses(ServerType.COMPACTOR).isEmpty();
       });
-      final long numFiles3 = getNumFilesForTable(ctx, tid);
-      assertTrue(numFiles3 < numFiles2);
-      assertEquals(1, numFiles3);
+      Wait.waitFor(() -> getNumFilesForTable(ctx, tid) < numFiles2);
+      assertEquals(1, getNumFilesForTable(ctx, tid));
 
       getCluster().getConfig().getClusterServerConfiguration()
           .addScanServerResourceGroup(GROUP_NAME, 1);

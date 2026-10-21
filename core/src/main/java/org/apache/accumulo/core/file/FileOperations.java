@@ -23,6 +23,9 @@ import static org.apache.accumulo.core.file.blockfile.impl.CacheProvider.NULL_PR
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -36,8 +39,11 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FutureDataInputStreamBuilder;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 
@@ -74,6 +80,28 @@ public abstract class FileOperations {
 
   public static FileOperations getInstance() {
     return new DispatchingFileFactory();
+  }
+
+  public static FSDataInputStream openFile(FileSystem fs, Path path, FileStatus status)
+      throws IOException {
+    final FutureDataInputStreamBuilder builder = fs.openFile(path);
+    if (status != null) {
+      builder.withFileStatus(status);
+    }
+    final CompletableFuture<FSDataInputStream> future = builder.build();
+    try {
+      return future.get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Interrupted while opening file: " + path, e);
+    } catch (CancellationException e) {
+      throw new IOException("Cancelled while opening file: " + path, e);
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof IOException) {
+        throw (IOException) e.getCause();
+      }
+      throw new IOException("Error trying to open file: " + path, e);
+    }
   }
 
   //
@@ -191,12 +219,14 @@ public abstract class FileOperations {
     public final Set<ByteSequence> columnFamilies;
     public final boolean inclusive;
     public final boolean dropCacheBehind;
+    public final FileStatus status;
 
     protected FileOptions(TableId tableId, AccumuloConfiguration tableConfiguration,
         TabletFile file, FileSystem fs, Configuration fsConf, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
-        Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
+        Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind,
+        FileStatus status) {
       this.tableId = tableId;
       this.tableConfiguration = tableConfiguration;
       this.file = Objects.requireNonNull(file);
@@ -213,6 +243,7 @@ public abstract class FileOperations {
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
       this.dropCacheBehind = dropCacheBehind;
+      this.status = status;
     }
 
     public TableId getTableId() {
@@ -287,6 +318,7 @@ public abstract class FileOperations {
     private Configuration fsConf;
     private CryptoService cryptoService;
     private boolean dropCacheBehind = false;
+    private FileStatus status;
 
     protected FileHelper table(TableId tid) {
       this.tableId = tid;
@@ -323,30 +355,36 @@ public abstract class FileOperations {
       return this;
     }
 
+    protected FileHelper fileStatus(FileStatus status) {
+      this.status = status;
+      return this;
+    }
+
     protected FileOptions toWriterBuilderOptions(String compression,
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, compression,
           outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true,
-          dropCacheBehind);
+          dropCacheBehind, status);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning) {
       return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
           cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache, seekToBeginning,
-          cryptoService, null, null, true, dropCacheBehind);
+          cryptoService, null, null, true, dropCacheBehind, status);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
-          NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true, dropCacheBehind);
+          NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true, dropCacheBehind,
+          status);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
       return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
           NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive,
-          dropCacheBehind);
+          dropCacheBehind, status);
     }
 
     protected AccumuloConfiguration getTableConfiguration() {
@@ -426,6 +464,12 @@ public abstract class FileOperations {
       return this;
     }
 
+    public ReaderTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
+        CryptoService cs, FileStatus status) {
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
+      return this;
+    }
+
     @Override
     public ReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
@@ -489,6 +533,12 @@ public abstract class FileOperations {
       return this;
     }
 
+    public IndexReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
+        Configuration fsConf, CryptoService cs, FileStatus status) {
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
+      return this;
+    }
+
     @Override
     public IndexReaderBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
@@ -518,6 +568,12 @@ public abstract class FileOperations {
     public ScanReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
+
+    public ScanReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
+        Configuration fsConf, CryptoService cs, FileStatus status) {
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs).fileStatus(status);
       return this;
     }
 

@@ -25,6 +25,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -36,6 +38,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.ServerSkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+@NotThreadSafe
 public class ColumnFamilySkippingIterator extends ServerSkippingIterator
     implements InterruptibleIterator {
 
@@ -117,8 +120,7 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
     if (columnFamilies instanceof Set<?>) {
       colFamSet = (Set<ByteSequence>) columnFamilies;
     } else {
-      colFamSet = new HashSet<>();
-      colFamSet.addAll(columnFamilies);
+      colFamSet = new HashSet<>(columnFamilies);
     }
 
     if (inclusive) {

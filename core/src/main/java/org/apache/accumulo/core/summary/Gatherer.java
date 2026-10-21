@@ -71,7 +71,6 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -126,9 +125,9 @@ public class Gatherer {
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
       CryptoService cryptoService) {
     this.ctx = context;
-    this.tableId = TableId.of(request.tableId);
-    this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
-    this.endRow = ByteBufferUtil.toText(request.bounds.endRow);
+    this.tableId = TableId.of(request.getTableId());
+    this.startRow = TextUtil.fromNullableBytes(request.getBounds().getStartRow());
+    this.endRow = TextUtil.fromNullableBytes(request.getBounds().getEndRow());
     this.clipRange = new Range(startRow, false, endRow, true);
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
@@ -319,8 +318,8 @@ public class Gatherer {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
                 getRequest(), files.entrySet().stream().collect(Collectors
                     .toMap(entry -> entry.getKey().getNormalizedPathStr(), Entry::getValue)));
-            while (!tSums.finished && !cancelFlag.get()) {
-              tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
+            while (!tSums.isFinished() && !cancelFlag.get()) {
+              tSums = client.contiuneGetSummaries(tinfo, tSums.getSessionId());
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
@@ -361,7 +360,7 @@ public class Gatherer {
         Map<String,Map<StoredTabletFile,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
 
-        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
+        List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>(filesGBL.size() + 1);
         if (previousWork != null) {
           futures.add(CompletableFuture
               .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
@@ -436,11 +435,11 @@ public class Gatherer {
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
     Function<TRowRange,RowRange> fromThrift = tRowRange -> {
-      Text lowerBound = ByteBufferUtil.toText(tRowRange.startRow);
-      Text upperBound = ByteBufferUtil.toText(tRowRange.endRow);
+      Text lowerBound = TextUtil.fromNullableBytes(tRowRange.getStartRow());
+      Text upperBound = TextUtil.fromNullableBytes(tRowRange.getEndRow());
       return RowRange.range(lowerBound, false, upperBound, true);
     };
-    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>(files.size());
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
         List<RowRange> rrl = entry.getValue().stream().map(fromThrift).collect(Collectors.toList());
@@ -483,8 +482,8 @@ public class Gatherer {
         tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
               client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
-          while (!tsr.finished && !cancelFlag.get()) {
-            tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
+          while (!tsr.isFinished() && !cancelFlag.get()) {
+            tsr = client.contiuneGetSummaries(tinfo, tsr.getSessionId());
           }
           return tsr;
         });
@@ -512,7 +511,7 @@ public class Gatherer {
     // have each tablet server process ~100K files
     int numRequest = Math.max(numFiles / 100_000, 1);
 
-    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
+    List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>(numRequest);
 
     AtomicBoolean cancelFlag = new AtomicBoolean(false);
 

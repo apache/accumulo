@@ -20,6 +20,8 @@ package org.apache.accumulo.core.clientImpl.access;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -91,6 +93,19 @@ public class BytesAccess {
     public boolean canAccess(byte[] expression) {
       return evaluator.canAccess(new String(expression, ISO_8859_1));
     }
+  }
+
+  public static BytesEvaluator newEvaluator(Collection<Authorizations> authsSet) {
+    Collection<Set<String>> convertedAuths = new ArrayList<>();
+    for (Authorizations auths : authsSet) {
+      List<byte[]> bytesAuths = auths.getAuthorizations();
+      Set<String> stringAuths = new HashSet<>(bytesAuths.size());
+      for (var auth : bytesAuths) {
+        stringAuths.add(new String(auth, ISO_8859_1));
+      }
+      convertedAuths.add(stringAuths);
+    }
+    return new BytesEvaluator(ACCESS.newEvaluator(convertedAuths));
   }
 
   public static BytesEvaluator newEvaluator(Authorizations auths) {

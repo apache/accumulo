@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeChildrenChanged;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeCreated;
 import static org.apache.zookeeper.Watcher.Event.EventType.NodeDataChanged;
@@ -40,7 +40,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
-import org.apache.accumulo.harness.WithTestNames;
+import org.apache.accumulo.test.harness.WithTestNames;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.CreateMode;

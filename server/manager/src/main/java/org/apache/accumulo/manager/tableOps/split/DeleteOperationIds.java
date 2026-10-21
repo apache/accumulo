@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
@@ -81,5 +83,10 @@ public class DeleteOperationIds extends AbstractFateOperation {
   @Override
   public String getReturn() {
     return TableOperationsImpl.SPLIT_SUCCESS_MSG;
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(splitInfo);
   }
 }

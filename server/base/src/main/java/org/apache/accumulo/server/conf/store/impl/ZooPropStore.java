@@ -131,6 +131,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       String path = propStoreKey.getPath();
       zrw.putPrivatePersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
     } catch (IOException | KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to serialize properties for " + propStoreKey, ex);
     }
   }
@@ -213,6 +216,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
+  public void replaceAll(@NonNull PropStoreKey propStoreKey, @NonNull Map<String,String> props) {
+    mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, props);
+  }
+
+  @Override
   public void replaceAll(@NonNull PropStoreKey propStoreKey, long version,
       @NonNull Map<String,String> props) {
     mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
@@ -236,6 +244,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       zrw.delete(path);
       cache.remove(propStoreKey);
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to delete properties for propCacheId " + propStoreKey,
           ex);
     }

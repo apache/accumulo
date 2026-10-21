@@ -42,14 +42,12 @@ public class FateKey {
   private final FateKeyType type;
   private final Optional<KeyExtent> keyExtent;
   private final Optional<ExternalCompactionId> compactionId;
-  private final Optional<TServerInstance> tServerInstance;
   private final byte[] serialized;
 
   private FateKey(FateKeyType type, KeyExtent keyExtent) {
     this.type = Objects.requireNonNull(type);
     this.keyExtent = Optional.of(keyExtent);
     this.compactionId = Optional.empty();
-    this.tServerInstance = Optional.empty();
     this.serialized = serialize(type, keyExtent);
   }
 
@@ -57,7 +55,6 @@ public class FateKey {
     this.type = Objects.requireNonNull(type);
     this.keyExtent = Optional.empty();
     this.compactionId = Optional.of(compactionId);
-    this.tServerInstance = Optional.empty();
     this.serialized = serialize(type, compactionId);
   }
 
@@ -65,7 +62,6 @@ public class FateKey {
     this.type = Objects.requireNonNull(type);
     this.keyExtent = Optional.empty();
     this.compactionId = Optional.empty();
-    this.tServerInstance = Optional.of(tServerInstance);
     this.serialized = serialize(type, tServerInstance);
   }
 
@@ -75,7 +71,6 @@ public class FateKey {
       this.type = FateKeyType.valueOf(buffer.readUTF());
       this.keyExtent = deserializeKeyExtent(type, buffer);
       this.compactionId = deserializeCompactionId(type, buffer);
-      this.tServerInstance = deserializeTserverId(type, buffer);
       this.serialized = serialized;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -197,14 +192,6 @@ public class FateKey {
     return switch (type) {
       case SPLIT, MERGE, TSERVER_SHUTDOWN -> Optional.empty();
       case COMPACTION_COMMIT -> Optional.of(ExternalCompactionId.of(buffer.readUTF()));
-    };
-  }
-
-  private static Optional<TServerInstance> deserializeTserverId(FateKeyType type,
-      DataInputBuffer buffer) throws IOException {
-    return switch (type) {
-      case SPLIT, MERGE, COMPACTION_COMMIT -> Optional.empty();
-      case TSERVER_SHUTDOWN -> Optional.of(new TServerInstance(buffer.readUTF()));
     };
   }
 

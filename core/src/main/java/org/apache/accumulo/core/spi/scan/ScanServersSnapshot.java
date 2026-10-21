@@ -47,7 +47,7 @@ class ScanServersSnapshot {
     final Map<String,List<String>> serversByHost;
 
     PerHostInfo(Collection<String> servers) {
-      this.serversByHost = new HashMap<>();
+      this.serversByHost = new HashMap<>(servers.size());
 
       servers.forEach(server -> {
         var hp = HostAndPort.fromString(server);

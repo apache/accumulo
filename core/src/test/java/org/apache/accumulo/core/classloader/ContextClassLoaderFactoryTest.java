@@ -63,9 +63,10 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
     if (!Files.isDirectory(folder2)) {
       Files.createDirectories(folder2);
     }
-    Path propsFile2 = folder2.resolve("accumulo2.properties");
+    Path propsFile2 = folder2.resolve("org/apache/accumulo/core/accumulo2.properties");
     FileUtils.copyURLToFile(
-        Objects.requireNonNull(this.getClass().getResource("/accumulo2.properties")),
+        Objects.requireNonNull(
+            this.getClass().getResource("/org/apache/accumulo/core/accumulo2.properties")),
         propsFile2.toFile());
     uri2 = propsFile2.toUri().toURL();
 

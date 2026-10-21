@@ -132,8 +132,8 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
   }
 
   private long getWalCount(ServerContext context) throws Exception {
-    return new WalStateManager(context).getAllState().values().stream()
-        .filter(walState -> walState != WalStateManager.WalState.OPEN).count();
+    return new WalStateManager(context).getAllState().stream()
+        .filter(wal -> wal.state() != WalStateManager.WalState.OPEN).count();
   }
 
 }

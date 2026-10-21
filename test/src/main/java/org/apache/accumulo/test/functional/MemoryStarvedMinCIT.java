@@ -39,11 +39,12 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
@@ -99,7 +100,8 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
               MINC_PAUSED_COUNT.add(val);
             } else if (metric.getName().equals(LOW_MEMORY.getName())) {
               String process = metric.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY);
-              if (process != null && process.contains(ServerId.Type.TABLET_SERVER.name())) {
+              if (process != null && process
+                  .contains(MetricsUtil.formatString(ServerId.Type.TABLET_SERVER.name()))) {
                 int val = Integer.parseInt(metric.getValue());
                 LOW_MEM_DETECTED.set(val);
               }

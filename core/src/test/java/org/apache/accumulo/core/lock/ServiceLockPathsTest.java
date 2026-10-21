@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.lock;
 
 import static org.apache.accumulo.core.Constants.ZCOMPACTORS;
-import static org.apache.accumulo.core.Constants.ZDEADTSERVERS;
 import static org.apache.accumulo.core.Constants.ZGC_LOCK;
 import static org.apache.accumulo.core.Constants.ZMANAGER_LOCK;
 import static org.apache.accumulo.core.Constants.ZMINI_LOCK;
@@ -121,15 +120,6 @@ public class ServiceLockPathsTest {
     assertEquals(ZCOMPACTORS, slp.getType());
     assertEquals(ZCOMPACTORS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME,
         slp.toString());
-
-    assertThrows(NullPointerException.class, () -> paths.createDeadTabletServerPath(null, null));
-    assertThrows(NullPointerException.class,
-        () -> paths.createDeadTabletServerPath(TEST_RESOURCE_GROUP, null));
-    slp = paths.createDeadTabletServerPath(TEST_RESOURCE_GROUP, hp);
-    assertEquals(HOSTNAME, slp.getServer());
-    assertEquals(TEST_RESOURCE_GROUP, slp.getResourceGroup());
-    assertEquals(ZDEADTSERVERS, slp.getType());
-    assertEquals(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP + "/" + HOSTNAME, slp.toString());
 
     assertThrows(NullPointerException.class, () -> paths.createScanServerPath(null, null));
     assertThrows(NullPointerException.class,
@@ -696,122 +686,6 @@ public class ServiceLockPathsTest {
     // query for a wrong server
     results = paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
         AddressSelector.exact(HostAndPort.fromString("localhost:1234")), true);
-    assertEquals(0, results.size());
-  }
-
-  @Test
-  public void testGetDeadTabletServersNone() {
-    expect(zc.getChildren(ZDEADTSERVERS)).andReturn(List.of()).anyTimes();
-    replay(zc);
-
-    assertThrows(NullPointerException.class, () -> paths.getDeadTabletServer(null, null, false));
-    assertThrows(NullPointerException.class, () -> paths
-        .getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP), null, false));
-    assertTrue(paths.getDeadTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false)
-        .isEmpty());
-    assertTrue(paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
-        AddressSelector.all(), false).isEmpty());
-    assertTrue(paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
-        AddressSelector.exact(hp), false).isEmpty());
-  }
-
-  @Test
-  public void testGetDeadTabletServers() {
-    UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld1 = new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, TEST_RESOURCE_GROUP);
-    var sld2 =
-        new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, ResourceGroupId.DEFAULT);
-
-    expect(zc.getChildren(ZDEADTSERVERS))
-        .andReturn(List.of(TEST_RESOURCE_GROUP.canonical(), ResourceGroupId.DEFAULT.canonical()))
-        .anyTimes();
-    expect(zc.getChildren(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical()))
-        .andReturn(List.of(HOSTNAME)).anyTimes();
-    expect(zc.getChildren(ZDEADTSERVERS + "/" + ResourceGroupId.DEFAULT.canonical()))
-        .andReturn(List.of(HOSTNAME)).anyTimes();
-    expect(zc.getChildren(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME))
-        .andReturn(List.of(svcLock1, svcLock2)).anyTimes();
-    expect(zc.get(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME))
-        .andReturn(new byte[0]).anyTimes();
-    expect(
-        zc.getChildren(ZDEADTSERVERS + "/" + ResourceGroupId.DEFAULT.canonical() + "/" + HOSTNAME))
-        .andReturn(List.of(svcLock1, svcLock2)).anyTimes();
-    expect(zc.get(EasyMock.eq(
-        ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME + "/" + svcLock1),
-        EasyMock.isA(ZcStat.class))).andReturn(sld1.serialize()).anyTimes();
-    expect(zc.get(EasyMock.eq(ZDEADTSERVERS + "/" + ResourceGroupId.DEFAULT.canonical() + "/"
-        + HOSTNAME + "/" + svcLock1), EasyMock.isA(ZcStat.class))).andReturn(sld2.serialize())
-        .anyTimes();
-
-    expect(zc.get(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/localhost:1234"))
-        .andReturn(null).anyTimes();
-    replay(zc);
-
-    // query for all
-    Set<ServiceLockPath> results =
-        paths.getDeadTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
-    assertEquals(2, results.size());
-    Iterator<ServiceLockPath> iter = results.iterator();
-    var slp1 = iter.next();
-    assertEquals(HOSTNAME, slp1.getServer());
-    assertEquals(ZDEADTSERVERS, slp1.getType());
-    if (slp1.getResourceGroup().equals(TEST_RESOURCE_GROUP)) {
-      assertEquals(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME,
-          slp1.toString());
-    } else if (slp1.getResourceGroup().equals(ResourceGroupId.DEFAULT)) {
-      assertEquals(ZDEADTSERVERS + "/" + ResourceGroupId.DEFAULT.canonical() + "/" + HOSTNAME,
-          slp1.toString());
-    } else {
-      fail("wrong resource group");
-    }
-    var slp2 = iter.next();
-    assertEquals(HOSTNAME, slp2.getServer());
-    assertEquals(ZDEADTSERVERS, slp2.getType());
-    if (slp2.getResourceGroup().equals(TEST_RESOURCE_GROUP)) {
-      assertEquals(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME,
-          slp2.toString());
-    } else if (slp2.getResourceGroup().equals(ResourceGroupId.DEFAULT)) {
-      assertEquals(ZDEADTSERVERS + "/" + ResourceGroupId.DEFAULT.canonical() + "/" + HOSTNAME,
-          slp2.toString());
-    } else {
-      fail("wrong resource group");
-    }
-
-    // query for all in non-existent resource group
-    results = paths.getDeadTabletServer(
-        ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
-        AddressSelector.all(), false);
-    assertEquals(0, results.size());
-
-    // query for all in test resource group
-    results = paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
-        AddressSelector.all(), false);
-    assertEquals(1, results.size());
-    iter = results.iterator();
-    slp1 = iter.next();
-    assertEquals(HOSTNAME, slp1.getServer());
-    assertEquals(ZDEADTSERVERS, slp1.getType());
-    assertEquals(TEST_RESOURCE_GROUP, slp1.getResourceGroup());
-    assertEquals(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME,
-        slp1.toString());
-
-    // query for a specific server
-    results = paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
-        AddressSelector.exact(hp), false);
-    assertEquals(1, results.size());
-    iter = results.iterator();
-    slp1 = iter.next();
-    assertEquals(HOSTNAME, slp1.getServer());
-    assertEquals(ZDEADTSERVERS, slp1.getType());
-    assertEquals(TEST_RESOURCE_GROUP, slp1.getResourceGroup());
-    assertEquals(ZDEADTSERVERS + "/" + TEST_RESOURCE_GROUP.canonical() + "/" + HOSTNAME,
-        slp1.toString());
-
-    // query for a wrong server
-    results = paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
-        AddressSelector.exact(HostAndPort.fromString("localhost:1234")), false);
     assertEquals(0, results.size());
   }
 

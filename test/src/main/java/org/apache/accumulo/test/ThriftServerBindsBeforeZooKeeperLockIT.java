@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -33,7 +33,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -41,6 +40,7 @@ import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;

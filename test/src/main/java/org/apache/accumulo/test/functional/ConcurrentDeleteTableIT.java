@@ -49,7 +49,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -65,13 +65,13 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   @Test
   public void testConcurrentDeleteTablesOps() throws Exception {
+    int numDeleteOps = 20;
+
+    ExecutorService es = Executors.newFixedThreadPool(numDeleteOps);
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(NUM_TABLES);
-
-      int numDeleteOps = 20;
-
-      ExecutorService es = Executors.newFixedThreadPool(numDeleteOps);
 
       int count = 0;
       for (final String table : tables) {
@@ -98,6 +98,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
             } catch (TableNotFoundException e) {
               // expected
             } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+              if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+              }
               throw new RuntimeException(e);
             }
           }));
@@ -116,19 +119,21 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
 
-      es.shutdown();
+    } finally {
+      es.shutdownNow();
     }
   }
 
   @Test
   public void testConcurrentFateOpsWithDelete() throws Exception {
+
+    int numOperations = 8;
+
+    ExecutorService es = Executors.newFixedThreadPool(numOperations);
+
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(NUM_TABLES);
-
-      int numOperations = 8;
-
-      ExecutorService es = Executors.newFixedThreadPool(numOperations);
 
       int count = 0;
       for (final String table : tables) {
@@ -153,6 +158,9 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           } catch (TableNotFoundException | TableOfflineException e) {
             // expected
           } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new RuntimeException(e);
           }
         }));
@@ -221,7 +229,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         FunctionalTestUtils.assertNoDanglingFateLocks(getCluster());
       }
 
-      es.shutdown();
+    } finally {
+      es.shutdownNow();
     }
   }
 

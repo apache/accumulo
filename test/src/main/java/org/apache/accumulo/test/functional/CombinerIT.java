@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
 public class CombinerIT extends AccumuloClusterHarness {

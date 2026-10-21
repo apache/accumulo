@@ -54,7 +54,7 @@ public class TablesCommand extends Command {
 
     // filter only specified namespace
     tables = Maps.filterKeys(tables, tableName -> namespace == null
-        || TableNameUtil.qualify(tableName).getFirst().equals(namespace));
+        || TableNameUtil.qualify(tableName).namespaceName().equals(namespace));
 
     final boolean sortByTableId = cl.hasOption(sortByTableIdOption.getOpt());
     tables = new TreeMap<>((sortByTableId ? MapUtils.invertMap(tables) : tables));
@@ -63,7 +63,7 @@ public class TablesCommand extends Command {
       String tableName = String.valueOf(sortByTableId ? entry.getValue() : entry.getKey());
       String tableId = String.valueOf(sortByTableId ? entry.getKey() : entry.getValue());
       if (namespace != null) {
-        tableName = TableNameUtil.qualify(tableName).getSecond();
+        tableName = TableNameUtil.qualify(tableName).tableName();
       }
       if (cl.hasOption(tableIdOption.getOpt())) {
         return String.format(NAME_AND_ID_FORMAT, tableName, tableId);

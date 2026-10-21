@@ -83,6 +83,15 @@ public interface PropStore {
       throws ConcurrentModificationException;
 
   /**
+   * Unconditionally replaces all properties with the map provided. If a property is not included in
+   * the new map, the property will not be set.
+   *
+   * @throws IllegalStateException if the values cannot be written or if an underlying store
+   *         exception occurs.
+   */
+  void replaceAll(@NonNull PropStoreKey propStoreKey, @NonNull Map<String,String> props);
+
+  /**
    * Delete the store node from the underlying store.
    *
    * @param propStoreKey the prop cache key

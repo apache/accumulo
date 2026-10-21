@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -124,6 +125,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -132,7 +135,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     TabletIngestClientService.Iface, TabletManagementClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
-  private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
+  private final Supplier<Long> scanResultWaitTime;
   private final TabletServer server;
   protected final ServerContext context;
   protected final AuditedSecurityOperation security;
@@ -144,8 +147,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     this.writeTracker = writeTracker;
     this.security = context.getSecurityOperation();
     this.server = server;
-    MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
-        .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
+    scanResultWaitTime =
+        Suppliers
+            .memoizeWithExpiration(
+                () -> server.getContext().getConfiguration()
+                    .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT),
+                Duration.ofSeconds(10));
     log.debug("{} created", TabletClientHandler.class.getName());
   }
 
@@ -584,6 +591,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       final Tablet tablet = server.getOnlineTablet(entry.getKey());
 
       if (tablet == null || tablet.isClosed()) {
+        results.ensureCapacity(results.size() + entry.getValue().size());
         for (ServerConditionalMutation scm : entry.getValue()) {
           results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
         }
@@ -607,6 +615,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           // clear anything added while checking conditions.
           resultsSubList.clear();
 
+          results.ensureCapacity(results.size() + entry.getValue().size());
           for (ServerConditionalMutation scm : entry.getValue()) {
             results.add(new TCMResult(scm.getID(), TCMStatus.IGNORED));
           }
@@ -865,6 +874,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
       return future.get();
     } catch (ExecutionException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw new TException(e);
@@ -915,19 +927,35 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) {
+  public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId)
+      throws ThriftSecurityException {
     List<TabletStats> result = new ArrayList<>();
-    TableId text = TableId.of(tableId);
-    KeyExtent start = new KeyExtent(text, new Text(), null);
+    TableId tid = TableId.of(tableId);
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = getNamespaceId(credentials, tid);
+    } catch (ThriftSecurityException e) {
+      if (e.getCode() == SecurityErrorCode.TABLE_DOESNT_EXIST) {
+        return result;
+      }
+      throw e;
+    }
+    if (!security.canScan(credentials, tid, namespaceId, Map.of(), List.of(), List.of(), Map.of(),
+        List.of())) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    KeyExtent start = new KeyExtent(tid, new Text(), null);
     for (Entry<KeyExtent,Tablet> entry : server.getOnlineTablets().tailMap(start).entrySet()) {
       KeyExtent ke = entry.getKey();
-      if (ke.tableId().compareTo(text) == 0) {
+      if (ke.tableId().compareTo(tid) == 0) {
         Tablet tablet = entry.getValue();
         TabletStats stats = tablet.getTabletStats();
-        stats.extent = ke.toThrift();
-        stats.ingestRate = tablet.ingestRate();
-        stats.queryRate = tablet.queryRate();
-        stats.numEntries = tablet.getNumEntries();
+        stats.setExtent(ke.toThrift());
+        stats.setIngestRate(tablet.ingestRate());
+        stats.setQueryRate(tablet.queryRate());
+        stats.setNumEntries(tablet.getNumEntries());
         result.add(stats);
       }
     }
@@ -1017,7 +1045,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 
-          Set<KeyExtent> all = new HashSet<>();
+          Set<KeyExtent> all = new HashSet<>(
+              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
+              1.0f);
           all.addAll(unopenedOverlapping);
           all.addAll(openingOverlapping);
           all.addAll(onlineOverlapping);
@@ -1196,11 +1226,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     // handle that more expensive case if needed.
     var tabletsSnapshot = server.getOnlineTablets();
 
-    Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>();
+    Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>(refreshes.size(), 1.0f);
 
     // Created this as synchronized list because it's passed to a lambda that could possibly run in
     // another thread.
-    List<TKeyExtent> unableToRefresh = Collections.synchronizedList(new ArrayList<>());
+    List<TKeyExtent> unableToRefresh =
+        Collections.synchronizedList(new ArrayList<>(refreshes.size()));
 
     for (var tkextent : refreshes) {
       var extent = KeyExtent.fromThrift(tkextent);
@@ -1249,7 +1280,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     var tabletsSnapshot = server.getOnlineTablets();
 
-    Map<TKeyExtent,Long> timestamps = new HashMap<>();
+    Map<TKeyExtent,Long> timestamps = new HashMap<>(extents.size(), 1.0f);
 
     for (var textent : extents) {
       var extent = KeyExtent.fromThrift(textent);
@@ -1279,8 +1310,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private TSummaries getSummaries(Future<SummaryCollection> future) throws TimeoutException {
     try {
-      SummaryCollection sc =
-          future.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
+      SummaryCollection sc = future.get(scanResultWaitTime.get(), TimeUnit.MILLISECONDS);
       return sc.toThrift();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

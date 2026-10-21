@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.availability;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -49,6 +50,8 @@ import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public class SetTabletAvailability extends AbstractFateOperation {
 
@@ -154,4 +157,15 @@ public class SetTabletAvailability extends AbstractFateOperation {
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
     return null;
   }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("availability", tabletAvailability.name());
+    details.addProperty("tabletRange", tRange.toString());
+    return GSON.get().toJson(details);
+  }
+
 }

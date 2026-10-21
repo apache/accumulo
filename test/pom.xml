@@ -44,6 +44,11 @@
       <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
     </dependency>
@@ -277,7 +282,7 @@
               <licenseSet>
                 <inlineHeader>${accumulo.build.license.header}</inlineHeader>
                 <excludes>
-                  <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
+                  <exclude>src/main/resources/org/apache/accumulo/test/v2_import_test/data/distcp.txt</exclude>
                 </excludes>
               </licenseSet>
             </licenseSets>
@@ -288,7 +293,7 @@
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
             <excludes>
-              <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
+              <exclude>src/main/resources/org/apache/accumulo/test/v2_import_test/data/distcp.txt</exclude>
             </excludes>
           </configuration>
         </plugin>
