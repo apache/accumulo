@@ -20,10 +20,13 @@ package org.apache.accumulo.server.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -59,6 +62,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Suppliers;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Utility class for performing various security operations with the appropriate checks
@@ -73,6 +80,8 @@ public class SecurityOperation {
   private final Supplier<String> rootUserName;
   private final ZooCache zooCache;
   private final String zkUserPath;
+  private final Gson gson = new GsonBuilder().create();
+  private final Type jsonMapType = new TypeToken<Map<String,String>>() {}.getType();
 
   protected final ServerContext context;
 
@@ -537,7 +546,33 @@ public class SecurityOperation {
   protected boolean canBulkImport(TCredentials c, TableId tableId, String tableName, String dir,
       String failDir, NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
+    final boolean tablePerm =
+        hasTablePermission(c, tableId, namespaceId, TablePermission.BULK_IMPORT, false);
+
+    final String user = c.getPrincipal();
+    final String allowedLocations =
+        context.getConfiguration().get(Property.GENERAL_BULK_SOURCE_DIRS);
+    boolean locationAllowed = false;
+    try {
+      final Map<String,String> allowedLocationsMap = gson.fromJson(allowedLocations, jsonMapType);
+      final String userSourceLocationPattern = allowedLocationsMap.get(user);
+      if (userSourceLocationPattern == null) {
+        log.error("User " + user + " does not have an allowed source dir location in property "
+            + Property.GENERAL_BULK_SOURCE_DIRS.getKey());
+      } else if (Pattern.matches(userSourceLocationPattern, dir)) {
+        locationAllowed = true;
+      }
+    } catch (JsonSyntaxException e) {
+      log.error(
+          "Property " + Property.GENERAL_BULK_SOURCE_DIRS.getKey() + " value is not valid json", e);
+    }
+
+    if (!locationAllowed) {
+      log.error(
+          "Bulk Import into table {} by user {} not allowed from directory {}, check table property {} value: {}",
+          tableId, user, dir, Property.GENERAL_BULK_SOURCE_DIRS.getKey(), allowedLocations);
+    }
+    return tablePerm && locationAllowed;
   }
 
   protected boolean canCompact(TCredentials c, TableId tableId, NamespaceId namespaceId)

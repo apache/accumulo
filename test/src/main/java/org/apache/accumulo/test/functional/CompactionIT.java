@@ -626,6 +626,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       fs.deleteOnExit(testrf);
       FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
 
+      BulkIT.setBulkSourceLocations(c, fs, root);
       c.tableOperations().importDirectory(testrf.toString()).to(tableName).load();
       int beforeCount = countFiles(c, tableName);
 

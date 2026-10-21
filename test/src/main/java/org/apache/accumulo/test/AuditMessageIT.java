@@ -56,6 +56,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
@@ -350,6 +351,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
         Collections.singleton(exportDir.toString()), ImportConfiguration.empty());
 
     // Now do a Directory (bulk) import of the same data.
+    BulkIT.setBulkSourceLocations(auditAccumuloClient, getCluster().getFileSystem(),
+        exportDirBulk.getParentFile());
+
     auditAccumuloClient.tableOperations().create(THIRD_TEST_TABLE_NAME);
     auditAccumuloClient.tableOperations().importDirectory(exportDirBulk.toString())
         .to(THIRD_TEST_TABLE_NAME).load();

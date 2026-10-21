@@ -46,6 +46,7 @@ import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -94,6 +95,8 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       final Path base = new Path(basePath, "testBulkLoad" + tableName);
       fs.delete(base, true);
       fs.mkdirs(base);
+
+      BulkIT.setBulkSourceLocations(c, fs, base);
 
       ExecutorService es = Executors.newFixedThreadPool(5);
       List<Future<Pair<String,String>>> futures = new ArrayList<>();

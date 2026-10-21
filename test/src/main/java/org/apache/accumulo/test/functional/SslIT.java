@@ -81,6 +81,7 @@ public class SslIT extends ConfigurableMacBase {
   public void bulk() throws Exception {
     Properties props = getClientProperties();
     try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      BulkIT.setBulkSourceLocations(client, cluster.getFileSystem(), cluster.getTemporaryPath());
       BulkIT.runTest(client, cluster.getFileSystem(),
           new Path(getCluster().getConfig().getDir().getAbsolutePath(), "tmp"),
           getUniqueNames(1)[0], this.getClass().getName(), testName(), true);
