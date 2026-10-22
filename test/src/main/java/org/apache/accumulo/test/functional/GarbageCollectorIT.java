@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -55,12 +56,17 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.metadata.ExternalTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -70,12 +76,17 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -169,6 +180,187 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       VerifyIngest.verifyIngest(c, params);
       assertTrue(after < before, "After count " + after + " was not less than " + before);
     }
+  }
+
+  @Test
+  public void externalTabletFileIsRetainedWhileReferencedAndDeletedAfterward() throws Exception {
+    killMacGc();
+    String table = getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+      try (BatchWriter writer = client.createBatchWriter(table)) {
+        Mutation mutation = new Mutation("external-row");
+        mutation.put("cf", "cq", "value");
+        writer.addMutation(mutation);
+      }
+      client.tableOperations().flush(table, null, null, true);
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
+      Ample ample = getServerContext().getAmple();
+      TabletMetadata tablet;
+      try (TabletsMetadata tablets =
+          ample.readTablets().forTable(tableId).fetch(ColumnType.FILES).build()) {
+        tablet = Iterators.getOnlyElement(tablets.iterator());
+      }
+
+      var fileEntry = tablet.getFilesMap().entrySet().iterator().next();
+      StoredTabletFile original = fileEntry.getKey();
+      DataFileValue fileValue = fileEntry.getValue();
+      FileSystem fs = cluster.getFileSystem();
+      Path externalPath = new Path(new Path(fs.getHomeDirectory(), "external-tablet-files"),
+          getUniqueNames(1)[0] + ".rf");
+      assertTrue(fs.mkdirs(externalPath.getParent()) || fs.exists(externalPath.getParent()));
+      IOUtils.copyBytes(fs.open(original.getPath()), fs.create(externalPath),
+          getServerContext().getHadoopConf(), true);
+
+      ExternalTabletFile external = ExternalTabletFile.of(externalPath, original.getRange());
+      StoredTabletFile storedExternal = external.insert();
+      ample.mutateTablet(tablet.getExtent()).deleteFile(original).putFile(external, fileValue)
+          .mutate();
+
+      try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+        var entry = Iterators.getOnlyElement(scanner.iterator());
+        assertEquals("external-row", entry.getKey().getRow().toString());
+        assertEquals("value", entry.getValue().toString());
+      }
+
+      ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
+      try {
+        DataLevel level = DataLevel.of(tableId);
+        String externalCandidatePath =
+            GcVolumeUtil.encodeExternalCandidatePath(externalPath.toString());
+
+        ample.putGcCandidates(tableId, List.of(storedExternal));
+        Wait.waitFor(() -> !hasGcCandidate(ample, level, externalCandidatePath), 30000, 250,
+            "GC did not process the in-use external file candidate");
+        assertTrue(fs.exists(externalPath), "GC deleted an external file with a live reference");
+
+        ample.mutateTablet(tablet.getExtent()).deleteFile(storedExternal).mutate();
+        ample.putGcCandidates(tableId, List.of(storedExternal));
+        Wait.waitFor(() -> !fs.exists(externalPath), 30000, 250,
+            "GC did not delete the unreferenced external file");
+      } finally {
+        gc.getProcess().destroy();
+      }
+    }
+  }
+
+  @Test
+  public void scansAndGcHandleMissingAndInaccessibleExternalFiles() throws Exception {
+    killMacGc();
+    String table = getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+      try (BatchWriter writer = client.createBatchWriter(table)) {
+        Mutation mutation = new Mutation("external-row");
+        mutation.put("cf", "cq", "value");
+        writer.addMutation(mutation);
+      }
+      client.tableOperations().flush(table, null, null, true);
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
+      Ample ample = getServerContext().getAmple();
+      TabletMetadata tablet;
+      try (TabletsMetadata tablets =
+          ample.readTablets().forTable(tableId).fetch(ColumnType.FILES).build()) {
+        tablet = Iterators.getOnlyElement(tablets.iterator());
+      }
+
+      var fileEntry = tablet.getFilesMap().entrySet().iterator().next();
+      StoredTabletFile original = fileEntry.getKey();
+      DataFileValue fileValue = fileEntry.getValue();
+      FileSystem fs = cluster.getFileSystem();
+      Path externalDir =
+          new Path(new Path(fs.getHomeDirectory(), "external-tablet-files"), getUniqueNames(1)[0]);
+      assertTrue(fs.mkdirs(externalDir) || fs.exists(externalDir));
+
+      Path missingPath = new Path(externalDir, "missing.rf");
+      IOUtils.copyBytes(fs.open(original.getPath()), fs.create(missingPath),
+          getServerContext().getHadoopConf(), true);
+      ExternalTabletFile missingExternal = ExternalTabletFile.of(missingPath, original.getRange());
+      StoredTabletFile storedMissing = missingExternal.insert();
+      ample.mutateTablet(tablet.getExtent()).deleteFile(original)
+          .putFile(missingExternal, fileValue).mutate();
+
+      assertTrue(fs.delete(missingPath, false));
+      assertThrows(RuntimeException.class, () -> {
+        try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+          Iterators.size(scanner.iterator());
+        }
+      }, "A scan should fail when a referenced external file no longer exists");
+
+      ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
+      try {
+        DataLevel level = DataLevel.of(tableId);
+        String missingCandidatePath =
+            GcVolumeUtil.encodeExternalCandidatePath(missingPath.toString());
+        ample.putGcCandidates(tableId, List.of(storedMissing));
+        Wait.waitFor(() -> !hasGcCandidate(ample, level, missingCandidatePath), 30000, 250,
+            "GC did not process a missing external file that is still referenced");
+
+        Path unreadablePath = new Path(externalDir, "unreadable.rf");
+        IOUtils.copyBytes(fs.open(original.getPath()), fs.create(unreadablePath),
+            getServerContext().getHadoopConf(), true);
+        ExternalTabletFile unreadableExternal =
+            ExternalTabletFile.of(unreadablePath, original.getRange());
+        StoredTabletFile storedUnreadable = unreadableExternal.insert();
+        ample.mutateTablet(tablet.getExtent()).deleteFile(storedMissing)
+            .putFile(unreadableExternal, fileValue).mutate();
+
+        FsPermission originalFilePermission = fs.getFileStatus(unreadablePath).getPermission();
+        fs.setPermission(unreadablePath, FsPermission.valueOf("----------"));
+        try {
+          assertThrows(RuntimeException.class, () -> {
+            try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+              Iterators.size(scanner.iterator());
+            }
+          }, "A scan should fail when a referenced external file becomes unreadable");
+        } finally {
+          fs.setPermission(unreadablePath, originalFilePermission);
+        }
+
+        try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
+          var entry = Iterators.getOnlyElement(scanner.iterator());
+          assertEquals("external-row", entry.getKey().getRow().toString());
+          assertEquals("value", entry.getValue().toString());
+        }
+
+        ample.mutateTablet(tablet.getExtent()).deleteFile(storedUnreadable).mutate();
+        String unreadableCandidatePath =
+            GcVolumeUtil.encodeExternalCandidatePath(unreadablePath.toString());
+        FsPermission originalDirectoryPermission = fs.getFileStatus(externalDir).getPermission();
+        try {
+          // Removing write permission after the metadata reference was recorded prevents GC from
+          // deleting the file after its tablet reference is removed.
+          fs.setPermission(externalDir, FsPermission.valueOf("dr-x------"));
+          ample.putGcCandidates(tableId, List.of(storedUnreadable));
+          Thread.sleep(SECONDS.toMillis(5));
+          assertTrue(fs.exists(unreadablePath),
+              "GC should retain an external file when permissions prevent deletion");
+          assertTrue(hasGcCandidate(ample, level, unreadableCandidatePath),
+              "GC should retain the candidate when it cannot delete the external file");
+        } finally {
+          fs.setPermission(externalDir, originalDirectoryPermission);
+        }
+
+        Wait.waitFor(() -> !fs.exists(unreadablePath), 30000, 250,
+            "GC did not retry deleting an external file after permissions were restored");
+      } finally {
+        gc.getProcess().destroy();
+      }
+    }
+  }
+
+  private boolean hasGcCandidate(Ample ample, DataLevel level, String path) {
+    Iterator<GcCandidate> candidates = ample.getGcCandidates(level);
+    while (candidates.hasNext()) {
+      if (path.equals(candidates.next().getPath())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test

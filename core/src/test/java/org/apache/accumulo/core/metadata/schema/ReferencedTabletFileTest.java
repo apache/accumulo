@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ExternalTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
@@ -103,6 +104,25 @@ public class ReferencedTabletFileTest {
     String volume = "hdfs://1.2.3.4/accumulo";
     String metadataEntry = volume + "/tables/" + id + "/" + dir + "/" + filename;
     test(metadataEntry, volume, id, dir, filename);
+  }
+
+  @Test
+  public void testExternalTabletFile() {
+    Path path = new Path("hdfs://external-nn/imports/F0001.rf");
+    ExternalTabletFile external = ExternalTabletFile.of(path);
+
+    assertTrue(external.isExternal());
+    assertEquals(path, external.getPath());
+    assertEquals("F0001.rf", external.getFileName());
+    assertEquals(path.toString(), external.getNormalizedPathStr());
+    assertThrows(IllegalStateException.class, external::getTableId);
+    assertThrows(IllegalStateException.class, external::getTabletDir);
+    assertThrows(IllegalStateException.class, external::getVolume);
+
+    assertThrows(IllegalArgumentException.class,
+        () -> ExternalTabletFile.of(new Path("hdfs://nn/accumulo/tables/2a/t-1/F0001.rf")));
+    assertThrows(IllegalArgumentException.class,
+        () -> ExternalTabletFile.of(new Path("/external/F0001.rf")));
   }
 
   @Test
