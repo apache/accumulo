@@ -1849,7 +1849,6 @@ under the License.
       </snapshots>
     </repository>
   </repositories>
-
   <pluginRepositories>
     <pluginRepository>
       <id>jvnet-nexus-releases</id>
