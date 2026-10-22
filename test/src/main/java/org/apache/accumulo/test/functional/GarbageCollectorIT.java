@@ -247,6 +247,58 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   @Test
+  public void deletingTableWithExternalFileQueuesItForGc() throws Exception {
+    killMacGc();
+    String table = getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+      try (BatchWriter writer = client.createBatchWriter(table)) {
+        Mutation mutation = new Mutation("external-row");
+        mutation.put("cf", "cq", "value");
+        writer.addMutation(mutation);
+      }
+      client.tableOperations().flush(table, null, null, true);
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
+      Ample ample = getServerContext().getAmple();
+      TabletMetadata tablet;
+      try (TabletsMetadata tablets = ample.readTablets().forTable(tableId)
+          .fetch(ColumnType.FILES, ColumnType.PREV_ROW).build()) {
+        tablet = Iterators.getOnlyElement(tablets.iterator());
+      }
+
+      StoredTabletFile original = tablet.getFiles().iterator().next();
+      FileSystem fs = cluster.getFileSystem();
+      Path externalPath = new Path(new Path(fs.getHomeDirectory(), "external-tablet-files"),
+          getUniqueNames(1)[0] + ".rf");
+      assertTrue(fs.mkdirs(externalPath.getParent()) || fs.exists(externalPath.getParent()));
+      IOUtils.copyBytes(fs.open(original.getPath()), fs.create(externalPath),
+          getServerContext().getHadoopConf(), true);
+
+      StoredTabletFile storedExternal =
+          ExternalTabletFile.of(externalPath, original.getRange()).insert();
+      ample.mutateTablet(tablet.getExtent()).deleteFile(original)
+          .putFile(storedExternal, tablet.getFilesMap().get(original)).mutate();
+
+      String candidatePath = GcVolumeUtil.encodeExternalCandidatePath(externalPath.toString());
+      client.tableOperations().delete(table);
+
+      DataLevel level = DataLevel.of(tableId);
+      assertTrue(hasGcCandidate(ample, level, candidatePath),
+          "Table deletion did not enqueue an external file candidate");
+
+      ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
+      try {
+        Wait.waitFor(() -> !fs.exists(externalPath), 30000, 250,
+            "GC did not delete the external file after its table was deleted");
+      } finally {
+        gc.getProcess().destroy();
+      }
+    }
+  }
+
+  @Test
   public void scansAndGcHandleMissingAndInaccessibleExternalFiles() throws Exception {
     killMacGc();
     String table = getUniqueNames(1)[0];

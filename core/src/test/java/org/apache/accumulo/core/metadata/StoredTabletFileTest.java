@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
@@ -68,5 +69,19 @@ public class StoredTabletFileTest {
 
     assertTrue(stored.isExternal());
     assertTrue(StoredTabletFile.of(stored.getMetadata()).isExternal());
+  }
+
+  @Test
+  public void changingRangePreservesExternalMarker() {
+    Path path = new Path("hdfs://external-nn/imports/F0003.rf");
+    StoredTabletFile external = StoredTabletFile.ofExternal(path);
+    Range range = new Range("m", false, "z", true);
+
+    StoredTabletFile ranged = external.withRange(range);
+
+    assertTrue(ranged.isExternal());
+    assertEquals(path, ranged.getPath());
+    assertEquals(range, ranged.getRange());
+    assertTrue(StoredTabletFile.of(ranged.getMetadata()).isExternal());
   }
 }

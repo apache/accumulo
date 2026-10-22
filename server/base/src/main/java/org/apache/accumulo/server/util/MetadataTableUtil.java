@@ -110,30 +110,33 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      // insert deletes before deleting data from metadata... this makes the code fault-tolerant
+      // Insert delete candidates before deleting data from metadata. This makes the code fault-
+      // tolerant. External files always need file candidates because deleting the table directory
+      // cannot remove them, even when table deletion optimization skips the usual GC candidates.
+      ms.fetchColumnFamily(DataFileColumnFamily.NAME);
       if (insertDeletes) {
-
-        ms.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+      }
 
-        for (Entry<Key,Value> cell : ms) {
-          Key key = cell.getKey();
+      for (Entry<Key,Value> cell : ms) {
+        Key key = cell.getKey();
 
-          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+        if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+          if (insertDeletes || stf.isExternal()) {
             bw.addMutation(ample.createDeleteMutation(ReferenceFile.forFile(tableId, stf)));
-          }
-
-          if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
-            bw.addMutation(ample.createDeleteMutation(uri));
           }
         }
 
-        bw.flush();
-
-        ms.clearColumns();
+        if (insertDeletes && ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
+          bw.addMutation(ample.createDeleteMutation(uri));
+        }
       }
+
+      bw.flush();
+
+      ms.clearColumns();
 
       for (Entry<Key,Value> cell : ms) {
         Key key = cell.getKey();

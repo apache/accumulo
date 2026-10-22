@@ -191,6 +191,13 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
         new TabletFileCq(requireNonNull(path), range, TabletFileType.EXTERNAL));
   }
 
+  /**
+   * Create a new stored reference with the given range, preserving whether this file is external.
+   */
+  public StoredTabletFile withRange(Range range) {
+    return isExternal() ? ofExternal(getPath(), range) : of(getPath(), range);
+  }
+
   public static StoredTabletFile of(final URI path) {
     return of(path, new Range());
   }

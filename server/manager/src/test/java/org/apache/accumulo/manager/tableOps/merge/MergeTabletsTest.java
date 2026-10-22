@@ -71,6 +71,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ExternalTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -94,6 +95,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
@@ -130,6 +132,18 @@ public class MergeTabletsTest {
       assertTrue(COLUMNS_HANDLED_BY_MERGE.contains(columnType),
           "The merge code does not know how to handle " + columnType);
     }
+  }
+
+  @Test
+  public void fenceExternalFilePreservesExternalMarker() {
+    Path path = new Path("hdfs://external-nn/imports/F0001.rf");
+    StoredTabletFile external = ExternalTabletFile.of(path).insert();
+
+    StoredTabletFile fenced = MergeTablets.fenceFile(ke3, external);
+
+    assertTrue(fenced.isExternal());
+    assertEquals(path, fenced.getPath());
+    assertEquals(ke3.toDataRange(), fenced.getRange());
   }
 
   @Test
