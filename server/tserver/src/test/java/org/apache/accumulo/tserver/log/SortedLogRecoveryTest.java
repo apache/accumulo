@@ -220,7 +220,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
       // Convert Path objects to ResolvedSortedLog objects for recovery
       List<ResolvedSortedLog> resolvedLogs = new ArrayList<>();
       for (Path dir : dirs) {
-        resolvedLogs.add(ResolvedSortedLog.fromSortedLogDir(dir, fs));
+        resolvedLogs.add(ResolvedSortedLog.resolve(dir, fs));
       }
       recovery.recover(extent, resolvedLogs, files, capture);
       verify(context);

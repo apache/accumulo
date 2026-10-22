@@ -171,7 +171,7 @@ public class TabletServerLogger {
     this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
     this.sortedLogCache =
-        CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.SECONDS).maximumSize(1000).build();
+        CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).maximumSize(10_000).build();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
