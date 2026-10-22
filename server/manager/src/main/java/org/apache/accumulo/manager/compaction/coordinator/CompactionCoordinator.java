@@ -346,6 +346,7 @@ public class CompactionCoordinator
     startConfigMonitor(ctx.getScheduledExecutor());
 
     startFailureSummaryLogging();
+    // TODO review this change w.r.t. to multiple managers
     startWakeIdleCompactorThread(ctx.getScheduledExecutor());
 
     try {

@@ -51,8 +51,23 @@ public class CoordinatorLocationsFactory {
     this.context = context;
   }
 
-  public record CoordinatorLocations(Map<ResourceGroupId,HostAndPort> locations,
-      List<HostAndPort> sortedUniqueHost) {
+  public static final class CoordinatorLocations {
+    private final Map<ResourceGroupId,HostAndPort> locations;
+    private final List<HostAndPort> sortedUniqueHost;
+
+    private CoordinatorLocations(Map<ResourceGroupId,HostAndPort> locations) {
+      this.locations = Map.copyOf(locations);
+      this.sortedUniqueHost = locations.values().stream().distinct()
+          .sorted(Comparator.comparing(HostAndPort::toString)).toList();
+    }
+
+    public Map<ResourceGroupId,HostAndPort> locations() {
+      return locations;
+    }
+
+    public List<HostAndPort> sortedUniqueHost() {
+      return sortedUniqueHost;
+    }
   }
 
   private static final Type MAP_TYPE = new TypeToken<Map<String,String>>() {}.getType();
@@ -67,8 +82,7 @@ public class CoordinatorLocationsFactory {
       Map<ResourceGroupId,HostAndPort> locations = new HashMap<>(stringMap.size());
       stringMap
           .forEach((rg, hp) -> locations.put(ResourceGroupId.of(rg), HostAndPort.fromString(hp)));
-      lastLocations = new CoordinatorLocations(Map.copyOf(locations), locations.values().stream()
-          .distinct().sorted(Comparator.comparing(HostAndPort::toString)).toList());
+      lastLocations = new CoordinatorLocations(locations);
     }
     return lastLocations;
   }
