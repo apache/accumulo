@@ -171,8 +171,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     assertThrows(IOException.class,
         () -> new RecoveryLogsIterator(context,
-            Collections.singletonList(ResolvedSortedLog.fromSortedLogDir(new Path(destPath), fs)),
-            null, null, false),
+            Collections.singletonList(ResolvedSortedLog.resolve(new Path(destPath), fs)), null,
+            null, false),
         "Finish marker should not be found for a single file.");
   }
 
@@ -255,7 +255,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   private List<ResolvedSortedLog> pathsToResolvedLogs(List<Path> dirs) throws IOException {
     List<ResolvedSortedLog> resolvedLogs = new ArrayList<>();
     for (Path dir : dirs) {
-      resolvedLogs.add(ResolvedSortedLog.fromSortedLogDir(dir, fs));
+      resolvedLogs.add(ResolvedSortedLog.resolve(dir, fs));
     }
     return resolvedLogs;
   }

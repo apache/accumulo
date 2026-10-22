@@ -87,6 +87,19 @@ public class ResolvedSortedLog {
     // dir
     Path sortedLogPath = RecoveryPath.getRecoveryPath(new Path(logEntry.filename));
 
+    return resolve(logEntry, sortedLogPath, fs);
+  }
+
+  /**
+   * Resolve a sorted log directory path. This is useful for diagnostic tools that operate directly
+   * on sorted recovery logs without going through the normal recovery flow with LogEntry objects.
+   */
+  public static ResolvedSortedLog resolve(Path sortedLogDir, VolumeManager fs) throws IOException {
+    return resolve(new LogEntry(null, 0, sortedLogDir.toString()), sortedLogDir, fs);
+  }
+
+  private static ResolvedSortedLog resolve(LogEntry logEntry, Path sortedLogPath, VolumeManager fs)
+      throws IOException {
     boolean foundFinish = false;
     // Path::getName compares the last component of each Path value. In this case, the last
     // component should
@@ -113,39 +126,5 @@ public class ResolvedSortedLog {
     }
 
     return new ResolvedSortedLog(logEntry, sortedLogPath, logFiles);
-  }
-
-  /**
-   * Create a ResolvedSortedLog directly from a sorted log directory path. This is useful for
-   * diagnostic tools that operate directly on sorted recovery logs without going through the normal
-   * recovery flow with LogEntry objects.
-   */
-  public static ResolvedSortedLog fromSortedLogDir(Path sortedLogDir, VolumeManager fs)
-      throws IOException {
-    boolean foundFinish = false;
-    SortedSet<Path> logFiles = new TreeSet<>(Comparator.comparing(Path::getName));
-    for (FileStatus child : fs.listStatus(sortedLogDir)) {
-      if (child.getPath().getName().startsWith("_")) {
-        continue;
-      }
-      if (SortedLogState.isFinished(child.getPath().getName())) {
-        foundFinish = true;
-        continue;
-      }
-      if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
-        continue;
-      }
-      FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      Path fullLogPath = ns.makeQualified(child.getPath());
-      logFiles.add(fullLogPath);
-    }
-    if (!foundFinish) {
-      throw new IOException(
-          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + sortedLogDir);
-    }
-
-    // Create a dummy LogEntry for the origin (used only for diagnostics)
-    LogEntry dummyOrigin = new LogEntry(null, 0, sortedLogDir.toString());
-    return new ResolvedSortedLog(dummyOrigin, sortedLogDir, logFiles);
   }
 }
