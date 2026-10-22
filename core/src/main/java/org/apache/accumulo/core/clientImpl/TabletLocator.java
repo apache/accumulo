@@ -26,10 +26,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -88,15 +90,17 @@ public abstract class TabletLocator {
   private static class LocatorKey {
     InstanceId instanceId;
     TableId tableId;
+    Duration cacheExpiration;
 
-    LocatorKey(InstanceId instanceId, TableId table) {
+    LocatorKey(InstanceId instanceId, TableId table, Duration cacheExpiration) {
       this.instanceId = instanceId;
       this.tableId = table;
+      this.cacheExpiration = cacheExpiration;
     }
 
     @Override
     public int hashCode() {
-      return instanceId.hashCode() + tableId.hashCode();
+      return Objects.hash(instanceId, tableId, cacheExpiration);
     }
 
     @Override
@@ -108,7 +112,8 @@ public abstract class TabletLocator {
     }
 
     public boolean equals(LocatorKey lk) {
-      return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId);
+      return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId)
+          && cacheExpiration.equals(lk.cacheExpiration);
     }
 
   }
@@ -146,7 +151,9 @@ public abstract class TabletLocator {
     clearUnusedTables(context);
 
     TableState state = context.getTableState(tableId);
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+    Duration cacheExpiration = Duration.ofMillis(Objects.requireNonNull(
+        ClientProperty.CLIENT_EXTENT_CACHE_EXPIRATION.getTimeInMillis(context.getProperties())));
+    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId, cacheExpiration);
     if (state == TableState.OFFLINE) {
       locators.remove(key);
       return offlineLocators.computeIfAbsent(key,
@@ -161,10 +168,10 @@ public abstract class TabletLocator {
           tl = new RootTabletLocator(context.getTServerLockChecker());
         } else if (MetadataTable.ID.equals(tableId)) {
           tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-              context.getTServerLockChecker());
+              context.getTServerLockChecker(), cacheExpiration);
         } else {
           tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-              context.getTServerLockChecker());
+              context.getTServerLockChecker(), cacheExpiration);
         }
         locators.put(key, tl);
       }
@@ -178,7 +185,9 @@ public abstract class TabletLocator {
    */
   @VisibleForTesting
   public static synchronized boolean isPresent(ClientContext context, TableId tableId) {
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+    Duration cacheExpiration = Duration.ofMillis(Objects.requireNonNull(
+        ClientProperty.CLIENT_EXTENT_CACHE_EXPIRATION.getTimeInMillis(context.getProperties())));
+    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId, cacheExpiration);
     return locators.containsKey(key) || offlineLocators.containsKey(key);
   }
 
