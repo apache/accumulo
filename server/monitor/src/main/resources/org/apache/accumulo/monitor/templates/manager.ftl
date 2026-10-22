@@ -29,13 +29,13 @@
     </div>
     <span class="table-caption">Managers</span>
     <br />
-    <table id="managers" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="managers" class="table caption-top table-bordered table-striped table-sm">
         <#include "table_loading.ftl" >
     </table>
     <br />
     <span class="table-caption">Manager Fate Activity</span>
     <br />
-    <table id="managers_fate" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="managers_fate" class="table caption-top table-bordered table-striped table-sm">
         <#include "table_loading.ftl" >
     </table>
     <br />

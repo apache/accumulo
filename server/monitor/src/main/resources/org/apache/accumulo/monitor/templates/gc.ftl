@@ -24,21 +24,21 @@
       <div>
         <span class="table-caption">Garbage Collector</span>
         <br />
-        <table id="gc-server" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="gc-server" class="table caption-top table-bordered table-striped table-sm">
           <#include "table_loading.ftl" >
         </table>
       </div>
       <div>
         <span class="table-caption">File Collection</span>
         <br />
-        <table id="gc-file" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="gc-file" class="table caption-top table-bordered table-striped table-sm">
           <#include "table_loading.ftl" >
         </table>
       </div>
       <div>
         <span class="table-caption">Wal Collection</span>
         <br />
-        <table id="gc-wal" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="gc-wal" class="table caption-top table-bordered table-striped table-sm">
           <#include "table_loading.ftl" >
         </table>
       </div>
