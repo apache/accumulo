@@ -128,6 +128,7 @@ hr {
 
 table {
   font-size: 9pt;
+  width: 100% !important;
 }
 
 .table-bordered th,
@@ -167,6 +168,7 @@ th {
   color: #333333;
   font-size: 10pt;
   vertical-align: bottom;
+  width: 100% !important;
 }
 
 td.firstcell {
