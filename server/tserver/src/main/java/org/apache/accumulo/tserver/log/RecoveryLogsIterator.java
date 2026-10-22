@@ -22,11 +22,10 @@ import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.TreeMap;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
@@ -34,21 +33,20 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.Iterators;
 
 /**
@@ -63,11 +61,17 @@ public class RecoveryLogsIterator
   private final Iterator<Entry<Key,Value>> iter;
   private final CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
 
+  public RecoveryLogsIterator(ServerContext context, List<ResolvedSortedLog> recoveryLogDirs,
+      LogFileKey start, LogFileKey end, boolean checkFirstKey) throws IOException {
+    this(context, recoveryLogDirs, start, end, checkFirstKey, null, null);
+  }
+
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
-  public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
-      LogFileKey end, boolean checkFirstKey) throws IOException {
+  public RecoveryLogsIterator(ServerContext context, List<ResolvedSortedLog> recoveryLogDirs,
+      LogFileKey start, LogFileKey end, boolean checkFirstKey, Cache<String,Long> fileLenCache,
+      CacheProvider cacheProvider) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     fileIters = new ArrayList<>();
@@ -77,33 +81,31 @@ public class RecoveryLogsIterator
     final CryptoService cryptoService = context.getCryptoFactory().getService(env,
         context.getConfiguration().getAllCryptoProperties());
 
-    for (Path logDir : recoveryLogDirs) {
-      LOG.debug("Opening recovery log dir {}", logDir.getName());
-      TreeMap<Path,FileStatus> logFiles = getFiles(vm, logDir);
-      var fs = vm.getFileSystemByPath(logDir);
+    for (ResolvedSortedLog logDir : recoveryLogDirs) {
+      LOG.debug("Opening recovery log dir {}", logDir.getDir().getName());
+      SortedSet<Path> logFiles = logDir.getChildren();
+      var fs = vm.getFileSystemByPath(logDir.getDir());
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey && !logFiles.isEmpty()) {
-        validateFirstKey(context, cryptoService, fs, logFiles, logDir);
+        validateFirstKey(context, cryptoService, fs, logFiles, logDir.getDir(), fileLenCache,
+            cacheProvider);
       }
 
-      for (Entry<Path,FileStatus> entry : logFiles.entrySet()) {
-        FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
-            .forFile(entry.getKey().toString(), fs, fs.getConf(), cryptoService, entry.getValue())
-            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+      for (Path entry : logFiles) {
+        FileSKVIterator fileIter =
+            openLogFile(context, entry, cryptoService, fs, fileLenCache, cacheProvider);
         if (range != null) {
           fileIter.seek(range, Collections.emptySet(), false);
         }
         Iterator<Entry<Key,Value>> scanIter = new IteratorAdapter(fileIter);
 
         if (scanIter.hasNext()) {
-          LOG.debug("Write ahead log {} has data in range {} {}", entry.getKey().getName(), start,
-              end);
+          LOG.debug("Write ahead log {} has data in range {} {}", entry.getName(), start, end);
           iterators.add(scanIter);
           fileIters.add(fileIter);
         } else {
-          LOG.debug("Write ahead log {} has no data in range {} {}", entry.getKey().getName(),
-              start, end);
+          LOG.debug("Write ahead log {} has no data in range {} {}", entry.getName(), start, end);
           fileIter.close();
         }
       }
@@ -135,46 +137,32 @@ public class RecoveryLogsIterator
     }
   }
 
-  /**
-   * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
-   */
-  private TreeMap<Path,FileStatus> getFiles(VolumeManager fs, Path directory) throws IOException {
-    boolean foundFinish = false;
-    // Path::getName compares the last component of each Path value. In this case, the last
-    // component should
-    // always have the format 'part-r-XXXXX.rf', where XXXXX are one-up values.
-    TreeMap<Path,FileStatus> logFiles = new TreeMap<>(Comparator.comparing(Path::getName));
-    for (FileStatus child : fs.listStatus(directory)) {
-      if (child.getPath().getName().startsWith("_")) {
-        continue;
-      }
-      if (SortedLogState.isFinished(child.getPath().getName())) {
-        foundFinish = true;
-        continue;
-      }
-      if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
-        continue;
-      }
-      FileSystem ns = fs.getFileSystemByPath(child.getPath());
-      Path fullLogPath = ns.makeQualified(child.getPath());
-      logFiles.put(fullLogPath, child);
+  FileSKVIterator openLogFile(ServerContext context, Path logFile, CryptoService cs, FileSystem fs,
+      Cache<String,Long> fileLenCache, CacheProvider cacheProvider) throws IOException {
+    var builder = FileOperations.getInstance().newReaderBuilder()
+        .forFile(logFile.toString(), fs, fs.getConf(), cs)
+        .withTableConfiguration(context.getConfiguration());
+
+    if (fileLenCache != null) {
+      builder = builder.withFileLenCache(fileLenCache);
     }
-    if (!foundFinish) {
-      throw new IOException(
-          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
+
+    if (cacheProvider != null) {
+      builder = builder.withCacheProvider(cacheProvider);
     }
-    return logFiles;
+
+    return builder.seekToBeginning().build();
   }
 
   /**
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
-      TreeMap<Path,FileStatus> logFiles, Path fullLogPath) throws IOException {
-    Entry<Path,FileStatus> first = logFiles.firstEntry();
-    try (FileSKVIterator fileIter = FileOperations.getInstance().newReaderBuilder()
-        .forFile(first.getKey().toString(), fs, fs.getConf(), cs, first.getValue())
-        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
+      SortedSet<Path> logFiles, Path fullLogPath, Cache<String,Long> fileLenCache,
+      CacheProvider cacheProvider) throws IOException {
+    Path first = logFiles.first();
+    try (FileSKVIterator fileIter =
+        openLogFile(context, first, cs, fs, fileLenCache, cacheProvider)) {
       Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileIter);
 
       if (iterator.hasNext()) {

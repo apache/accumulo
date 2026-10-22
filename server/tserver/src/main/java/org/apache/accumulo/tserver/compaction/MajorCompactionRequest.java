@@ -51,8 +51,8 @@ import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactio
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.cache.Cache;
 
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
