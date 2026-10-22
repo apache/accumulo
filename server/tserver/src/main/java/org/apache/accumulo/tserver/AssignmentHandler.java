@@ -115,17 +115,19 @@ class AssignmentHandler implements Runnable {
         KeyExtent fixedExtent =
             ManagerMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
 
-        synchronized (server.openingTablets) {
-          server.openingTablets.remove(extent);
-          server.openingTablets.notifyAll();
-          // it expected that the new extent will overlap the old one... if it does not, it
-          // should not be added to unopenedTablets
-          if (!KeyExtent.findOverlapping(extent, new TreeSet<>(Arrays.asList(fixedExtent)))
-              .contains(fixedExtent)) {
-            throw new IllegalStateException(
-                "Fixed split does not overlap " + extent + " " + fixedExtent);
+        synchronized (server.unopenedTablets) {
+          synchronized (server.openingTablets) {
+            server.openingTablets.remove(extent);
+            server.openingTablets.notifyAll();
+            // it expected that the new extent will overlap the old one... if it does not, it
+            // should not be added to unopenedTablets
+            if (!KeyExtent.findOverlapping(extent, new TreeSet<>(Arrays.asList(fixedExtent)))
+                .contains(fixedExtent)) {
+              throw new IllegalStateException(
+                  "Fixed split does not overlap " + extent + " " + fixedExtent);
+            }
+            server.unopenedTablets.add(fixedExtent);
           }
-          server.unopenedTablets.add(fixedExtent);
         }
         // split was rolled back... try again
         new AssignmentHandler(server, fixedExtent).run();
