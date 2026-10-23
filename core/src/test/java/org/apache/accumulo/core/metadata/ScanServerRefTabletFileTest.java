@@ -19,12 +19,14 @@
 package org.apache.accumulo.core.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -47,12 +49,18 @@ public class ScanServerRefTabletFileTest {
   }
 
   @Test
-  public void legacyReferencesCanRecoverTheirTableId() {
-    var key = new Key(new Text("lock"), new Text("localhost:1234"),
-        new Text("hdfs://nn/accumulo/tables/4/t-0/F000.rf"), new Text(), 1);
+  public void tableIdsAreRequired() {
+    String serverAddress = "localhost:1234";
+    String file = "hdfs://nn/external/rfiles/source.rf";
 
-    var decoded = new ScanServerRefTabletFile(key);
+    assertThrows(NullPointerException.class,
+        () -> new ScanServerRefTabletFile(UUID.randomUUID(), serverAddress, file, null));
+    assertThrows(IllegalArgumentException.class,
+        () -> new ScanServerRefTabletFile(UUID.randomUUID(), serverAddress, file, Set.of()));
 
-    assertEquals(Set.of(TableId.of("4")), decoded.getTableIds());
+    var key = new Key(new Text(UUID.randomUUID().toString()), new Text(serverAddress),
+        new Text(file), new Text(), 1);
+    assertThrows(IllegalArgumentException.class,
+        () -> new ScanServerRefTabletFile(key, new Value()));
   }
 }

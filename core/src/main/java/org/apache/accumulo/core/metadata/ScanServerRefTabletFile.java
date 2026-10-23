@@ -35,7 +35,6 @@ import org.apache.hadoop.io.Text;
 
 public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
-  private static final Value NULL_VALUE = new Value(new byte[0]);
   private final Text serverAddress;
   private final Text uuid;
   private final Set<TableId> tableIds;
@@ -45,18 +44,14 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
     super(new Path(URI.create(file)));
     this.serverAddress = new Text(serverAddress);
     uuid = new Text(serverLockUUID.toString());
-    this.tableIds = new HashSet<>(Objects.requireNonNull(tableIds));
-  }
-
-  public ScanServerRefTabletFile(Key k) {
-    this(k, NULL_VALUE);
+    this.tableIds = copyAndValidateTableIds(tableIds);
   }
 
   public ScanServerRefTabletFile(Key k, Value value) {
     super(new Path(URI.create(k.getColumnQualifier().toString())));
     serverAddress = k.getColumnFamily();
     uuid = k.getRow();
-    tableIds = decodeTableIds(value.toString(), getPath());
+    tableIds = decodeTableIds(Objects.requireNonNull(value).toString());
   }
 
   public Mutation putMutation() {
@@ -80,10 +75,6 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
   }
 
   public Value getValue() {
-    if (tableIds.isEmpty()) {
-      return NULL_VALUE;
-    }
-
     TreeSet<String> sortedIds = new TreeSet<>();
     for (TableId tableId : tableIds) {
       sortedIds.add(tableId.canonical());
@@ -95,29 +86,31 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
     return Set.copyOf(tableIds);
   }
 
-  private static Set<TableId> decodeTableIds(String serialized, Path path) {
-    Set<TableId> tableIds = new HashSet<>();
+  private static Set<TableId> decodeTableIds(String serialized) {
     if (serialized.isEmpty()) {
-      tableIds.addAll(getLegacyTableIds(path.toString()));
-      return tableIds;
+      throw new IllegalArgumentException("Serialized table IDs must not be empty");
     }
 
+    Set<TableId> tableIds = new HashSet<>();
     for (String tableId : serialized.split(",")) {
+      if (tableId.isEmpty()) {
+        throw new IllegalArgumentException("Serialized table IDs must not contain empty IDs");
+      }
       tableIds.add(TableId.of(tableId));
     }
-    return tableIds;
+    return copyAndValidateTableIds(tableIds);
   }
 
-  private static Set<TableId> getLegacyTableIds(String file) {
-    Set<TableId> tableIds = new HashSet<>();
-    String[] parts = new Path(file).toUri().getPath().split("/");
-    for (int i = 0; i + 1 < parts.length; i++) {
-      if ("tables".equals(parts[i]) && !parts[i + 1].isEmpty()) {
-        tableIds.add(TableId.of(parts[i + 1]));
-        break;
-      }
+  private static Set<TableId> copyAndValidateTableIds(Collection<TableId> tableIds) {
+    Objects.requireNonNull(tableIds, "Table IDs must be supplied");
+    Set<TableId> copy = new HashSet<>(tableIds);
+    if (copy.isEmpty()) {
+      throw new IllegalArgumentException("Table IDs must not be empty");
     }
-    return tableIds;
+    for (TableId tableId : copy) {
+      Objects.requireNonNull(tableId, "Table IDs must not contain null");
+    }
+    return copy;
   }
 
   public Text getServerAddress() {
