@@ -82,6 +82,7 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.log.LogSortWork;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -526,6 +527,37 @@ public class Upgrader11to12Test extends WithTestNames {
         .contains("Was expecting either a nothing, a resource group name or an empty directory"));
     verify(context, zk, zr, zrw);
 
+  }
+
+  @Test
+  void testUpgradeRecoveryWork() throws InterruptedException, KeeperException {
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+    UUID sortId = UUID.randomUUID();
+    String childPath = Constants.ZRECOVERY + "/" + sortId;
+    String source = "hdfs://localhost:8020/accumulo/wal/server/old-name.wal";
+    String destination = "hdfs://localhost:8020/accumulo/recovery/sorted";
+    String oldPayload = source + "|" + destination;
+    String newPayload = new LogSortWork(sortId, source, destination).serialize();
+
+    expect(zrw.getChildren(Constants.ZRECOVERY)).andReturn(List.of(sortId.toString(), "locks"));
+    expect(zrw.getData(childPath)).andReturn(oldPayload.getBytes(UTF_8));
+    expect(zrw.overwritePersistentData(eq(childPath), aryEq(newPayload.getBytes(UTF_8)), eq(-1)))
+        .andReturn(true);
+
+    replay(zrw);
+    upgrader.upgradeRecoveryWork(zrw);
+    verify(zrw);
+  }
+
+  @Test
+  void testConvertRecoveryWorkIsIdempotent() {
+    UUID sortId = UUID.randomUUID();
+    String payload = new LogSortWork(sortId, "source", "destination").serialize();
+
+    assertEquals(payload, Upgrader11to12.convertRecoveryWork(sortId.toString(), payload));
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader11to12.convertRecoveryWork(UUID.randomUUID().toString(), payload));
   }
 
   @Test
