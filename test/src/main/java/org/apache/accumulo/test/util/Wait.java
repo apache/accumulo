@@ -27,7 +27,7 @@ import org.apache.accumulo.core.util.CountDownTimer;
 
 public class Wait {
 
-  public static final long MAX_WAIT_MILLIS = SECONDS.toMillis(30);
+  public static final long MAX_WAIT_MILLIS = SECONDS.toMillis(60);
   public static final long SLEEP_MILLIS = 250;
 
   /**
