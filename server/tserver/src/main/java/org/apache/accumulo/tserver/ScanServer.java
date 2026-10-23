@@ -34,7 +34,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -593,6 +592,7 @@ public class ScanServer extends AbstractServer
 
   static class ReservedFile {
     final Set<Long> activeReservations = new ConcurrentSkipListSet<>();
+    final Set<TableId> tableIds = ConcurrentHashMap.newKeySet();
     final AtomicLong lastUseTime = new AtomicLong(0);
 
     boolean shouldDelete(long expireTimeMs) {
@@ -695,10 +695,12 @@ public class ScanServer extends AbstractServer
       }
     }
 
-    Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>(extents.size());
+    Map<StoredTabletFile,Set<KeyExtent>> allFiles = new HashMap<>(extents.size());
 
     tabletsMetadata.forEach((extent, tm) -> {
-      tm.getFiles().forEach(file -> allFiles.put(file, extent));
+      for (StoredTabletFile file : tm.getFiles()) {
+        allFiles.computeIfAbsent(file, ignored -> new HashSet<>()).add(extent);
+      }
     });
 
     // The read lock prevents anything from being removed from reservedFiles while adding
@@ -706,8 +708,25 @@ public class ScanServer extends AbstractServer
     // wait on each other their files are already reserved.
     reservationsReadLock.lock();
     try {
-      if (reservedFiles.keySet().containsAll(allFiles.keySet())) {
-        // all files already have reservations in the metadata table, so we can add ourself
+      boolean allFilesAndTableIdsReserved = reservedFiles.keySet().containsAll(allFiles.keySet());
+      if (allFilesAndTableIdsReserved) {
+        for (Map.Entry<StoredTabletFile,Set<KeyExtent>> entry : allFiles.entrySet()) {
+          ReservedFile reservedFile = reservedFiles.get(entry.getKey());
+          for (KeyExtent extent : entry.getValue()) {
+            if (!reservedFile.tableIds.contains(extent.tableId())) {
+              allFilesAndTableIdsReserved = false;
+              break;
+            }
+          }
+          if (!allFilesAndTableIdsReserved) {
+            break;
+          }
+        }
+      }
+
+      if (allFilesAndTableIdsReserved) {
+        // all files and table references already have reservations in metadata, so we can add
+        // ourself without updating the stored reference values.
         for (StoredTabletFile file : allFiles.keySet()) {
           if (!reservedFiles.get(file).activeReservations.add(myReservationId)) {
             throw new IllegalStateException("reservation id unexpectedly already in set");
@@ -743,25 +762,56 @@ public class ScanServer extends AbstractServer
 
     try {
       Set<StoredTabletFile> filesToReserve = new HashSet<>();
+      Map<String,Set<TableId>> refTableIds = new HashMap<>();
+      Set<String> pathsWithReservedRefs = new HashSet<>();
+      for (StoredTabletFile reservedFile : reservedFiles.keySet()) {
+        pathsWithReservedRefs.add(reservedFile.getNormalizedPathStr());
+      }
+      Set<String> newRefPaths = new HashSet<>();
       List<ScanServerRefTabletFile> refs = new ArrayList<>();
       Set<KeyExtent> tabletsToCheck = new HashSet<>();
 
       String serverAddress = getAdvertiseAddress().toString();
 
-      for (StoredTabletFile file : allFiles.keySet()) {
-        if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
-              file.getNormalizedPathStr()));
+      for (Map.Entry<StoredTabletFile,Set<KeyExtent>> entry : allFiles.entrySet()) {
+        StoredTabletFile file = entry.getKey();
+        Set<TableId> tableIds = new HashSet<>();
+        for (KeyExtent extent : entry.getValue()) {
+          tableIds.add(extent.tableId());
+        }
+
+        ReservedFile reservedFile = reservedFiles.get(file);
+        if (reservedFile == null) {
           filesToReserve.add(file);
-          tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
-          LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
+          tabletsToCheck.addAll(entry.getValue());
+        }
+
+        if (reservedFile == null || !reservedFile.tableIds.containsAll(tableIds)) {
+          Set<TableId> idsForRef = new HashSet<>(tableIds);
+          if (reservedFile != null) {
+            idsForRef.addAll(reservedFile.tableIds);
+          }
+          String filePath = file.getNormalizedPathStr();
+          if (!pathsWithReservedRefs.contains(filePath)) {
+            newRefPaths.add(filePath);
+            pathsWithReservedRefs.add(filePath);
+          }
+          refTableIds.computeIfAbsent(filePath, ignored -> new HashSet<>()).addAll(idsForRef);
+          LOG.trace("RFFS {} need to add scan ref for file {} and tables {}", myReservationId, file,
+              idsForRef);
         }
       }
 
-      if (!filesToReserve.isEmpty()) {
+      if (!refTableIds.isEmpty()) {
+        for (Map.Entry<String,Set<TableId>> entry : refTableIds.entrySet()) {
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, entry.getKey(),
+              entry.getValue()));
+        }
         scanServerMetrics.recordWriteOutReservationTime(
             () -> getContext().getAmple().scanServerRefs().put(refs));
+      }
 
+      if (!filesToReserve.isEmpty()) {
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
         // should not have deleted the files. This assumes the Accumulo GC reads scan server refs
@@ -793,7 +843,15 @@ public class ScanServer extends AbstractServer
         if (!filesToReserve.isEmpty()) {
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
-          getContext().getAmple().scanServerRefs().delete(refs);
+          List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>(newRefPaths.size());
+          for (ScanServerRefTabletFile ref : refs) {
+            if (newRefPaths.contains(ref.getNormalizedPathStr())) {
+              refsToDelete.add(ref);
+            }
+          }
+          if (!refsToDelete.isEmpty()) {
+            getContext().getAmple().scanServerRefs().delete(refsToDelete);
+          }
           scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
@@ -801,13 +859,17 @@ public class ScanServer extends AbstractServer
 
       // we do not hold a lock but the files we are adding are in influxFiles so its ok to add to
       // reservedFiles
-      for (StoredTabletFile file : allFiles.keySet()) {
-        if (!reservedFiles.computeIfAbsent(file, k -> new ReservedFile()).activeReservations
-            .add(myReservationId)) {
+      for (Map.Entry<StoredTabletFile,Set<KeyExtent>> entry : allFiles.entrySet()) {
+        ReservedFile reservedFile =
+            reservedFiles.computeIfAbsent(entry.getKey(), k -> new ReservedFile());
+        for (KeyExtent extent : entry.getValue()) {
+          reservedFile.tableIds.add(extent.tableId());
+        }
+        if (!reservedFile.activeReservations.add(myReservationId)) {
           throw new IllegalStateException("reservation id unexpectedly already in set");
         }
 
-        LOG.trace("RFFS {} reserved reference for startScan {}", myReservationId, file);
+        LOG.trace("RFFS {} reserved reference for startScan {}", myReservationId, entry.getKey());
       }
 
       return tabletsMetadata;
@@ -952,8 +1014,8 @@ public class ScanServer extends AbstractServer
             // then adding the file to influxFiles will make it wait until we finish
             influxFiles.add(file);
             confirmed.add(file);
-            refsToDelete.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
-                serverLockUUID));
+            refsToDelete.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
+                file.getNormalizedPathStr(), entry.getValue().tableIds));
 
             // remove the entry from the map while holding the write lock ensuring no new
             // reservations are added to the map values while the metadata operation to delete is

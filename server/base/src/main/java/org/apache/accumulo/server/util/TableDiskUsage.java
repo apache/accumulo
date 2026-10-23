@@ -194,7 +194,7 @@ public class TableDiskUsage {
       // read the metadata
       try (var tabletsMetadata = ((ClientContext) client).getAmple().readTablets().forTable(tableId)
           .fetch(FILES).build()) {
-        final Set<StoredTabletFile> allFiles = new HashSet<>();
+        final Set<String> allFiles = new HashSet<>();
 
         for (var tm : tabletsMetadata) {
           final Map<StoredTabletFile,DataFileValue> tmFiles = tm.getFilesMap();
@@ -202,27 +202,17 @@ public class TableDiskUsage {
           for (var file : tmFiles.entrySet()) {
             final var stf = file.getKey();
             final var dataFileValue = file.getValue();
-
-            // get the table referenced by the file which may not be the same as the current
-            // table we are scanning if the file is shared between multiple tables
-            final TableId fileTableRef = stf.getTableId();
-
-            // if this is a ref to a different table than the one we are scanning then we need
-            // to make sure the table is also linked for this shared file if the table is
-            // part of the set of tables we are running du on so we can track shared usages
-            if (!fileTableRef.equals(tableId) && tableIds.contains(fileTableRef)) {
-              // link the table and the shared file for computing shared sizes
-              tdu.linkFileAndTable(fileTableRef, stf.getFileName());
-            }
-
-            // link the file to the table we are scanning for
-            tdu.linkFileAndTable(tableId, stf.getFileName());
+            // The metadata row identifies the table that references this file. Use the full path
+            // to identify shared files because their URI does not encode a table ID and basenames
+            // are not necessarily unique.
+            final String filePath = stf.getNormalizedPathStr();
+            tdu.linkFileAndTable(tableId, filePath);
 
             // add the file size for the table if not already seen for this scan
-            if (allFiles.add(stf)) {
+            if (allFiles.add(filePath)) {
               // This tracks the file size for individual files for computing shared file statistics
               // later
-              tdu.addFileSize(stf.getFileName(), dataFileValue.getSize());
+              tdu.addFileSize(filePath, dataFileValue.getSize());
             }
           }
         }

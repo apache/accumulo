@@ -35,7 +35,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -69,7 +68,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -221,8 +219,8 @@ public class GCRun implements GarbageCollectionEnvironment {
       return fileStream;
     });
 
-    var scanServerRefs = context.getAmple().scanServerRefs().list()
-        .map(sfr -> ReferenceFile.forScan(sfr.getTableId(), sfr));
+    var scanServerRefs = context.getAmple().scanServerRefs().list().flatMap(
+        sfr -> sfr.getTableIds().stream().map(tableId -> ReferenceFile.forScan(tableId, sfr)));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }
@@ -339,21 +337,7 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors.increment();
-              String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
-              if (parts.length > 2) {
-                TableId tableId = TableId.of(parts[1]);
-                String tabletDir = parts[2];
-                TableState tableState = context.getTableManager().getTableState(tableId);
-                if (tableState != TableState.UNKNOWN && tableState != TableState.DELETING) {
-                  // clone directories don't always exist
-                  if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
-                  }
-                }
-              } else {
-                log.warn("{} Delete failed due to invalid file path format: {}", fileActionPrefix,
-                    delete.getPath());
-              }
+              log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
             }
           }
 
@@ -426,57 +410,34 @@ public class GCRun implements GarbageCollectionEnvironment {
   static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
       List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
       Duration loggingInterval) {
-    Set<Path> seenVolumes = new HashSet<>();
+    Set<Path> deleteDirs = new HashSet<>();
+    for (Map.Entry<String,GcCandidate> entry : confirmedDeletes.entrySet()) {
+      if (entry.getKey().startsWith(GarbageCollectionAlgorithm.DIRECTORY_CANDIDATE_KEY_PREFIX)) {
+        Path dirPath = new Path(entry.getValue().getPath());
+        deleteDirs.addAll(GcVolumeUtil.expandAllVolumesUri(fs, dirPath));
+      }
+    }
 
-    // when deleting a dir and all files in that dir, only need to delete the dir.
-    // The dir will sort right before the files... so remove the files in this case
-    // to minimize namenode ops
+    // When a directory and its files are all being deleted, deleting the directory is sufficient.
     Iterator<Map.Entry<String,GcCandidate>> cdIter = confirmedDeletes.entrySet().iterator();
-
-    String lastDirRel = null;
-    Path lastDirAbs = null;
     Timer progressTimer = Timer.startNew();
     int progressCount = 0;
     int totalDeletes = confirmedDeletes.size();
     while (cdIter.hasNext()) {
       progressCount++;
       Map.Entry<String,GcCandidate> entry = cdIter.next();
-      String relPath = entry.getKey();
-      Path absPath = new Path(entry.getValue().getPath());
-
-      if (SimpleGarbageCollector.isDir(relPath)) {
-        lastDirRel = relPath;
-        lastDirAbs = absPath;
-      } else if (lastDirRel != null) {
-        if (relPath.startsWith(lastDirRel)) {
-          Path vol = VolumeManager.FileType.TABLE.getVolume(absPath);
-
-          boolean sameVol = false;
-
-          if (GcVolumeUtil.isAllVolumesUri(lastDirAbs)) {
-            if (seenVolumes.contains(vol)) {
-              sameVol = true;
-            } else {
-              for (Volume cvol : fs.getVolumes()) {
-                if (cvol.containsPath(vol)) {
-                  seenVolumes.add(vol);
-                  sameVol = true;
-                }
-              }
-            }
-          } else {
-            sameVol = Objects.equals(VolumeManager.FileType.TABLE.getVolume(lastDirAbs), vol);
-          }
-
-          if (sameVol) {
+      if (!entry.getKey().startsWith(GarbageCollectionAlgorithm.DIRECTORY_CANDIDATE_KEY_PREFIX)) {
+        Path filePath = new Path(entry.getValue().getPath());
+        Path parent = filePath.getParent();
+        while (parent != null) {
+          if (deleteDirs.contains(parent)) {
             logger.info("{} Ignoring {} because {} exist", fileActionPrefix,
-                entry.getValue().getPath(), lastDirAbs);
+                entry.getValue().getPath(), parent);
             processedDeletes.add(entry.getValue());
             cdIter.remove();
+            break;
           }
-        } else {
-          lastDirRel = null;
-          lastDirAbs = null;
+          parent = parent.getParent();
         }
       }
       if (progressTimer.hasElapsed(loggingInterval)) {

@@ -885,7 +885,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     UUID serverLockUUID = UUID.randomUUID();
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f,
+            Set.of(TableId.of("2a"))))
         .collect(Collectors.toSet());
     getCluster().getServerContext().getAmple().scanServerRefs().put(scanRefs);
     return new Text(getCluster().getServerContext().getAmple().scanServerRefs().list()

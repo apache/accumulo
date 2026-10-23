@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -259,6 +260,32 @@ public class GarbageCollectionTest {
 
     assertFileDeleted(gce, candThree);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne, candTwo, candFour);
+  }
+
+  @Test
+  public void externalFilesAreMatchedByFullUri() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/a/shared.rf");
+    var referencedCandidate = gce.addCandidate("hdfs://nn2/external/b/shared.rf");
+    gce.addFileReference("4", null, referencedCandidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, sameNameDifferentLocation);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, referencedCandidate);
+  }
+
+  @Test
+  public void externalScanReferenceProtectsCandidate() throws Exception {
+    TestGCE gce = new TestGCE();
+    var candidate = gce.addCandidate("hdfs://nn/external/rfiles/source.rf");
+    gce.addScanReference("4", null, candidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertNoCandidatesRemoved(gce);
   }
 
   @Test
@@ -671,15 +698,13 @@ public class GarbageCollectionTest {
   }
 
   @Test
-  public void testBadFileRef3() {
-    assertThrows(IllegalArgumentException.class,
-        () -> badRefTest("hdfs://foo.com:6000/accumulo/F00.rf"));
+  public void testExternalFileReferenceDoesNotNeedTabletPathLayout() {
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/F00.rf"));
   }
 
   @Test
-  public void testBadFileRef4() {
-    assertThrows(IllegalArgumentException.class,
-        () -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
+  public void testExternalFileReferenceCanHaveArbitraryPath() {
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
   }
 
   @Test
@@ -712,7 +737,8 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     System.out.println(gce.fileDeletions);
-    assertFileDeleted(gce);
+    assertFileDeleted(gce, new GcCandidate("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf", 8L),
+        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf", 11L));
   }
 
   @Test
