@@ -627,15 +627,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     @Override
     public Overrides override(InputParameters params) {
-      // This will validate the paths looks like a tablet file path and throw an exception if it
-      // does not
+      // Validate the output file's URI and the generated RFile name.
       var parts = ReferencedTabletFile.of(new Path(params.getOutputFile()));
       // For this test should be producing A files
       Preconditions.checkArgument(
           parts.getFileName().startsWith(FilePrefix.FULL_COMPACTION.getPrefix() + ""));
       Preconditions.checkArgument(parts.getFileName().endsWith(RFile.EXTENSION));
 
-      if (parts.getTabletDir()
+      if (parts.getPath().getParent().getName()
           .equals(MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)) {
         return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
       } else {

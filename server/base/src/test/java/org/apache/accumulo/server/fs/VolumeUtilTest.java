@@ -52,6 +52,10 @@ public class VolumeUtilTest {
         FileType.TABLE, replacements));
     assertNull(VolumeUtil.switchVolume(new Path("file:/nn1/a/accumulo/tables/t-00000/C000.rf"),
         FileType.TABLE, replacements));
+    assertEquals(new Path("viewfs:/a/accumulo/external/C000.rf"), VolumeUtil.switchVolume(
+        new Path("hdfs://nn1/accumulo/external/C000.rf"), FileType.TABLE, replacements));
+    assertNull(VolumeUtil.switchVolume(new Path("hdfs://nn1/accumulo-sibling/external/C000.rf"),
+        FileType.TABLE, replacements));
 
     replacements.clear();
     replacements.put(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/a/accumulo"));
