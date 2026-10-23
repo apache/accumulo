@@ -150,6 +150,9 @@ function getDataTableCols(storageKey) {
  * and executes an ajax method to load the data.
  */
 function refreshTable(table, storageKey) {
+  // save the current scroll position of the table
+  var $scrollContainer = $(table).parent('.dt-scroll-body');
+  var currentScrollTop = $scrollContainer.scrollTop();
 
   // Destroy the DataTable
   var dataTableRef = dataTableRefs.get(table);
@@ -182,6 +185,8 @@ function refreshTable(table, storageKey) {
   dataTableRef = createDataTable(table, storageKey);
   ajaxReloadTable(dataTableRef);
   dataTableRefs.set(table, dataTableRef);
+  // restore the scroll position
+  $scrollContainer.scrollTop(currentScrollTop);
 }
 
 /**
@@ -246,6 +251,7 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
  */
 function createDataTable(table, storageKey) {
   var dataTableRef = new DataTable(table, {
+    "scrollX": true,
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
@@ -253,9 +259,24 @@ function createDataTable(table, storageKey) {
       });
     },
     "buttons": [{
-      "extend": 'colvis',
-      "text": '<i class="bi bi-gear"></i>',
-      "titleAttr": 'Columns'
+        "extend": 'colvis',
+        "text": '<i class="bi bi-gear"></i>',
+        "titleAttr": 'Columns',
+      },
+      {
+        "extend": 'spacer'
+      },
+      {
+        "text": 'Reset',
+        "titleAttr": 'Reset column selection and column order',
+        action: function (e, table) {
+          // reset column selection
+          table.columns().visible(true);
+          // reset column order
+          if (table.colReorder) {
+            table.colReorder.reset();
+          }
+        }
     }],
     "layout": {
       "topStart": "pageLength",
@@ -384,5 +405,6 @@ function createDataTable(table, storageKey) {
     ],
     "columns": getDataTableCols(storageKey)
   });
+  //dataTableRef.columns.adjust();
   return dataTableRef;
 }
