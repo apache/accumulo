@@ -51,6 +51,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -203,5 +204,19 @@ public class SimpleGarbageCollectorTest {
             new GcCandidate("hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf", 6L),
             new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L)),
         processedDeletes);
+  }
+
+  @Test
+  public void testMinimizeDeletesExternalCandidate() {
+    String path = "hdfs://external-nn/imports/F0001.rf";
+    String candidatePath = GcVolumeUtil.encodeExternalCandidatePath(path);
+    TreeMap<String,GcCandidate> candidates = new TreeMap<>();
+    candidates.put("external:" + path, new GcCandidate(candidatePath, 1L));
+
+    GCRun.minimizeDeletes(candidates, new ArrayList<>(), createMock(VolumeManager.class), log,
+        Duration.ofMinutes(1));
+
+    assertEquals(1, candidates.size());
+    assertEquals(candidatePath, candidates.get("external:" + path).getPath());
   }
 }

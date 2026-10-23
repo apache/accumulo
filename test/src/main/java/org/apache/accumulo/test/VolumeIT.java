@@ -22,6 +22,8 @@ import static java.util.stream.Collectors.toCollection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,17 +44,25 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.ExternalTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.adminCommand.StopAll;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -206,6 +216,79 @@ public class VolumeIT extends VolumeITBase {
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
       verifyVolumesUsed(client, tableNames[1], true, v2);
+    }
+  }
+
+  @Test
+  public void testExternalFileSurvivesVolumeReplacement() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      verifyVolumesUsed(client, tableName, false, v1, v2);
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+      TabletMetadata tablet;
+      StoredTabletFile originalFile;
+      DataFileValue fileValue;
+      try (TabletsMetadata tablets = getServerContext().getAmple().readTablets().forTable(tableId)
+          .fetch(ColumnType.FILES).build()) {
+        tablet = tablets.iterator().next();
+        var firstFile = tablet.getFilesMap().entrySet().iterator().next();
+        originalFile = firstFile.getKey();
+        fileValue = firstFile.getValue();
+      }
+
+      Path externalPath =
+          new Path(new Path(v1.getParent(), "external-files"), getUniqueNames(1)[0] + ".rf");
+      FileSystem fs = externalPath.getFileSystem(getServerContext().getHadoopConf());
+      assertTrue(fs.mkdirs(externalPath.getParent()) || fs.exists(externalPath.getParent()));
+      IOUtils.copyBytes(fs.open(originalFile.getPath()), fs.create(externalPath),
+          getServerContext().getHadoopConf(), true);
+
+      ExternalTabletFile externalFile =
+          ExternalTabletFile.of(externalPath, originalFile.getRange());
+      getServerContext().getAmple().mutateTablet(tablet.getExtent()).deleteFile(originalFile)
+          .putFile(externalFile, fileValue).mutate();
+
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
+      cluster.stop();
+
+      java.nio.file.Path v1f = java.nio.file.Path.of(v1.toUri());
+      java.nio.file.Path v8f = java.nio.file.Path.of(v1.getParent().toUri()).resolve("v8");
+      Files.move(v1f, v8f, StandardCopyOption.ATOMIC_MOVE);
+      Path v8 = new Path(v8f.toUri());
+
+      java.nio.file.Path v2f = java.nio.file.Path.of(v2.toUri());
+      java.nio.file.Path v9f = java.nio.file.Path.of(v2.getParent().toUri()).resolve("v9");
+      Files.move(v2f, v9f, StandardCopyOption.ATOMIC_MOVE);
+      Path v9 = new Path(v9f.toUri());
+
+      updateConfig(config -> {
+        config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+        config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
+            v1 + " " + v8 + "," + v2 + " " + v9);
+      });
+      cluster.start();
+
+      Wait.waitFor(() -> {
+        boolean externalFound = false;
+        try (TabletsMetadata tablets = getServerContext().getAmple().readTablets().forTable(tableId)
+            .fetch(ColumnType.FILES).build()) {
+          for (TabletMetadata currentTablet : tablets) {
+            for (StoredTabletFile file : currentTablet.getFiles()) {
+              if (file.isExternal()) {
+                externalFound |= file.getPath().equals(externalPath);
+              } else if (file.getMetadataPath().startsWith(v1.toString())
+                  || file.getMetadataPath().startsWith(v2.toString())) {
+                return false;
+              }
+            }
+          }
+        }
+        return externalFound;
+      }, 30000, 250, "External reference was lost or volume paths were not replaced");
+
+      verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
+      assertTrue(fs.exists(externalPath));
     }
   }
 

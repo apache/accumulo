@@ -42,6 +42,8 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +57,7 @@ public class GarbageCollectionAlgorithm {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
   /**
-   * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
+   * This method takes a file or directory path and returns a relative path in one of 2 forms:
    *
    * <pre>
    *      1- For files: table-id/tablet-directory/filename.rf
@@ -124,16 +126,26 @@ public class GarbageCollectionAlgorithm {
 
     for (GcCandidate candidate : candidates) {
       String relPath;
-      try {
-        relPath = makeRelative(candidate.getPath(), 0);
-      } catch (IllegalArgumentException iae) {
-        log.warn("Ignoring invalid deletion candidate {}", candidate);
-        continue;
+      String path = candidate.getPath();
+      if (GcVolumeUtil.isExternalCandidatePath(path)) {
+        relPath = makeExternalRelative(GcVolumeUtil.decodeExternalCandidatePath(path));
+      } else {
+        try {
+          relPath = makeRelative(path, 0);
+        } catch (IllegalArgumentException iae) {
+          log.warn("Ignoring invalid deletion candidate {}", candidate);
+          continue;
+        }
       }
       ret.put(relPath, candidate);
     }
 
     return ret;
+  }
+
+  private String makeExternalRelative(String path) {
+    String normalized = new Path(path).toUri().normalize().toString();
+    return "external:" + normalized;
   }
 
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
@@ -161,15 +173,20 @@ public class GarbageCollectionAlgorithm {
           }
         } else {
           String reference = ref.getMetadataPath();
-          if (reference.startsWith("/")) {
-            log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
-                ref.getTableId());
-            reference = "/" + ref.getTableId() + ref.getMetadataPath();
-          } else if (!reference.contains(":") && !reference.startsWith("../")) {
-            throw new RuntimeException("Bad file reference " + reference);
-          }
+          String relativePath;
+          if (ref.isExternal()) {
+            relativePath = makeExternalRelative(reference);
+          } else {
+            if (reference.startsWith("/")) {
+              log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
+                  ref.getTableId());
+              reference = "/" + ref.getTableId() + ref.getMetadataPath();
+            } else if (!reference.contains(":") && !reference.startsWith("../")) {
+              throw new RuntimeException("Bad file reference " + reference);
+            }
 
-          String relativePath = makeRelative(reference, 3);
+            relativePath = makeRelative(reference, 3);
+          }
 
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
@@ -183,12 +200,14 @@ public class GarbageCollectionAlgorithm {
             }
           }
 
-          String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-          GcCandidate gcT = candidateMap.remove(dir);
-          if (gcT != null) {
-            log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
-            // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
-            // once.
+          if (!ref.isExternal()) {
+            String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
+            GcCandidate gcT = candidateMap.remove(dir);
+            if (gcT != null) {
+              log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
+              // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
+              // once.
+            }
           }
         }
       });

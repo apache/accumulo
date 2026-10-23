@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -129,6 +130,26 @@ public class TableDiskUsageTest {
     assertEquals(1, firstResult.getKey().size());
     assertEquals(14096, firstResult.getValue());
 
+    EasyMock.verify(client, mockTabletsMetadata);
+  }
+
+  @Test
+  public void testExternalFile() throws Exception {
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
+    final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
+
+    StoredTabletFile external =
+        StoredTabletFile.ofExternal(new Path("hdfs://external/imports/F.rf"));
+    TabletMetadata tablet = TabletMetadata.builder(new KeyExtent(tableId1, null, null))
+        .putFile(external, new DataFileValue(1024, 1)).build();
+    mockTabletsMetadataIter(mockTabletsMetadata, List.of(tablet).iterator());
+    EasyMock.replay(client, mockTabletsMetadata);
+
+    Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
+
+    assertEquals(1024, getTotalUsage(result, tableId1));
+    assertEquals(1024, result.get(tableNameSet(tableId1)));
     EasyMock.verify(client, mockTabletsMetadata);
   }
 

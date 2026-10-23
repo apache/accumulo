@@ -37,6 +37,11 @@ public interface Reference {
   boolean isScan();
 
   /**
+   * Returns true when this reference points to a file outside Accumulo's defined Volumes.
+   */
+  boolean isExternal();
+
+  /**
    * Get the {@link TableId} of the reference.
    */
   TableId getTableId();

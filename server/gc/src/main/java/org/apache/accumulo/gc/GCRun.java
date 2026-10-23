@@ -56,6 +56,7 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -304,8 +305,14 @@ public class GCRun implements GarbageCollectionEnvironment {
 
         try {
           Path fullPath;
-          Path switchedDelete = VolumeUtil.switchVolume(new Path(delete.getPath()),
-              VolumeManager.FileType.TABLE, replacements);
+          boolean externalCandidate = GcVolumeUtil.isExternalCandidatePath(delete.getPath());
+          Path deletePath = new Path(GcVolumeUtil.decodeExternalCandidatePath(delete.getPath()));
+          Path switchedDelete =
+              (!externalCandidate && (ReferencedTabletFile.isVolumePath(deletePath)
+                  || ReferencedTabletFile.isTabletDirPath(deletePath)))
+                      ? VolumeUtil.switchVolume(deletePath, VolumeManager.FileType.TABLE,
+                          replacements)
+                      : null;
           if (switchedDelete != null) {
             // actually replacing the volumes in the metadata table would be tricky because the
             // entries would be different rows. So it could not be
@@ -318,7 +325,7 @@ public class GCRun implements GarbageCollectionEnvironment {
             log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
             fullPath = ValidationUtil.validate(switchedDelete);
           } else {
-            fullPath = new Path(ValidationUtil.validate(delete.getPath()));
+            fullPath = ValidationUtil.validate(deletePath);
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
@@ -339,10 +346,18 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors.increment();
-              String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
-              if (parts.length > 2) {
-                TableId tableId = TableId.of(parts[1]);
-                String tabletDir = parts[2];
+              if (ReferencedTabletFile.isVolumePath(pathToDel)
+                  || ReferencedTabletFile.isTabletDirPath(pathToDel)) {
+                TableId tableId;
+                String tabletDir;
+                if (ReferencedTabletFile.isTabletDirPath(pathToDel)) {
+                  tableId = TableId.of(pathToDel.getParent().getName());
+                  tabletDir = pathToDel.getName();
+                } else {
+                  var parts = ReferencedTabletFile.parsePath(pathToDel);
+                  tableId = parts.getTableId();
+                  tabletDir = parts.getTabletDir();
+                }
                 TableState tableState = context.getTableManager().getTableState(tableId);
                 if (tableState != TableState.UNKNOWN && tableState != TableState.DELETING) {
                   // clone directories don't always exist
@@ -350,9 +365,11 @@ public class GCRun implements GarbageCollectionEnvironment {
                     log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
                   }
                 }
-              } else {
+              } else if (!deletePath.equals(pathToDel)) {
                 log.warn("{} Delete failed due to invalid file path format: {}", fileActionPrefix,
                     delete.getPath());
+              } else {
+                log.debug("{} File does not exist: {}", fileActionPrefix, pathToDel);
               }
             }
           }
@@ -442,6 +459,11 @@ public class GCRun implements GarbageCollectionEnvironment {
       progressCount++;
       Map.Entry<String,GcCandidate> entry = cdIter.next();
       String relPath = entry.getKey();
+      if (GcVolumeUtil.isExternalCandidatePath(entry.getValue().getPath())) {
+        lastDirRel = null;
+        lastDirAbs = null;
+        continue;
+      }
       Path absPath = new Path(entry.getValue().getPath());
 
       if (SimpleGarbageCollector.isDir(relPath)) {
