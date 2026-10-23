@@ -99,6 +99,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
@@ -672,7 +673,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
     String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
-    LogEntry logEntry = LogEntry.fromPath(fileName);
+    LogEntry logEntry = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, fileName);
     logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);

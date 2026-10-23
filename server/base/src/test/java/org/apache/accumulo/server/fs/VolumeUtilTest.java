@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
@@ -170,17 +171,17 @@ public class VolumeUtilTest {
 
     String walUUID = UUID.randomUUID().toString();
     String fileName = "hdfs://nn1/accumulo/wal/localhost+9997/" + walUUID;
-    LogEntry le = LogEntry.fromPath(fileName);
+    LogEntry le = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, fileName);
     LogEntry fixedVolume = VolumeUtil.switchVolume(le, replacements);
     assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
 
     fileName = "hdfs://nn1:9000/accumulo/wal/localhost+9997/" + walUUID;
-    le = LogEntry.fromPath(fileName);
+    le = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, fileName);
     fixedVolume = VolumeUtil.switchVolume(le, replacements);
     assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
 
     fileName = "hdfs://nn2/accumulo/wal/localhost+9997/" + walUUID;
-    le = LogEntry.fromPath(fileName);
+    le = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, fileName);
     fixedVolume = VolumeUtil.switchVolume(le, replacements);
     assertEquals("viewfs:/b/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
   }
