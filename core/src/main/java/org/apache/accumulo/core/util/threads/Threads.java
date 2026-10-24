@@ -95,7 +95,7 @@ public class Threads {
   // required Java version is at least 19
   public static String toString(Thread t) {
     StringBuilder sb = new StringBuilder("Thread[#");
-    sb.append(t.getId()).append(",").append(t.getName()).append(",").append(t.getPriority())
+    sb.append(t.threadId()).append(",").append(t.getName()).append(",").append(t.getPriority())
         .append(",");
     ThreadGroup group = t.getThreadGroup();
     if (group != null) {
