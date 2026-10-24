@@ -36,6 +36,7 @@ import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.fate.custom.FastFate;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;

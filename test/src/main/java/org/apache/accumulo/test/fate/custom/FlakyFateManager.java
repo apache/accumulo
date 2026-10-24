@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate;
+package org.apache.accumulo.test.fate.custom;
 
 import java.io.IOException;
 
@@ -24,35 +24,25 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.TraceRepo;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * See {@link SlowFateSplit}
- */
-public class SlowFateSplitManager extends Manager {
-  private static final Logger log = LoggerFactory.getLogger(SlowFateSplitManager.class);
-  // causes splits to take at least 10 seconds to complete
-  public static final long SLEEP_TIME_MS = 10_000;
-  // important that this is an op that can be initiated on some system table as well as user tables
-  public static final Fate.FateOperation SLOW_OP = Fate.FateOperation.TABLE_SPLIT;
-
-  protected SlowFateSplitManager(ServerOpts opts, String[] args) throws IOException {
+public class FlakyFateManager extends CustomFateManager {
+  protected FlakyFateManager(ServerOpts opts, String[] args) throws IOException {
     super(opts, ServerContext::new, args);
   }
 
   @Override
   protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
       ServerContext context) {
-    log.info("Creating Slow Split Fate for {}", store.type());
-    return new SlowFateSplit<>(env, store, TraceRepo::toLogString, getConfiguration());
+    LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate for {}",
+        store.type());
+    return new FlakyFate<>(env, store, TraceRepo::toLogString, getConfiguration());
   }
 
   public static void main(String[] args) throws Exception {
-    try (SlowFateSplitManager manager = new SlowFateSplitManager(new ServerOpts(), args)) {
+    try (FlakyFateManager manager = new FlakyFateManager(new ServerOpts(), args)) {
       manager.runServer();
     }
   }
