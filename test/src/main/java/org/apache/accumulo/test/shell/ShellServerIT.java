@@ -91,6 +91,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
+import org.apache.accumulo.core.util.test.URLContextClassLoaderFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.ImportExportIT;
@@ -131,7 +132,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
-      // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
+      cfg.setProperty(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY,
+          URLContextClassLoaderFactory.class.getName());
       Map<String,String> siteConf = cfg.getSiteConfig();
       cfg.setSiteConfig(siteConf);
     }
