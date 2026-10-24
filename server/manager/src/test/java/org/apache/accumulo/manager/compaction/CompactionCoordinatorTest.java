@@ -115,9 +115,6 @@ public class CompactionCoordinatorTest {
     protected void startDeadCompactionDetector() {}
 
     @Override
-    protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
-
-    @Override
     protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
       // This is called from CompactionCoordinator.run(). Counting down
       // the latch will exit the run method
