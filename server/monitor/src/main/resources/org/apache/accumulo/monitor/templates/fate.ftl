@@ -19,8 +19,8 @@
 
 -->
       <div class="row">
-        <div class="col-xs-12">
-          <table id="fateTable" class="table caption-top table-bordered table-striped table-condensed">
+        <div class="col-12">
+          <table id="fateTable" class="table caption-top table-bordered table-striped table-sm">
             <caption><span class="table-caption">Fate Transaction Details</span><br />
               <span class="table-subcaption">Use the <strong>accumulo inst fate</strong> server-side utility with the <strong>-l</strong> and <strong>-i</strong> options to see detailed information about a transaction.</span><br />
             </caption>

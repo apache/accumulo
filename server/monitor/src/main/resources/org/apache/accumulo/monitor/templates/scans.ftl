@@ -19,10 +19,10 @@
 
 -->
       <div class="row">
-        <div class="col-xs-12">
+        <div class="col-12">
           <span class="table-caption">Scans</span>
           <br />
-          <table id="scansList" class="table caption-top table-bordered table-striped table-condensed">
+          <table id="scansList" class="table caption-top table-bordered table-striped table-sm">
             <thead>
               <tr>
                 <th class="firstcell">Server</th>

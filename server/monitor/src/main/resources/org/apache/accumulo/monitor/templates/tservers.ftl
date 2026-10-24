@@ -25,13 +25,13 @@
       <div id="tservers-banner-message" class="alert" role="alert"></div>
     </div>    
     <div class="row">
-      <div class="col-xs-12">
+      <div class="col-12">
         <span class="table-caption">Tablet Servers</span>
         <br />
         <span class="table-subcaption">The following Tablet Servers reported status.</span>
         <br />
         <br />
-        <table id="tservers" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="tservers" class="table caption-top table-bordered table-striped table-sm">
           <#include "table_loading.ftl" >
         </table>
       </div>

@@ -19,7 +19,7 @@
 
 -->
       <div>
-        <table id="recovery-overview" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="recovery-overview" class="table caption-top table-bordered table-striped table-sm">
           <caption><span class="table-caption">Table Recovery Overview</span><br />
             <span>The Manager is reporting the following tablets need log sorting for recovery</span><br />
           </caption>
@@ -35,7 +35,7 @@
         <br />
       </div>
       <div>
-        <table id="tablets-needing-recovery" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="tablets-needing-recovery" class="table caption-top table-bordered table-striped table-sm">
           <caption><span class="table-caption">Tablets Requiring Recovery</span><br />
             <span>The system tables are reporting the following tablets need recovery (log sorting + mutations replayed)</span><br />
           </caption>
@@ -52,12 +52,12 @@
         <br />
       </div>
       <div>
-        <table id="servers-sorting" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="servers-sorting" class="table caption-top table-bordered table-striped table-sm">
           <caption><span class="table-caption">Servers Sorting WALs</span><br />
             <span>The following servers have reported WAL sort activity.<br />
             Compactors will sort WAL files when not performing a compaction.<br />
             Scan Servers and Tablet Servers will sort WAL files
-            in accordance with their properties ("sserver.wal.sort.concurrent.max` and `tserver.wal.sort.concurrent.max`)</span><br />
+            in accordance with their properties (`sserver.wal.sort.concurrent.max` and `tserver.wal.sort.concurrent.max`)</span><br />
           </caption>          
           <thead>
             <tr>
@@ -74,7 +74,7 @@
         <br />
       </div>
       <div>
-        <table id="servers-replaying" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="servers-replaying" class="table caption-top table-bordered table-striped table-sm">
           <caption>
             <span class="table-caption">Tablet Servers Recovering Tablets</span><br />
             <span>The following Tablet Servers have reported Tablet recovery activity.</span><br />

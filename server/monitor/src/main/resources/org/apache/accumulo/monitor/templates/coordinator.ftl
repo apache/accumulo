@@ -21,19 +21,19 @@
     <br />
     <span class="table-caption">Compaction Coordinator Activity</span>
     <br />
-    <table id="coordinators" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="coordinators" class="table caption-top table-bordered table-striped table-sm">
       <#include "table_loading.ftl" >
     </table>
     <br />
     <span class="table-caption">Compaction Coordinator Queues</span>
     <br />
-    <table id="coordinator_queues" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="coordinator_queues" class="table caption-top table-bordered table-striped table-sm">
       <#include "table_loading.ftl" >
     </table>
     <br />
     <span class="table-caption">Running Compactions By Table</span>
     <br />
-    <table id="table_running" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="table_running" class="table caption-top table-bordered table-striped table-sm">
         <thead>
           <tr>
             <th>Table Name</th>
@@ -45,7 +45,7 @@
     <br />
     <span class="table-caption">Running Compactions By Queue</span>
     <br />
-    <table id="queue_running" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="queue_running" class="table caption-top table-bordered table-striped table-sm">
         <thead>
           <tr>
             <th>Queue Name</th>
