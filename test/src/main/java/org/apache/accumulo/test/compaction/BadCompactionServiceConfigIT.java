@@ -21,6 +21,8 @@ package org.apache.accumulo.test.compaction;
 import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTION_USER_SVC_ERRORS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +38,10 @@ import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -286,17 +291,32 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
     // Create a table that is configured to use a compaction service that does not exist
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
+      // cs5 does not exist, should fail
       NewTableConfiguration ntc = new NewTableConfiguration().setProperties(
           Map.of(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "cs5"));
-      client.tableOperations().create(table, ntc);
-
       Wait.waitFor(() -> serviceMisconfigured.get() == true);
 
-      // The setup of this test creates an invalid configuration, fix this first thing.
+      assertThrows(AccumuloException.class, () -> client.tableOperations().create(table, ntc));
+      assertFalse(client.tableOperations().exists(table));
+
+      // change compaction service to one that is defined
+      NewTableConfiguration ntc2 = new NewTableConfiguration().setProperties(
+          Map.of(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "cs1"));
+
+      // The setup of this test creates an invalid configuration, fix this and recreate the table.
       var value = "[{'group':'cs1q1'}]".replaceAll("'", "\"");
       client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
-
       Wait.waitFor(() -> serviceMisconfigured.get() == false);
+      Wait.waitFor(() -> {
+        try {
+          client.tableOperations().create(table, ntc2);
+          return client.tableOperations().exists(table);
+        } catch (AccumuloSecurityException | AccumuloException e) {
+          return false;
+        } catch (TableExistsException e) {
+          return true;
+        }
+      });
 
       // Add splits so that the tserver logs can manually be inspected to ensure they are not
       // spammed. Not sure how to check this automatically.

@@ -22,16 +22,19 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MA
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
@@ -109,4 +112,67 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       verify(client, table, 1);
     }
   }
+
+  @Test
+  public void testCreateTableBadCompactionService() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final String table = getUniqueNames(1)[0];
+      // Creating a table with an incorrect compaction service should fail
+      AccumuloException ae =
+          assertThrows(AccumuloException.class, () -> createTable(client, table, "cs3", 50));
+      assertEquals("Internal error processing waitForFateOperation", ae.getMessage());
+    }
+  }
+
+  @Test
+  public void testConfigureBadCompactionService() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final String table = getUniqueNames(1)[0];
+      createTable(client, table, "cs1", 50);
+      // Setting an incorrect compaction service should fail
+      AccumuloException ae =
+          assertThrows(AccumuloException.class, () -> client.tableOperations().setProperty(table,
+              Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "cs4"));
+      assertEquals(
+          "ThriftPropertyException(property:table.compaction.dispatcher.opts.service, value:cs4, description:Compaction Service cs4 has not been configured.)",
+          ae.getMessage());
+    }
+  }
+
+  @Test
+  public void testCompactionFailsBadCompactionService() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.instanceOperations().setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner",
+          RatioBasedCompactionPlanner.class.getName());
+      client.instanceOperations().setProperty(
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner.opts.groups",
+          "[{'group':'" + ExternalCompactionTestUtils.GROUP2 + "'}]");
+
+      ((MiniAccumuloClusterImpl) getCluster()).getConfig().getClusterServerConfiguration()
+          .addCompactorResourceGroup(ExternalCompactionTestUtils.GROUP2, 1);
+      getCluster().start();
+
+      final String table = getUniqueNames(1)[0];
+      createTable(client, table, "cs2", 2);
+      ExternalCompactionTestUtils.writeData(client, table, MAX_DATA);
+      client.tableOperations().flush(table, null, null, true);
+      client.tableOperations().compact(table, new CompactionConfig().setWait(true));
+
+      // Remove the compaction service configuration, next compaction should fail
+      // because the configuration is invalid.
+      client.instanceOperations()
+          .removeProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner.opts.groups");
+      client.instanceOperations()
+          .removeProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs2.planner");
+
+      // Wait for property change propagation
+      AccumuloException ae = assertThrows(AccumuloException.class,
+          () -> client.tableOperations().compact(table, new CompactionConfig().setWait(true)));
+      assertEquals("Compaction Service cs2 has not been configured.", ae.getMessage());
+
+    }
+  }
+
 }

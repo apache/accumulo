@@ -18,21 +18,26 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,6 +102,62 @@ public class PropUtilTest {
     PropUtil.validateProperties(ctx, tkey,
         Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), TEST_CONTEXT_NAME));
     verify(ctx, conf, iid, tid);
+  }
+
+  @Test
+  public void testSetCompactionService() {
+    ConfigurationCopy conf = new ConfigurationCopy();
+
+    conf.set(
+        Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
+        RatioBasedCompactionPlanner.class.getName());
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME
+        + ".planner.opts.maxOpen", "10");
+    conf.set(
+        Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME
+            + ".planner.opts.groups",
+        "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},{'group':'large'}]");
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME
+        + ".planner.opts.validProp", "1");
+
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
+        RatioBasedCompactionPlanner.class.getName());
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+        "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},{'group':'large'}]");
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.validProp", "1");
+
+    ServerContext ctx = createMock(ServerContext.class);
+    expect(ctx.getConfiguration()).andReturn(conf).once();
+
+    replay(ctx);
+    assertTrue(PropUtil.isTableCompactionServiceValid(ctx, "cs1"));
+    assertTrue(PropUtil.isTableCompactionServiceValid(ctx, null));
+    verify(ctx);
+  }
+
+  @Test
+  public void testSetCompactionServiceFails() {
+    ConfigurationCopy conf = new ConfigurationCopy();
+
+    conf.set(
+        Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
+        RatioBasedCompactionPlanner.class.getName());
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME
+        + ".planner.opts.maxOpen", "10");
+    conf.set(
+        Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME
+            + ".planner.opts.groups",
+        "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},{'group':'large'}]");
+    conf.set(Property.COMPACTION_SERVICE_PREFIX.getKey() + DEFAULT_COMPACTION_SERVICE_NAME
+        + ".planner.opts.validProp", "1");
+
+    ServerContext ctx = createMock(ServerContext.class);
+    expect(ctx.getConfiguration()).andReturn(conf).once();
+
+    replay(ctx);
+    assertFalse(PropUtil.isTableCompactionServiceValid(ctx, "cs1"));
+    verify(ctx);
   }
 
 }
