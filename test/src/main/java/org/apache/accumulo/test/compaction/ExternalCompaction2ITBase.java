@@ -178,10 +178,8 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       // when the compaction starts it will create a selected files column in the tablet, wait for
       // that to happen
-      while (countTablets(getCluster().getServerContext(), table1,
-          tm -> tm.getSelectedFiles() != null) == 0) {
-        Thread.sleep(1000);
-      }
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), table1,
+          tm -> tm.getSelectedFiles() != null) > 0, "Compaction did not select files");
 
       client.tableOperations().cancelCompaction(table1);
 
@@ -193,10 +191,10 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
       confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // ensure the canceled compaction deletes any tablet metadata related to the compaction
-      while (countTablets(getCluster().getServerContext(), table1,
-          tm -> tm.getSelectedFiles() != null || !tm.getCompacted().isEmpty()) > 0) {
-        Thread.sleep(1000);
-      }
+      Wait.waitFor(
+          () -> countTablets(getCluster().getServerContext(), table1,
+              tm -> tm.getSelectedFiles() != null || !tm.getCompacted().isEmpty()) == 0,
+          "Canceled compaction metadata was not removed");
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
@@ -226,10 +224,8 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       // when the compaction starts it will create a selected files column in the tablet, wait for
       // that to happen
-      while (countTablets(getCluster().getServerContext(), table1,
-          tm -> tm.getSelectedFiles() != null) == 0) {
-        Thread.sleep(1000);
-      }
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), table1,
+          tm -> tm.getSelectedFiles() != null) > 0, "Compaction did not select files");
 
       client.tableOperations().delete(table1);
 

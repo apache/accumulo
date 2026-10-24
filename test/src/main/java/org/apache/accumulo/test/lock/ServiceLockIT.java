@@ -36,7 +36,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -482,9 +482,7 @@ public class ServiceLockIT {
       assertFalse(zl1.verifyLockAtSource());
       zk1.close();
 
-      while (!zlw2.isLockHeld()) {
-        LockSupport.parkNanos(50);
-      }
+      Wait.waitFor(zlw2::isLockHeld, 5_000, 50, "Second lock worker did not acquire the lock");
 
       assertTrue(zlw2.isLockHeld());
       assertTrue(zl2.verifyLockAtSource());
@@ -596,13 +594,12 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
 
       for (int i = 4; i > 0; i--) {
+        final int expectedChildren = i;
+        Wait.waitFor(() -> zk.getChildren(parent.toString(), null).size() == expectedChildren,
+            30_000, 100, "Unexpected number of lock children");
         List<String> children =
             ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString(), null));
-        while (children.size() != i) {
-          Thread.sleep(100);
-          children = zk.getChildren(parent.toString(), null);
-        }
-        assertEquals(i, children.size());
+        assertEquals(expectedChildren, children.size());
         String first = children.get(0);
         int workerWithLock = parseLockWorkerName(first);
         LockWorker worker = workers.get(workerWithLock);

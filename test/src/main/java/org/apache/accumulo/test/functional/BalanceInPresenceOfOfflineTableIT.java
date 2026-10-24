@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.HashMap;
@@ -138,19 +137,12 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
     VerifyIngest.verifyIngest(accumuloClient, params);
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
-    final long startTime = System.currentTimeMillis();
-    long currentWait = 1_000;
-    boolean balancingWorked = false;
-
-    while (!balancingWorked && (System.currentTimeMillis() - startTime) < ((5 * 60 + 15) * 1000)) {
-      Thread.sleep(currentWait);
-      currentWait = Math.min(currentWait * 2, 30_000);
-
+    Wait.waitFor(() -> {
       log.debug("fetch the list of tablets assigned to each tserver.");
 
       if (accumuloClient.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() < 2) {
-        log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);
-        continue;
+        log.debug("we need >= 2 servers");
+        return false;
       }
 
       Map<String,Integer> tableLocations = BalanceIT.countLocations(accumuloClient, TEST_TABLE);
@@ -158,13 +150,13 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       long unassignedTablets =
           tableLocations.entrySet().stream().filter(e -> e.getKey().equals("none")).count();
       if (unassignedTablets != 0) {
-        log.debug("We shouldn't have unassigned tablets. sleeping for {}ms", currentWait);
-        continue;
+        log.debug("We shouldn't have unassigned tablets.");
+        return false;
       }
       var numSplits = accumuloClient.tableOperations().listSplits(TEST_TABLE).size();
       if (numSplits < 20) {
-        log.debug("Waiting for 20 splits, saw {} split. sleeping for {}ms", numSplits, currentWait);
-        continue;
+        log.debug("Waiting for 20 splits, saw {} split.", numSplits);
+        return false;
       }
 
       HashMap<String,Integer> serversWithTablets = tableLocations.entrySet().stream()
@@ -176,27 +168,22 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
               });
 
       if (serversWithTablets.isEmpty()) {
-        continue;
+        return false;
       }
 
       if (serversWithTablets.values().iterator().next() <= 10) {
-        log.debug("We should have > 10 tablets. sleeping for {}ms tabletsPerServer:{}", currentWait,
-            List.of(serversWithTablets));
-        continue;
+        log.debug("We should have > 10 tablets. tabletsPerServer:{}", List.of(serversWithTablets));
+        return false;
       }
       Integer min = serversWithTablets.values().stream().min(Long::compare).orElseThrow();
       Integer max = serversWithTablets.values().stream().max(Long::compare).orElseThrow();
       log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
-        log.debug(
-            "ratio of min to max tablets per server should be roughly even. sleeping for {}ms",
-            currentWait);
-        continue;
+        log.debug("ratio of min to max tablets per server should be roughly even");
+        return false;
       }
-      balancingWorked = true;
-    }
-
-    assertTrue(balancingWorked, "did not properly balance");
+      return true;
+    }, (5 * 60 + 15) * 1000, 1_000, "did not properly balance");
   }
 
 }

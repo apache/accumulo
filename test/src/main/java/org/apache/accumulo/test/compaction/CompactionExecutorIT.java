@@ -73,6 +73,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -307,9 +308,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       addFiles(client, "rctt", 22);
 
-      while (getFiles(client, "rctt").size() > 2) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(() -> getFiles(client, "rctt").size() <= 2, 30_000, 100,
+          "Compaction did not reduce rctt to two files");
 
       assertEquals(2, getFiles(client, "rctt").size());
 
@@ -326,9 +326,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       addFiles(client, "rctt", 10);
 
-      while (getFiles(client, "rctt").size() > 4) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(() -> getFiles(client, "rctt").size() <= 4, 30_000, 100,
+          "Compaction did not reduce rctt to four files");
 
       assertEquals(4, getFiles(client, "rctt").size());
     }
@@ -359,9 +358,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
       addFiles(client, "acst", 42);
 
-      while (getFiles(client, "acst").size() > 6) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(() -> getFiles(client, "acst").size() <= 6, 30_000, 100,
+          "Compaction did not reduce acst to six files");
 
       assertEquals(6, getFiles(client, "acst").size());
     }
@@ -393,9 +391,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       addFiles(client, "dst1", 1);
       addFiles(client, "dst2", 1);
 
-      while (getFiles(client, "dst1").size() > 3 || getFiles(client, "dst2").size() > 2) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(
+          () -> getFiles(client, "dst1").size() <= 3 && getFiles(client, "dst2").size() <= 2,
+          30_000, 100, "Compaction did not reduce dst1 and dst2 to the expected file counts");
 
       assertEquals(3, getFiles(client, "dst1").size());
       assertEquals(2, getFiles(client, "dst2").size());
@@ -427,9 +425,9 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
       client.tableOperations().compact("dut2", new CompactionConfig().setWait(false)
           .setExecutionHints(Map.of("compaction_type", "special")));
 
-      while (getFiles(client, "dut1").size() > 2 || getFiles(client, "dut2").size() > 3) {
-        Thread.sleep(100);
-      }
+      Wait.waitFor(
+          () -> getFiles(client, "dut1").size() <= 2 && getFiles(client, "dut2").size() <= 3,
+          30_000, 100, "Compaction did not reduce dut1 and dut2 to the expected file counts");
 
       assertEquals(2, getFiles(client, "dut1").size());
       assertEquals(3, getFiles(client, "dut2").size());

@@ -195,26 +195,30 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   private boolean findFate(String aTableName) {
     boolean isMeta = aTableName.startsWith(Namespace.ACCUMULO.name());
     log.debug("Look for fate {}", aTableName);
-    for (int retry = 0; retry < 5; retry++) {
-      try {
-        boolean found =
-            isMeta ? lookupFateInZookeeper(aTableName) : lookupFateInAccumulo(aTableName);
-        log.trace("Try {}: Fate in {} for table {} : {}", retry, isMeta ? "zk" : "accumulo",
-            aTableName, found);
-        if (found) {
-          log.debug("Found fate {}", aTableName);
-          return true;
-        } else {
-          Thread.sleep(150);
+    AtomicInteger retries = new AtomicInteger();
+    try {
+      Wait.waitFor(() -> {
+        int retry = retries.getAndIncrement();
+        try {
+          boolean found =
+              isMeta ? lookupFateInZookeeper(aTableName) : lookupFateInAccumulo(aTableName);
+          log.trace("Try {}: Fate in {} for table {} : {}", retry, isMeta ? "zk" : "accumulo",
+              aTableName, found);
+          if (found) {
+            log.debug("Found fate {}", aTableName);
+          }
+          return found;
+        } catch (Exception ex) {
+          log.debug("Find fate failed for table name {} with exception, will retry", aTableName,
+              ex);
+          return false;
         }
-      } catch (InterruptedException ex) {
-        Thread.currentThread().interrupt();
-        return false;
-      } catch (Exception ex) {
-        log.debug("Find fate failed for table name {} with exception, will retry", aTableName, ex);
-      }
+        // Keep the original five lookup attempts at 150 ms intervals.
+      }, 600, 150, "FATE operation was not found for table " + aTableName);
+      return true;
+    } catch (IllegalStateException ex) {
+      return false;
     }
-    return false;
   }
 
   /**

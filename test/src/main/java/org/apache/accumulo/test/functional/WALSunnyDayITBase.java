@@ -30,7 +30,6 @@ import static org.apache.accumulo.minicluster.ServerType.GARBAGE_COLLECTOR;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -239,27 +239,17 @@ public abstract class WALSunnyDayITBase extends ConfigurableMacBase {
   private Map<String,WalState> getWALsAndAssertCount(ServerContext c, int expectedCount)
       throws Exception {
     // see https://issues.apache.org/jira/browse/ACCUMULO-4110. Sometimes this test counts the logs
-    // before
-    // the new standby log is actually ready. So let's try a few times before failing, returning the
-    // last
-    // wals variable with the the correct count.
-    Map<String,WalState> wals = _getWals(c);
-    if (wals.size() == expectedCount) {
-      return wals;
-    }
-
-    int waitLonger = Wait.getTimeoutFactor(e -> 1); // default to 1
-    for (int i = 1; i <= TIMES_TO_COUNT; i++) {
-      Thread.sleep(i * PAUSE_BETWEEN_COUNTS * waitLonger);
-      wals = _getWals(c);
-      if (wals.size() == expectedCount) {
-        return wals;
-      }
-    }
-
-    fail(
-        "Unable to get the correct number of WALs, expected " + expectedCount + " but got " + wals);
-    return new HashMap<>();
+    // before the new standby log is actually ready, so wait for the expected count. The timeout is
+    // the sum of the original progressive retry delays; Wait applies the configured timeout factor.
+    long waitMillis = (long) TIMES_TO_COUNT * (TIMES_TO_COUNT + 1) / 2 * PAUSE_BETWEEN_COUNTS;
+    long retryMillis = (long) (TIMES_TO_COUNT + 1) * PAUSE_BETWEEN_COUNTS / 2;
+    AtomicReference<Map<String,WalState>> result = new AtomicReference<>();
+    Wait.waitFor(() -> {
+      result.set(_getWals(c));
+      return result.get().size() == expectedCount;
+    }, waitMillis, retryMillis,
+        "Unable to get the correct number of WALs, expected " + expectedCount);
+    return result.get();
   }
 
   static Map<String,WalState> _getWals(ServerContext c) throws Exception {

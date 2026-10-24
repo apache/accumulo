@@ -338,29 +338,28 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
     }
 
-    boolean sawMetricsQ1 = false;
-    boolean sawMetricsQ1Size = false;
+    AtomicBoolean sawMetricsQ1 = new AtomicBoolean(false);
+    AtomicBoolean sawMetricsQ1Size = new AtomicBoolean(false);
 
-    while (!sawMetricsQ1 || !sawMetricsQ1Size) {
+    Wait.waitFor(() -> {
       while (!queueMetrics.isEmpty()) {
         var qm = queueMetrics.take();
         if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(qm.getValue()) > 0) {
-            sawMetricsQ1 = true;
+            sawMetricsQ1.set(true);
           }
         }
         if (qm.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName())
             && qm.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(qm.getValue()) > 0) {
-            sawMetricsQ1Size = true;
+            sawMetricsQ1Size.set(true);
           }
         }
       }
-
-      // If metrics are not found in the queue, sleep until the next poll.
-      UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
-    }
+      return sawMetricsQ1.get() && sawMetricsQ1Size.get();
+    }, 60_000, TestStatsDRegistryFactory.pollingFrequency.toMillis(),
+        "Expected queue 1 jobs and size metrics");
 
     // Set lowest priority to the lowest possible system compaction priority
     long lowestPriority = Short.MIN_VALUE;
@@ -404,18 +403,18 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
     getCluster().getClusterControl().start(ServerType.COMPACTOR);
 
-    boolean emptyQueue = false;
+    AtomicBoolean emptyQueue = new AtomicBoolean(false);
 
     // Make sure that metrics added to the queue are recent
     UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
 
-    while (!emptyQueue) {
+    Wait.waitFor(() -> {
       while (!queueMetrics.isEmpty()) {
         var metric = queueMetrics.take();
         if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())
             && metric.getTags().containsValue(QUEUE1_METRIC_LABEL)) {
           if (Integer.parseInt(metric.getValue()) == 0) {
-            emptyQueue = true;
+            emptyQueue.set(true);
           }
         }
 
@@ -423,12 +422,13 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         // above queue.
         if (metric.getName().equals(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
           if (Integer.parseInt(metric.getValue()) == 0) {
-            emptyQueue = true;
+            emptyQueue.set(true);
           }
         }
       }
-      UtilWaitThread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis());
-    }
+      return emptyQueue.get();
+    }, 60_000, TestStatsDRegistryFactory.pollingFrequency.toMillis(),
+        "Expected the compaction queue to empty");
   }
 
   /**

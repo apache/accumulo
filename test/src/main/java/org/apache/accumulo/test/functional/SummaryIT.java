@@ -88,6 +88,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.FileMetadataUtil;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -605,19 +606,18 @@ public class SummaryIT extends SharedMiniClusterBase {
 
         c.securityOperations().grantTablePermission("user1", table, TablePermission.GET_SUMMARIES);
 
-        int tries = 0;
-        while (tries < 10) {
+        Summary[] summary = new Summary[1];
+        Wait.waitFor(() -> {
           try {
-            Summary summary = c2.tableOperations().summaries(table).retrieve().get(0);
-            assertEquals(2, summary.getStatistics().size());
-            assertEquals(2L, (long) summary.getStatistics().getOrDefault("bars", 0L));
-            assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
-            break;
+            summary[0] = c2.tableOperations().summaries(table).retrieve().get(0);
+            return true;
           } catch (AccumuloSecurityException ase) {
-            Thread.sleep(500);
-            tries++;
+            return false;
           }
-        }
+        }, 5_000, 500, "Timed out waiting for GET_SUMMARIES permission to take effect");
+        assertEquals(2, summary[0].getStatistics().size());
+        assertEquals(2L, (long) summary[0].getStatistics().getOrDefault("bars", 0L));
+        assertEquals(1L, (long) summary[0].getStatistics().getOrDefault("foos", 0L));
       }
     }
   }

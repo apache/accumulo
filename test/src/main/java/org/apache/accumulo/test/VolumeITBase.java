@@ -64,7 +64,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -72,6 +71,7 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.FileMetadataUtil;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -204,7 +204,7 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
       }
 
       // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
-      retry: while (true) {
+      Wait.waitFor(() -> {
         WalStateManager wals = new WalStateManager(getServerContext());
         try {
           outer: for (var wal : wals.getAllState()) {
@@ -214,19 +214,18 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
               }
             }
             log.warn("Unexpected volume " + wal.path() + " (" + wal.state() + ")");
-            UtilWaitThread.sleep(100);
-            continue retry;
+            return false;
           }
+          return true;
         } catch (WalStateManager.WalMarkerException e) {
           Throwable cause = e.getCause();
           if (cause instanceof KeeperException.NoNodeException) {
             // ignore WALs being cleaned up
-            continue retry;
+            return false;
           }
           throw e;
         }
-        break;
-      }
+      }, 30_000, 100, "WAL state information did not stabilize");
 
       // if a volume is chosen randomly for each tablet, then the probability that a volume will not
       // be chosen for any tablet is ((num_volumes -
