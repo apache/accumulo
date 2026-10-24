@@ -90,7 +90,7 @@ public enum Property {
       "4.0.0"),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
-  RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
+  RPC_PREFIX("rpc.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
@@ -147,7 +147,7 @@ public enum Property {
       "1.7.0"),
 
   // instance properties (must be the same for every node in an instance)
-  INSTANCE_PREFIX("instance.", null, PropertyType.PREFIX,
+  INSTANCE_PREFIX("instance.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category must be consistent throughout an instance. "
           + "This is enforced and servers won't be able to communicate if these differ.",
       "1.3.5"),
@@ -418,7 +418,7 @@ public enum Property {
       "4.0.0"),
 
   // properties that are specific to manager server behavior
-  MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
+  MANAGER_PREFIX("manager.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
   MANAGER_CLIENTPORT("manager.port.client", "9999-10009", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
@@ -603,7 +603,7 @@ public enum Property {
       as un-splittable.
       """, "4.0.0"),
   // properties that are specific to scan server behavior
-  SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
+  SSERV_PREFIX("sserver.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the scan servers.", "2.1.0"),
   SSERV_DATACACHE_SIZE("sserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks on each scan server.", "2.1.0"),
@@ -684,7 +684,7 @@ public enum Property {
   SSERV_WAL_SORT_MAX_CONCURRENT("sserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery.", "4.0.0"),
   // properties that are specific to tablet server behavior
-  TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
+  TSERV_PREFIX("tserver.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the tablet servers.", "1.3.5"),
   TSERV_CLIENT_TIMEOUT("tserver.client.timeout", "3s", PropertyType.TIMEDURATION,
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
@@ -892,7 +892,7 @@ public enum Property {
       "4.0.0"),
 
   // accumulo garbage collector properties
-  GC_PREFIX("gc.", null, PropertyType.PREFIX,
+  GC_PREFIX("gc.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the accumulo garbage collector.",
       "1.3.5"),
   GC_CANDIDATE_BATCH_SIZE("gc.candidate.batch.size", "50%", PropertyType.MEMORY,
@@ -920,7 +920,7 @@ public enum Property {
       """, "1.10.0"),
 
   // properties that are specific to the monitor server behavior
-  MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
+  MONITOR_PREFIX("monitor.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the monitor web server.", "1.3.5"),
   MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
       "The listening port for the monitor's http service.", "1.3.5"),
@@ -1364,7 +1364,7 @@ public enum Property {
           + "table.file.ec is set to enable.",
       "2.1.4"),
   // Compactor properties
-  COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
+  COMPACTOR_PREFIX("compactor.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
   COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
       PropertyType.TIMEDURATION,
@@ -1418,7 +1418,7 @@ public enum Property {
   COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
-  COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
+  COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.CLOSED_PREFIX,
       "Properties in this category affect the behavior of the accumulo compaction coordinator server.",
       "2.1.0"),
   COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT("compaction.coordinator.reservation.threads.root",
@@ -1619,7 +1619,7 @@ public enum Property {
     if (prop != null) {
       return prop.isSensitive();
     }
-    return validPrefixes.stream().filter(key::startsWith).map(propertiesByKey::get)
+    return allPrefixes().stream().filter(key::startsWith).map(propertiesByKey::get)
         .anyMatch(Property::isSensitive);
   }
 
@@ -1639,12 +1639,22 @@ public enum Property {
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
       Class<T> annotationType) {
     Predicate<Property> hasIt = prop -> prop.hasAnnotation(annotationType);
-    return validPrefixes.stream().filter(key::startsWith).map(propertiesByKey::get).anyMatch(hasIt);
+    return allPrefixes().stream().filter(key::startsWith).map(propertiesByKey::get).anyMatch(hasIt);
+  }
+
+  private static Set<String> allPrefixes() {
+    Set<String> all = new HashSet<>(openPrefixes);
+    all.addAll(closedPrefixes);
+    return all;
   }
 
   private static final HashSet<String> validTableProperties = new HashSet<>();
   private static final HashSet<String> validProperties = new HashSet<>();
-  private static final HashSet<String> validPrefixes = new HashSet<>();
+  // prefixes that accept arbitrary, undefined suffixes (e.g. table.custom., table.iterator.)
+  private static final HashSet<String> openPrefixes = new HashSet<>();
+  // prefixes that are purely namespace groupings; a key under one of these is only valid if it is a
+  // concretely defined property, or falls under a more specific, nested open prefix
+  private static final HashSet<String> closedPrefixes = new HashSet<>();
   private static final HashMap<String,Property> propertiesByKey = new HashMap<>();
 
   /**
@@ -1660,21 +1670,48 @@ public enum Property {
     Property p = getPropertyByKey(key);
     if (p == null) {
       // If a key doesn't exist yet, then check if it follows a valid prefix
-      return validPrefixes.stream().anyMatch(key::startsWith);
+      return isValidPropertyKey(key);
     }
     return (isValidPropertyKey(key) && p.getType().isValidFormat(value));
   }
 
   /**
    * Checks if the given property key is valid. A valid property key is either equal to the key of
-   * some defined property or has a prefix matching some prefix defined in this class.
+   * some defined property or its <b>longest matching prefix</b> (see {@link #findLongestPrefix}) is
+   * an open {@link PropertyType#PREFIX} (as opposed to a {@link PropertyType#CLOSED_PREFIX}, which
+   * only groups known properties and does not permit arbitrary suffixes).
    *
    * @param key property key
    * @return true if key is valid (recognized, or has a recognized prefix)
    */
   public static boolean isValidPropertyKey(String key) {
-    return validProperties.contains(key) || validPrefixes.stream().anyMatch(key::startsWith);
+    // return validProperties.contains(key) || validPrefixes.stream().anyMatch(key::startsWith);
+    if (propertiesByKey.containsKey(key)) {
+      return true;
+    }
+    String longestPrefix = findLongestPrefix(key);
+    return longestPrefix != null && openPrefixes.contains(longestPrefix);
+  }
 
+  /**
+   * Finds the longest prefix (open or closed) that the given key start with.
+   *
+   * @param key property key
+   * @return the longest matching prefix, or null if no prefix matches
+   */
+  private static String findLongestPrefix(String key) {
+    String longest = null;
+    for (String prefix : openPrefixes) {
+      if (key.startsWith(prefix) && (longest == null || prefix.length() > longest.length())) {
+        longest = prefix;
+      }
+    }
+    for (String prefix : closedPrefixes) {
+      if (key.startsWith(prefix) && (longest == null || prefix.length() > longest.length())) {
+        longest = prefix;
+      }
+    }
+    return longest;
   }
 
   /**
@@ -1898,18 +1935,26 @@ public enum Property {
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
-    Predicate<Property> isPrefix = p -> p.getType() == PropertyType.PREFIX;
+    Predicate<Property> isOpenPrefix = p -> p.getType() == PropertyType.PREFIX;
+    Predicate<Property> isClosedPrefix = p -> p.getType() == PropertyType.CLOSED_PREFIX;
+    Predicate<Property> isAnyPrefix = isOpenPrefix.or(isClosedPrefix);
     Arrays.stream(Property.values())
         // record all properties by key
         .peek(p -> propertiesByKey.put(p.getKey(), p))
-        // save all the prefix properties
+        // save all the open prefix properties
         .peek(p -> {
-          if (isPrefix.test(p)) {
-            validPrefixes.add(p.getKey());
+          if (isOpenPrefix.test(p)) {
+            openPrefixes.add(p.getKey());
+          }
+        })
+        // save all the closed prefix properties
+        .peek(p -> {
+          if (isClosedPrefix.test(p)) {
+            closedPrefixes.add(p.getKey());
           }
         })
         // only use the keys for the non-prefix properties from here on
-        .filter(isPrefix.negate()).map(Property::getKey)
+        .filter(isAnyPrefix.negate()).map(Property::getKey)
         // everything left is a valid property
         .peek(validProperties::add)
         // but some are also valid table properties

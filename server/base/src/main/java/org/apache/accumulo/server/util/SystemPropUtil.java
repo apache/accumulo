@@ -101,14 +101,15 @@ public class SystemPropUtil {
     // Find the property taking prefix into account
     Property foundProp = null;
     for (Property prop : Property.values()) {
-      if ((prop.getType() == PropertyType.PREFIX && property.startsWith(prop.getKey()))
-          || prop.getKey().equals(property)) {
+      if (((prop.getType() == PropertyType.PREFIX || prop.getType() == PropertyType.CLOSED_PREFIX)
+          && property.startsWith(prop.getKey())) || prop.getKey().equals(property)) {
         foundProp = prop;
         break;
       }
     }
 
-    if (foundProp == null || (foundProp.getType() != PropertyType.PREFIX
+    if (foundProp == null || ((foundProp.getType() != PropertyType.PREFIX
+        && foundProp.getType() != PropertyType.CLOSED_PREFIX)
         && !foundProp.getType().isValidFormat(value))) {
       IllegalArgumentException iae = new IllegalArgumentException(
           "Ignoring property " + property + " it is either null or in an invalid format");
