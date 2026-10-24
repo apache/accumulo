@@ -1836,4 +1836,30 @@ under the License.
       </properties>
     </profile>
   </profiles>
+  <repositories>
+    <repository>
+      <id>jvnet-nexus-releases</id>
+      <name>jvnet-nexus-releases-override</name>
+      <url>https://apache.org</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>jvnet-nexus-releases</id>
+      <name>jvnet-nexus-releases-override</name>
+      <url>https://apache.org</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </pluginRepository>
+  </pluginRepositories>
 </project>
