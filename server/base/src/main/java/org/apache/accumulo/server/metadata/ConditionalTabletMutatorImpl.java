@@ -32,6 +32,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.encodePrevEndRow;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -360,6 +362,17 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
           .setValue(PresentIterator.VALUE).setIterators(is);
       mutation.addCondition(c);
     }
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireFiles(Map<StoredTabletFile,DataFileValue> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = SetEncodingIterator.createConditionWithVal(files.entrySet(),
+        entry -> new Pair<>(entry.getKey().getMetadata().getBytes(UTF_8),
+            entry.getValue().encode()),
+        DataFileColumnFamily.NAME);
+    mutation.addCondition(c);
     return this;
   }
 

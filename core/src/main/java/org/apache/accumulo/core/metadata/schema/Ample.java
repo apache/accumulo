@@ -527,6 +527,11 @@ public interface Ample {
      */
     ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
 
+    /*
+     * Require that a tablet contain all the files in the set with the exact same DataFileValue
+     */
+    ConditionalTabletMutator requireFiles(Map<StoredTabletFile,DataFileValue> files);
+
     /**
      * Require that a tablet have less than or equals the specified number of files.
      */
