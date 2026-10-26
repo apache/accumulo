@@ -1040,7 +1040,7 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
-  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "122d", PropertyType.TIMEDURATION,
       """
           Key values written to a tablet are temporarily stored in a per tablet in memory map.  When \
           the age of the oldest key value in a tablets in memory map exceeds this configuration, then  \
