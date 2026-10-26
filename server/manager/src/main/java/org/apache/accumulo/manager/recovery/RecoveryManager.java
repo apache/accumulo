@@ -41,6 +41,7 @@ import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.manager.recovery.LogCloser;
@@ -87,10 +88,13 @@ public class RecoveryManager {
     private final String source;
     private final String destination;
     private final String sortId;
+    private final String providerId;
     private final LogCloser closer;
 
-    public LogSortTask(LogCloser closer, String source, String destination, String sortId) {
+    public LogSortTask(LogCloser closer, String providerId, String source, String destination,
+        String sortId) {
       this.closer = closer;
+      this.providerId = providerId;
       this.source = source;
       this.destination = destination;
       this.sortId = sortId;
@@ -100,15 +104,15 @@ public class RecoveryManager {
     public void run() {
       boolean rescheduled = false;
       try {
-        long time = closer.close(manager.getConfiguration(), manager.getContext().getHadoopConf(),
-            manager.getVolumeManager(), new Path(source));
+        long time = closer == null ? 0 : closer.close(manager.getConfiguration(),
+            manager.getContext().getHadoopConf(), manager.getVolumeManager(), new Path(source));
 
         if (time > 0) {
           ScheduledFuture<?> future = executor.schedule(this, time, TimeUnit.MILLISECONDS);
           ThreadPools.watchNonCriticalScheduledTask(future);
           rescheduled = true;
         } else {
-          initiateSort(sortId, source, destination);
+          initiateSort(sortId, providerId, source, destination);
         }
       } catch (FileNotFoundException e) {
         log.debug("Unable to initiate log sort for " + source + ": " + e);
@@ -125,9 +129,9 @@ public class RecoveryManager {
 
   }
 
-  private void initiateSort(String sortId, String source, final String destination)
-      throws KeeperException, InterruptedException {
-    String work = source + "|" + destination;
+  private void initiateSort(String sortId, String providerId, String source,
+      final String destination) throws KeeperException, InterruptedException {
+    String work = providerId + "|" + source + "|" + destination;
     new DistributedWorkQueue(Constants.ZRECOVERY, manager.getConfiguration(), manager)
         .addWork(sortId, work.getBytes(UTF_8));
 
@@ -180,8 +184,8 @@ public class RecoveryManager {
   private boolean recoverLog(LogEntry walog) throws IOException {
     boolean recoveryNeeded = false;
 
-    LogEntry switchedWalog =
-        VolumeUtil.switchVolume(walog, manager.getContext().getVolumeReplacements());
+    LogEntry switchedWalog = walog.getProviderId().equals(DfsWalProvider.PROVIDER_ID)
+        ? VolumeUtil.switchVolume(walog, manager.getContext().getVolumeReplacements()) : null;
     if (switchedWalog != null) {
       // replaces the volume used for sorting, but do not change entry in metadata table. When
       // the tablet loads it will change the metadata table entry. If
@@ -221,8 +225,10 @@ public class RecoveryManager {
     synchronized (this) {
       if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
         AccumuloConfiguration aconf = manager.getConfiguration();
-        LogCloser closer = Property.createInstanceFromPropertyName(aconf,
-            Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, new HadoopLogCloser());
+        LogCloser closer = walog.getProviderId().equals(DfsWalProvider.PROVIDER_ID)
+            ? Property.createInstanceFromPropertyName(aconf,
+                Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, new HadoopLogCloser())
+            : null;
         Long delay = recoveryDelay.get(sortId);
         if (delay == null) {
           delay = aconf.getTimeInMillis(Property.MANAGER_RECOVERY_DELAY);
@@ -233,7 +239,8 @@ public class RecoveryManager {
         log.info("Starting recovery of {} (in : {}s)", filename, (delay / 1000));
 
         ScheduledFuture<?> future = executor.schedule(
-            new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
+            new LogSortTask(closer, walog.getProviderId(), filename, dest, sortId), delay,
+            TimeUnit.MILLISECONDS);
         ThreadPools.watchNonCriticalScheduledTask(future);
         closeTasksQueued.add(sortId);
         recoveryDelay.put(sortId, delay);

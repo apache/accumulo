@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.spi.wal.WalProvider;
 import org.apache.hadoop.io.Text;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -36,12 +37,15 @@ import com.google.common.net.HostAndPort;
 public final class LogEntry {
 
   private final String path;
+  private final String providerId;
   private final HostAndPort tserver;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
-  private LogEntry(String path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
+  private LogEntry(String path, String providerId, HostAndPort tserver, UUID uniqueId,
+      Text columnQualifier) {
     this.path = path;
+    this.providerId = providerId;
     this.tserver = tserver;
     this.uniqueId = uniqueId;
     this.columnQualifier = columnQualifier;
@@ -54,15 +58,19 @@ public final class LogEntry {
    * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
    * valid path.
    *
+   * @param providerId provider that owns this WAL
    * @param path path to validate
    * @return an object representation of this log entry
    * @throws IllegalArgumentException if the path is invalid
    */
-  public static LogEntry fromPath(String path) {
-    return validatedLogEntry(path, null);
+  public static LogEntry fromPath(String providerId, String path) {
+    return validatedLogEntry(path, providerId, null);
   }
 
-  private static LogEntry validatedLogEntry(String path, Text columnQualifier) {
+  private static LogEntry validatedLogEntry(String path, String providerId, Text columnQualifier) {
+    Preconditions.checkArgument(
+        providerId != null && providerId.matches(WalProvider.PROVIDER_ID_REGEX),
+        "Invalid WAL provider ID: %s", providerId);
     String[] parts = path.split("/");
 
     if (parts.length < 2) {
@@ -96,7 +104,7 @@ public final class LogEntry {
       throw new IllegalArgumentException(badUuidMsg);
     }
 
-    return new LogEntry(path, tserver, uuid, columnQualifier);
+    return new LogEntry(path, providerId, tserver, uuid, columnQualifier);
   }
 
   /**
@@ -115,7 +123,7 @@ public final class LogEntry {
     Text qualifier = entry.getKey().getColumnQualifier();
     String[] parts = qualifier.toString().split("/", 2);
     Preconditions.checkArgument(parts.length == 2, "Malformed write-ahead log %s", qualifier);
-    return validatedLogEntry(parts[1], qualifier);
+    return validatedLogEntry(parts[1], parts[0], qualifier);
   }
 
   @NonNull
@@ -127,6 +135,10 @@ public final class LogEntry {
   @NonNull
   public String getPath() {
     return path;
+  }
+
+  public String getProviderId() {
+    return providerId;
   }
 
   @NonNull
@@ -145,14 +157,15 @@ public final class LogEntry {
       return true;
     }
     if (other instanceof LogEntry) {
-      return path.equals(((LogEntry) other).path);
+      return path.equals(((LogEntry) other).path)
+          && providerId.equals(((LogEntry) other).providerId);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(path);
+    return Objects.hash(providerId, path);
   }
 
   /**
@@ -163,7 +176,7 @@ public final class LogEntry {
   }
 
   private Text newCQ() {
-    return new Text("-/" + getPath());
+    return new Text(providerId + "/" + getPath());
   }
 
   /**

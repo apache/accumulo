@@ -227,6 +227,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
     context = super.getContext();
+    context.getWalProviderRegistry();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -1030,7 +1031,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       TServerInstance session = this.getTabletSession();
       for (DfsLogger candidate : eligible) {
         log.info("Marking " + candidate.getPath() + " as unreferenced");
-        walMarker.walUnreferenced(session, candidate.getPath());
+        walMarker.walUnreferenced(session, candidate.getLogEntry());
       }
       synchronized (closedLogs) {
         closedLogs.removeAll(eligible);
@@ -1042,7 +1043,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public void addNewLogMarker(DfsLogger copy) throws WalMarkerException {
     log.info("Writing log marker for " + copy.getPath());
-    walMarker.addNewWalMarker(getTabletSession(), copy.getPath());
+    walMarker.addNewWalMarker(getTabletSession(), copy.getLogEntry());
   }
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
@@ -1054,7 +1055,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         clSize = closedLogs.size();
       }
       log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getPath(), clSize);
-      walMarker.closeWal(getTabletSession(), currentLog.getPath());
+      walMarker.closeWal(getTabletSession(), currentLog.getLogEntry());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
       // see if any need to minor compact
@@ -1072,7 +1073,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
     } else {
       log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
-      walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
+      walMarker.walUnreferenced(getTabletSession(), currentLog.getLogEntry());
     }
   }
 

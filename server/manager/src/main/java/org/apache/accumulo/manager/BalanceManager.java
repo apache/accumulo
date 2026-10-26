@@ -312,7 +312,7 @@ class BalanceManager {
   /**
    * Waits for the given data levels to complete a run of balancing with zero migrations.
    */
-  private void waitForBalance(Set<Ample.DataLevel> levels) {
+  void waitForBalance(Set<Ample.DataLevel> levels) {
     synchronized (balancedNotifier) {
       var snapshot = new EnumMap<Ample.DataLevel,Long>(Ample.DataLevel.class);
       for (var dl : levels) {

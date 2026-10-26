@@ -33,6 +33,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
  * The state of the WALs is kept in Zookeeper under /accumulo/&lt;instanceid&gt;/wals. For each
  * server, there is a znode formatted like the TServerInstance.toString(): "host:port[sessionid]".
  * Under the server znode, is a node for each log, using the UUID for the log. In each of the WAL
- * znodes, is the current state of the log, and the full path to the log.
+ * znodes, is the current state of the log, the provider ID, and the full path to the log.
  *
  * <p>
  * The state [OPEN, CLOSED, UNREFERENCED] is what the tablet server believes to be the state of the
@@ -86,7 +87,7 @@ public class WalStateManager {
     UNREFERENCED
   }
 
-  public record WalStatePath(WalState state, Path path) {
+  public record WalStatePath(WalState state, String providerId, Path path) {
   }
 
   private final ZooReaderWriter zoo;
@@ -131,12 +132,21 @@ public class WalStateManager {
 
   // Tablet server opens a new WAL
   public void addNewWalMarker(TServerInstance tsi, Path path) throws WalMarkerException {
-    updateState(tsi, path, WalState.OPEN);
+    updateState(tsi, DfsWalProvider.PROVIDER_ID, path, WalState.OPEN);
+  }
+
+  public void addNewWalMarker(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
+    updateState(tsi, entry.getProviderId(), new Path(entry.getPath()), WalState.OPEN);
   }
 
   private void updateState(TServerInstance tsi, Path path, WalState state)
       throws WalMarkerException {
-    byte[] data = (state + "," + path).getBytes(UTF_8);
+    updateState(tsi, DfsWalProvider.PROVIDER_ID, path, state);
+  }
+
+  private void updateState(TServerInstance tsi, String providerId, Path path, WalState state)
+      throws WalMarkerException {
+    byte[] data = (state + "," + providerId + "," + path).getBytes(UTF_8);
     try {
       NodeExistsPolicy policy = NodeExistsPolicy.OVERWRITE;
       if (state == WalState.OPEN) {
@@ -157,14 +167,25 @@ public class WalStateManager {
     updateState(tsi, path, WalState.UNREFERENCED);
   }
 
+  public void walUnreferenced(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
+    updateState(tsi, entry.getProviderId(), new Path(entry.getPath()), WalState.UNREFERENCED);
+  }
+
+  public void closeWal(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
+    closeWal(tsi, new Path(entry.getPath()), entry.getProviderId());
+  }
+
   public static WalStatePath parse(byte[] data) {
-    String[] parts = new String(data, UTF_8).split(",");
-    return new WalStatePath(WalState.valueOf(parts[0]), new Path(parts[1]));
+    String[] parts = new String(data, UTF_8).split(",", 3);
+    if (parts.length != 3) {
+      throw new IllegalArgumentException("Malformed WAL state: " + new String(data, UTF_8));
+    }
+    return new WalStatePath(WalState.valueOf(parts[0]), parts[1], new Path(parts[2]));
   }
 
   // Manager needs to know the logs for the given instance
-  public List<Path> getWalsInUse(TServerInstance tsi) throws WalMarkerException {
-    List<Path> result = new ArrayList<>();
+  public List<LogEntry> getWalsInUse(TServerInstance tsi) throws WalMarkerException {
+    List<LogEntry> result = new ArrayList<>();
     try {
       String zpath = root() + "/" + tsi;
       zoo.sync(zpath);
@@ -183,7 +204,7 @@ public class WalStateManager {
         if (zdata != null) {
           WalStatePath parts = parse(zdata);
           if (parts.state() != WalState.UNREFERENCED) {
-            result.add(parts.path());
+            result.add(LogEntry.fromPath(parts.providerId(), parts.path().toString()));
           }
         }
       }
@@ -244,7 +265,13 @@ public class WalStateManager {
     for (Entry<TServerInstance,List<UUID>> entry : markers.entrySet()) {
       for (UUID id : entry.getValue()) {
         // WAL markers can be deleted while reading them.
-        result.add(state(entry.getKey(), id));
+        try {
+          result.add(state(entry.getKey(), id));
+        } catch (WalMarkerException e) {
+          if (!(e.getCause() instanceof KeeperException.NoNodeException)) {
+            throw e;
+          }
+        }
       }
     }
     return result;
@@ -281,6 +308,21 @@ public class WalStateManager {
   // manager can mark a log as unreferenced after it has made log recovery markers on the tablets
   // that need to be recovered
   public void closeWal(TServerInstance instance, Path path) throws WalMarkerException {
-    updateState(instance, path, WalState.CLOSED);
+    closeWal(instance, path, null);
+  }
+
+  private void closeWal(TServerInstance instance, Path path, String providerId)
+      throws WalMarkerException {
+    WalStatePath existing;
+    try {
+      existing = state(instance, UUID.fromString(path.getName()));
+    } catch (WalMarkerException e) {
+      if (e.getCause() instanceof KeeperException.NoNodeException) {
+        return;
+      }
+      throw e;
+    }
+    updateState(instance, providerId == null ? existing.providerId() : providerId, path,
+        WalState.CLOSED);
   }
 }
