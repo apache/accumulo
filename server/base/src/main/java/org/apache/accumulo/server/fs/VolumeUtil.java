@@ -141,6 +141,9 @@ public class VolumeUtil {
     }
 
     for (Entry<StoredTabletFile,DataFileValue> entry : tm.getFilesMap().entrySet()) {
+      if (entry.getKey().isExternal()) {
+        continue;
+      }
       log.trace("Evaluating file {} for replacement.", entry.getKey().getPath());
       String metaPath = entry.getKey().getMetadata();
       Path switchedPath = switchVolume(entry.getKey().getPath(), FileType.TABLE, replacements);

@@ -28,6 +28,22 @@ import org.apache.hadoop.fs.Path;
 public class GcVolumeUtil {
   // AGCAV : Accumulo Garbage Collector All Volumes
   static final String ALL_VOLUMES_PREFIX = "agcav:/";
+  public static final String EXTERNAL_CANDIDATE_PREFIX = "@external@";
+
+  public static String encodeExternalCandidatePath(String path) {
+    return EXTERNAL_CANDIDATE_PREFIX + path;
+  }
+
+  public static boolean isExternalCandidatePath(String path) {
+    return path.startsWith(EXTERNAL_CANDIDATE_PREFIX);
+  }
+
+  public static String decodeExternalCandidatePath(String path) {
+    if (!isExternalCandidatePath(path)) {
+      return path;
+    }
+    return path.substring(EXTERNAL_CANDIDATE_PREFIX.length());
+  }
 
   public static Collection<Path> expandAllVolumesUri(VolumeManager fs, Path path) {
     if (path.toString().startsWith(ALL_VOLUMES_PREFIX)) {
