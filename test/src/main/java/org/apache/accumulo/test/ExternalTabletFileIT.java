@@ -169,13 +169,13 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
         .fetch(TabletMetadata.ColumnType.FILES).build()) {
       for (var tablet : tablets) {
         for (StoredTabletFile file : tablet.getFilesMap().keySet()) {
-          if (!file.getPath().toString().contains("/external-rfiles/")) {
-            return true;
+          if (file.getPath().toString().contains("/external-rfiles/")) {
+            return false;
           }
         }
       }
     }
-    return false;
+    return true;
   }
 
   private boolean hasGcCandidate(Path path) {
