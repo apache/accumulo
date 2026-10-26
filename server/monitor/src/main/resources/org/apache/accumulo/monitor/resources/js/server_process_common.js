@@ -405,6 +405,6 @@ function createDataTable(table, storageKey) {
     ],
     "columns": getDataTableCols(storageKey)
   });
-  //dataTableRef.columns.adjust();
+
   return dataTableRef;
 }

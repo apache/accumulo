@@ -128,13 +128,12 @@ hr {
 
 table {
   font-size: 9pt;
-  width: 100% !important;
 }
 
 .table-bordered th,
 .table-bordered td {
-    border: 1px solid light-dark(#ddd, #444) !important;
- }
+  border: 1px solid light-dark(#ddd, #444) !important;
+}
 
 table.sortable {
   border-left: 0;
@@ -153,6 +152,7 @@ td {
   padding-top: 0.15em;
   padding-bottom: 0.15em;
   color: #333333;
+  white-space: nowrap;
 }
 
 th {
@@ -168,7 +168,7 @@ th {
   color: #333333;
   font-size: 10pt;
   vertical-align: bottom;
-  width: 100% !important;
+  white-space: nowrap;
 }
 
 td.firstcell {
