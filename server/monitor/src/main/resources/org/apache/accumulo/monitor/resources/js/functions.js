@@ -578,7 +578,7 @@ function getComponentStatus(statusData, componentType) {
   if (!statusData || !statusData.componentStatuses) {
     return 'ERROR';
   }
-  
+
   const status = statusData.componentStatuses[componentType];
 
   // scan servers are optional, so having none is not an error
