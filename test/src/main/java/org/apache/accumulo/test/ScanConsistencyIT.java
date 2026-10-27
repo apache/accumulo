@@ -58,6 +58,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -109,6 +110,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
 
       TestContext testContext = new TestContext(client, table, getCluster().getFileSystem(),
           getCluster().getTemporaryPath().toString());
+      BulkIT.setBulkSourceLocations(client, getFileSystem(), getCluster().getTemporaryPath());
 
       List<Future<WriteStats>> writeTasks = new ArrayList<>();
       List<Future<ScanStats>> scanTasks = new ArrayList<>();

@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -96,6 +97,7 @@ public class BulkImportVolumeIT extends AccumuloClusterHarness {
       log.info("bogus: {}", bogus);
       assertTrue(fs.exists(bogus));
       log.info("Importing {} into {} with failures directory {}", bulk, tableName, err);
+      BulkIT.setBulkSourceLocations(client, fs, bulk.getParent());
       client.tableOperations().importDirectory(tableName, bulk.toString(), err.toString(), false);
       assertEquals(1, fs.listStatus(err).length);
     }

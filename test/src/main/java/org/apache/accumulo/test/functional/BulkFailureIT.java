@@ -131,6 +131,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       // determine the files new name and path
       FileStatus status = fs.listStatus(new Path(bulkDir))[0];
       Path bulkLoadPath = fs.makeQualified(status.getPath());
+      BulkIT.setBulkSourceLocations(c, fs, bulkLoadPath);
 
       // Directly ask the tablet to load the file.
       loader.load(fateTxid, asCtx, extent, bulkLoadPath, status.getLen(), false);

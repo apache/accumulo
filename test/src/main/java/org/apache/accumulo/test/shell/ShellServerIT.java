@@ -81,6 +81,7 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -1343,6 +1344,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     String nonce = generateNonce();
     File importDir = createRFiles(conf, fs, table, nonce);
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+      BulkIT.setBulkSourceLocations(client, fs, importDir.getParentFile());
+    }
     ts.exec("createtable " + table, true);
     ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
     ts.exec("scan -r 00000000", true, "0-->" + nonce, true);
@@ -1357,6 +1362,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String nonce = generateNonce();
     FileSystem fs = FileSystem.get(conf);
     File importDir = createRFiles(conf, fs, table, nonce);
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+      BulkIT.setBulkSourceLocations(client, fs, importDir.getParentFile());
+    }
     ts.exec("createtable " + table, true);
     ts.exec("importdirectory " + importDir + " true", true);
     ts.exec("scan -r 00000000", true, "0-->" + nonce, true);
@@ -1373,6 +1382,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String nonce = generateNonce();
     FileSystem fs = FileSystem.get(conf);
     File importDir = createRFiles(conf, fs, table, nonce);
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+      BulkIT.setBulkSourceLocations(client, fs, importDir.getParentFile());
+    }
     ts.exec("createtable " + table, true);
     ts.exec("notable", true);
     ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
@@ -1950,6 +1963,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(importDir.mkdir());
     File errorsDir = new File(rootPath, "errors_" + table);
     assertTrue(errorsDir.mkdir());
+
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+      BulkIT.setBulkSourceLocations(client, getCluster().getFileSystem(),
+          importDir.getParentFile());
+    }
 
     // expect fail - table does not exist.
     ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false,

@@ -313,6 +313,10 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  GENERAL_BULK_SOURCE_DIRS("general.bulk.user.allowed.source.dir", "{}", PropertyType.JSON,
+      "Map of Accumulo user name to Java regular expression, where the regular expression "
+          + "will specify the allowed source location of bulk import files.",
+      "2.1.7"),
   GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
       "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
       "Specifies the class name of the block cache factory implementation."
@@ -2126,6 +2130,7 @@ public enum Property {
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
+        || key.equals(Property.GENERAL_BULK_SOURCE_DIRS.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey())
         || key.equals(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey())

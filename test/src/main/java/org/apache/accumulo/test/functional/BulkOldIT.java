@@ -83,6 +83,7 @@ public class BulkOldIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
       FileSystem fs = getCluster().getFileSystem();
+      BulkIT.setBulkSourceLocations(c, fs, getCluster().getTemporaryPath());
       String rootPath = cluster.getTemporaryPath().toString();
 
       String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];
@@ -128,6 +129,7 @@ public class BulkOldIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       AccumuloConfiguration aconf = getCluster().getServerContext().getConfiguration();
       FileSystem fs = getCluster().getFileSystem();
+      BulkIT.setBulkSourceLocations(c, fs, getCluster().getTemporaryPath());
       String rootPath = cluster.getTemporaryPath().toString();
 
       String dir = rootPath + "/bulk_test_diff_files_89723987592_" + getUniqueNames(1)[0];

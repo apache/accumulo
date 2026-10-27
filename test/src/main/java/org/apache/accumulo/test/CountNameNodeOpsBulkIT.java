@@ -47,6 +47,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.BulkIT;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -122,6 +123,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       final Path base = new Path(basePath, "testBulkLoad" + tableName);
       fs.delete(base, true);
       fs.mkdirs(base);
+      BulkIT.setBulkSourceLocations(c, fs, base);
 
       ExecutorService es = Executors.newFixedThreadPool(5);
       List<Future<String>> futures = new ArrayList<>();

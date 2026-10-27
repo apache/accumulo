@@ -19,30 +19,43 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.GsonBuilder;
 
 /**
  * Tests Old and New Bulk import
  */
 @Tag(SUNNY_DAY)
 public class BulkIT extends AccumuloClusterHarness {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BulkIT.class);
 
   private static final int N = 100000;
   private static final int COUNT = 5;
@@ -52,19 +65,68 @@ public class BulkIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(4);
   }
 
+  public static void setBulkSourceLocations(AccumuloClient client, FileSystem fs,
+      File localDirectory)
+      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException, IOException {
+    Path p = FileSystem.get(localDirectory.toURI(), new Configuration())
+        .makeQualified(new Path(localDirectory.toString()));
+    setBulkSourceLocations(client, fs, p);
+  }
+
+  public static void setBulkSourceLocations(AccumuloClient client, FileSystem fs, Path basePath)
+      throws AccumuloException, AccumuloSecurityException {
+    Map<String,String> userPatterns = new HashMap<>();
+    userPatterns.put(client.whoami(), fs.makeQualified(basePath).toString() + "/.*");
+    String propVal = new GsonBuilder().create().toJson(userPatterns);
+    LOG.info("Property set to {}", propVal);
+    client.instanceOperations().setProperty(Property.GENERAL_BULK_SOURCE_DIRS.getKey(), propVal);
+  }
+
   @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      runTest(client, getCluster().getFileSystem(), getCluster().getTemporaryPath(),
-          getUniqueNames(1)[0], this.getClass().getName(), testName(), false);
+      Path basePath = getCluster().getTemporaryPath();
+      FileSystem fs = getCluster().getFileSystem();
+      setBulkSourceLocations(client, fs, basePath);
+      runTest(client, fs, basePath, getUniqueNames(1)[0], this.getClass().getName(), testName(),
+          false);
     }
   }
 
   @Test
   public void testOld() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      runTest(client, getCluster().getFileSystem(), getCluster().getTemporaryPath(),
-          getUniqueNames(1)[0], this.getClass().getName(), testName(), true);
+      Path basePath = getCluster().getTemporaryPath();
+      FileSystem fs = getCluster().getFileSystem();
+      setBulkSourceLocations(client, fs, basePath);
+      runTest(client, fs, basePath, getUniqueNames(1)[0], this.getClass().getName(), testName(),
+          true);
+    }
+  }
+
+  @Test
+  public void testWithoutSourceDirProperty() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Path basePath = getCluster().getTemporaryPath();
+      FileSystem fs = getCluster().getFileSystem();
+      AccumuloSecurityException ase =
+          assertThrows(AccumuloSecurityException.class, () -> runTest(client, fs, basePath,
+              getUniqueNames(1)[0], this.getClass().getName(), testName(), false));
+      assertTrue(ase.getMessage().startsWith("Error PERMISSION_DENIED for user root on table "));
+      assertTrue(ase.getMessage().endsWith("User does not have permission to perform this action"));
+    }
+  }
+
+  @Test
+  public void testOldWithoutSourceDirProperty() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Path basePath = getCluster().getTemporaryPath();
+      FileSystem fs = getCluster().getFileSystem();
+      AccumuloSecurityException ase =
+          assertThrows(AccumuloSecurityException.class, () -> runTest(client, fs, basePath,
+              getUniqueNames(1)[0], this.getClass().getName(), testName(), true));
+      assertTrue(ase.getMessage().startsWith("Error PERMISSION_DENIED for user root on table "));
+      assertTrue(ase.getMessage().endsWith("User does not have permission to perform this action"));
     }
   }
 
