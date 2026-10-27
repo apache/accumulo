@@ -53,6 +53,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 
 import com.google.common.collect.Iterables;
 
@@ -121,9 +122,9 @@ public class ScanServerOfflineTableIT extends SharedMiniClusterBase {
   }
 
   public static class ArgProvider implements ArgumentsProvider {
-
     @Override
-    public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+    public Stream<? extends Arguments> provideArguments(ParameterDeclarations parameters,
+        ExtensionContext context) throws Exception {
       List<Arguments> args = new ArrayList<>();
       args.add(Arguments.of(ScannerType.BATCH_SCANNER, 0));
       args.add(Arguments.of(ScannerType.SCANNER, 0));
@@ -131,7 +132,6 @@ public class ScanServerOfflineTableIT extends SharedMiniClusterBase {
       args.add(Arguments.of(ScannerType.SCANNER, 100));
       return args.stream();
     }
-
   }
 
   @ParameterizedTest
