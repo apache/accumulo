@@ -966,7 +966,7 @@ public class CompactionCoordinator
     final Map<ResourceGroupId,Set<HostAndPort>> knownCompactors = compactorAddrs.asMap();
     final Map<ResourceGroupId,Set<HostAndPort>> compactorsBusy = new HashMap<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();// TODO should 16 be the wake up threads prop?
     try {
       List<ServerId> failures =
           ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx, executor, tec -> {

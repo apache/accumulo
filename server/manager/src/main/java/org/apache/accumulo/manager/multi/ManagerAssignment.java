@@ -30,7 +30,7 @@ public abstract class ManagerAssignment {
 
   /**
    * Generic utility code to assign partitions to host. It evenly spread the partitions across host
-   * and tried to keep partition already on a host in place if possible.
+   * and tries to keep partition already on a host in place if possible.
    */
   public static <T> Map<HostAndPort,Set<T>> computeAssignments(Map<HostAndPort,Set<T>> current,
       Set<T> desiredPartitions) {
