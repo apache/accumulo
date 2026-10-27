@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -223,6 +224,12 @@ public class ExternalCompactionUtil {
     }
   }
 
+  public static List<ServerId> getCompactionsRunningOnCompactors(ClientContext context,
+      ExecutorService executor, Consumer<TExternalCompaction> consumer)
+      throws InterruptedException {
+    return getCompactionsRunningOnCompactors(context, executor, rg -> true, consumer);
+  }
+
   /**
    * This method returns information from the Compactors about the job that is currently running.
    *
@@ -232,12 +239,12 @@ public class ExternalCompactionUtil {
    * @return list of compactor addresses where RPC failed
    */
   public static List<ServerId> getCompactionsRunningOnCompactors(ClientContext context,
-      ExecutorService executor, Consumer<TExternalCompaction> consumer)
-      throws InterruptedException {
+      ExecutorService executor, Predicate<ResourceGroupId> rgPredicate,
+      Consumer<TExternalCompaction> consumer) throws InterruptedException {
 
     final List<ServerId> failures = new ArrayList<>();
-    final Set<ServerId> compactors =
-        context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+    final Set<ServerId> compactors = context.instanceOperations()
+        .getServers(ServerId.Type.COMPACTOR, rgPredicate, (host, port) -> true);
     final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>(compactors.size());
 
     try {

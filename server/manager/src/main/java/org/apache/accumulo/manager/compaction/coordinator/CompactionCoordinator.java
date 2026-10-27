@@ -346,7 +346,6 @@ public class CompactionCoordinator
     startConfigMonitor(ctx.getScheduledExecutor());
 
     startFailureSummaryLogging();
-    // TODO review this change w.r.t. to multiple managers
     startWakeIdleCompactorThread(ctx.getScheduledExecutor());
 
     try {
@@ -966,10 +965,19 @@ public class CompactionCoordinator
     final Map<ResourceGroupId,Set<HostAndPort>> knownCompactors = compactorAddrs.asMap();
     final Map<ResourceGroupId,Set<HostAndPort>> compactorsBusy = new HashMap<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();// TODO should 16 be the wake up threads prop?
+        .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(wakeThreads).build();
+
     try {
-      List<ServerId> failures =
-          ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx, executor, tec -> {
+      // Only check the resource groups assigned to this coordinator.
+      Set<ResourceGroupId> assignedGroups = new HashSet<>(getJobQueues().getAllowedGroups());
+      // Remove empty queues to avoid making RPCs to compactors when there is no work.
+      assignedGroups.removeIf(rg -> {
+        var queue = getJobQueues().getQueue(rg);
+        return queue == null || queue.getQueuedJobs() == 0;
+      });
+
+      List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+          executor, assignedGroups::contains, tec -> {
             compactorsBusy
                 .computeIfAbsent(ResourceGroupId.of(tec.getGroupName()),
                     k -> new HashSet<HostAndPort>())
@@ -979,25 +987,25 @@ public class CompactionCoordinator
       failures.forEach(f -> failed.add(HostAndPort.fromParts(f.getHost(), f.getPort())));
       for (Entry<ResourceGroupId,Set<HostAndPort>> e : knownCompactors.entrySet()) {
         var rgid = e.getKey();
-        if (e.getValue().size() == 0) {
-          LOG.debug("There are no known compactors for queue {}", rgid);
+        if (e.getValue().isEmpty()) {
+          LOG.trace("There are no known compactors for queue {}", rgid);
           continue;
         }
         var queue = getJobQueues().getQueue(rgid);
         if (queue != null) {
           var numQueuedJobs = queue.getQueuedJobs();
-          LOG.debug("There are {} queued compactions for queue: {}", numQueuedJobs, rgid);
+          LOG.trace("There are {} queued compactions for queue: {}", numQueuedJobs, rgid);
           if (numQueuedJobs > 0) {
             // Make a copy of the set because we are going to modify it
             List<HostAndPort> groupCompactors = new ArrayList<>(e.getValue());
-            LOG.debug("There are {} compactors for queue {}", groupCompactors.size(), rgid);
-            if (failed.size() > 0) {
+            LOG.trace("There are {} compactors for queue {}", groupCompactors.size(), rgid);
+            if (!failed.isEmpty()) {
               groupCompactors.removeAll(failed);
             }
             if (compactorsBusy.containsKey(rgid)) {
               groupCompactors.removeAll(compactorsBusy.get(rgid));
             }
-            LOG.debug(
+            LOG.trace(
                 "There are {} compactors for queue {} after removing failed and busy compactors",
                 groupCompactors.size(), rgid);
             ExternalCompactionUtil.wakeCompactors(ctx,
