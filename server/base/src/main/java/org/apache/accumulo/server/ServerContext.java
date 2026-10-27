@@ -39,6 +39,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -49,6 +50,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -152,9 +155,25 @@ public class ServerContext extends ClientContext {
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     lowMemoryDetector = memoize(() -> new LowMemoryDetector());
     metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
-
     sharedMetadataWriter = memoize(() -> createSharedConditionalWriter(DataLevel.METADATA));
     sharedUserWriter = memoize(() -> createSharedConditionalWriter(DataLevel.USER));
+    thriftTransportPool = memoize(() -> {
+      LongSupplier maxAgeSupplier = () -> {
+        try {
+          return getTransportPoolMaxAgeMillis();
+        } catch (IllegalStateException e) {
+          if (closed.get()) {
+            // The transport pool has a background thread that may call this supplier in the middle
+            // of closing. This is here to avoid spurious exceptions from race conditions that
+            // happen when closing a client.
+            return ConfigurationTypeHelper
+                .getTimeInMillis(ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getDefaultValue());
+          }
+          throw e;
+        }
+      };
+      return ThriftTransportPool.startNew(maxAgeSupplier, true);
+    });
   }
 
   /**
@@ -336,10 +355,10 @@ public class ServerContext extends ClientContext {
   }
 
   public void waitForZookeeperAndHdfs() {
-    log.info("Attempting to talk to zookeeper");
+    log.debug("Attempting to talk to zookeeper");
     // Next line blocks until connection is established
     getZooSession();
-    log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
+    log.debug("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
     while (true) {
@@ -370,12 +389,12 @@ public class ServerContext extends ClientContext {
           throw e;
         }
       }
-      log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
+      log.debug("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
       sleep = Math.min(MINUTES.toMillis(1), sleep * 2);
     }
-    log.info("Connected to HDFS");
+    log.debug("Connected to HDFS");
   }
 
   /**
@@ -466,11 +485,6 @@ public class ServerContext extends ClientContext {
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
-  }
-
-  @Override
-  public synchronized ThriftTransportPool getTransportPool() {
-    return getTransportPoolImpl(true);
   }
 
   public AuditedSecurityOperation getSecurityOperation() {

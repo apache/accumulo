@@ -56,8 +56,6 @@ public class BalanceIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
-    siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
     cfg.setSiteConfig(siteConfig);
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
   }
@@ -143,7 +141,7 @@ public class BalanceIT extends ConfigurableMacBase {
     }
   }
 
-  static Map<String,Integer> countLocations(AccumuloClient client, String tableName)
+  public static Map<String,Integer> countLocations(AccumuloClient client, String tableName)
       throws Exception {
     var ctx = ((ClientContext) client);
     var ample = ctx.getAmple();
@@ -152,7 +150,7 @@ public class BalanceIT extends ConfigurableMacBase {
       Map<String,Integer> locCounts = new HashMap<>();
       for (var tabletMeta : tabletsMeta) {
         var loc = tabletMeta.getLocation();
-        locCounts.merge(loc == null ? " none" : loc.toString(), 1, Integer::sum);
+        locCounts.merge(loc == null ? "none" : loc.toString(), 1, Integer::sum);
       }
       return locCounts;
     }

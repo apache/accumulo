@@ -43,8 +43,8 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
@@ -94,7 +94,7 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
 
         // Simulate data corruption in the serialized mutation
         TMutation badMutation = createTMutation("ghi", "z3");
-        badMutation.entries = -42;
+        badMutation.setEntries(-42);
 
         // Write some good and bad mutations to the session. The server side will see an error here,
         // however since this is a thrift oneway method no exception is expected here. This should

@@ -26,8 +26,10 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -38,8 +40,14 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.file.rfile.compression.Bzip2;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lz4;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lzo;
+import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
+import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -277,6 +285,11 @@ public enum Property {
           + "org.apache.accumulo.server.rpc.ThriftServerType for more information. "
           + "Only useful for benchmarking thrift servers.",
       "1.7.0"),
+  GENERAL_RPC_SERVER_SELECTOR_THREADS("general.rpc.server.threaded.selector.threads", "2",
+      PropertyType.COUNT,
+      "The number of selector threads to use for the TThreadedSelectorServer. "
+          + " If the value ends with C, then it will be multiplied by the number of cores on the system.",
+      "2.1.7"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH,
       "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs.", "1.4.1"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING,
@@ -353,10 +366,14 @@ public enum Property {
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
+      PropertyType.BOOLEAN,
+      "Enables Caffeine Cache metrics functionality using Micrometer. Requires "
+          + " property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "4.0.0"),
-  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
+      "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
+          + " is dependent on metrics being enabled to function correctly.",
+      "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN,
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
@@ -369,7 +386,7 @@ public enum Property {
       'log4j2' or 'logback'.
       """, "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
-      "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
+      "org.apache.accumulo.core.spi.metrics.AccumuloMonitorMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
       """
           A comma separated list of one or more class names that implements \
@@ -396,6 +413,10 @@ public enum Property {
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
           + " disables this check. The default value changed from 0 to 2m in 4.0.0.",
       "2.1.4"),
+  GENERAL_SERVER_WAL_SORT_BUFFER_SIZE("general.server.wal.sort.buffer.size", "10%",
+      PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery.",
+      "4.0.0"),
+
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
@@ -516,7 +537,7 @@ public enum Property {
           operations and whose value is a pool size for those operations.
           """, "4.0.0"),
   @Deprecated(since = "4.0.0")
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "",
       PropertyType.FATE_THREADPOOL_SIZE, """
           Previously, the number of threads used to run fault-tolerant executions (FATE). \
           This is no longer used in 4.0+. %s and %s are the replacement and must be \
@@ -806,6 +827,8 @@ public enum Property {
       "1.5.0"),
   TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery.", "2.1.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = GENERAL_SERVER_WAL_SORT_BUFFER_SIZE)
   TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
@@ -941,6 +964,15 @@ public enum Property {
       The resources that are used by default can be seen in \
       `accumulo/server/monitor/src/main/resources/templates/default.ftl`.
       """, "2.0.0"),
+  MONITOR_PURGE_STATE_THRESHOLD("monitor.purge.state.threshold", "10m", PropertyType.TIMEDURATION,
+      """
+          The Monitor contains an internal data structure that contains all of the data used in the UI. \
+          This property controls how long the Monitor should retain that data structure after the last \
+          connection has disconnected from the Monitor. Keeping the data structure will allow for an \
+          immediate display of the last known state. Removing the data structure will cause the UI \
+          to wait for new data to be fetched to compute the known state.
+          """,
+      "4.0.0"),
   MONITOR_FETCH_TIMEOUT("monitor.fetch.timeout", "5m", PropertyType.TIMEDURATION, """
       The Monitor fetches information for display in a set of background threads. This property \
       controls the amount of time that process should wait before cancelling any remaining \
@@ -1074,7 +1106,9 @@ public enum Property {
       "Options for the table scan dispatcher.", "2.0.0"),
   TABLE_SCAN_MAXMEM("table.scan.max.memory", "512k", PropertyType.BYTES,
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
-          + "Once this limit is reached, the buffered data is sent to the client.",
+          + "Once this limit is reached, the buffered data is sent to the client. This is an "
+          + "estimate of heap usage and includes per entry object overhead, so it will always "
+          + "exceed the size of the key value data actually sent to the client.",
       "1.3.5"),
   TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "100", PropertyType.COUNT,
       "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited.",
@@ -1402,6 +1436,12 @@ public enum Property {
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors.", "2.1.0"),
+  COMPACTION_COORDINATOR_COMPACTOR_WAKEUP_THREADS("compaction.coordinator.compactor.wakeup.threads",
+      "0", PropertyType.COUNT,
+      "The number of threads the Coordinator should use to wake Compactors that are in a wait state. A value of zero"
+          + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
+          + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
+      "2.1.7"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
       "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
@@ -1709,11 +1749,11 @@ public enum Property {
       TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
       TSERV_WAL_TOLERATED_CREATION_FAILURES, TSERV_WAL_TOLERATED_WAIT_INCREMENT,
       TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
-      TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
-      TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
-      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE,
-      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS,
-      TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
+      TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK, TSERV_LOG_BUSY_TABLETS_COUNT,
+      TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT, TSERV_SLOW_FILEPERMIT_MILLIS,
+      TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT,
+      TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
       TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
       // GC options
@@ -1832,6 +1872,26 @@ public enum Property {
       Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
+  }
+
+  /**
+   * A set Map of identified System Properties to be used in ConfigurationDocGen.java
+   *
+   * @return A Map of each property's value and description as Strings
+   */
+  public static TreeMap<String,String> getSystemProperties() {
+    TreeMap<String,String> systemProps = new TreeMap<>(Map.of());
+    systemProps.put(TServerClient.DEBUG_HOST,
+        "Set to host:port for the client to connect to a specific server.");
+    systemProps.put(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "Path to accumulo.properties file.");
+    systemProps.put(Bzip2.CODEC_BZIP2, "BZip2 Codec Compression Algorithm.");
+    systemProps.put(Lz4.CODEC_LZ4, "LZ4 Codec Compression Algorithm.");
+    systemProps.put(Lzo.CODEC_LZO, "LZO Codec Compression Algorithm.");
+    systemProps.put(Snappy.CODEC_SNAPPY, "Snappy Codec Compression Algorithm.");
+    systemProps.put(ZStandard.CODEC_ZSTANDARD, "ZStandard Codec Compression Algorithm.");
+
+    return systemProps;
   }
 
   static {

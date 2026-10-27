@@ -325,6 +325,7 @@ class BalanceManager {
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.debug(e.toString(), e);
         }
 

@@ -128,6 +128,7 @@ public class LockMapTest {
             // If only one thread executes per key, then set1 and set2 should always be true
             return set1 && set2;
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
           }
         });

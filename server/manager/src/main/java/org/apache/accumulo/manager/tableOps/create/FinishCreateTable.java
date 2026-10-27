@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.util.EnumSet;
 
@@ -97,4 +99,8 @@ class FinishCreateTable extends AbstractFateOperation {
   @Override
   public void undo(FateId fateId, FateEnv env) {}
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

@@ -67,10 +67,9 @@ public class MetricsInfoImpl implements MetricsInfo {
   private AutoCloseable logMetrics;
 
   private final boolean metricsEnabled;
+  private final AtomicReference<MeterRegistry> monitorRegistry = new AtomicReference<>();
 
   private final List<MetricsProducer> producers = new ArrayList<>();
-
-  public static final AtomicReference<MeterRegistry> MONITOR_REGISTRY = new AtomicReference<>();
 
   public MetricsInfoImpl(final ServerContext context) {
     this.context = context;
@@ -95,6 +94,16 @@ public class MetricsInfoImpl implements MetricsInfo {
   @Override
   public boolean isMetricsEnabled() {
     return metricsEnabled;
+  }
+
+  @Override
+  public boolean isMonitorRegistryEnabled() {
+    return monitorRegistry.get() != null;
+  }
+
+  @Override
+  public MeterRegistry getMonitorRegistry() {
+    return monitorRegistry.get();
   }
 
   @Override
@@ -162,15 +171,15 @@ public class MetricsInfoImpl implements MetricsInfo {
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
+        if (registry.getClass().equals(MonitorMeterRegistry.class)) {
+          monitorRegistry.compareAndSet(null, registry);
+        }
         registry.config().commonTags(commonTags);
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
         LOG.warn("Could not load registry {}", factoryName, ex);
       }
     }
-
-    MONITOR_REGISTRY.set(new MonitorMeterRegistry());
-    Metrics.globalRegistry.add(MONITOR_REGISTRY.get());
 
     // Set the MeterRegistry on the ThreadPools
     ThreadPools.getServerThreadPools().setMeterRegistry(Metrics.globalRegistry);

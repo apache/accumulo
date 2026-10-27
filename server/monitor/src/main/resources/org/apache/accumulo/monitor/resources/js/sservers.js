@@ -30,8 +30,7 @@ function refresh() {
 $(function () {
   sessionStorage[SCAN_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
   refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner,

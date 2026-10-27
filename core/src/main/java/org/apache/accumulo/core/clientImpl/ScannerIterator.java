@@ -189,6 +189,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       throw new IllegalStateException(ee);
     } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
         | ScanTimedOutException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
 

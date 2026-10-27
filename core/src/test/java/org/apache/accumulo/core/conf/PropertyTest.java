@@ -323,8 +323,10 @@ public class PropertyTest {
   @Test
   public void testFixedPropertiesNonNull() {
     Property.FIXED_PROPERTIES.forEach(p -> {
-      assertNotNull(p.getDefaultValue());
-      assertFalse(p.getDefaultValue().isBlank());
+      assertNotNull(p.getDefaultValue(), "Default value is null: " + p.getKey());
+      if (!p.equals(Property.GENERAL_MICROMETER_FACTORY)) {
+        assertFalse(p.getDefaultValue().isBlank(), "Default value is blank: " + p.getKey());
+      }
     });
   }
 }

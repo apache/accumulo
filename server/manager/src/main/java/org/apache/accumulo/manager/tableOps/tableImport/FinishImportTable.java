@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.EnumSet;
 
@@ -83,4 +84,8 @@ class FinishImportTable extends AbstractFateOperation {
   @Override
   public void undo(FateId fateId, FateEnv env) {}
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

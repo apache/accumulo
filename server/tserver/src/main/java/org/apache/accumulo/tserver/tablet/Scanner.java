@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -94,15 +94,19 @@ public class Scanner {
 
     Batch results = null;
 
+    boolean locked = false;
+
     try {
 
       try {
         lock.lockInterruptibly();
+        locked = true;
         Preconditions.checkState(!readInProgress);
         // Simple check to ensure the same thread never calls this method recursively. This code
         // would not handle that well.
         readInProgress = true;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         sawException = true;
       }
 
@@ -142,7 +146,7 @@ public class Scanner {
 
       if (results.getResults() == null) {
         range = null;
-        return new Pair<>(new ScanBatch(new ArrayList<>(), false), dataSource);
+        return new Pair<>(new ScanBatch(List.of(), false), dataSource);
       } else if (results.getContinueKey() == null) {
         return new Pair<>(new ScanBatch(results.getResults(), false), dataSource);
       } else {
@@ -191,8 +195,10 @@ public class Scanner {
           tablet.updateQueryStats(results.getResults().size(), results.getNumBytes());
         }
       } finally {
-        readInProgress = false;
-        lock.unlock();
+        if (locked) {
+          readInProgress = false;
+          lock.unlock();
+        }
       }
     }
   }
@@ -227,11 +233,9 @@ public class Scanner {
         return false;
       }
 
-      scanClosed = true;
-      if (isolatedDataSource != null) {
-        isolatedDataSource.close(false);
-      }
+      lockAndClose();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       return false;
     } finally {
       if (obtainedLock) {
@@ -239,5 +243,17 @@ public class Scanner {
       }
     }
     return true;
+  }
+
+  private void lockAndClose() {
+    lock.lock();
+    try {
+      scanClosed = true;
+      if (isolatedDataSource != null) {
+        isolatedDataSource.close(false);
+      }
+    } finally {
+      lock.unlock();
+    }
   }
 }

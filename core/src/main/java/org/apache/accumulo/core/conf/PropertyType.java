@@ -569,10 +569,12 @@ public enum PropertyType {
 
     @Override
     public boolean test(String s) {
-      log.warn(
-          "The manager fate thread pool size property is no longer used. See the {} and {} for "
-              + "the replacements to this property.",
-          ValidUserFateConfig.NAME, ValidMetaFateConfig.NAME);
+      if (!s.isEmpty()) {
+        log.warn(
+            "The manager fate thread pool size property is no longer used. See the {} and {} for "
+                + "the replacements to this property.",
+            ValidUserFateConfig.NAME, ValidMetaFateConfig.NAME);
+      }
       return true;
     }
   }

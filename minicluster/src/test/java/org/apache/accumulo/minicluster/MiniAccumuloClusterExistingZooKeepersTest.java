@@ -20,10 +20,8 @@ package org.apache.accumulo.minicluster;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -39,15 +37,11 @@ import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
-
-  @TempDir
-  private static Path tempDir;
 
   private static final String SECRET = "superSecret";
 
@@ -55,10 +49,8 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
 
   @BeforeEach
   public void setupTestCluster() throws IOException {
-    assertTrue(Files.isDirectory(tempDir));
-    final Path perTestCaseSubDir = tempDir.resolve(testName());
-    Files.deleteIfExists(perTestCaseSubDir);
-    Files.createDirectories(perTestCaseSubDir);
+    final Path perTestCaseSubDir =
+        MiniTestDirs.createTestDir(getClass().getName() + "_" + testName());
 
     // disable adminServer, which runs on port 8080 by default and we don't need
     System.setProperty("zookeeper.admin.enableServer", "false");

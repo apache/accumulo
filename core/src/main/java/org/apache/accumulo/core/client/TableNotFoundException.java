@@ -70,7 +70,7 @@ public class TableNotFoundException extends Exception {
    */
   public TableNotFoundException(String tableName, NamespaceNotFoundException e) {
     this(null, tableName,
-        "Namespace " + TableNameUtil.qualify(tableName).getFirst() + " does not exist.", e);
+        "Namespace " + TableNameUtil.qualify(tableName).namespaceName() + " does not exist.", e);
   }
 
   /**

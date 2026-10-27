@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
@@ -84,5 +86,10 @@ class CreateImportDir extends AbstractFateOperation {
 
       log.info("Using import dir: {}", dm.importDir);
     }
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

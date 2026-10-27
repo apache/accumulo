@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tserverOps;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
@@ -30,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
+import com.google.gson.JsonObject;
 
 public class BeginTserverShutdown extends AbstractFateOperation {
 
@@ -76,5 +79,15 @@ public class BeginTserverShutdown extends AbstractFateOperation {
       environment.getContext().getZooSession().asReaderWriter().delete(path);
       log.trace("{} removed {}", fateId, path);
     }
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("resourceGroup", resourceGroup.canonical());
+    details.addProperty("hostAndPort", hostAndPort.toString());
+    details.addProperty("serverSession", serverSession);
+    details.addProperty("force", force);
+    return GSON.get().toJson(details);
   }
 }

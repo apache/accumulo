@@ -24,10 +24,10 @@ if [ -z "$JAVA_HOME" ]; then
 fi
 
 for x in A B C; do
-  mkdir -p target/generated-sources/$x/test target/test-classes/ClassLoaderTest$x
-  sed "s/testX/test$x/" <src/test/java/test/TestTemplate >target/generated-sources/$x/test/TestObject.java
+  mkdir -p target/generated-sources/$x/org/apache/accumulo/start/test target/test-classes/ClassLoaderTest$x
+  sed "s/testX/test$x/" <src/test/java/org/apache/accumulo/start/test/TestTemplate >target/generated-sources/$x/org/apache/accumulo/start/test/TestObject.java
   export CLASSPATH=target/test-classes
-  "$JAVA_HOME"/bin/javac target/generated-sources/$x/test/TestObject.java -d target/generated-sources/$x
-  "$JAVA_HOME"/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x test/TestObject.class
+  "$JAVA_HOME"/bin/javac target/generated-sources/$x/org/apache/accumulo/start/test/TestObject.java -d target/generated-sources/$x
+  "$JAVA_HOME"/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x org/apache/accumulo/start/test/TestObject.class
   rm -r target/generated-sources/$x
 done

@@ -139,6 +139,7 @@ public class FateNotifier {
           }
 
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new IllegalStateException(e);
         } catch (TException e) {
           log.warn("Failed to send notification that fate was seeded", e);

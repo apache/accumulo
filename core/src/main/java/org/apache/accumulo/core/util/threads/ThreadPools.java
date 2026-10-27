@@ -62,6 +62,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -178,6 +180,7 @@ public class ThreadPools {
         // the list of critical tasks
         return true;
       } catch (InterruptedException ie) {
+        Thread.currentThread().interrupt();
         // current thread was interrupted waiting for get to return, which in theory,
         // shouldn't happen since the task is done.
         LOG.info("Interrupted while waiting to check on scheduled background task.");
@@ -436,6 +439,7 @@ public class ThreadPools {
     }
   }
 
+  @NotThreadSafe
   public class ThreadPoolExecutorBuilder {
     final String name;
     int coreThreads = 0;

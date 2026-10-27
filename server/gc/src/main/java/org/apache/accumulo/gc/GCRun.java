@@ -41,6 +41,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -93,10 +94,10 @@ public class GCRun implements GarbageCollectionEnvironment {
   private final ServerContext context;
   private final AccumuloConfiguration config;
   private final Duration loggingInterval = Duration.ofMinutes(1);
-  private long candidates = 0;
-  private long inUse = 0;
-  private long deleted = 0;
-  private long errors = 0;
+  private final LongAdder candidates = new LongAdder();
+  private final LongAdder inUse = new LongAdder();
+  private final LongAdder deleted = new LongAdder();
+  private final LongAdder errors = new LongAdder();
   private AtomicInteger batchCount;
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
@@ -143,7 +144,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     // Converting the bytes to approximate number of characters for batch size.
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
-    List<GcCandidate> candidatesBatch = new ArrayList<>();
+    List<GcCandidate> candidatesBatch = new ArrayList<>(256);
     batchCount.incrementAndGet();
 
     while (candidates.hasNext()) {
@@ -234,8 +235,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     while (retries <= 10) {
       try {
         zr.sync(Constants.ZTABLES);
-        final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(Constants.ZTABLES)) {
+        var tables = zr.getChildren(Constants.ZTABLES);
+        final Map<TableId,TableState> tids = new HashMap<>(tables.size(), 1.0f);
+        for (String table : tables) {
           TableId tableId = TableId.of(table);
           TableState tableState = null;
           String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
@@ -325,18 +327,18 @@ public class GCRun implements GarbageCollectionEnvironment {
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
               removeFlag = true;
-              deleted++;
+              deleted.increment();
             } else if (fs.exists(pathToDel)) {
               // leave the entry in the metadata; we'll try again later
               removeFlag = false;
-              errors++;
+              errors.increment();
               log.warn("{} File exists, but was not deleted for an unknown reason: {}",
                   fileActionPrefix, pathToDel);
               break;
             } else {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
-              errors++;
+              errors.increment();
               String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
               if (parts.length > 2) {
                 TableId tableId = TableId.of(parts[1]);
@@ -380,6 +382,7 @@ public class GCRun implements GarbageCollectionEnvironment {
         }
       }
     } catch (InterruptedException e1) {
+      Thread.currentThread().interrupt();
       log.error("{}", e1.getMessage(), e1);
     }
 
@@ -411,12 +414,12 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @Override
   public void incrementCandidatesStat(long i) {
-    candidates += i;
+    candidates.add(i);
   }
 
   @Override
   public void incrementInUseStat(long i) {
-    inUse += i;
+    inUse.add(i);
   }
 
   @VisibleForTesting
@@ -522,19 +525,19 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   public long getInUseStat() {
-    return inUse;
+    return inUse.sum();
   }
 
   public long getDeletedStat() {
-    return deleted;
+    return deleted.sum();
   }
 
   public long getErrorsStat() {
-    return errors;
+    return errors.sum();
   }
 
   public long getCandidatesStat() {
-    return candidates;
+    return candidates.sum();
   }
 
   /**
@@ -555,8 +558,9 @@ public class GCRun implements GarbageCollectionEnvironment {
     } else if (level == DataLevel.METADATA) {
       return Set.of(SystemTables.METADATA.tableId());
     } else if (level == DataLevel.USER) {
-      Set<TableId> tableIds = new HashSet<>();
-      getTableIDs().forEach((k, v) -> {
+      var tids = getTableIDs();
+      Set<TableId> tableIds = new HashSet<>(tids.size(), 1.0f);
+      tids.forEach((k, v) -> {
         if (v == TableState.ONLINE || v == TableState.OFFLINE) {
           // Don't return tables that are NEW, DELETING, or in an
           // UNKNOWN state.

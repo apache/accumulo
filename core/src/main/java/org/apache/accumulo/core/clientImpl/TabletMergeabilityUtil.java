@@ -95,10 +95,10 @@ public class TabletMergeabilityUtil {
   }
 
   public static TabletMergeability fromThrift(TTabletMergeability thriftTm) {
-    if (thriftTm.never) {
+    if (thriftTm.isNever()) {
       return TabletMergeability.never();
     }
-    return TabletMergeability.after(Duration.ofNanos(thriftTm.delay));
+    return TabletMergeability.after(Duration.ofNanos(thriftTm.getDelay()));
   }
 
   public static TTabletMergeability toThrift(TabletMergeability tabletMergeability) {

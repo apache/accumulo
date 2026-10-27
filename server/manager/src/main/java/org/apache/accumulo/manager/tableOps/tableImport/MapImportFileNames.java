@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -124,5 +125,10 @@ class MapImportFileNames extends AbstractFateOperation {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       env.getVolumeManager().deleteRecursively(new Path(dm.importDir));
     }
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

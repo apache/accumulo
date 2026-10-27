@@ -81,6 +81,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
+import com.google.common.net.HostAndPort;
+
 public class CompactionCoordinatorTest {
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
@@ -96,18 +98,14 @@ public class CompactionCoordinatorTest {
 
   public class TestCoordinator extends CompactionCoordinator {
 
-    private final List<TExternalCompaction> runningCompactions;
-
-    private Set<ExternalCompactionId> metadataCompactionIds = null;
-
     public TestCoordinator(Manager manager, List<TExternalCompaction> runningCompactions) {
       super(manager, t -> null);
-      this.runningCompactions = runningCompactions;
     }
 
     @Override
-    protected int countCompactors(ResourceGroupId groupName) {
-      return 3;
+    protected Set<HostAndPort> getCompactors(ResourceGroupId groupName) {
+      return Set.of(HostAndPort.fromString("localhost:10000"),
+          HostAndPort.fromString("localhost:10001"), HostAndPort.fromString("localhost:10002"));
     }
 
     @Override
@@ -130,6 +128,9 @@ public class CompactionCoordinatorTest {
     protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
+    protected void startWakeIdleCompactorThread(ScheduledThreadPoolExecutor schedExecutor) {}
+
+    @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
         String externalCompactionId, TKeyExtent textent, TCompactionStats stats, String groupName,
         String compactorAddress) throws ThriftSecurityException {}
@@ -138,14 +139,6 @@ public class CompactionCoordinatorTest {
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
         TKeyExtent extent, String exceptionClassName, TCompactionState failureState,
         String groupName, String compactorAddress) throws ThriftSecurityException {}
-
-    void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
-      metadataCompactionIds = mci;
-    }
-
-    public void resetInternals() {
-      metadataCompactionIds = null;
-    }
 
     @Override
     protected CompactionMetadata reserveCompaction(ResolvedCompactionJob rcJob,

@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
-import static org.apache.accumulo.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.STANDALONE_CAPABLE_CLUSTER;
+import static org.apache.accumulo.test.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,13 +49,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.util.MonitorUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Tag;

@@ -90,6 +90,7 @@ class RowLocks {
     ArrayList<RowLock> locks = new ArrayList<>();
 
     for (List<ServerConditionalMutation> scml : updates.values()) {
+      locks.ensureCapacity(locks.size() + scml.size());
       for (ServerConditionalMutation scm : scml) {
         locks.add(getRowLock(new ArrayByteSequence(scm.getRow())));
       }

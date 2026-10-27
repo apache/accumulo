@@ -60,7 +60,7 @@ public class VisibilityConstraint implements Constraint {
 
     HashSet<String> ok = null;
     if (updates.size() > 1) {
-      ok = new HashSet<>();
+      ok = new HashSet<>(updates.size());
     }
 
     BytesAccess.BytesEvaluator ve = null;

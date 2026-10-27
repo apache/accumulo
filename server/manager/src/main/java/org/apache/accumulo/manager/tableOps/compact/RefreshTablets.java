@@ -19,6 +19,8 @@
 
 package org.apache.accumulo.manager.tableOps.compact;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
@@ -26,6 +28,9 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
+import org.apache.hadoop.io.Text;
+
+import com.google.gson.JsonObject;
 
 public class RefreshTablets extends AbstractFateOperation {
 
@@ -48,5 +53,15 @@ public class RefreshTablets extends AbstractFateOperation {
     TabletRefresher.refresh(env, fateId, tableId, startRow, endRow, tabletMetadata -> true);
 
     return new CleanUp(tableId, namespaceId, startRow, endRow);
+  }
+
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    details.addProperty("startRow", startRow == null ? null : new Text(startRow).toString());
+    details.addProperty("endRow", endRow == null ? null : new Text(endRow).toString());
+    return GSON.get().toJson(details);
   }
 }

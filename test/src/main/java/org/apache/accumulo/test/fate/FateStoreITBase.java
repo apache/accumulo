@@ -63,10 +63,10 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateITBase.TestRepo;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -396,8 +396,8 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
       // After deletion, make sure we can create again with the same key
       var fateId2 =
           seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
-      txStore = store.reserve(fateId);
       assertEquals(fateId, fateId2);
+      txStore = store.reserve(fateId2);
       assertTrue(txStore.timeCreated() > 0);
       assertEquals(TStatus.SUBMITTED, txStore.getStatus());
     } finally {

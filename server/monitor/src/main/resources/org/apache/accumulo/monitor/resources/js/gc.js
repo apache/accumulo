@@ -36,19 +36,16 @@ function refresh() {
 $(function () {
   sessionStorage[GC_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
   sessionStorage[GC_FILE_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
   sessionStorage[GC_WAL_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
   refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner,

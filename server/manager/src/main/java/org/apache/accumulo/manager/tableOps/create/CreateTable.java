@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.create;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -102,4 +103,8 @@ public class CreateTable extends AbstractFateOperation {
     }
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

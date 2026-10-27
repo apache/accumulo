@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -97,5 +99,10 @@ class ImportPopulateZookeeper extends AbstractFateOperation {
     env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
     Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);
     context.clearTableListCache();
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

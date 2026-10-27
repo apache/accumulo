@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -65,5 +67,10 @@ class ImportSetupPermissions extends AbstractFateOperation {
   public void undo(FateId fateId, FateEnv env) throws Exception {
     env.getContext().getSecurityOperation().deleteTable(env.getContext().rpcCreds(),
         tableInfo.tableId, tableInfo.namespaceId);
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

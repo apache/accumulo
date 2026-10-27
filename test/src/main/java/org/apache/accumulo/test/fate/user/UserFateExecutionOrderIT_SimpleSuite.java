@@ -35,7 +35,7 @@ public class UserFateExecutionOrderIT_SimpleSuite extends FateExecutionOrderITBa
     var table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      createFateTable(client, table);
+      createFateTable(client, getCluster().getServerContext(), table);
       try (FateStore<FeoTestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
           maxDeferred, fateIdGenerator)) {
         testMethod.execute(fs, getCluster().getServerContext());

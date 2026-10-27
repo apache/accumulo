@@ -75,7 +75,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,9 +160,11 @@ public class CompactionPluginUtils {
               for (CompactableFile cf : files) {
                 var file = CompactableFileImpl.toStoredTabletFile(cf);
                 FileSystem fs = context.getVolumeManager().getFileSystemByPath(file.getPath());
+                FileStatus status = fs.getFileStatus(file.getPath());
                 Configuration conf = context.getHadoopConf();
-                RFileSource source = new RFileSource(new FSDataInputStream(fs.open(file.getPath())),
-                    fs.getFileStatus(file.getPath()).getLen(), file.getRange());
+                RFileSource source =
+                    new RFileSource(FileOperations.openFile(fs, file.getPath(), status),
+                        status.getLen(), file.getRange());
 
                 SummaryCollection fsc = SummaryReader
                     .load(conf, source, file.getFileName(), summarySelector, factory,

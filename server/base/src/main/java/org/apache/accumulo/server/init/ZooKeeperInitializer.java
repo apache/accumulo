@@ -107,6 +107,9 @@ public class ZooKeeperInitializer {
                 + rgPropPath);
       }
     } catch (IOException | KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to initialize configuration for prop store", ex);
     }
   }
@@ -218,6 +221,9 @@ public class ZooKeeperInitializer {
           Namespace.ACCUMULO.id(), SystemTables.SCAN_REF.tableName(), TableState.ONLINE,
           ZooUtil.NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }
@@ -228,6 +234,9 @@ public class ZooKeeperInitializer {
           Namespace.ACCUMULO.id(), SystemTables.FATE.tableName(), TableState.ONLINE,
           ZooUtil.NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException(e);
     }
   }

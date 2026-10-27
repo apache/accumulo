@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -67,7 +68,7 @@ public class RootClientTabletCache extends ClientTabletCache {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
+      Map<String,TabletServerMutations<T>> binnedMutations, ArrayList<T> failures) {
     CachedTablet rootCachedTablet = getRootTabletLocation(context);
     if (rootCachedTablet != null && rootCachedTablet.getTserverLocation().isPresent()) {
       var tsm = new TabletServerMutations<T>(rootCachedTablet.getTserverSession().orElseThrow());

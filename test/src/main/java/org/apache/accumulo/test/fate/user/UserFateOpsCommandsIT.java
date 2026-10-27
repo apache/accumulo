@@ -22,9 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -43,9 +40,8 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsITBase {
   @AfterEach
   public void afterEachTeardown() throws Exception {
     // remove any lingering fate data after each test
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
-        Scanner scanner =
-            client.createScanner(SystemTables.FATE.tableName(), Authorizations.EMPTY)) {
+    try (var scanner = getCluster().getServerContext().createScanner(SystemTables.FATE.tableName(),
+        Authorizations.EMPTY)) {
       for (var entry : scanner) {
         String fateUUID = entry.getKey().getRow().toString();
         fateOpsToCleanup.add(FateId.from(FateInstanceType.USER, fateUUID).canonical());

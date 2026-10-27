@@ -33,9 +33,9 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateStoreITBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
@@ -57,7 +57,7 @@ public class UserFateStoreFateIT_SimpleSuite extends FateStoreITBase {
     String table = getUniqueNames(1)[0] + "fatestore";
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      createFateTable(client, table);
+      createFateTable(client, getCluster().getServerContext(), table);
       try (FateStore<TestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
           maxDeferred, fateIdGenerator)) {
         testMethod.execute(fs, getCluster().getServerContext());

@@ -282,6 +282,7 @@ public class TabletServerLogger {
           try {
             nextLog.offer(e, 12, TimeUnit.HOURS);
           } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             // This is a critical thread, so dying will log this then halt the VM.
             throw new IllegalStateException("Next log maker thread interrupted", ex);
           }
@@ -317,6 +318,7 @@ public class TabletServerLogger {
           try {
             nextLog.offer(e, 12, TimeUnit.HOURS);
           } catch (InterruptedException e2) {
+            Thread.currentThread().interrupt();
             // This is a critical thread, so dying will log this then halt the VM.
             throw new IllegalStateException("Next log maker thread interrupted", e2);
           }
@@ -329,6 +331,7 @@ public class TabletServerLogger {
             log.info("Our WAL was not used for 12 hours: {}", alog.getLogEntry());
           }
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           // This is a critical thread, so dying will log this then halt the VM.
           throw new IllegalStateException("Next log maker thread interrupted", e);
         }
@@ -345,6 +348,8 @@ public class TabletServerLogger {
     if (currentLog != null) {
       try {
         currentLog.close();
+        log.info("Closing write-ahead log: {}, entries written: {}, bytes written: {}",
+            currentLog.getLogEntry(), currentLog.getWrites(), currentLog.getBytesWritten());
       } catch (DfsLogger.LogClosedException ex) {
         // ignore
       } catch (IOException | RuntimeException ex) {

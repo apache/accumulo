@@ -227,6 +227,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicLong cancelled = new AtomicLong(0);
   private final AtomicLong failed = new AtomicLong(0);
   private final AtomicLong terminated = new AtomicLong(0);
+  private final AtomicBoolean stopWaiting = new AtomicBoolean(false);
 
   @VisibleForTesting
   protected Compactor(ServerOpts opts, String[] args) {
@@ -492,7 +493,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, message, why,
+                job.getExternalCompactionId(), job.getExtent(), message, why,
                 getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
@@ -516,8 +517,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
-                getAdvertiseAddress().toString());
+                job.getExternalCompactionId(), job.getExtent(), stats,
+                getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -799,6 +800,39 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
+  // visible for tests
+  protected void waitForNextCompactionCheck(int compactorCount) throws InterruptedException {
+    long waitMillis = getWaitTimeBetweenCompactionChecks(compactorCount);
+    LOG.info("Waiting {}ms before checking for next compaction job", waitMillis);
+    Duration waitTime = Duration.ofMillis(waitMillis);
+    Timer timer = Timer.startNew();
+    while (!timer.hasElapsed(waitTime)) {
+      if (stopWaiting.compareAndSet(true, false)) {
+        LOG.info("Wait aborted by coordinator");
+        break;
+      }
+      UtilWaitThread.sleep(250);
+    }
+  }
+
+  // visible for tests
+  protected boolean shouldStopWaiting() {
+    return stopWaiting.get();
+  }
+
+  // visible for tests
+  protected boolean wakeInternal() {
+    LOG.debug("Wake called");
+    return stopWaiting.compareAndSet(false, true);
+  }
+
+  @Override
+  public void wake(TInfo tinfo, TCredentials credentials) throws ThriftSecurityException {
+    if (getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
+      wakeInternal();
+    }
+  }
+
   @Override
   public void run() {
 
@@ -812,6 +846,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
     this.getContext().setServiceLock(compactorLock);
@@ -866,7 +903,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           job = next.getJob();
           if (!job.isSetExternalCompactionId()) {
             LOG.trace("No external compactions in queue {}", this.getResourceGroup());
-            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
+            waitForNextCompactionCheck(next.getCompactorCount());
             continue;
           }
           if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {
@@ -1041,6 +1078,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       }

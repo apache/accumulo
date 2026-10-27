@@ -97,22 +97,15 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
     }
 
     try {
+      context.getZooSession().asReaderWriter().mutateExisting(RootTable.ZROOT_TABLET, currVal -> {
+        String currJson = new String(currVal, UTF_8);
+        var rtm = new RootTabletMetadata(currJson);
+        rtm.update(mutation);
+        String newJson = rtm.toJson();
+        log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);
+        return newJson.getBytes(UTF_8);
+      });
 
-      context.getZooCache().clear(RootTable.ZROOT_TABLET);
-
-      // TODO examine implementation of getZooReaderWriter().mutate()
-      // TODO for efficiency this should maybe call mutateExisting
-      context.getZooSession().asReaderWriter().mutateOrCreate(RootTable.ZROOT_TABLET, new byte[0],
-          currVal -> {
-            String currJson = new String(currVal, UTF_8);
-            var rtm = new RootTabletMetadata(currJson);
-            rtm.update(mutation);
-            String newJson = rtm.toJson();
-            log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);
-            return newJson.getBytes(UTF_8);
-          });
-
-      // TODO this is racy...
       context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
       if (closeAfterMutate != null) {

@@ -245,9 +245,9 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
         // Check that each background thread made a least one loop over all its table operations.
         assertTrue(loops > 0);
       }
+    } finally {
+      executor.shutdown();
     }
-
-    executor.shutdown();
 
   }
 

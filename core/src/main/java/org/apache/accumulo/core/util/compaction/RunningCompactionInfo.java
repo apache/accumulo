@@ -110,7 +110,7 @@ public class RunningCompactionInfo {
       if (updates.isEmpty()) {
         status = "na";
       } else {
-        status = last.state.name();
+        status = last.getState().name();
       }
       log.trace("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
       if (sinceLastUpdateSeconds > 30) {
@@ -124,8 +124,8 @@ public class RunningCompactionInfo {
       status = "na";
       duration = 0;
     }
-    this.inputFiles = convertInputFiles(job.files);
-    this.outputFile = job.outputFile;
+    this.inputFiles = convertInputFiles(job.getFiles());
+    this.outputFile = job.getOutputFile();
 
   }
 
@@ -138,8 +138,8 @@ public class RunningCompactionInfo {
    */
   private List<CompactionInputFileDetails> convertInputFiles(List<InputFile> files) {
     return files.stream()
-        .map(file -> new CompactionInputFileDetails(file.metadataFileEntry, file.size, file.entries,
-            file.timestamp))
+        .map(file -> new CompactionInputFileDetails(file.getMetadataFileEntry(), file.getSize(),
+            file.getEntries(), file.getTimestamp()))
         .sorted(Comparator.comparingLong(CompactionInputFileDetails::size).reversed()).toList();
   }
 

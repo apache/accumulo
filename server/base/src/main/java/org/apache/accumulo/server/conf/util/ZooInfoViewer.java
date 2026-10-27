@@ -103,7 +103,7 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
 
   @Override
   public String keyword() {
-    return "zoo-info-viewer";
+    return "info-viewer";
   }
 
   @Override
@@ -113,16 +113,16 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CONFIG;
+    return CommandGroups.ZOOKEEPER;
   }
 
   @Override
   public void execute(JCommander cl, ViewerOpts opts) throws Exception {
     nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
 
-    log.info("print ids map: {}", opts.printIdMap);
-    log.info("print properties: {}", opts.printProps);
-    log.info("print instances: {}", opts.printInstanceIds);
+    log.debug("print ids map: {}", opts.printIdMap);
+    log.debug("print properties: {}", opts.printProps);
+    log.debug("print instances: {}", opts.printInstanceIds);
 
     generateReport(getServerContext(), opts);
   }

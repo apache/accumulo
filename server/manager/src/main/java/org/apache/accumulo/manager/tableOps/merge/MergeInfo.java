@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.merge;
 
 import java.io.Serializable;
+import java.lang.reflect.Type;
 import java.util.Objects;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -30,11 +31,37 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.manager.tableOps.merge.MergeInfo.MergeInfoSerializer;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.annotations.JsonAdapter;
 
+@JsonAdapter(MergeInfoSerializer.class)
 public class MergeInfo implements Serializable {
+
+  public static class MergeInfoSerializer implements JsonSerializer<MergeInfo> {
+
+    @Override
+    public JsonElement serialize(MergeInfo src, Type typeOfSrc, JsonSerializationContext context) {
+      JsonObject obj = new JsonObject();
+      obj.addProperty("namespaceId", src.namespaceId.canonical());
+      obj.addProperty("tableId", src.tableId.canonical());
+      obj.addProperty("operation", src.op.name());
+      obj.addProperty("startRow", new Text(src.startRow).toString());
+      obj.addProperty("endRow", new Text(src.endRow).toString());
+      if (src.mergeRangeSet) {
+        obj.addProperty("mergeStartRow", new Text(src.mergeStartRow).toString());
+        obj.addProperty("mergeEndRow", new Text(src.mergeEndRow).toString());
+      }
+      return obj;
+    }
+  }
+
   private static final long serialVersionUID = 1L;
 
   public enum Operation {

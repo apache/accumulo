@@ -30,6 +30,7 @@ public enum ThreadPoolNames {
   COMPACTOR_RUNNING_COMPACTION_IDS_POOL("accumulo.pool.compactor.running.compaction.ids"),
   CONDITIONAL_WRITER_POOL("accumulo.pool.conditional.writer"),
   CONDITIONAL_WRITER_CLEANUP_POOL("accumulo.pool.client.context.conditional.writer.cleanup"),
+  COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL("accumulo.pool.compaction.compactor.wake"),
   COORDINATOR_RESERVATION_ROOT_POOL("accumulo.pool.compaction.coordinator.reservation.root"),
   COORDINATOR_RESERVATION_META_POOL("accumulo.pool.compaction.coordinator.reservation.meta"),
   COORDINATOR_RESERVATION_USER_POOL("accumulo.pool.compaction.coordinator.reservation.user"),

@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.merge;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -107,4 +108,8 @@ class FinishTableRangeOp extends AbstractFateOperation {
         rejectedCount.get());
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
+  }
 }

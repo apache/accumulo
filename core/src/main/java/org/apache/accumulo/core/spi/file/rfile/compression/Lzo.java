@@ -20,6 +20,8 @@ package org.apache.accumulo.core.spi.file.rfile.compression;
 
 public class Lzo implements CompressionAlgorithmConfiguration {
 
+  public static final String CODEC_LZO = "io.compression.codec.lzo.class";
+
   @Override
   public String getName() {
     return "lzo";
@@ -32,7 +34,7 @@ public class Lzo implements CompressionAlgorithmConfiguration {
 
   @Override
   public String getCodecClassNameProperty() {
-    return "io.compression.codec.lzo.class";
+    return CODEC_LZO;
   }
 
   @Override

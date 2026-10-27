@@ -125,8 +125,8 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
     volumes.clear();
 
     WalStateManager wals = new WalStateManager(context);
-    for (Path path : wals.getAllState().keySet()) {
-      volumes.add(getLogURI(path.toString()));
+    for (var wal : wals.getAllState()) {
+      volumes.add(getLogURI(wal.path().toString()));
     }
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);

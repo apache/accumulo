@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.InstanceId;
@@ -34,6 +36,8 @@ import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
+
+import com.google.gson.JsonObject;
 
 public class PreDeleteTable extends AbstractFateOperation {
 
@@ -90,4 +94,11 @@ public class PreDeleteTable extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    return GSON.get().toJson(details);
+  }
 }

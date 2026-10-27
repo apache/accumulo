@@ -25,6 +25,12 @@ import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Value;
 
 public class KVEntry extends KeyValue {
+
+  /**
+   * Estimated overhead for nine objects at 32 bytes each.
+   */
+  public static final int MEMORY_OVERHEAD = 9 * 32;
+
   private static final long serialVersionUID = 1L;
 
   public KVEntry(Key k, Value v) {
@@ -36,6 +42,6 @@ public class KVEntry extends KeyValue {
   }
 
   int estimateMemoryUsed() {
-    return getKey().getSize() + getValue().get().length + (9 * 32); // overhead is 32 per object
+    return getKey().getSize() + getValue().get().length + MEMORY_OVERHEAD;
   }
 }

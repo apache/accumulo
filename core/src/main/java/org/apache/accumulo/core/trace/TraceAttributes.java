@@ -25,6 +25,8 @@ public class TraceAttributes {
       AttributeKey.longKey("accumulo.scan.entries.returned");
   public static final AttributeKey<Long> BYTES_RETURNED_KEY =
       AttributeKey.longKey("accumulo.scan.bytes.returned");
+  public static final AttributeKey<Long> MEMORY_USED_KEY =
+      AttributeKey.longKey("accumulo.scan.memory.used");
   public static final AttributeKey<Long> BYTES_READ_KEY =
       AttributeKey.longKey("accumulo.scan.bytes.read");
   public static final AttributeKey<Long> BYTES_READ_FILE_KEY =

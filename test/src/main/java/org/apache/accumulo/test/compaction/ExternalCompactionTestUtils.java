@@ -251,6 +251,7 @@ public class ExternalCompactionTestUtils {
           tec -> running.put(tec.getJob().getExternalCompactionId(), tec));
       return running;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
   }
