@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalSch
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
@@ -89,6 +90,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
@@ -119,6 +121,7 @@ import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -547,15 +550,50 @@ public class TabletServer extends AbstractServer
     managerMessages.addLast(m);
   }
 
-  void acquireRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
+  private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
+
+  AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
+    if (tabletMetadata.getExtent().isMeta() || !needsRecovery(tabletMetadata)) {
+      return NOOP_CLOSEABLE;
+    } else {
       recoveryLock.lock();
+      return () -> recoveryLock.unlock();
     }
   }
 
   void releaseRecoveryMemory(KeyExtent extent) {
     if (!extent.isMeta()) {
       recoveryLock.unlock();
+    }
+  }
+
+  public boolean needsRecovery(TabletMetadata tabletMetadata) {
+    var logEntries = tabletMetadata.getLogs();
+
+    if (logEntries.isEmpty()) {
+      return false;
+    }
+
+    // This method is called prior to volumes being switched for a tablet during the load process,
+    // so switch volumes before calling needsRecovery()
+    var switchedLogEntries = new ArrayList<LogEntry>(logEntries.size());
+
+    for (LogEntry logEntry : logEntries) {
+      var switchedWalog = VolumeUtil.switchVolumes(logEntry, context.getVolumeReplacements());
+      LogEntry walog;
+      if (switchedWalog != null) {
+        log.debug("Volume switched for needsRecovery {} -> {}", logEntry, switchedWalog);
+        walog = switchedWalog;
+      } else {
+        walog = logEntry;
+      }
+      switchedLogEntries.add(walog);
+    }
+
+    try {
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), switchedLogEntries);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -1250,24 +1288,21 @@ public class TabletServer extends AbstractServer
 
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryDirs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
     sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
+
+    // Validate that recovery logs exist before attempting recovery
     for (LogEntry entry : sorted) {
-      Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
-      if (fs.exists(finished)) {
-        recovery = finished.getParent();
-      }
-      if (recovery == null) {
+      if (!fs.exists(finished)) {
         throw new IOException(
             "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
       }
-      recoveryDirs.add(recovery);
     }
-    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
+
+    logger.recover(getContext(), extent, sorted, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {
