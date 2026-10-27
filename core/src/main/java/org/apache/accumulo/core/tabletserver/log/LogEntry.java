@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -48,9 +49,9 @@ public final class LogEntry {
   }
 
   /**
-   * Creates a new LogEntry object after validating the expected format of the path. We expect the
-   * path to contain a tserver (host+port) followed by a UUID as the file name as the last two
-   * components.<br>
+   * Creates a new LogEntry object after validating the expected format of the path. The path must
+   * be an absolute filesystem URI and contain a tserver (host+port) followed by a UUID as the file
+   * name as the last two components.<br>
    * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
    * valid path.
    *
@@ -94,6 +95,12 @@ public final class LogEntry {
     }
     if (!uuid.toString().equals(uuidPart)) {
       throw new IllegalArgumentException(badUuidMsg);
+    }
+
+    Path logPath = new Path(path);
+    if (logPath.toUri().getScheme() == null || !logPath.isAbsolute()) {
+      throw new IllegalArgumentException(
+          "Invalid path format. The path must be an absolute URI: " + path);
     }
 
     return new LogEntry(path, tserver, uuid, columnQualifier);

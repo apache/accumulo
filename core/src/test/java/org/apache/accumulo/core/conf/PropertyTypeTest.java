@@ -104,7 +104,7 @@ public class PropertyTypeTest extends WithTestNames {
 
   @Test
   public void testTypeABSOLUTEPATH() {
-    valid(null, "/foo", "/foo/c", "/", System.getProperty("user.dir"));
+    valid(null, "/foo", "/foo/c", "/", "file:/tmp", System.getProperty("user.dir"));
     // in Hadoop 2.x, Path only normalizes Windows paths properly when run on a Windows system
     // this makes the following checks fail
     if (System.getProperty("os.name").toLowerCase().contains("windows")) {

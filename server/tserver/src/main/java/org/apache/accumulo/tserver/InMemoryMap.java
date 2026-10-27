@@ -79,6 +79,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class InMemoryMap {
   private SimpleMap map = null;
 
@@ -134,7 +136,12 @@ public class InMemoryMap {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
-    this.memDumpDir = config.get(Property.TSERV_MEMDUMP_DIR);
+    String memDumpDir = config.getPath(Property.TSERV_MEMDUMP_DIR);
+    Preconditions.checkArgument(
+        memDumpDir != null && !memDumpDir.isBlank() && new Path(memDumpDir).isAbsolute(),
+        "%s must be a non-empty absolute filesystem path, but was '%s'",
+        Property.TSERV_MEMDUMP_DIR.getKey(), memDumpDir);
+    this.memDumpDir = memDumpDir;
     this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;

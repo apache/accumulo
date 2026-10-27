@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -88,12 +89,24 @@ public class LogEntryTest {
 
   @Test
   public void testValidPaths() {
-    var validPath1 = validHost + "/" + validUUID;
-    var validPath2 = "dir1/" + validPath1;
-    var validPath3 = "dir2/" + validPath2;
+    var validPath1 = "file:///accumulo/wal/" + validHost + "/" + validUUID;
+    var validPath2 = "hdfs://nn1/accumulo/wal/" + validHost + "/" + validUUID;
 
-    Stream.of(validPath1, validPath2, validPath3)
-        .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
+    Stream.of(validPath1, validPath2).forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
+  }
+
+  @Test
+  public void testRelativePathsAreInvalid() {
+    Stream.of(validHost + "/" + validUUID, "file:accumulo/wal/" + validHost + "/" + validUUID)
+        .forEach(s -> assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(s)));
+  }
+
+  @Test
+  public void testRelativeMetadataPathIsInvalid() {
+    var qualifier = "prefix/" + validHost + "/" + validUUID;
+    var entry = new SimpleImmutableEntry<Key,Value>(
+        new Key("1<", LogColumnFamily.STR_NAME, qualifier), null);
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.fromMetaWalEntry(entry));
   }
 
   @Test

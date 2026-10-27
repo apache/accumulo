@@ -153,6 +153,11 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
+  public void testMemDumpDirMustBeAbsolute() {
+    assertThrows(IllegalArgumentException.class, () -> newInMemoryMap(false, "relative/path"));
+  }
+
+  @Test
   public void test2() throws Exception {
     InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
