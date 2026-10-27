@@ -21,6 +21,8 @@ package org.apache.accumulo.monitor.next;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -34,5 +36,14 @@ public class SystemInformationTest {
     assertNull(SystemInformation.resolveResourceGroupName("user.small", Set.of("other")));
     assertNull(SystemInformation.resolveResourceGroupName("user.small",
         Set.of("user_small", "user-small")));
+  }
+
+  @Test
+  public void testMissingQueueTagUsesUnknownResourceGroup() {
+    Map<String,Long> queuedMetrics = new HashMap<>();
+    assertEquals(new SystemInformation.QueueResourceGroupResolution("unknown", false),
+        SystemInformation.recordQueuedCompactionMetric(queuedMetrics, null, Set.of("user_small"),
+            3));
+    assertEquals(Map.of("unknown", 3L), queuedMetrics);
   }
 }

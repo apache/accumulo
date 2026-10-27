@@ -634,6 +634,9 @@ public class SystemInformation {
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
   private static final String UNKNOWN_RESOURCE_GROUP = "unknown";
 
+  record QueueResourceGroupResolution(String name, boolean matched) {
+  }
+
   static String resolveResourceGroupName(String formattedName, Collection<String> configuredNames) {
     String match = null;
     for (String configuredName : configuredNames) {
@@ -645,6 +648,24 @@ public class SystemInformation {
       }
     }
     return match;
+  }
+
+  static QueueResourceGroupResolution resolveQueueResourceGroupName(String formattedName,
+      Collection<String> configuredNames) {
+    if (formattedName == null) {
+      return new QueueResourceGroupResolution(UNKNOWN_RESOURCE_GROUP, false);
+    }
+    String match = resolveResourceGroupName(formattedName, configuredNames);
+    return match == null ? new QueueResourceGroupResolution(UNKNOWN_RESOURCE_GROUP, false)
+        : new QueueResourceGroupResolution(match, true);
+  }
+
+  static QueueResourceGroupResolution recordQueuedCompactionMetric(Map<String,Long> queuedMetrics,
+      String formattedName, Collection<String> configuredNames, long queued) {
+    QueueResourceGroupResolution resolution =
+        resolveQueueResourceGroupName(formattedName, configuredNames);
+    queuedMetrics.put(resolution.name(), queued);
+    return resolution;
   }
 
   private final ServerContext ctx;
@@ -1014,22 +1035,20 @@ public class SystemInformation {
             }
           } else if (metricName.equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName())) {
             long queued = getMetricValue(flatbuffer).longValue();
-            String queueName = null;
+            String formattedQueueName = null;
             for (int i = 0; i < flatbuffer.tagsLength(); i++) {
               tag = flatbuffer.tags(tag, i);
               if (tag.key().equals(QUEUE_TAG_KEY)) {
-                queueName =
-                    resolveResourceGroupName(tag.value(), configuredCompactionResourceGroups);
-                if (queueName == null) {
-                  LOG.warn("Using unknown resource group for compaction queue metric with invalid "
-                      + "tag {}", tag.value());
-                  queueName = UNKNOWN_RESOURCE_GROUP;
-                }
+                formattedQueueName = tag.value();
                 break;
               }
             }
-            if (queueName != null) {
-              queuedRgCompactions.put(queueName, queued);
+            QueueResourceGroupResolution resolution =
+                recordQueuedCompactionMetric(queuedRgCompactions, formattedQueueName,
+                    configuredCompactionResourceGroups, queued);
+            if (!resolution.matched() && formattedQueueName != null) {
+              LOG.warn("Using unknown resource group for compaction queue metric with invalid "
+                  + "tag {}", formattedQueueName);
             }
             this.instanceOverview.getCompactionsQueued().addAndGet(queued);
           } else if (metricName
