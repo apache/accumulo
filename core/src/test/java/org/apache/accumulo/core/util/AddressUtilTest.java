@@ -42,7 +42,6 @@ public class AddressUtilTest {
     log.info("Checking that we can get the ttl on dns failures.");
     int expectedTtl = 20;
     boolean expectException = false;
-    /* TODO ACCUMULO-2242 replace all of this with Powermock on the Security class */
     try {
       Security.setProperty("networkaddress.cache.negative.ttl", Integer.toString(expectedTtl));
     } catch (SecurityException exception) {
@@ -90,7 +89,6 @@ public class AddressUtilTest {
   @Test
   public void testGetNegativeTtlThrowsOnForever() {
     log.info("When DNS is cached forever, we should throw.");
-    /* TODO ACCUMULO-2242 replace all of this with Powermock on the Security class */
     try {
       Security.setProperty("networkaddress.cache.negative.ttl", "-1");
     } catch (SecurityException exception) {

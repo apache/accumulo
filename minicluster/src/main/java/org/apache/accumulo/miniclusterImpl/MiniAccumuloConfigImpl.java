@@ -314,14 +314,9 @@ public class MiniAccumuloConfigImpl {
    * @param siteConfig key/values that you normally put in accumulo.properties can be put here.
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
-    if (existingInstance != null && existingInstance) {
-      throw new UnsupportedOperationException(
-          "Cannot set set config info when using an existing instance.");
-    }
-
-    this.existingInstance = Boolean.FALSE;
-
-    return _setSiteConfig(siteConfig);
+    this.siteConfig = new HashMap<>(siteConfig);
+    this.configuredSiteConfig = new HashMap<>(siteConfig);
+    return this;
   }
 
   public MiniAccumuloConfigImpl setClientProps(Map<String,String> clientProps) {
@@ -331,12 +326,6 @@ public class MiniAccumuloConfigImpl {
     }
     this.existingInstance = Boolean.FALSE;
     this.clientProps = clientProps;
-    return this;
-  }
-
-  private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
-    this.siteConfig = new HashMap<>(siteConfig);
-    this.configuredSiteConfig = new HashMap<>(siteConfig);
     return this;
   }
 
@@ -766,18 +755,9 @@ public class MiniAccumuloConfigImpl {
 
     Map<String,String> siteConfigMap = new HashMap<>();
     siteConfiguration.getProperties(siteConfigMap, key -> true, false);
-    _setSiteConfig(siteConfigMap);
+    setSiteConfig(siteConfigMap);
 
     return this;
-  }
-
-  /**
-   * @return MAC should run assuming it's configured for an initialized accumulo instance
-   *
-   * @since 1.6.2
-   */
-  public boolean useExistingInstance() {
-    return existingInstance != null && existingInstance;
   }
 
   /**

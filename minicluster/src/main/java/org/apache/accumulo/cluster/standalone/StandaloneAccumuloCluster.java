@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -72,6 +74,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private final Supplier<ServerContext> contextSupplier;
   private volatile State clusterState = State.STOPPED;
   private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
+  private Boolean existingInstance = null;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -81,10 +84,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.tmp = tmp;
     this.users = users;
     this.serverAccumuloConfDir = serverAccumuloConfDir;
-    siteConfig = SiteConfiguration
-        .fromFile(
-            java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toFile())
-        .build();
+    this.siteConfig = setSiteConfig();
     this.contextSupplier = Suppliers.memoize(() -> ServerContext.withClientInfo(siteConfig, info));
   }
 
@@ -258,5 +258,27 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public String getClientPropsPath() {
     return java.nio.file.Path.of(clientAccumuloConfDir).resolve("accumulo-client.properties")
         .toString();
+  }
+
+  /**
+   * @return MAC should run assuming it's configured for an initialized accumulo instance
+   *
+   * @since 1.6.2
+   */
+  public boolean useExistingInstance() {
+    return existingInstance != null && existingInstance;
+  }
+
+  public SiteConfiguration setSiteConfig() {
+    if (existingInstance != null && existingInstance) {
+      throw new UnsupportedOperationException(
+          "Cannot set set config info when using an existing instance.");
+    }
+    SiteConfiguration
+            .fromFile(
+                    java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toFile())
+            .build();
+    this.existingInstance = Boolean.FALSE;
+    return siteConfig;
   }
 }
