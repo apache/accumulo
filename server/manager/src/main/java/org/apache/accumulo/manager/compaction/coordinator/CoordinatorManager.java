@@ -84,7 +84,7 @@ public class CoordinatorManager {
 
   private final DeadCompactionDetector deadCompactionDetector;
 
-  private void managerCoordinators() {
+  private void manageCoordinators() {
     final long initialSleepTime = 10;
     final long maxSleepTime = 5000;
     long sleepTime = initialSleepTime;
@@ -191,7 +191,7 @@ public class CoordinatorManager {
 
     assignmentThread = Threads.createCriticalThread("Coordinator Manager", () -> {
       try {
-        managerCoordinators();
+        manageCoordinators();
       } catch (Exception e) {
         throw new IllegalStateException(e);
       }
