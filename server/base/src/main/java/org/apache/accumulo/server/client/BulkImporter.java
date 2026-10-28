@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -127,7 +128,7 @@ public class BulkImporter {
     final Map<Path,List<KeyExtent>> completeFailures =
         Collections.synchronizedSortedMap(new TreeMap<>());
 
-    final Map<Path,FileStatus> fileStatuses = new HashMap<>();
+    final Map<Path,FileStatus> fileStatuses = new ConcurrentHashMap<>();
 
     ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getLocator(context, tableId);
@@ -147,9 +148,11 @@ public class BulkImporter {
           List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
           try {
             FileStatus status = fs.getFileStatus(mapFile);
-            fileStatuses.put(mapFile, status);
             tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile,
                 tableConf.getCryptoService(), status);
+            // Only add to map if there was no exception, just in case stale informatoin in
+            // filestatus caused the error.
+            fileStatuses.put(mapFile, status);
           } catch (Exception ex) {
             log.warn("Unable to find tablets that overlap file " + mapFile, ex);
           }
@@ -223,6 +226,9 @@ public class BulkImporter {
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
+              // Maybe information in the file status like block locations is stale and caused the
+              // error. Remove the file status to force reading file metadata from namenode.
+              fileStatuses.remove(entry.getKey());
             }
             timer.stop(Timers.QUERY_METADATA);
           }
