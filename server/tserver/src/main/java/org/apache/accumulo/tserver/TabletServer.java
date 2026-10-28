@@ -48,9 +48,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
@@ -63,7 +61,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -209,9 +206,7 @@ public class TabletServer extends AbstractServer
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
-  final OnlineTablets onlineTablets = new OnlineTablets();
-  final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
-  final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
+  final TabletAssignmentTracker assignmentTracker = new TabletAssignmentTracker();
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
 
   final TabletServerResourceManager resourceManager;
@@ -275,7 +270,7 @@ public class TabletServer extends AbstractServer
 
             @Override
             public void run() {
-              Collection<Tablet> tablets = onlineTablets.snapshot().values();
+              Collection<Tablet> tablets = assignmentTracker.getOnline().values();
               logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
               logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
             }
@@ -527,7 +522,7 @@ public class TabletServer extends AbstractServer
     statsKeeper.saveMajorMinorTimes(tablet.getTabletStats());
 
     // lose the reference to the old tablet and open two new ones
-    onlineTablets.split(tablet.getExtent(), newTablets[0], newTablets[1]);
+    assignmentTracker.split(tablet.getExtent(), newTablets[0], newTablets[1]);
 
     // tell the manager
     enqueueManagerMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
@@ -785,18 +780,8 @@ public class TabletServer extends AbstractServer
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         clientAddress, ""));
 
-    Supplier<OpeningAndOnlineCompactables> compactables = () -> {
-      // synchronize on both sets to get a consistent snapshot across both sets, this avoids missing
-      // any tablets that are moving between sets
-      synchronized (openingTablets) {
-        synchronized (onlineTablets) {
-          return new OpeningAndOnlineCompactables(Set.copyOf(openingTablets),
-              onlineTablets.snapshot());
-        }
-      }
-    };
-
-    this.compactionManager = new CompactionManager(compactables, getContext(), ceMetrics);
+    this.compactionManager =
+        new CompactionManager(assignmentTracker::getOpeningAndOnline, getContext(), ceMetrics);
     compactionManager.start();
 
     announceExistence();
@@ -845,7 +830,7 @@ public class TabletServer extends AbstractServer
     long tabletCheckFrequency = aconf.getTimeInMillis(Property.TSERV_HEALTH_CHECK_FREQ);
     // Periodically check that metadata of tablets matches what is held in memory
     watchCriticalFixedDelay(aconf, tabletCheckFrequency, () -> {
-      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = assignmentTracker.getOnline();
 
       Map<KeyExtent,MetadataUpdateCount> updateCounts = new HashMap<>();
 
@@ -1186,13 +1171,7 @@ public class TabletServer extends AbstractServer
       table.scans.running += mapCounter.getInt(ScanRunState.RUNNING);
     });
 
-    ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
-    synchronized (this.unopenedTablets) {
-      synchronized (this.openingTablets) {
-        offlineTabletsCopy.addAll(this.unopenedTablets);
-        offlineTabletsCopy.addAll(this.openingTablets);
-      }
-    }
+    List<KeyExtent> offlineTabletsCopy = assignmentTracker.getUnopenedAndOpening();
 
     for (KeyExtent extent : offlineTabletsCopy) {
       String tableId = extent.tableId().canonical();
@@ -1299,12 +1278,12 @@ public class TabletServer extends AbstractServer
   }
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {
-    return onlineTablets.snapshot();
+    return assignmentTracker.getOnline();
   }
 
   @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
-    return onlineTablets.snapshot().get(extent);
+    return assignmentTracker.getOnline().get(extent);
   }
 
   @Override
@@ -1322,11 +1301,11 @@ public class TabletServer extends AbstractServer
   }
 
   public int getOpeningCount() {
-    return openingTablets.size();
+    return assignmentTracker.getOpeningCount();
   }
 
   public int getUnopenedCount() {
-    return unopenedTablets.size();
+    return assignmentTracker.getUnopenedCount();
   }
 
   public long getTotalMinorCompactions() {

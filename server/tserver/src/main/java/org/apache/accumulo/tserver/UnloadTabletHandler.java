@@ -53,30 +53,13 @@ class UnloadTabletHandler implements Runnable {
   @Override
   public void run() {
 
-    Tablet t = null;
     log.info("Tablet unload for extent {} requested.", extent);
 
-    synchronized (server.unopenedTablets) {
-      if (server.unopenedTablets.contains(extent)) {
-        server.unopenedTablets.remove(extent);
-        return;
-      }
+    if (server.assignmentTracker.removeUnopened(extent)) {
+      return;
     }
-    synchronized (server.openingTablets) {
-      while (server.openingTablets.contains(extent)) {
-        try {
-          log.info("Waiting for tablet {} to finish opening before unloading.", extent);
-          server.openingTablets.wait();
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-        }
-      }
-    }
-    synchronized (server.onlineTablets) {
-      if (server.onlineTablets.snapshot().containsKey(extent)) {
-        t = server.onlineTablets.snapshot().get(extent);
-      }
-    }
+    server.assignmentTracker.awaitNotOpening(extent);
+    Tablet t = server.getOnlineTablet(extent);
 
     if (t == null) {
       // Tablet has probably been recently unloaded: repeated manager
@@ -106,7 +89,7 @@ class UnloadTabletHandler implements Runnable {
     // stop serving tablet - client will get not serving tablet
     // exceptions
     server.recentlyUnloadedCache.put(extent, System.currentTimeMillis());
-    server.onlineTablets.remove(extent);
+    server.assignmentTracker.removeOnline(extent);
 
     try {
       TServerInstance instance = server.getTabletSession();
