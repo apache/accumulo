@@ -20,8 +20,6 @@ package org.apache.accumulo.core.spi.cache;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.file.blockfile.cache.lru.SynchronousLoadingBlockCache;
-
 /**
  * Block cache interface.
  *
