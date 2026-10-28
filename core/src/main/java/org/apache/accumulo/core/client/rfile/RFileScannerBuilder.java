@@ -64,14 +64,6 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
           FileStatus status = fs.getFileStatus(paths[i]);
           CompletableFuture<FSDataInputStream> future =
               fs.openFile(paths[i]).withFileStatus(status).build();
-          while (!future.isDone()) {
-            try {
-              Thread.sleep(10);
-            } catch (InterruptedException e) {
-              Thread.currentThread().interrupt();
-              throw new IOException("Interrupted while opening file: " + paths[i], e);
-            }
-          }
           try {
             FSDataInputStream is = future.get();
             sources[i] = new RFileSource(is, status.getLen());
