@@ -820,12 +820,11 @@ public class CompactionCoordinator
     for (var key : failureCounts.keySet()) {
       failureCounts.compute(key, (k, counts) -> {
         if (counts != null) {
-          ConditionalLogAction logAction =
-              (logger, format, options) -> logger.debug(format, options);
+          ConditionalLogAction logAction = Logger::debug;
           if (counts.failures > 0) {
-            logAction = (logger, format, options) -> logger.warn(format, options);
+            logAction = Logger::warn;
           } else if (logSuccessAtTrace) {
-            logAction = (logger, format, options) -> logger.trace(format, options);
+            logAction = Logger::trace;
           }
 
           logAction.log(LOG, "{} {} failures:{} successes:{} since last time this was logged ",
