@@ -110,7 +110,7 @@ public class CoordinatorManager {
           sleepTime = Math.min(sleepTime + 10, maxSleepTime);
         }
 
-        updateZookeeper(desired);
+        advertiseAssignments(desired);
       } catch (Exception e) {
         log.warn("Failed to set compaction coordinator assignments", e);
         sleepTime = maxSleepTime;
@@ -121,18 +121,18 @@ public class CoordinatorManager {
 
   }
 
-  private void updateZookeeper(Map<HostAndPort,Set<ResourceGroupId>> desired)
+  private void advertiseAssignments(Map<HostAndPort,Set<ResourceGroupId>> desired)
       throws InterruptedException, KeeperException {
     // transform desired set to look like what is in zookeeper
-    HashMap<ResourceGroupId,HostAndPort> transformed = new HashMap<>();
+    HashMap<ResourceGroupId,HostAndPort> locations = new HashMap<>();
     desired.forEach((hp, rgs) -> {
-      rgs.forEach(rg -> transformed.put(rg, hp));
+      rgs.forEach(rg -> locations.put(rg, hp));
     });
 
     var assignmentsInZk = context.getCoordinatorLocations().locations();
-    if (!transformed.equals(assignmentsInZk)) {
-      CoordinatorLocationsFactory.setLocations(context.getZooSession().asReaderWriter(),
-          transformed, NodeExistsPolicy.OVERWRITE);
+    if (!locations.equals(assignmentsInZk)) {
+      CoordinatorLocationsFactory.setLocations(context.getZooSession().asReaderWriter(), locations,
+          NodeExistsPolicy.OVERWRITE);
       log.debug("Set new coordinator locations {}", desired);
 
     }
