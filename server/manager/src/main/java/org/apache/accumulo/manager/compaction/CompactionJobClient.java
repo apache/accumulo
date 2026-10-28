@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
@@ -62,6 +63,7 @@ public class CompactionJobClient implements AutoCloseable {
 
   private final Map<ResourceGroupId,HostAndPort> coordinatorLocations;
   private final Map<HostAndPort,CoordinatorConnection> coordinatorConnections = new HashMap<>();
+  private final Set<HostAndPort> createdConnections = new HashSet<>();
   private final Map<ResourceGroupId,Long> ignoredCounts = new HashMap<>();
 
   private static final int BUFFER_SIZE = 1000;
@@ -74,9 +76,11 @@ public class CompactionJobClient implements AutoCloseable {
     this.coordinatorLocations = context.getCoordinatorLocations().locations();
 
     log.trace("Using coordinator locations {}", coordinatorLocations);
+  }
 
-    var uniqueHosts = new HashSet<>(coordinatorLocations.values());
-    for (var hostPort : uniqueHosts) {
+  private CoordinatorConnection getConnection(HostAndPort hostPort) {
+    // Only attempt to create a connection once, on failure do not recreate.
+    if (!createdConnections.contains(hostPort)) {
       CompactionCoordinatorService.Client client = null;
       try {
         client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hostPort, context);
@@ -93,7 +97,10 @@ public class CompactionJobClient implements AutoCloseable {
         coordinatorConnections.put(hostPort,
             new CoordinatorConnection(client, new ArrayList<>(BUFFER_SIZE), hostPort));
       }
+      createdConnections.add(hostPort);
     }
+
+    return coordinatorConnections.get(hostPort);
   }
 
   public void addJobs(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
@@ -105,7 +112,7 @@ public class CompactionJobClient implements AutoCloseable {
         ignoredCounts.merge(job.getGroup(), 1L, Long::sum);
         continue;
       }
-      var coordinator = coordinatorConnections.get(hostPort);
+      var coordinator = getConnection(hostPort);
       if (coordinator == null) {
         log.trace("Ignoring job, no connection found {}", job.getGroup());
         ignoredCounts.merge(job.getGroup(), 1L, Long::sum);
