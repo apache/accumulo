@@ -789,7 +789,7 @@ public enum Property {
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground.",
       "1.3.5"),
-  TSERV_MEMDUMP_DIR("tserver.dir.memdump", "file:/tmp", PropertyType.ABSOLUTEPATH, """
+  TSERV_MEMDUMP_DIR("tserver.dir.memdump", "/tmp", PropertyType.ABSOLUTEPATH, """
       A long running scan could possibly hold memory that has been minor \
       compacted. To prevent this, the in memory map is dumped to a local file \
       and the scan is switched to that local file. We can not switch to the \

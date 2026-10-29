@@ -80,8 +80,8 @@ public class VolumeUtil {
   }
 
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
-    Path switchedPath = switchVolume(new Path(le.getPath()), FileType.WAL, replacements);
-    return switchedPath == null ? null : LogEntry.fromPath(switchedPath.toString());
+    Path switchedPath = switchVolume(le.getPath(), FileType.WAL, replacements);
+    return switchedPath == null ? null : LogEntry.withSwitchedVolume(le, switchedPath);
   }
 
   public static boolean needsVolumeReplacement(final Map<Path,Path> replacements,

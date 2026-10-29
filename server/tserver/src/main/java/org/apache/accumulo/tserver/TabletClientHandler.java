@@ -1297,7 +1297,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     // Might be null if there is no active logger
     LogEntry le = server.logger.getLogEntry();
-    return le == null ? Collections.emptyList() : Collections.singletonList(le.getPath());
+    return le == null ? Collections.emptyList()
+        : Collections.singletonList(le.getPath().toString());
   }
 
   @Override

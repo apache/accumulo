@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
@@ -36,16 +38,31 @@ import com.google.common.net.HostAndPort;
 
 public final class LogEntry {
 
-  private final String path;
+  private static final String LOG_PATH =
+      "%s" + Path.SEPARATOR + Constants.WAL_DIR + Path.SEPARATOR + "%s" + Path.SEPARATOR + "%s";
+
+  private final Path path;
   private final HostAndPort tserver;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
-  private LogEntry(String path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
+  private LogEntry(Path path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
     this.path = path;
     this.tserver = tserver;
     this.uniqueId = uniqueId;
     this.columnQualifier = columnQualifier;
+  }
+
+  public static LogEntry withSwitchedVolume(LogEntry entry, Path newPath) {
+    return new LogEntry(newPath, entry.getTServer(), entry.getUniqueID(),
+        entry.getColumnQualifier());
+  }
+
+  public static LogEntry forServer(String volume, HostAndPort address) {
+    UUID filename = UUID.randomUUID();
+    String addressForFilename = address.toString().replace(':', '+');
+    String filePath = LOG_PATH.formatted(volume, addressForFilename, filename);
+    return new LogEntry(new Path(filePath), address, filename, null);
   }
 
   /**
@@ -103,7 +120,7 @@ public final class LogEntry {
           "Invalid path format. The path must be an absolute URI: " + path);
     }
 
-    return new LogEntry(path, tserver, uuid, columnQualifier);
+    return new LogEntry(logPath, tserver, uuid, columnQualifier);
   }
 
   /**
@@ -127,12 +144,12 @@ public final class LogEntry {
 
   @NonNull
   @VisibleForTesting
-  HostAndPort getTServer() {
+  public HostAndPort getTServer() {
     return tserver;
   }
 
   @NonNull
-  public String getPath() {
+  public Path getPath() {
     return path;
   }
 
@@ -143,7 +160,7 @@ public final class LogEntry {
 
   @Override
   public String toString() {
-    return path;
+    return path.toString();
   }
 
   @Override

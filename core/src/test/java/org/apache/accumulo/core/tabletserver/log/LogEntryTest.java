@@ -64,7 +64,7 @@ public class LogEntryTest {
   // helper for testing build from constructor or from metadata
   private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
-    assertEquals(validPath, logEntry.getPath());
+    assertEquals(validPath, logEntry.getPath().toString());
     assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
     assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
     assertEquals(validUUID, logEntry.getUniqueID());
