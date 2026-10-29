@@ -150,12 +150,18 @@ function getDataTableCols(storageKey) {
  * and executes an ajax method to load the data.
  */
 function refreshTable(table, storageKey) {
-  // save the current scroll position of the table
-  var $scrollContainer = $(table).parent('.dt-scroll-body');
-  var currentScrollTop = $scrollContainer.scrollTop();
+  var dataTableRef = dataTableRefs.get(table);
+  var dataTableColKeys = new Map();
+  var colsKey = JSON.stringify(getStoredColumns(storageKey));
+  dataTableColKeys.set(table, colsKey);
+
+  // Only reload the rows so scroll position and column state do not reset
+  if (dataTableRef != null && dataTableColKeys.get(table) === colsKey) {
+    ajaxReloadTable(dataTableRef);
+    return;
+  }
 
   // Destroy the DataTable
-  var dataTableRef = dataTableRefs.get(table);
   if (dataTableRef != null) {
     dataTableRef.destroy();
   }
@@ -185,8 +191,6 @@ function refreshTable(table, storageKey) {
   dataTableRef = createDataTable(table, storageKey);
   ajaxReloadTable(dataTableRef);
   dataTableRefs.set(table, dataTableRef);
-  // restore the scroll position
-  $scrollContainer.scrollTop(currentScrollTop);
 }
 
 /**
