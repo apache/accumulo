@@ -171,8 +171,8 @@ public class CompactionJobPriorityQueue {
     });
 
     if (!removals.isEmpty()) {
-      log.trace("Removed {} queued tablets that no longer need compaction for {} {}",
-          removals.size(), groupId, level);
+      log.trace("Removed {} queued tablets that no longer need compaction for {} {} {}",
+          removals.size(), groupId, level, currGeneration);
     }
 
     // Also clears jobAge timer for tablets that do not need compaction anymore

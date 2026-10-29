@@ -69,7 +69,8 @@ public class CompactionJobQueues {
   }
 
   public void beginFullScan(DataLevel level) {
-    currentGenerations.get(level).incrementAndGet();
+    long gen = currentGenerations.get(level).incrementAndGet();
+    log.trace("Begin full scan:{} {}", level, gen);
   }
 
   /**
@@ -83,8 +84,9 @@ public class CompactionJobQueues {
    *        needs to be removed must be done per DataLevel
    */
   public void endFullScan(DataLevel level) {
-    priorityQueues.values()
-        .forEach(pq -> pq.removeOlderGenerations(level, currentGenerations.get(level).get()));
+    var gen = currentGenerations.get(level).get();
+    priorityQueues.values().forEach(pq -> pq.removeOlderGenerations(level, gen));
+    log.trace("End full scan:{} {}", level, gen);
   }
 
   public void add(KeyExtent extent, Collection<CompactionJob> jobs) {

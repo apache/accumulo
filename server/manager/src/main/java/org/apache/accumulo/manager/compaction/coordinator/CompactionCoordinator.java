@@ -606,6 +606,7 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+    LOG.trace("Beginning full job scan:{}", dataLevel);
     jobQueues.beginFullScan(DataLevel.valueOf(dataLevel));
   }
 
@@ -640,6 +641,7 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     jobQueues.endFullScan(DataLevel.valueOf(dataLevel));
+    LOG.trace("Ended full job scan:{} ", dataLevel);
   }
 
   private static class UpdateId {
