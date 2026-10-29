@@ -38,6 +38,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class TabletAssignmentTrackerTest {
 
@@ -110,6 +111,7 @@ public class TabletAssignmentTrackerTest {
   }
 
   @Test
+  @Timeout(30)
   public void testAwaitNotOpening() throws Exception {
     var tracker = new TabletAssignmentTracker();
     assertNull(tracker.addUnopenedIfNoOverlap(ALL));
@@ -117,11 +119,11 @@ public class TabletAssignmentTrackerTest {
 
     Thread waiter = new Thread(() -> tracker.awaitNotOpening(ALL));
     waiter.start();
-    waiter.join(100);
-    assertTrue(waiter.isAlive());
+    while (waiter.getState() != Thread.State.WAITING) {
+      Thread.sleep(10);
+    }
 
     tracker.removeOpening(ALL);
-    waiter.join(10_000);
-    assertFalse(waiter.isAlive());
+    waiter.join();
   }
 }
