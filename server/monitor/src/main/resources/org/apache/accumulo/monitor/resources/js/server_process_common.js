@@ -155,7 +155,7 @@ function refreshTable(table, storageKey) {
   var colsKey = JSON.stringify(getStoredColumns(storageKey));
   dataTableColKeys.set(table, colsKey);
 
-  // Only reload the rows so scroll position and column state do not reset
+  // If column data has not changed, only reload the rows so scroll position and column state do not reset
   if (dataTableRef != null && dataTableColKeys.get(table) === colsKey) {
     ajaxReloadTable(dataTableRef);
     return;
@@ -409,6 +409,5 @@ function createDataTable(table, storageKey) {
     ],
     "columns": getDataTableCols(storageKey)
   });
-
   return dataTableRef;
 }
