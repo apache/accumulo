@@ -61,6 +61,7 @@
  */
 
 var dataTableRefs = new Map();
+var dataTableColKeys = new Map();
 
 /**
  * This function returns the entire response from session storage
@@ -151,9 +152,7 @@ function getDataTableCols(storageKey) {
  */
 function refreshTable(table, storageKey) {
   var dataTableRef = dataTableRefs.get(table);
-  var dataTableColKeys = new Map();
   var colsKey = JSON.stringify(getStoredColumns(storageKey));
-  dataTableColKeys.set(table, colsKey);
 
   // If column data has not changed, only reload the rows so scroll position and column state do not reset
   if (dataTableRef != null && dataTableColKeys.get(table) === colsKey) {
@@ -191,6 +190,7 @@ function refreshTable(table, storageKey) {
   dataTableRef = createDataTable(table, storageKey);
   ajaxReloadTable(dataTableRef);
   dataTableRefs.set(table, dataTableRef);
+  dataTableColKeys.set(table, colsKey);
 }
 
 /**
