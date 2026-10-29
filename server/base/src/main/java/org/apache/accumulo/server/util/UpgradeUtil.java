@@ -18,18 +18,37 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -44,6 +63,7 @@ import com.beust.jcommander.DefaultUsageFormatter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+import com.google.common.collect.Iterators;
 
 @AutoService(KeywordExecutable.class)
 public class UpgradeUtil implements KeywordExecutable {
@@ -202,12 +222,99 @@ public class UpgradeUtil implements KeywordExecutable {
       new ZooZap().zap(siteConf, "-manager", "-compaction-coordinators", "-tservers", "-compactors",
           "-sservers", "--monitor", "--gc");
 
+      // Wait for tserver locks to be removed, then ensure that no tablets have logs
+      // as this indicates recovery needs to be performed.
+      final ZooCache zc = new ZooCache(zoo, null);
+      try {
+        waitForTServerLocks(Constants.ZROOT + "/" + iid, zoo, zc);
+        List<KeyExtent> recoveries = findTabletsNeedingRecovery(Constants.ZROOT + "/" + iid, zc);
+        if (!recoveries.isEmpty()) {
+          LOG.info(
+              "Found {} Tablets that need recovery. Continuing with the upgrade is not advisable."
+                  + " It's recommended to abort this upgrade using the instructions below and restart the"
+                  + " instance to allow Tablet recovery to occur.",
+              recoveries.size());
+          recoveries.forEach(t -> LOG.info("{} needs recovery", t));
+        }
+      } finally {
+        zc.close();
+      }
+
       LOG.info("Instance {} prepared for upgrade. Server processes will not start while"
           + " in this state. To undo this state and abort upgrade preparations delete"
           + " the zookeeper node: {}. If you abort and restart the instance, then you "
           + " should re-run this utility before upgrading.", iid.canonical(), zUpgradepath);
     }
 
+  }
+
+  private void waitForTServerLocks(String zkRoot, ZooReader zr, ZooCache cache)
+      throws KeeperException, InterruptedException {
+    final String path = zkRoot + Constants.ZTSERVERS;
+    List<String> tserverNodes = zr.getChildren(path);
+
+    int tserversWithLocks = 0;
+    do {
+      Thread.sleep(5000);
+      tserversWithLocks = 0;
+      for (String zPath : tserverNodes) {
+        final var zLockPath = ServiceLock.path(path + "/" + zPath);
+        ZcStat stat = new ZcStat();
+        byte[] lockData = ServiceLock.getLockData(cache, zLockPath, stat);
+        if (lockData != null) {
+          tserversWithLocks++;
+        }
+        LOG.info("{} TabletServer locks still exist in ZooKeeper", tserversWithLocks);
+      }
+    } while (tserversWithLocks != 0);
+  }
+
+  private Iterator<TabletMetadata> readTabletMetadata(List<String> rfiles, Range range) {
+    // RFileScanner sets up the system iterator stack by default
+    Scanner rfileScanner =
+        RFile.newScanner().from(new ArrayList<String>(rfiles).toArray(new String[] {})).build();
+    rfileScanner.setRange(range);
+    rfileScanner.iterator();
+    RowIterator rowIter = new RowIterator(rfileScanner);
+    return Iterators.transform(rowIter,
+        ri -> TabletMetadata.convertRow(ri, EnumSet.allOf(ColumnType.class), false));
+  }
+
+  List<KeyExtent> findTabletsNeedingRecovery(String zkRoot, ZooCache cache) throws IOException {
+    final List<KeyExtent> extentsNeedingRecovery = new ArrayList<>();
+
+    // Read the root tablet metadata to see if it has logs and needs recovery
+    TabletMetadata rootTabletMetadata = TabletsMetadata.getRootMetadata(zkRoot, cache);
+    if (!rootTabletMetadata.getLogs().isEmpty()) {
+      extentsNeedingRecovery.add(rootTabletMetadata.getExtent());
+    }
+
+    // Collect the rfiles for the root tablet so that we can collect the files for the
+    // metadata table and also check if the metadata table has logs and needs recovery
+    List<String> rootFiles = rootTabletMetadata.getFiles().stream().map(stf -> stf.getPathStr())
+        .collect(Collectors.toList());
+    Iterator<TabletMetadata> iter =
+        readTabletMetadata(rootFiles, MetadataSchema.TabletsSection.getRange(MetadataTable.ID));
+    List<String> metadataFiles = new ArrayList<>();
+    while (iter.hasNext()) {
+      TabletMetadata metadataTablet = iter.next();
+      metadataTablet.getFiles().stream().map(stf -> stf.getPathStr()).forEach(metadataFiles::add);
+      if (!metadataTablet.getLogs().isEmpty()) {
+        extentsNeedingRecovery.add(metadataTablet.getExtent());
+      }
+    }
+
+    // Read the rfiles for the metadata table to see if any user tables have
+    // logs and need recovery
+    iter = readTabletMetadata(metadataFiles, MetadataSchema.TabletsSection.getRange());
+    while (iter.hasNext()) {
+      TabletMetadata userTablet = iter.next();
+      if (!userTablet.getLogs().isEmpty()) {
+        extentsNeedingRecovery.add(userTablet.getExtent());
+      }
+    }
+
+    return extentsNeedingRecovery;
   }
 
 }
