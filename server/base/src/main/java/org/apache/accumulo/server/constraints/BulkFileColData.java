@@ -28,14 +28,12 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
  */
 class BulkFileColData {
   private boolean isSplitMutation;
-  private boolean isLocationMutation;
   private final Set<StoredTabletFile> dataFiles;
   private final Set<StoredTabletFile> loadedFiles;
   private final Set<String> tidsSeen;
 
   BulkFileColData() {
     isSplitMutation = false;
-    isLocationMutation = false;
     dataFiles = new HashSet<>();
     loadedFiles = new HashSet<>();
     tidsSeen = new HashSet<>();
@@ -47,14 +45,6 @@ class BulkFileColData {
 
   boolean getIsSplitMutation() {
     return isSplitMutation;
-  }
-
-  void setIsLocationMutation(boolean b) {
-    isLocationMutation = b;
-  }
-
-  boolean getIsLocationMutation() {
-    return isLocationMutation;
   }
 
   void addDataFile(StoredTabletFile stf) {
