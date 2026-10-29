@@ -468,7 +468,8 @@ public enum Property {
           + " the storage volumes if there are no other references to the files in the "
           + " metadata table. When deleting a lot of tables this optimization can be costly. "
           + " Setting this value to false will skip this optimization and the table directory "
-          + " cleanup will occur in the Garbage Collector instead.",
+          + " cleanup will occur in the Garbage Collector instead. The value should be false  "
+          + " when recursive deletes are not efficient on underlying volumes.",
       "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
@@ -1041,7 +1042,7 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
-  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "180d", PropertyType.TIMEDURATION,
       """
           Key values written to a tablet are temporarily stored in a per tablet in memory map.  When \
           the age of the oldest key value in a tablets in memory map exceeds this configuration, then  \
