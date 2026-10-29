@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -101,7 +102,8 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf", "F0000072.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
+        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f,
+            Set.of(TableId.of("2a"))))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();
