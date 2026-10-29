@@ -171,8 +171,8 @@ public class CompactionJobPriorityQueue {
     });
 
     if (!removals.isEmpty()) {
-      log.trace("Removed {} queued tablets that no longer need compaction for {} {}",
-          removals.size(), groupId, level);
+      log.trace("Removed {} queued tablets that no longer need compaction for {} {} {}",
+          removals.size(), groupId, level, currGeneration);
     }
 
     // Also clears jobAge timer for tablets that do not need compaction anymore
@@ -305,15 +305,10 @@ public class CompactionJobPriorityQueue {
     return key;
   }
 
-  public synchronized void clearIfInactive(Duration duration) {
-    // IF the minimum age of jobs in the queue is older than the
-    // duration then clear all the maps as this queue is now
-    // considered inactive
-    if (getJobQueueStats().getMinAge().compareTo(duration) > 0) {
-      jobQueue.clear();
-      tabletJobs.clear();
-      jobAges.clear();
-    }
+  public synchronized void clear() {
+    jobQueue.clear();
+    tabletJobs.clear();
+    jobAges.clear();
   }
 
   public synchronized void resetMaxSize(long size) {
