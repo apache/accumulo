@@ -40,7 +40,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -90,7 +89,6 @@ import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
@@ -113,7 +111,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.fate.FateNotifier;
@@ -573,47 +570,6 @@ public class Manager extends AbstractServer
         watcher.hostOndemand(extents);
       }
     }
-  }
-
-  private class ScanServerZKCleaner implements Runnable {
-
-    @Override
-    public void run() {
-
-      final ZooReaderWriter zrw = getContext().getZooSession().asReaderWriter();
-
-      while (stillManager()) {
-        try {
-          Set<ServiceLockPath> scanServerPaths = getContext().getServerPaths()
-              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
-          for (ServiceLockPath path : scanServerPaths) {
-
-            ZcStat stat = new ZcStat();
-            Optional<ServiceLockData> lockData =
-                ServiceLock.getLockData(getContext().getZooCache(), path, stat);
-
-            if (lockData.isEmpty()) {
-              try {
-                log.debug("Deleting empty ScanServer ZK node {}", path);
-                zrw.delete(path.toString());
-              } catch (KeeperException.NotEmptyException e) {
-                log.debug(
-                    "Failed to delete ScanServer ZK node {} its not empty, likely an expected race condition.",
-                    path);
-              }
-            }
-          }
-        } catch (KeeperException e) {
-          log.error("Exception trying to delete empty scan server ZNodes, will retry", e);
-        } catch (InterruptedException e) {
-          log.error("Interrupted trying to delete empty scan server ZNodes, will retry", e);
-        } finally {
-          // sleep for 5 mins
-          sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
-        }
-      }
-    }
-
   }
 
   boolean canBalance(DataLevel dataLevel, TServerStatus tServerStatus) {
@@ -1154,7 +1110,6 @@ public class Manager extends AbstractServer
     }
 
     balanceManager.startBackGroundTask();
-    Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
     compactionCoordinator.start();
