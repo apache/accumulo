@@ -274,7 +274,6 @@ public class UpgradeUtil implements KeywordExecutable {
     Scanner rfileScanner =
         RFile.newScanner().from(new ArrayList<String>(rfiles).toArray(new String[] {})).build();
     rfileScanner.setRange(range);
-    rfileScanner.iterator();
     RowIterator rowIter = new RowIterator(rfileScanner);
     return Iterators.transform(rowIter,
         ri -> TabletMetadata.convertRow(ri, EnumSet.allOf(ColumnType.class), false));
