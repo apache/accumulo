@@ -20,18 +20,37 @@ package org.apache.accumulo.test.upgrade;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.StringWriter;
+import java.util.Iterator;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.WriterAppender;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.jupiter.api.Test;
 
 public class UpgradeUtilIT extends AccumuloClusterHarness {
@@ -97,6 +116,80 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     new UpgradeUtil().execute(new String[] {"--prepare"});
     assertTrue(ctx.getZooReader().exists(ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE));
 
+  }
+
+  @Test
+  public void testFindsTabletRecoveryMarkerInMetadataFiles() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    String tableName = getUniqueNames(1)[0];
+    KeyExtent extent;
+    KeyExtent firstMetadataExtent = null;
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      Ample ample = ctx.getAmple();
+
+      // Get the first metadata table extent
+      try (TabletsMetadata tm =
+          ample.readTablets().forTable(MetadataTable.ID).fetch(ColumnType.PREV_ROW).build()) {
+        Iterator<TabletMetadata> iter = tm.iterator();
+        assertTrue(iter.hasNext());
+        firstMetadataExtent = iter.next().getExtent();
+      }
+      assertNotNull(firstMetadataExtent);
+
+      client.tableOperations().create(tableName);
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      extent = new KeyExtent(tableId, null, null);
+
+      String wal = "file:/fake-recovery-wal";
+      ample.mutateTablet(extent).putWal(new LogEntry(extent, System.currentTimeMillis(), wal))
+          .mutate();
+      ample.mutateTablet(firstMetadataExtent)
+          .putWal(new LogEntry(extent, System.currentTimeMillis(), wal)).mutate();
+      ample.mutateTablet(RootTable.EXTENT)
+          .putWal(new LogEntry(extent, System.currentTimeMillis(), wal)).mutate();
+
+      // The recovery checker reads metadata from RFiles, so flush both metadata levels after
+      // injecting the synthetic WAL reference.
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
+    }
+
+    StringWriter writer = new StringWriter();
+    LoggerContext loggerContext = LoggerContext.getContext(false);
+    Configuration cfg = loggerContext.getConfiguration();
+    PatternLayout layout = PatternLayout.newBuilder().setConfiguration(cfg)
+        .setPattern(PatternLayout.SIMPLE_CONVERSION_PATTERN).build();
+    Appender appender =
+        WriterAppender.createAppender(layout, null, writer, "UpgradeUtilITAppender", false, true);
+    appender.start();
+    cfg.addAppender(appender);
+    cfg.getLoggerConfig(UpgradeUtil.class.getName()).addAppender(appender, null, null);
+
+    try {
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      Wait.waitFor(() -> ctx.getZooReader()
+          .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
+
+      System.setProperty("accumulo.properties",
+          "file://" + getCluster().getAccumuloPropertiesPath());
+      new UpgradeUtil().execute(new String[] {"--prepare"});
+      assertTrue(
+          ctx.getZooReader().exists(ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE));
+      String logMessages = writer.toString();
+      assertTrue(logMessages.contains(RootTable.EXTENT + " needs recovery"),
+          "Expected --prepare to report recovery for " + RootTable.EXTENT + ", got " + logMessages);
+      assertTrue(logMessages.contains(firstMetadataExtent + " needs recovery"),
+          "Expected --prepare to report recovery for " + firstMetadataExtent + ", got "
+              + logMessages);
+      assertTrue(logMessages.contains(extent + " needs recovery"),
+          "Expected --prepare to report recovery for " + extent + ", got " + logMessages);
+    } finally {
+      cfg.getLoggerConfig(UpgradeUtil.class.getName()).removeAppender(appender.getName());
+      loggerContext.updateLoggers();
+      appender.stop();
+    }
   }
 
   @Test
