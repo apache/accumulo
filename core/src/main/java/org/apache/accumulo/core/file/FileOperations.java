@@ -108,8 +108,6 @@ public abstract class FileOperations {
   // Abstract methods (to be implemented by subclasses)
   //
 
-  protected abstract long getFileSize(FileOptions options) throws IOException;
-
   protected abstract FileSKVWriter openWriter(FileOptions options) throws IOException;
 
   protected abstract FileSKVIterator openIndex(FileOptions options) throws IOException;
