@@ -114,7 +114,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       FileSystem fs = cluster.getFileSystem();
 
       LogEntry logEntry =
-          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toString(),
+          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
               HostAndPort.fromParts("127.0.0.1", 12345));
 
       log.info("Created empty WAL at {}", logEntry.getPath().toUri());
@@ -160,10 +160,11 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   @Test
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      FileSystem fs = getCluster().getFileSystem();
+      MiniAccumuloClusterImpl cluster = getCluster();
+      FileSystem fs = cluster.getFileSystem();
 
       LogEntry logEntry =
-          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toString(),
+          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
               HostAndPort.fromParts("127.0.0.1", 12345));
       log.info("Created WAL with malformed header at {}", logEntry.getPath().toUri());
 

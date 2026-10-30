@@ -673,9 +673,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-    LogEntry logEntry = LogEntry.forServer(
-        ((MiniAccumuloClusterImpl) getCluster()).getConfig().getAccumuloDir().toPath().toString(),
-        HostAndPort.fromParts("localhost", 9997));
+    LogEntry logEntry = LogEntry.forServer(((MiniAccumuloClusterImpl) getCluster()).getConfig()
+        .getAccumuloDir().toPath().toUri().toString(), HostAndPort.fromParts("localhost", 9997));
     logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);

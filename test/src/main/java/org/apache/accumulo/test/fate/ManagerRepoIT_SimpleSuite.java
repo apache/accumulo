@@ -161,9 +161,9 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       // Write a WAL to the test metadata and then re-run the repo to check for an error
       try (TabletsMutator tm = testAmple.mutateTablets()) {
         tm.mutateTablet(extent)
-            .putWal(
-                LogEntry.forServer(getCluster().getConfig().getAccumuloDir().toPath().toString(),
-                    HostAndPort.fromParts("tserver", 8080)))
+            .putWal(LogEntry.forServer(
+                getCluster().getConfig().getAccumuloDir().toPath().toUri().toString(),
+                HostAndPort.fromParts("tserver", 8080)))
             .mutate();
       }
 

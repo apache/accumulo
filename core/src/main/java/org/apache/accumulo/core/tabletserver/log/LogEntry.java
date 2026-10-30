@@ -61,7 +61,7 @@ public final class LogEntry {
     UUID filename = UUID.randomUUID();
     String addressForFilename = address.toString().replace(':', '+');
     String filePath = LOG_PATH.formatted(volume, addressForFilename, filename);
-    return new LogEntry(new Path(filePath), address, filename, null);
+    return new LogEntry(validatePath(new Path(filePath)), address, filename, null);
   }
 
   /**
@@ -113,13 +113,16 @@ public final class LogEntry {
       throw new IllegalArgumentException(badUuidMsg);
     }
 
-    Path logPath = new Path(path);
-    if (logPath.toUri().getScheme() == null || !logPath.isAbsolute()) {
+    Path logPath = validatePath(new Path(path));
+    return new LogEntry(logPath, tserver, uuid, columnQualifier);
+  }
+
+  private static Path validatePath(Path path) {
+    if (path.toUri().getScheme() == null || !path.isAbsolute()) {
       throw new IllegalArgumentException(
           "Invalid path format. The path must be an absolute URI: " + path);
     }
-
-    return new LogEntry(logPath, tserver, uuid, columnQualifier);
+    return path;
   }
 
   /**

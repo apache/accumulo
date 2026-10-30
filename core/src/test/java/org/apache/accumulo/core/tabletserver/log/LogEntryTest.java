@@ -61,6 +61,24 @@ public class LogEntryTest {
     verifyLogEntry(logEntry, new Text(columnQualifier));
   }
 
+  @Test
+  public void testForServer() {
+    var logEntry = LogEntry.forServer("viewfs:/a/accumulo",
+        HostAndPort.fromString(validHost.replace('+', ':')));
+    assertTrue(logEntry.getPath().toUri().getScheme() != null);
+
+    var roundTripped = LogEntry.fromMetaWalEntry(new SimpleImmutableEntry<>(
+        new Key("1<", LogColumnFamily.STR_NAME, logEntry.getColumnQualifier().toString()), null));
+    assertEquals(logEntry, roundTripped);
+    assertEquals(logEntry.getPath(), roundTripped.getPath());
+  }
+
+  @Test
+  public void testForServerRequiresQualifiedVolume() {
+    assertThrows(IllegalArgumentException.class,
+        () -> LogEntry.forServer("/accumulo", HostAndPort.fromString("localhost:9997")));
+  }
+
   // helper for testing build from constructor or from metadata
   private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
