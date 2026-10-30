@@ -24,10 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.StringWriter;
 import java.util.Iterator;
-import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,13 +46,10 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.appender.WriterAppender;
 import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.jupiter.api.Test;
 
@@ -160,13 +156,16 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
       client.tableOperations().flush(RootTable.NAME, null, null, true);
     }
 
-    CapturingAppender appender = new CapturingAppender();
-    LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
-    Configuration configuration = loggerContext.getConfiguration();
-    LoggerConfig loggerConfig = configuration.getLoggerConfig(UpgradeUtil.class.getName());
+    StringWriter writer = new StringWriter();
+    LoggerContext loggerContext = LoggerContext.getContext(false);
+    Configuration cfg = loggerContext.getConfiguration();
+    PatternLayout layout = PatternLayout.newBuilder().setConfiguration(cfg)
+        .setPattern(PatternLayout.SIMPLE_CONVERSION_PATTERN).build();
+    Appender appender =
+        WriterAppender.createAppender(layout, null, writer, "UpgradeUtilITAppender", false, true);
     appender.start();
-    loggerConfig.addAppender(appender, Level.INFO, null);
-    loggerContext.updateLoggers();
+    cfg.addAppender(appender);
+    cfg.getLoggerConfig(UpgradeUtil.class.getName()).addAppender(appender, null, null);
 
     try {
       getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
@@ -178,16 +177,16 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
       new UpgradeUtil().execute(new String[] {"--prepare"});
       assertTrue(
           ctx.getZooReader().exists(ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE));
-      assertTrue(appender.messages().contains(RootTable.EXTENT + " needs recovery"),
-          "Expected --prepare to report recovery for " + RootTable.EXTENT + ", got "
-              + appender.messages());
-      assertTrue(appender.messages().contains(firstMetadataExtent + " needs recovery"),
+      String logMessages = writer.toString();
+      assertTrue(logMessages.contains(RootTable.EXTENT + " needs recovery"),
+          "Expected --prepare to report recovery for " + RootTable.EXTENT + ", got " + logMessages);
+      assertTrue(logMessages.contains(firstMetadataExtent + " needs recovery"),
           "Expected --prepare to report recovery for " + firstMetadataExtent + ", got "
-              + appender.messages());
-      assertTrue(appender.messages().contains(extent + " needs recovery"),
-          "Expected --prepare to report recovery for " + extent + ", got " + appender.messages());
+              + logMessages);
+      assertTrue(logMessages.contains(extent + " needs recovery"),
+          "Expected --prepare to report recovery for " + extent + ", got " + logMessages);
     } finally {
-      loggerConfig.removeAppender(appender.getName());
+      cfg.getLoggerConfig(UpgradeUtil.class.getName()).removeAppender(appender.getName());
       loggerContext.updateLoggers();
       appender.stop();
     }
@@ -205,23 +204,6 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     IllegalStateException ise = assertThrows(IllegalStateException.class, getCluster()::start);
     assertTrue(ise.getMessage().startsWith("Cannot start, instance is prepared for upgrade"));
 
-  }
-
-  private static class CapturingAppender extends AbstractAppender {
-    private final List<String> messages = new CopyOnWriteArrayList<>();
-
-    private CapturingAppender() {
-      super("UpgradeUtilITAppender", null, PatternLayout.createDefaultLayout(), false, null);
-    }
-
-    @Override
-    public void append(LogEvent event) {
-      messages.add(event.getMessage().getFormattedMessage());
-    }
-
-    private List<String> messages() {
-      return messages;
-    }
   }
 
 }
