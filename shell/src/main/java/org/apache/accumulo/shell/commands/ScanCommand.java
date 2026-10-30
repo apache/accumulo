@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -55,11 +56,16 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 public class ScanCommand extends Command {
 
   private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, formatterOpt,
       interpreterOpt, formatterInterpreterOpt, outputFileOpt, scanOptCf, scanOptCq;
-
+  private Option scanOptBeginKeyRow, scanOptBeginKeyCf, scanOptBeginKeyCq, scanOptBeginKeyTs,
+      scanOptEndKeyRow, scanOptEndKeyCf, scanOptEndKeyCq, scanOptEndKeyTs, scanOptBeginKeyExclusive,
+      scanOptEndKeyExclusive;
+  private Options scanOptsKeyRange;
   protected Option showFewOpt;
   protected Option timestampOpt;
   protected Option profileOpt;
@@ -346,19 +352,33 @@ public class ScanCommand extends Command {
   protected Range getRange(final CommandLine cl,
       @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter formatter)
       throws UnsupportedEncodingException {
-    if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT))
-        && cl.hasOption(scanOptRow.getOpt())) {
-      // did not see a way to make commons cli do this check... it has mutually exclusive options
-      // but does not support the or
-      throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-"
-          + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT + ") are mutually exclusive ");
-    }
+    final boolean hasStartOrEndRow =
+        cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT);
+    final boolean hasScanOptRow = cl.hasOption(scanOptRow.getOpt());
+    final boolean hasScanOptKeyRange =
+        Arrays.stream(cl.getOptions()).anyMatch(opt -> scanOptsKeyRange.getOptions().contains(opt));
+    // did not see a way to make commons cli do this check... it has mutually exclusive options
+    // but does not support the or
+    Preconditions.checkArgument(
+        !(hasStartOrEndRow && hasScanOptRow) && !(hasStartOrEndRow && hasScanOptKeyRange)
+            && !(hasScanOptRow && hasScanOptKeyRange),
+        "Options (-%s) AND (-%s OR -%s) AND (%s) are mutually exclusive", scanOptRow.getOpt(),
+        OptUtil.START_ROW_OPT, OptUtil.END_ROW_OPT, scanOptsKeyRange.getOptions().stream()
+            .map(opt -> "-" + opt.getOpt()).collect(Collectors.joining(" OR ")));
 
-    if (cl.hasOption(scanOptRow.getOpt())) {
+    if (hasScanOptRow) {
       @SuppressWarnings("deprecation")
       var interprettedRow = formatter
           .interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET)));
       return new Range(interprettedRow);
+    } else if (hasScanOptKeyRange) {
+      var beginKey = createKey(cl, scanOptBeginKeyRow, scanOptBeginKeyCf, scanOptBeginKeyCq,
+          scanOptBeginKeyTs);
+      var endKey =
+          createKey(cl, scanOptEndKeyRow, scanOptEndKeyCf, scanOptEndKeyCq, scanOptEndKeyTs);
+      final boolean beginInclusive = !cl.hasOption(scanOptBeginKeyExclusive.getOpt());
+      final boolean endInclusive = !cl.hasOption(scanOptEndKeyExclusive.getOpt());
+      return new Range(beginKey, beginInclusive, endKey, endInclusive);
     } else {
       Text startRow = OptUtil.getStartRow(cl);
       if (startRow != null) {
@@ -375,6 +395,47 @@ public class ScanCommand extends Command {
       final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
+    }
+  }
+
+  private Key createKey(CommandLine cl, Option scanOptKeyRow, Option scanOptKeyCf,
+      Option scanOptKeyCq, Option scanOptKeyTs) {
+    requireAllPreceding(cl, scanOptKeyRow, scanOptKeyCf, scanOptKeyCq, scanOptKeyTs);
+    final byte[] emptyBytes = new byte[0];
+    byte[] row, cf = emptyBytes, cq = emptyBytes;
+    long ts = Long.MAX_VALUE;
+    if (cl.hasOption(scanOptKeyRow)) {
+      row = cl.getOptionValue(scanOptKeyRow).getBytes(Shell.CHARSET);
+      if (cl.hasOption(scanOptKeyCf)) {
+        cf = cl.getOptionValue(scanOptKeyCf.getOpt()).getBytes(Shell.CHARSET);
+        if (cl.hasOption(scanOptKeyCq)) {
+          cq = cl.getOptionValue(scanOptKeyCq.getOpt()).getBytes(Shell.CHARSET);
+          if (cl.hasOption(scanOptKeyTs)) {
+            ts = Long.parseLong(cl.getOptionValue(scanOptKeyTs.getOpt()));
+          }
+        }
+      }
+      return new Key(row, cf, cq, emptyBytes, ts);
+    }
+    return null;
+  }
+
+  private void requireAllPreceding(CommandLine cl, Option scanOptKeyRow, Option scanOptKeyCf,
+      Option scanOptKeyCq, Option scanOptKeyTs) {
+    if (cl.hasOption(scanOptKeyCf)) {
+      Preconditions.checkArgument(cl.hasOption(scanOptKeyRow), "-%s is required when using -%s",
+          scanOptKeyRow.getOpt(), scanOptKeyCf.getOpt());
+    }
+    if (cl.hasOption(scanOptKeyCq)) {
+      Preconditions.checkArgument(cl.hasOption(scanOptKeyCf) && cl.hasOption(scanOptKeyRow),
+          "both -%s and -%s are required when using -%s", scanOptKeyRow.getOpt(),
+          scanOptKeyCf.getOpt(), scanOptKeyCq.getOpt());
+    }
+    if (cl.hasOption(scanOptKeyTs)) {
+      Preconditions.checkArgument(
+          cl.hasOption(scanOptKeyCq) && cl.hasOption(scanOptKeyCf) && cl.hasOption(scanOptKeyRow),
+          "-%s -%s -%s are all required when using -%s", scanOptKeyRow.getOpt(),
+          scanOptKeyCf.getOpt(), scanOptKeyCq.getOpt(), scanOptKeyTs.getOpt());
     }
   }
 
@@ -409,15 +470,34 @@ public class ScanCommand extends Command {
         "scan authorizations (all user auths are used if this argument is not specified)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false,
         "make start row exclusive (by default it's inclusive)");
-    optStartRowExclusive.setArgName("begin-exclusive");
     optEndRowExclusive = new Option("ee", "end-exclusive", false,
         "make end row exclusive (by default it's inclusive)");
-    optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true,
         "comma-separated columns. This option is mutually exclusive with cf and cq");
     scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
     scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
+
+    scanOptBeginKeyRow = new Option("bkr", "begin-key-r", true, "key-based range start row");
+    scanOptBeginKeyCf =
+        new Option("bkcf", "begin-key-cf", true, "key-based range start column family");
+    scanOptBeginKeyCq =
+        new Option("bkcq", "begin-key-cq", true, "key-based range start column qualifier");
+    scanOptBeginKeyTs = new Option("bkts", "begin-key-ts", true, "key-based range start timestamp");
+    scanOptEndKeyRow = new Option("ekr", "end-key-r", true, "key-based range end row");
+    scanOptEndKeyCf = new Option("ekcf", "end-key-cf", true, "key-based range end column family");
+    scanOptEndKeyCq =
+        new Option("ekcq", "end-key-cq", true, "key-based range end column qualifier");
+    scanOptEndKeyTs = new Option("ekts", "end-key-ts", true, "key-based range end timestamp");
+    scanOptBeginKeyExclusive = new Option("bke", "begin-key-exclusive", false,
+        "make start key exclusive (by default it's inclusive)");
+    scanOptEndKeyExclusive = new Option("eke", "end-key-exclusive", false,
+        "make end key exclusive (by default it's inclusive)");
+    scanOptsKeyRange = new Options();
+    scanOptsKeyRange.addOption(scanOptBeginKeyRow).addOption(scanOptBeginKeyCf)
+        .addOption(scanOptBeginKeyCq).addOption(scanOptBeginKeyTs).addOption(scanOptEndKeyRow)
+        .addOption(scanOptEndKeyCf).addOption(scanOptEndKeyCq).addOption(scanOptEndKeyTs)
+        .addOption(scanOptBeginKeyExclusive).addOption(scanOptEndKeyExclusive);
 
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
@@ -439,6 +519,8 @@ public class ScanCommand extends Command {
         new Option("cl", "consistency-level", true, "set consistency level (experimental)");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
+    optStartRowExclusive.setArgName("begin-exclusive");
+    optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow.setArgName("row");
     scanOptColumns
         .setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
@@ -452,6 +534,17 @@ public class ScanCommand extends Command {
     contextOpt.setArgName("context");
     executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
     scanServerOpt.setArgName("immediate|eventual");
+
+    scanOptBeginKeyRow.setArgName("begin-key-r");
+    scanOptBeginKeyCf.setArgName("begin-key-cf");
+    scanOptBeginKeyCq.setArgName("begin-key-cq");
+    scanOptBeginKeyTs.setArgName("begin-key-ts");
+    scanOptEndKeyRow.setArgName("end-key-r");
+    scanOptEndKeyCf.setArgName("end-key-cf");
+    scanOptEndKeyCq.setArgName("end-key-cq");
+    scanOptEndKeyTs.setArgName("end-key-ts");
+    scanOptBeginKeyExclusive.setArgName("begin-key-exclusive");
+    scanOptEndKeyExclusive.setArgName("end-key-exclusive");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");
@@ -487,6 +580,7 @@ public class ScanCommand extends Command {
     o.addOption(contextOpt);
     o.addOption(executionHintsOpt);
     o.addOption(scanServerOpt);
+    o.addOptions(scanOptsKeyRange);
 
     return o;
   }
