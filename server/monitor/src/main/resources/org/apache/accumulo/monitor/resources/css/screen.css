@@ -152,7 +152,6 @@ td {
   padding-top: 0.15em;
   padding-bottom: 0.15em;
   color: #333333;
-  white-space: nowrap;
 }
 
 th {
@@ -168,7 +167,11 @@ th {
   color: #333333;
   font-size: 10pt;
   vertical-align: bottom;
-  white-space: nowrap;
+}
+
+/* scroll DataTables horizontally without splitting header and body into separate tables */
+.dt-layout-table > div {
+  overflow-x: auto;
 }
 
 td.firstcell {

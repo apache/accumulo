@@ -255,7 +255,6 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
  */
 function createDataTable(table, storageKey) {
   var dataTableRef = new DataTable(table, {
-    "scrollX": true,
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
