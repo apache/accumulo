@@ -404,9 +404,9 @@ public class BulkImporter {
           Path mapFile = entry.getKey();
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapFile);
 
-          estimatedSizes =
-              BulkImport.estimateSizes(context.getConfiguration(), mapFile, statuses.get(mapFile),
-                  extentsOf(entry.getValue()), ns, null, tableConf.getCryptoService());
+          estimatedSizes = BulkImport.estimateSizes(context.getConfiguration(), mapFile,
+              mapFileSizes.get(mapFile), statuses.get(mapFile), extentsOf(entry.getValue()), ns,
+              null, tableConf.getCryptoService());
         } catch (IOException e) {
           log.warn("Failed to estimate map file sizes {}", e.getMessage());
         }

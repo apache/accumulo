@@ -266,10 +266,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static Map<KeyExtent,Long> estimateSizes(AccumuloConfiguration acuConf, Path mapFile,
-      FileStatus status, Collection<KeyExtent> extents, FileSystem ns,
+      long fileSize, FileStatus status, Collection<KeyExtent> extents, FileSystem ns,
       Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
-
-    final long fileSize = status.getLen();
 
     if (extents.size() == 1) {
       return Collections.singletonMap(extents.iterator().next(), fileSize);
@@ -584,7 +582,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
           // make sure file isn't going to too many tablets
           checkTabletCount(maxTablets, extents.size(), filePath.toString());
           Map<KeyExtent,Long> estSizes = estimateSizes(context.getConfiguration(), filePath,
-              fileStatus, extents, fs, fileLensCache, cs);
+              fileStatus.getLen(), fileStatus, extents, fs, fileLensCache, cs);
           Map<KeyExtent,Bulk.FileInfo> pathLocations = new HashMap<>();
           for (KeyExtent ke : extents) {
             pathLocations.put(ke, new Bulk.FileInfo(filePath, estSizes.getOrDefault(ke, 0L)));
