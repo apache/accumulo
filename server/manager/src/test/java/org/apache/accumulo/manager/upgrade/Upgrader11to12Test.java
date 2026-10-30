@@ -72,6 +72,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -169,6 +170,11 @@ public class Upgrader11to12Test extends WithTestNames {
         Key.builder(false).row(row2).family(ScanFileColumnFamily.NAME).qualifier(fileName4).build();
     scanData.put(key4, new Value());
 
+    String walPath = "hdfs://localhost:8020/accumulo/wal/localhost+9997/" + UUID.randomUUID();
+    Key walKey =
+        Key.builder(false).row(row2).family(LogColumnFamily.NAME).qualifier("-/" + walPath).build();
+    scanData.put(walKey, new Value());
+
     ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
@@ -186,7 +192,23 @@ public class Upgrader11to12Test extends WithTestNames {
     // 1 add, 2 delete
     assertEquals(3, u2.getUpdates().size());
     assertEquals(2, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
+    assertTrue(UPGRADE_FAMILIES.contains(LogColumnFamily.NAME));
 
+  }
+
+  @Test
+  public void processReferencesRejectsRelativeWalPathsTest() {
+    Text row = new Text("123");
+    String relativeWalPath = "localhost+9997/" + UUID.randomUUID();
+    Key walKey = Key.builder(false).row(row).family(LogColumnFamily.NAME)
+        .qualifier("-/" + relativeWalPath).build();
+    var scanData = Map.of(walKey, new Value());
+
+    var error = assertThrows(IllegalStateException.class, () -> new Upgrader11to12()
+        .processReferences(mutation -> {}, scanData.entrySet(), "accumulo.metadata"));
+
+    assertTrue(error.getMessage().contains("accumulo.metadata tablet 123"));
+    assertTrue(error.getMessage().contains(relativeWalPath));
   }
 
   @Test
