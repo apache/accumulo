@@ -63,11 +63,8 @@ public class BulkIT extends AccumuloClusterHarness {
     fs.delete(base, true);
     fs.mkdirs(base);
     fs.deleteOnExit(base);
-    Path bulkFailures = new Path(base, "failures");
-    fs.deleteOnExit(bulkFailures);
     Path files = new Path(base, "files");
     fs.deleteOnExit(files);
-    fs.mkdirs(bulkFailures);
     fs.mkdirs(files);
 
     IngestParams params = new IngestParams(c.properties(), tableName, N);
@@ -86,7 +83,7 @@ public class BulkIT extends AccumuloClusterHarness {
     // create an rfile with one entry, there was a bug with this:
     TestIngest.ingest(c, fs, params);
 
-    bulkLoad(c, tableName, bulkFailures, files);
+    bulkLoad(c, tableName, files);
     VerifyParams verifyParams = new VerifyParams(c.properties(), tableName, N);
     verifyParams.random = 56;
     for (int i = 0; i < COUNT; i++) {
@@ -98,7 +95,7 @@ public class BulkIT extends AccumuloClusterHarness {
     VerifyIngest.verifyIngest(c, verifyParams);
   }
 
-  private static void bulkLoad(AccumuloClient c, String tableName, Path bulkFailures, Path files)
+  private static void bulkLoad(AccumuloClient c, String tableName, Path files)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException {
     // Make sure the server can modify the files
     // not appending the 'ignoreEmptyDir' method defaults to not ignoring empty directories.

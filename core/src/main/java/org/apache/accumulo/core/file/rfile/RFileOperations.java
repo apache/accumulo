@@ -70,15 +70,6 @@ public class RFileOperations extends FileOperations {
   }
 
   @Override
-  protected long getFileSize(FileOptions options) throws IOException {
-    if (options.status == null) {
-      return options.getFileSystem().getFileStatus(options.getFile().getPath()).getLen();
-    } else {
-      return options.status.getLen();
-    }
-  }
-
-  @Override
   protected FileSKVIterator openIndex(FileOptions options) throws IOException {
     return getReader(options).getIndex();
   }
