@@ -27,15 +27,15 @@
       <div id="server-metrics-banner-message" class="alert alert-danger" role="alert"></div>
     </div>
     <div class="row">
-      <div class="col-xs-12">
+      <div class="col-12">
         <span class="table-caption">Server Metrics</span>
         <br />
         <span class="table-subcaption">
-          ${(serverType!)?html} ${(server!)?html}<#if resourceGroup?has_content> (${resourceGroup?html})</#if>
+          ${(serverType!)?html} ${(server!)?html}<#if (resourceGroup!'')?has_content> (${(resourceGroup!'')?html})</#if>
         </span>
         <br />
         <br />
-        <table id="serverMetrics" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="serverMetrics" class="table caption-top table-bordered table-striped table-sm">
           <#include "table_loading.ftl" >
         </table>
       </div>

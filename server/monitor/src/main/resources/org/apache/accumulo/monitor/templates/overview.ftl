@@ -19,14 +19,14 @@
 
 -->
       <div class="row">
-        <div class="col-xs-12 center nowrap">
-          <h3>${title}</h3>
+        <div class="col-12 center nowrap">
+          <h1 class="h3">${title}</h1>
         </div>
       </div>
       <div class="row d-flex justify-content-center">
-        <div class="col-xs-12">
+        <div class="col-12">
           <div class="row mb-4">
-            <div id="deploymentWarning"></div>
+            <div id="deploymentWarning" class="col-12"></div>
             <div class="col">
               <div class="card">
                 <div class="card-header fw-semibold">Server Deployment</div>
