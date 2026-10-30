@@ -226,7 +226,8 @@ public class UpgradeUtil implements KeywordExecutable {
       // as this indicates recovery needs to be performed.
       final ZooCache zc = new ZooCache(zoo, null);
       try {
-        waitForTServerLocks(Constants.ZROOT + "/" + iid, zoo, zc);
+        waitForTServerLocks(Constants.ZROOT + "/" + iid, zoo, zc,
+            siteConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
         List<KeyExtent> recoveries = findTabletsNeedingRecovery(Constants.ZROOT + "/" + iid, zc);
         if (!recoveries.isEmpty()) {
           LOG.info(
@@ -248,23 +249,29 @@ public class UpgradeUtil implements KeywordExecutable {
 
   }
 
-  private void waitForTServerLocks(String zkRoot, ZooReader zr, ZooCache cache)
+  private void waitForTServerLocks(String zkRoot, ZooReader zr, ZooCache cache, long zkTimeout)
       throws KeeperException, InterruptedException {
     final String path = zkRoot + Constants.ZTSERVERS;
     List<String> tserverNodes = zr.getChildren(path);
 
     int tserversWithLocks = 0;
     do {
-      Thread.sleep(5000);
+      Thread.sleep(zkTimeout);
       tserversWithLocks = 0;
       for (String zPath : tserverNodes) {
+        List<String> runningTServers = new ArrayList<>();
         final var zLockPath = ServiceLock.path(path + "/" + zPath);
         ZcStat stat = new ZcStat();
         byte[] lockData = ServiceLock.getLockData(cache, zLockPath, stat);
         if (lockData != null) {
           tserversWithLocks++;
+          runningTServers.add(zPath);
         }
         LOG.info("{} TabletServer locks still exist in ZooKeeper", tserversWithLocks);
+        if (tserversWithLocks > 0) {
+          LOG.info("Waiting on the following TabletServers to stop:");
+          runningTServers.forEach(server -> LOG.info("{}", server));
+        }
       }
     } while (tserversWithLocks != 0);
   }
