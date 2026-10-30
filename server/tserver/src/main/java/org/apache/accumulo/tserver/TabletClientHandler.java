@@ -1218,53 +1218,33 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     final KeyExtent extent = KeyExtent.fromThrift(textent);
 
-    synchronized (server.unopenedTablets) {
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
+    TabletAssignmentTracker.Overlapping overlapping =
+        server.assignmentTracker.addUnopenedIfNoOverlap(extent);
+    if (overlapping != null) {
+      Set<KeyExtent> all = new HashSet<>(
+          overlapping.unopened.size() + overlapping.opening.size() + overlapping.online.size(),
+          1.0f);
+      all.addAll(overlapping.unopened);
+      all.addAll(overlapping.opening);
+      all.addAll(overlapping.online.keySet());
 
-          // Checking if the current tablet is in any of the sets
-          // below is not a strong enough check to catch all overlapping tablets
-          // when splits and fix splits are occurring
-          Set<KeyExtent> unopenedOverlapping =
-              KeyExtent.findOverlapping(extent, server.unopenedTablets);
-          Set<KeyExtent> openingOverlapping =
-              KeyExtent.findOverlapping(extent, server.openingTablets);
-          Set<KeyExtent> onlineOverlapping =
-              KeyExtent.findOverlapping(extent, server.getOnlineTablets());
-
-          Set<KeyExtent> all = new HashSet<>(
-              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
-              1.0f);
-          all.addAll(unopenedOverlapping);
-          all.addAll(openingOverlapping);
-          all.addAll(onlineOverlapping);
-
-          if (!all.isEmpty()) {
-
-            // ignore any tablets that have recently split, for error logging
-            for (KeyExtent e2 : onlineOverlapping) {
-              Tablet tablet = server.getOnlineTablet(e2);
-              if (System.currentTimeMillis() - tablet.getSplitCreationTime()
-                  < RECENTLY_SPLIT_MILLIES) {
-                all.remove(e2);
-              }
-            }
-
-            // ignore self, for error logging
-            all.remove(extent);
-
-            if (!all.isEmpty()) {
-              log.error(
-                  "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
-                      + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
-                  extent, unopenedOverlapping, openingOverlapping, onlineOverlapping);
-            }
-            return;
-          }
-
-          server.unopenedTablets.add(extent);
+      // ignore any tablets that have recently split, for error logging
+      overlapping.online.forEach((e2, tablet) -> {
+        if (System.currentTimeMillis() - tablet.getSplitCreationTime() < RECENTLY_SPLIT_MILLIES) {
+          all.remove(e2);
         }
+      });
+
+      // ignore self, for error logging
+      all.remove(extent);
+
+      if (!all.isEmpty()) {
+        log.error(
+            "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
+                + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
+            extent, overlapping.unopened, overlapping.opening, overlapping.online.keySet());
       }
+      return;
     }
 
     TabletLogger.loading(extent, server.getTabletSession());
