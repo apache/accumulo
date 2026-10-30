@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -99,6 +100,8 @@ public class BulkIT extends AccumuloClusterHarness {
     TestIngest.ingest(c, fs, params);
 
     bulkLoad(c, tableName, bulkFailures, files, useOld);
+    assertFalse(fs.listFiles(bulkFailures, false).hasNext());
+
     VerifyParams verifyParams = new VerifyParams(c.properties(), tableName, N);
     verifyParams.random = 56;
     for (int i = 0; i < COUNT; i++) {
