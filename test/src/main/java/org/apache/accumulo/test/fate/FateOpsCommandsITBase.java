@@ -825,31 +825,29 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     verify(mockedStore);
 
     assertNotNull(status);
-    // All three should be returned
-    assertEquals(3, status.getTransactions().size());
+    // Only the two real transactions should be returned
+    assertEquals(2, status.getTransactions().size());
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
-        .collect(Collectors.toList()), List.of(tx1, tx2, tx3));
-    // The two real FateIds should have NEW status and the fake one should be UNKNOWN
+        .collect(Collectors.toList()), List.of(tx1, tx3));
+    // The two real FateIds should have NEW status, and the fake fateId with UNKNOWN status is skipped
     assertEquals(
         status.getTransactions().stream().map(AdminUtil.TransactionStatus::getStatus)
             .collect(Collectors.toList()),
-        List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
-            ReadOnlyFateStore.TStatus.NEW));
+        List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.NEW));
     // None of them should have a name since none of them were seeded with work
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateOp)
-        .collect(Collectors.toList()), Arrays.asList(null, null, null));
+        .collect(Collectors.toList()), Arrays.asList(null, null));
     // None of them should have a Repo since none of them were seeded with work
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
-        .collect(Collectors.toList()), Arrays.asList(null, null, null));
-    // The FateId that doesn't exist should have a creation time of 0, the others should not
+        .collect(Collectors.toList()), Arrays.asList(null, null));
+    // The FateId that doesn't exist was not returned but should have a creation time of 0, the others should not
     List<Long> timeCreated = status.getTransactions().stream()
-        .map(AdminUtil.TransactionStatus::getTimeCreated).collect(Collectors.toList());
-    assertNotEquals(timeCreated.get(0), 0);
-    assertEquals(timeCreated.get(1), 0);
-    assertNotEquals(timeCreated.get(2), 0);
+        .map(AdminUtil.TransactionStatus::getTimeCreated).toList();
+    assertNotEquals(0, timeCreated.get(0));
+    assertNotEquals(0, timeCreated.get(1));
     // All should have the store.type() type
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getInstanceType)
-        .collect(Collectors.toList()), List.of(store.type(), store.type(), store.type()));
+        .collect(Collectors.toList()), List.of(store.type(), store.type()));
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
