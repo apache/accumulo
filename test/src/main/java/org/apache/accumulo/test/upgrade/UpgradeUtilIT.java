@@ -25,27 +25,36 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.fs.Path;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.WriterAppender;
@@ -118,44 +127,31 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
   }
 
-  @Test
-  public void testFindsTabletRecoveryMarkerInMetadataFiles() throws Exception {
-    ServerContext ctx = getCluster().getServerContext();
-    String tableName = getUniqueNames(1)[0];
-    KeyExtent extent;
-    KeyExtent firstMetadataExtent = null;
+  private void insertLogsRemoveLocation(ServerContext ctx, AccumuloClient client, KeyExtent extent,
+      Location loc) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    Ample ample = ctx.getAmple();
+    String wal = "file://" + ctx.getZooKeeperRoot() + Path.SEPARATOR + Constants.WAL_DIR
+        + Path.SEPARATOR + "localhost+9997" + Path.SEPARATOR + UUID.randomUUID().toString();
+    ample.mutateTablet(extent).putWal(new LogEntry(extent, System.currentTimeMillis(), wal))
+        .deleteLocation(loc).mutate();
+  }
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+  private void removeTabletLocation(ServerContext ctx, KeyExtent extent, Location loc) {
+    Ample ample = ctx.getAmple();
+    ample.mutateTablet(extent).deleteLocation(loc).mutate();
+  }
 
-      Ample ample = ctx.getAmple();
+  private void insertLocationRemoveLogs(ServerContext ctx, AccumuloClient client, KeyExtent extent,
+      Collection<LogEntry> logs, Location loc) {
+    Ample ample = ctx.getAmple();
+    TabletMutator tm = ample.mutateTablet(extent);
+    tm.putLocation(loc);
+    logs.forEach(l -> tm.deleteWal(l));
+    tm.mutate();
+  }
 
-      // Get the first metadata table extent
-      try (TabletsMetadata tm =
-          ample.readTablets().forTable(MetadataTable.ID).fetch(ColumnType.PREV_ROW).build()) {
-        Iterator<TabletMetadata> iter = tm.iterator();
-        assertTrue(iter.hasNext());
-        firstMetadataExtent = iter.next().getExtent();
-      }
-      assertNotNull(firstMetadataExtent);
-
-      client.tableOperations().create(tableName);
-      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      extent = new KeyExtent(tableId, null, null);
-
-      String wal = "file:/fake-recovery-wal";
-      ample.mutateTablet(extent).putWal(new LogEntry(extent, System.currentTimeMillis(), wal))
-          .mutate();
-      ample.mutateTablet(firstMetadataExtent)
-          .putWal(new LogEntry(extent, System.currentTimeMillis(), wal)).mutate();
-      ample.mutateTablet(RootTable.EXTENT)
-          .putWal(new LogEntry(extent, System.currentTimeMillis(), wal)).mutate();
-
-      // The recovery checker reads metadata from RFiles, so flush both metadata levels after
-      // injecting the synthetic WAL reference.
-      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      client.tableOperations().flush(RootTable.NAME, null, null, true);
-    }
-
+  private void runUpgradeAndCheckOutput(ServerContext ctx, KeyExtent extent,
+      boolean failureDueToLogs) throws Exception {
     StringWriter writer = new StringWriter();
     LoggerContext loggerContext = LoggerContext.getContext(false);
     Configuration cfg = loggerContext.getConfiguration();
@@ -168,27 +164,245 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     cfg.getLoggerConfig(UpgradeUtil.class.getName()).addAppender(appender, null, null);
 
     try {
-      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
-      Wait.waitFor(() -> ctx.getZooReader()
-          .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
-
       System.setProperty("accumulo.properties",
           "file://" + getCluster().getAccumuloPropertiesPath());
       new UpgradeUtil().execute(new String[] {"--prepare"});
       assertTrue(
           ctx.getZooReader().exists(ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE));
       String logMessages = writer.toString();
-      assertTrue(logMessages.contains(RootTable.EXTENT + " needs recovery"),
-          "Expected --prepare to report recovery for " + RootTable.EXTENT + ", got " + logMessages);
-      assertTrue(logMessages.contains(firstMetadataExtent + " needs recovery"),
-          "Expected --prepare to report recovery for " + firstMetadataExtent + ", got "
-              + logMessages);
-      assertTrue(logMessages.contains(extent + " needs recovery"),
-          "Expected --prepare to report recovery for " + extent + ", got " + logMessages);
+      if (failureDueToLogs) {
+        assertTrue(logMessages.contains(extent + " needs recovery due to walogs being present"),
+            "Expected --prepare to report recovery for " + extent + " logs, got " + logMessages);
+      } else {
+        assertTrue(logMessages.contains(extent + " needs recovery due to location being set"),
+            "Expected --prepare to report recovery for " + extent + " location, got "
+                + logMessages);
+      }
     } finally {
       cfg.getLoggerConfig(UpgradeUtil.class.getName()).removeAppender(appender.getName());
       loggerContext.updateLoggers();
       appender.stop();
+    }
+  }
+
+  @Test
+  public void testPrepareFailsRootTabletLogs() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().waitForBalance();
+      TabletMetadata rtm =
+          TabletsMetadata.getRootMetadata(ctx.getZooKeeperRoot(), ctx.getZooCache());
+      assertNotNull(rtm);
+      // Shutdown the Manager and Tablet Servers before modifying the
+      // root tablet metadata. Leaving them up causes the test to hang.
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      insertLogsRemoveLocation(ctx, client, rtm.getExtent(), rtm.getLocation());
+      runUpgradeAndCheckOutput(ctx, rtm.getExtent(), true);
+    }
+  }
+
+  @Test
+  public void testPrepareFailsRootTabletLocation() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().waitForBalance();
+      TabletMetadata rtm =
+          TabletsMetadata.getRootMetadata(ctx.getZooKeeperRoot(), ctx.getZooCache());
+      assertNotNull(rtm);
+      // Shutdown the Manager and Tablet Servers before modifying the
+      // root tablet metadata. Leaving them up causes the test to hang.
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      insertLocationRemoveLogs(ctx, client, rtm.getExtent(), rtm.getLogs(), rtm.getLocation());
+      runUpgradeAndCheckOutput(ctx, rtm.getExtent(), false);
+    }
+  }
+
+  @Test
+  public void testPrepareFailsMetadataTabletLogs() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    TabletMetadata metadataTablet = null;
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().waitForBalance();
+      // Get the first metadata table extent
+      try (TabletsMetadata tm = ctx.getAmple().readTablets().forTable(MetadataTable.ID)
+          .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION).build()) {
+        Iterator<TabletMetadata> iter = tm.iterator();
+        assertTrue(iter.hasNext());
+        metadataTablet = iter.next();
+      }
+      assertNotNull(metadataTablet);
+      insertLogsRemoveLocation(ctx, client, metadataTablet.getExtent(),
+          metadataTablet.getLocation());
+
+      // The recovery checker reads metadata from RFiles, so flush both metadata levels after
+      // injecting the synthetic WAL reference.
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
+
+      // Shutdown cluster Manager and TabletServers after inserting log entries
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      Wait.waitFor(() -> ctx.getZooReader()
+          .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
+      ctx.instanceOperations().getTabletServers().forEach(ts -> {
+        Admin.signalGracefulShutdown(ctx, HostAndPort.fromString(ts));
+      });
+
+      // Remove the location from the root tablet metadata so we don't fail
+      // due to its location.
+      TabletMetadata rtm =
+          TabletsMetadata.getRootMetadata(ctx.getZooKeeperRoot(), ctx.getZooCache());
+      assertNotNull(rtm);
+      removeTabletLocation(ctx, rtm.getExtent(), rtm.getLocation());
+
+      runUpgradeAndCheckOutput(ctx, metadataTablet.getExtent(), true);
+    }
+  }
+
+  @Test
+  public void testPrepareFailsMetadataTabletLocation() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    TabletMetadata metadataTablet = null;
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().waitForBalance();
+      // Get the first metadata table extent
+      try (TabletsMetadata tm = ctx.getAmple().readTablets().forTable(MetadataTable.ID)
+          .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.LOGS).build()) {
+        Iterator<TabletMetadata> iter = tm.iterator();
+        assertTrue(iter.hasNext());
+        metadataTablet = iter.next();
+      }
+      assertNotNull(metadataTablet);
+      insertLocationRemoveLogs(ctx, client, metadataTablet.getExtent(), metadataTablet.getLogs(),
+          metadataTablet.getLocation());
+
+      // The recovery checker reads metadata from RFiles, so flush both metadata levels after
+      // injecting the synthetic WAL reference.
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
+
+      // Shutdown cluster Manager and TabletServers after inserting log entries
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      Wait.waitFor(() -> ctx.getZooReader()
+          .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
+      ctx.instanceOperations().getTabletServers().forEach(ts -> {
+        Admin.signalGracefulShutdown(ctx, HostAndPort.fromString(ts));
+      });
+
+      // Remove the location from the root tablet metadata so we don't fail
+      // due to its location.
+      TabletMetadata rtm =
+          TabletsMetadata.getRootMetadata(ctx.getZooKeeperRoot(), ctx.getZooCache());
+      assertNotNull(rtm);
+      removeTabletLocation(ctx, rtm.getExtent(), rtm.getLocation());
+
+      runUpgradeAndCheckOutput(ctx, metadataTablet.getExtent(), false);
+    }
+  }
+
+  @Test
+  public void testPrepareFailsUserTabletLogs() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    String tableName = getUniqueNames(1)[0];
+    TabletMetadata userTablet;
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(tableName);
+      client.instanceOperations().waitForBalance();
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+      try (TabletsMetadata tm = ctx.getAmple().readTablets().forTable(tableId)
+          .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION).build()) {
+        Iterator<TabletMetadata> iter = tm.iterator();
+        assertTrue(iter.hasNext());
+        userTablet = iter.next();
+      }
+      assertNotNull(userTablet);
+      insertLogsRemoveLocation(ctx, client, userTablet.getExtent(), userTablet.getLocation());
+
+      // Remove Metadata tablets location and logs
+      try (TabletsMetadata tm = ctx.getAmple().readTablets().forTable(MetadataTable.ID)
+          .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.LOGS).build()) {
+        tm.forEach(mt -> {
+          insertLocationRemoveLogs(ctx, client, mt.getExtent(), mt.getLogs(), mt.getLocation());
+          removeTabletLocation(ctx, mt.getExtent(), mt.getLocation());
+        });
+      }
+      
+      // The recovery checker reads metadata from RFiles, so flush both metadata levels after
+      // injecting the synthetic WAL reference.
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
+
+      // Shutdown cluster Manager and TabletServers after inserting log entries
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      Wait.waitFor(() -> ctx.getZooReader()
+          .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
+      ctx.instanceOperations().getTabletServers().forEach(ts -> {
+        Admin.signalGracefulShutdown(ctx, HostAndPort.fromString(ts));
+      });
+
+      // Remove the location from the root tablet metadata so we don't fail
+      // due to its location.
+      TabletMetadata rtm =
+          TabletsMetadata.getRootMetadata(ctx.getZooKeeperRoot(), ctx.getZooCache());
+      assertNotNull(rtm);
+      removeTabletLocation(ctx, rtm.getExtent(), rtm.getLocation());
+
+      runUpgradeAndCheckOutput(ctx, userTablet.getExtent(), true);
+    }
+  }
+
+  @Test
+  public void testPrepareFailsUserTabletLocation() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    String tableName = getUniqueNames(1)[0];
+    TabletMetadata userTablet;
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(tableName);
+      client.instanceOperations().waitForBalance();
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+      try (TabletsMetadata tm = ctx.getAmple().readTablets().forTable(tableId)
+          .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.LOGS).build()) {
+        Iterator<TabletMetadata> iter = tm.iterator();
+        assertTrue(iter.hasNext());
+        userTablet = iter.next();
+      }
+      assertNotNull(userTablet);
+      insertLocationRemoveLogs(ctx, client, userTablet.getExtent(), userTablet.getLogs(),
+          userTablet.getLocation());
+
+      // Remove Metadata tablets location and logs
+      try (TabletsMetadata tm = ctx.getAmple().readTablets().forTable(MetadataTable.ID)
+          .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION, ColumnType.LOGS).build()) {
+        tm.forEach(mt -> {
+          insertLocationRemoveLogs(ctx, client, mt.getExtent(), mt.getLogs(), mt.getLocation());
+          removeTabletLocation(ctx, mt.getExtent(), mt.getLocation());
+        });
+      }
+      // The recovery checker reads metadata from RFiles, so flush both metadata levels after
+      // injecting the synthetic WAL reference.
+      client.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
+
+      // Shutdown cluster Manager and TabletServers after inserting log entries
+      getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+      Wait.waitFor(() -> ctx.getZooReader()
+          .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
+      ctx.instanceOperations().getTabletServers().forEach(ts -> {
+        Admin.signalGracefulShutdown(ctx, HostAndPort.fromString(ts));
+      });
+
+      // Remove the location from the root tablet metadata so we don't fail
+      // due to its location.
+      TabletMetadata rtm =
+          TabletsMetadata.getRootMetadata(ctx.getZooKeeperRoot(), ctx.getZooCache());
+      assertNotNull(rtm);
+      removeTabletLocation(ctx, rtm.getExtent(), rtm.getLocation());
+
+      runUpgradeAndCheckOutput(ctx, userTablet.getExtent(), false);
     }
   }
 

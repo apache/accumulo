@@ -19,11 +19,11 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -60,42 +60,51 @@ public class UpgradeUtilTest {
 
   @Test
   public void findsLoggedTabletsAcrossAllMetadataLevels() throws Exception {
-    TestData data = createTestData(true, true, true);
+    TestData data = createTestData("A", true, true, true);
+    IllegalStateException ise =
+        assertThrows(IllegalStateException.class, () -> findRecoveries(data.rootMetadata));
+    assertTrue(ise.getMessage().equals("Tablet " + RootTable.EXTENT + " needs recovery."));
 
-    assertEquals(List.of(RootTable.EXTENT, METADATA_EXTENT, LOGGED_USER_EXTENT),
-        findRecoveries(data.rootMetadata));
+    TestData data2 = createTestData("B", false, true, true);
+    IllegalStateException ise2 =
+        assertThrows(IllegalStateException.class, () -> findRecoveries(data2.rootMetadata));
+    assertTrue(ise2.getMessage().equals("Tablet " + METADATA_EXTENT + " needs recovery."));
+
+    TestData data3 = createTestData("C", false, false, true);
+    IllegalStateException ise3 =
+        assertThrows(IllegalStateException.class, () -> findRecoveries(data3.rootMetadata));
+    assertTrue(ise3.getMessage().equals("Tablet " + LOGGED_USER_EXTENT + " needs recovery."));
   }
 
   @Test
   public void returnsEmptyWhenNoTabletsHaveLogs() throws Exception {
-    TestData data = createTestData(false, false, false);
-
-    assertEquals(List.of(), findRecoveries(data.rootMetadata));
+    TestData data = createTestData("D", false, false, false);
+    findRecoveries(data.rootMetadata);
   }
 
-  private List<KeyExtent> findRecoveries(RootTabletMetadata rootMetadata) throws IOException {
+  private void findRecoveries(RootTabletMetadata rootMetadata) throws IOException {
     ZooCache cache = EasyMock.createMock(ZooCache.class);
     EasyMock.expect(cache.get(ZK_ROOT + RootTable.ZROOT_TABLET))
         .andReturn(rootMetadata.toJson().getBytes(UTF_8));
     EasyMock.replay(cache);
 
-    List<KeyExtent> recoveries = new UpgradeUtil().findTabletsNeedingRecovery(ZK_ROOT, cache);
+    new UpgradeUtil().findTabletsNeedingRecovery(ZK_ROOT, cache);
     EasyMock.verify(cache);
-    return recoveries;
   }
 
-  private TestData createTestData(boolean rootHasLogs, boolean metadataHasLogs, boolean userHasLogs)
-      throws Exception {
-    String userRFile = createRFile(TableId.of("5"), "Fuser.rf", new TreeMap<>());
+  private TestData createTestData(String filePrefix, boolean rootHasLogs, boolean metadataHasLogs,
+      boolean userHasLogs) throws Exception {
+    String userRFile = createRFile(TableId.of("5"), filePrefix + "user.rf", new TreeMap<>());
 
     SortedMap<Key,Value> metadataEntries = new TreeMap<>();
     addTabletMetadata(metadataEntries, LOGGED_USER_EXTENT, userRFile, userHasLogs);
     addTabletMetadata(metadataEntries, CLEAN_USER_EXTENT, null, false);
-    String metadataRFile = createRFile(MetadataTable.ID, "Fmetadata.rf", metadataEntries);
+    String metadataRFile =
+        createRFile(MetadataTable.ID, filePrefix + "metadata.rf", metadataEntries);
 
     SortedMap<Key,Value> rootEntries = new TreeMap<>();
     addTabletMetadata(rootEntries, METADATA_EXTENT, metadataRFile, metadataHasLogs);
-    String rootRFile = createRFile(RootTable.ID, "Froot.rf", rootEntries);
+    String rootRFile = createRFile(RootTable.ID, filePrefix + "root.rf", rootEntries);
 
     RootTabletMetadata rootMetadata = new RootTabletMetadata();
     Mutation rootMutation = new Mutation(RootTable.EXTENT.toMetaRow());
