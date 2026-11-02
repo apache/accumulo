@@ -21,6 +21,7 @@ package org.apache.accumulo.server.zookeeper;
 import static java.lang.Math.toIntExact;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.zookeeper.Watcher.Event.EventType.NodeChildrenChanged;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -30,6 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -44,8 +47,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Provides a way to push work out to tablet servers via zookeeper and wait for that work to be
@@ -278,34 +279,54 @@ public class DistributedWorkQueue {
     return children;
   }
 
+  private static class ChildrenChangedWatcher implements Watcher {
+    private final String path;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition childrenChanged = lock.newCondition();
+    private boolean changed = false;
+
+    ChildrenChangedWatcher(String path) {
+      this.path = path;
+    }
+
+    @Override
+    public void process(WatchedEvent event) {
+      if (event.getType().equals(NodeChildrenChanged)) {
+        lock.lock();
+        try {
+          changed = true;
+          childrenChanged.signalAll();
+        } finally {
+          lock.unlock();
+        }
+      } else {
+        log.info("Got unexpected zookeeper event for path {}: {}", path, event);
+      }
+    }
+
+    void waitForChange(long timeout, TimeUnit unit) throws InterruptedException {
+      lock.lock();
+      try {
+        long nanos = unit.toNanos(timeout);
+        while (!changed && nanos > 0) {
+          nanos = childrenChanged.awaitNanos(nanos);
+        }
+        // Set the flag back to false so we can wait for the next change event
+        changed = false;
+      } finally {
+        lock.unlock();
+      }
+    }
+  }
+
   public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
 
-    final Object condVar = new Object();
-
-    Watcher watcher = new Watcher() {
-      @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
-          justification = "Monitored object was updated in a ZK thread.")
-      @Override
-      public void process(WatchedEvent event) {
-        switch (event.getType()) {
-          case NodeChildrenChanged:
-            synchronized (condVar) {
-              condVar.notify();
-            }
-            break;
-          default:
-            log.info("Got unexpected zookeeper event for path {}: {}", path, event);
-            break;
-        }
-      }
-    };
+    final ChildrenChangedWatcher watcher = new ChildrenChangedWatcher(path);
 
     List<String> children = zoo.getChildren(path, watcher);
 
     while (!Collections.disjoint(children, workIDs)) {
-      synchronized (condVar) {
-        condVar.wait(10000);
-      }
+      watcher.waitForChange(10_000, TimeUnit.MILLISECONDS);
       children = zoo.getChildren(path, watcher);
     }
   }
