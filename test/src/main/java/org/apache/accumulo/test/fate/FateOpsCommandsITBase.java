@@ -802,10 +802,8 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     }
 
     // Create 3 FateIds, two that exist and one that does not. When iterating through the list of
-    // transactions
-    // in getTransactionStatus(), the 2nd transaction should be skipped. The other two transactions
-    // should still
-    // be returned.
+    // transactions in getTransactionStatus(), the 2nd transaction should be skipped. The other
+    // two transactions should still be returned.
     FateId tx1 = store.create();
     FateId tx2 = FateId.from(store.type(), UUID.randomUUID());
     FateId tx3 = store.create();
