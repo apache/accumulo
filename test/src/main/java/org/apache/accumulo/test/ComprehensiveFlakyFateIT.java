@@ -23,7 +23,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.fate.FlakyFateManager;
+import org.apache.accumulo.test.fate.custom.FlakyFate;
+import org.apache.accumulo.test.fate.custom.FlakyFateManager;
 import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.BeforeAll;
 
 /**
  * This test touches a lot of the Accumulo API, so it's a good candidate to run using
- * {@link org.apache.accumulo.test.fate.FlakyFate} because it will run a lot of FATE operations.
+ * {@link FlakyFate} because it will run a lot of FATE operations.
  */
 public class ComprehensiveFlakyFateIT extends ComprehensiveITBase {
   private static class ComprehensiveFlakyFateITConfiguration

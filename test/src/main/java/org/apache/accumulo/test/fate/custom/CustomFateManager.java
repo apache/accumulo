@@ -16,35 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.fate;
+package org.apache.accumulo.test.fate.custom;
 
 import java.io.IOException;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.cli.ServerOpts;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
-import org.slf4j.LoggerFactory;
 
-public class FlakyFateManager extends Manager {
-  protected FlakyFateManager(ServerOpts opts, String[] args) throws IOException {
-    super(opts, ServerContext::new, args);
+abstract class CustomFateManager extends Manager {
+  protected CustomFateManager(ServerOpts opts,
+      BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
+      String[] args) throws IOException {
+    super(opts, serverContextFactory, args);
   }
 
   @Override
-  protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
-      ServerContext context) {
-    LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate for {}",
-        store.type());
-    return new FlakyFate<>(env, store, TraceRepo::toLogString, getConfiguration());
-  }
-
-  public static void main(String[] args) throws Exception {
-    try (FlakyFateManager manager = new FlakyFateManager(new ServerOpts(), args)) {
-      manager.runServer();
-    }
-  }
+  protected abstract Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
+      ServerContext context);
 }
