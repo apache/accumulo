@@ -145,7 +145,8 @@ function getDataTableCols(storageKey) {
 }
 
 /**
- * This function refreshes the table. It destroys the DataTable
+ * This function refreshes the table. If the columns are unchanged since the
+ * last refresh, it only reloads the rows. Otherwise, it destroys the DataTable
  * and clears the HTML table. Then it recreates the table header
  * HTML elements from the columns, redefines the DataTable,
  * and executes an ajax method to load the data.
@@ -264,21 +265,23 @@ function createDataTable(table, storageKey) {
     "buttons": [{
         "extend": 'colvis',
         "text": '<i class="bi bi-gear"></i>',
-        "titleAttr": 'Columns',
+        "titleAttr": 'Columns'
       },
       {
         "extend": 'spacer'
       },
       {
         "text": 'Reset',
-        "titleAttr": 'Reset column selection and column order',
-        action: function (e, table) {
+        "titleAttr": 'Reset column selection, column order, and sorting',
+        action: function (e, dt) {
           // reset column selection
-          table.columns().visible(true);
+          dt.columns().visible(true);
           // reset column order
-          if (table.colReorder) {
-            table.colReorder.reset();
-          }
+          dt.colReorder.reset();
+          // reset sorting to the DataTables default (first column ascending)
+          dt.order([
+              [0, 'asc']
+          ]).draw();
         }
     }],
     "layout": {
