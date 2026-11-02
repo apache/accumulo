@@ -406,8 +406,12 @@ public class AdminUtil<T> {
           }
 
           TStatus status = txStore.getStatus();
-
           long timeCreated = txStore.timeCreated();
+
+          // the transaction was deleted while its info was being read, skip it
+          if (status == TStatus.UNKNOWN || timeCreated == 0) {
+            return;
+          }
 
           if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
               && includeByInstanceType(fateId.getType(), typesFilter)) {

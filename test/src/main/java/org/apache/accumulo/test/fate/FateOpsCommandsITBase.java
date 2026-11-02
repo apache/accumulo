@@ -801,9 +801,11 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
           .withArgs(sctx.getZooSession(), null, null).addMockedMethod(listMethod).createMock();
     }
 
-    // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that
-    // doesn't exist is accessed in getTransactionStatus() and ensuring that this doesn't cause
-    // the method to fail or have any unexpected behavior.
+    // Create 3 FateIds, two that exist and one that does not. When iterating through the list of
+    // transactions
+    // in getTransactionStatus(), the 2nd transaction should be skipped. The other two transactions
+    // should still
+    // be returned.
     FateId tx1 = store.create();
     FateId tx2 = FateId.from(store.type(), UUID.randomUUID());
     FateId tx3 = store.create();
