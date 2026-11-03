@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -258,10 +260,13 @@ public class UpgradeUtil implements KeywordExecutable {
   private Iterator<TabletMetadata> readChildTablets(TabletMetadata tabletMetadata) {
     var extent = tabletMetadata.getExtent();
     Preconditions.checkState(extent.isMeta());
-    String[] files = tabletMetadata.getFiles().stream().map(stf -> stf.getPath().toString())
-        .toArray(String[]::new);
+    Collection<StoredTabletFile> files = tabletMetadata.getFiles();
+    if (files == null || files.isEmpty()) {
+      return Collections.emptyIterator();
+    }
     // RFileScanner sets up the system iterator stack by default
-    Scanner rfileScanner = RFile.newScanner().from(files)
+    Scanner rfileScanner = RFile.newScanner()
+        .from(files.stream().map(stf -> stf.getPath().toString()).toArray(String[]::new))
         .withTableProperties(IteratorConfigUtil.getInitialTableIterators()).build();
     var range = extent.toDataRange().clip(MetadataSchema.TabletsSection.getRange(), true);
     if (range == null) {
@@ -286,7 +291,7 @@ public class UpgradeUtil implements KeywordExecutable {
       error = true;
     }
     if (error) {
-      LOG.info("Continuing with the upgrade is not advisable. It's recommended to abort this "
+      LOG.warn("Continuing with the upgrade is not advisable. It's recommended to abort this "
           + "upgrade using the instructions below and restart the instance to allow Tablet "
           + "recovery to occur.");
       throw new IllegalStateException("Tablet " + tm.getExtent() + " needs recovery.");
