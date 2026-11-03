@@ -26,7 +26,7 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SystemConfiguration extends LayeredConfiguration {
+public class SystemConfiguration extends LayeredConfiguration<AccumuloConfiguration, ZooBasedConfiguration> {
 
   private static final Logger log = LoggerFactory.getLogger(SystemConfiguration.class);
 
@@ -35,7 +35,7 @@ public class SystemConfiguration extends LayeredConfiguration {
   public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
       AccumuloConfiguration parent) {
     super(parent, new ZooBasedConfiguration(log, context, propStoreKey));
-    runtimeFixedProps = new RuntimeFixedProperties(getSnapshot(), context.getSiteConfiguration());
+    runtimeFixedProps = new RuntimeFixedProperties(getOuter().getSnapshot(), context.getSiteConfiguration());
   }
 
   @Override
@@ -48,7 +48,7 @@ public class SystemConfiguration extends LayeredConfiguration {
     String key = property.getKey();
     String value = null;
     if (Property.isValidZooPropertyKey(key)) {
-      value = getSnapshot().get(key);
+      value = getOuter().getSnapshot().get(key);
     }
 
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -56,7 +56,7 @@ public class SystemConfiguration extends LayeredConfiguration {
         log.error("Using parent value for {} due to improperly formatted {}: {}", key,
             property.getType(), value);
       }
-      value = getParent().get(property);
+      value = getInner().get(property);
     }
     return value;
   }

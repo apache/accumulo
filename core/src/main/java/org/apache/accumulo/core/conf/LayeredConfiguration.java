@@ -26,14 +26,23 @@ import java.util.function.Predicate;
  * Layers one accumulo configuration on top of another. When getting properties will look in the
  * outer layer first and if not present will fall back to the inner layer.
  */
-public class LayeredConfiguration extends AccumuloConfiguration {
+public class LayeredConfiguration<INNER extends AccumuloConfiguration,
+    OUTER extends AccumuloConfiguration> extends AccumuloConfiguration {
 
-  private final AccumuloConfiguration inner;
-  private final AccumuloConfiguration outer;
+  private final INNER inner;
+  private final OUTER outer;
 
-  public LayeredConfiguration(AccumuloConfiguration inner, AccumuloConfiguration outer) {
+  public LayeredConfiguration(INNER inner, OUTER outer) {
     this.inner = Objects.requireNonNull(inner);
     this.outer = Objects.requireNonNull(outer);
+  }
+
+  public INNER getInner() {
+    return inner;
+  }
+
+  public OUTER getOuter() {
+    return outer;
   }
 
   @Override

@@ -25,7 +25,7 @@ import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ResourceGroupConfiguration extends LayeredConfiguration {
+public class ResourceGroupConfiguration extends LayeredConfiguration<SystemConfiguration, ZooBasedConfiguration> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ResourceGroupConfiguration.class);
 
@@ -47,7 +47,7 @@ public class ResourceGroupConfiguration extends LayeredConfiguration {
     String key = property.getKey();
     String value = null;
     if (Property.isValidZooPropertyKey(key)) {
-      value = getSnapshot().get(key);
+      value = getOuter().getSnapshot().get(key);
     }
 
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -55,7 +55,7 @@ public class ResourceGroupConfiguration extends LayeredConfiguration {
         LOG.error("Using parent value for {} due to improperly formatted {}: {}", key,
             property.getType(), value);
       }
-      value = getParent().get(property);
+      value = getInner().get(property);
     }
     return value;
   }

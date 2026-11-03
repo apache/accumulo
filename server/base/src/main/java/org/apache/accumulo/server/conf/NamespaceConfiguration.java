@@ -26,7 +26,7 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NamespaceConfiguration extends LayeredConfiguration {
+public class NamespaceConfiguration extends LayeredConfiguration<AccumuloConfiguration, ZooBasedConfiguration> {
 
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
 
@@ -36,10 +36,10 @@ public class NamespaceConfiguration extends LayeredConfiguration {
   }
 
   protected NamespaceId getNamespaceId() {
-    var id = ((NamespacePropKey) getPropStoreKey()).getId();
+    var id = ((NamespacePropKey) getOuter().getPropStoreKey()).getId();
     if (id == null) {
       throw new IllegalArgumentException(
-          "Invalid request for namespace id on " + getPropStoreKey());
+          "Invalid request for namespace id on " + getOuter().getPropStoreKey());
     }
     return id;
   }

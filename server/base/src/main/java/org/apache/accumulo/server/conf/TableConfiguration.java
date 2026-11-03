@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class TableConfiguration extends LayeredConfiguration {
+public class TableConfiguration extends LayeredConfiguration<NamespaceConfiguration, ZooBasedConfiguration> {
 
   private final static Logger log = LoggerFactory.getLogger(TableConfiguration.class);
 
