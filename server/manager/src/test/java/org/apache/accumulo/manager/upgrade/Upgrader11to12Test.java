@@ -75,6 +75,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.WithTestNames;
 import org.apache.accumulo.server.ServerContext;
@@ -83,12 +85,16 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,7 +184,7 @@ public class Upgrader11to12Test extends WithTestNames {
     ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata");
+    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata", List.of());
 
     assertEquals(2, mutations.size());
 
@@ -197,18 +203,82 @@ public class Upgrader11to12Test extends WithTestNames {
   }
 
   @Test
-  public void processReferencesRejectsRelativeWalPathsTest() {
-    Text row = new Text("123");
-    String relativeWalPath = "localhost+9997/" + UUID.randomUUID();
-    Key walKey = Key.builder(false).row(row).family(LogColumnFamily.NAME)
-        .qualifier("-/" + relativeWalPath).build();
-    var scanData = Map.of(walKey, new Value());
+  public void processReferencesQualifiesWalPathsUsingVolume(@TempDir java.nio.file.Path tempDir)
+      throws Exception {
+    Configuration conf = new Configuration();
+    try (FileSystem fs = FileSystem.getLocal(conf)) {
+      Volume first = new VolumeImpl(fs, tempDir.resolve("first").toString());
+      Volume second = new VolumeImpl(fs, tempDir.resolve("second").toString());
+      Text row = new Text("123");
+      TreeMap<Key,Value> scanData = new TreeMap<>();
+      List<String> oldQualifiers = new ArrayList<>();
+      List<String> expectedQualifiers = new ArrayList<>();
 
-    var error = assertThrows(IllegalStateException.class, () -> new Upgrader11to12()
-        .processReferences(mutation -> {}, scanData.entrySet(), "accumulo.metadata"));
+      for (int i = 0; i < 2; i++) {
+        String walName = "localhost+9997/" + UUID.randomUUID();
+        Path existingWal = second.prefixChild(Constants.WAL_DIR + "/" + walName);
+        fs.mkdirs(existingWal.getParent());
+        fs.create(existingWal).close();
 
-    assertTrue(error.getMessage().contains("accumulo.metadata tablet 123"));
-    assertTrue(error.getMessage().contains(relativeWalPath));
+        String oldPath = i == 0 ? walName : existingWal.toUri().getPath();
+        String oldQualifier = "-/" + oldPath;
+        Key walKey = Key.builder(false).row(row).family(LogColumnFamily.NAME)
+            .qualifier(oldQualifier).build();
+        scanData.put(walKey, new Value("wal-value"));
+        oldQualifiers.add(oldQualifier);
+        expectedQualifiers.add("-/" + existingWal);
+      }
+
+      ArrayList<Mutation> mutations = new ArrayList<>();
+      new Upgrader11to12().processReferences(mutations::add, scanData.entrySet(),
+          "accumulo.metadata", List.of(first, second));
+
+      assertEquals(1, mutations.size());
+      List<String> deletedQualifiers = new ArrayList<>();
+      List<String> addedQualifiers = new ArrayList<>();
+      for (ColumnUpdate update : mutations.get(0).getUpdates()) {
+        String qualifier = new String(update.getColumnQualifier(), UTF_8);
+        if (update.isDeleted()) {
+          deletedQualifiers.add(qualifier);
+        } else {
+          addedQualifiers.add(qualifier);
+          assertEquals("wal-value", new String(update.getValue(), UTF_8));
+        }
+      }
+      oldQualifiers.sort(null);
+      expectedQualifiers.sort(null);
+      deletedQualifiers.sort(null);
+      addedQualifiers.sort(null);
+      assertEquals(oldQualifiers, deletedQualifiers);
+      assertEquals(expectedQualifiers, addedQualifiers);
+    }
+  }
+
+  @Test
+  public void processReferencesRejectsAmbiguousRelativeWalPath(@TempDir java.nio.file.Path tempDir)
+      throws Exception {
+    Configuration conf = new Configuration();
+    try (FileSystem fs = FileSystem.getLocal(conf)) {
+      Volume first = new VolumeImpl(fs, tempDir.resolve("first").toString());
+      Volume second = new VolumeImpl(fs, tempDir.resolve("second").toString());
+      String walName = "localhost+9997/" + UUID.randomUUID();
+      for (Volume volume : List.of(first, second)) {
+        Path existingWal = volume.prefixChild(Constants.WAL_DIR + "/" + walName);
+        fs.mkdirs(existingWal.getParent());
+        fs.create(existingWal).close();
+      }
+
+      Text row = new Text("123");
+      Key walKey = Key.builder(false).row(row).family(LogColumnFamily.NAME)
+          .qualifier("-/" + walName).build();
+      var scanData = Map.of(walKey, new Value());
+      var error = assertThrows(IllegalStateException.class,
+          () -> new Upgrader11to12().processReferences(mutation -> {}, scanData.entrySet(),
+              "accumulo.metadata", List.of(first, second)));
+
+      assertTrue(error.getMessage().contains("accumulo.metadata tablet 123"));
+      assertTrue(error.getCause().getMessage().contains("exactly one configured volume"));
+    }
   }
 
   @Test
@@ -234,7 +304,7 @@ public class Upgrader11to12Test extends WithTestNames {
     ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata");
+    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata", List.of());
 
     assertEquals(1, mutations.size());
 
@@ -267,8 +337,9 @@ public class Upgrader11to12Test extends WithTestNames {
     replay(batchWriter);
     Upgrader11to12 upgrader = new Upgrader11to12();
 
-    assertThrows(IllegalStateException.class, () -> upgrader
-        .processReferences(batchWriter::addMutation, scanData.entrySet(), "accumulo.metadata"));
+    assertThrows(IllegalStateException.class,
+        () -> upgrader.processReferences(batchWriter::addMutation, scanData.entrySet(),
+            "accumulo.metadata", List.of()));
 
     verify(batchWriter);
   }
@@ -301,8 +372,9 @@ public class Upgrader11to12Test extends WithTestNames {
     replay(batchWriter);
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    assertThrows(IllegalArgumentException.class, () -> upgrader
-        .processReferences(batchWriter::addMutation, scanData.entrySet(), "accumulo.metadata"));
+    assertThrows(IllegalArgumentException.class,
+        () -> upgrader.processReferences(batchWriter::addMutation, scanData.entrySet(),
+            "accumulo.metadata", List.of()));
 
     verify(batchWriter);
   }
@@ -328,8 +400,9 @@ public class Upgrader11to12Test extends WithTestNames {
     replay(batchWriter);
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    assertThrows(IllegalStateException.class, () -> upgrader
-        .processReferences(batchWriter::addMutation, scanData.entrySet(), "accumulo.metadata"));
+    assertThrows(IllegalStateException.class,
+        () -> upgrader.processReferences(batchWriter::addMutation, scanData.entrySet(),
+            "accumulo.metadata", List.of()));
 
     verify(batchWriter);
   }
@@ -374,7 +447,7 @@ public class Upgrader11to12Test extends WithTestNames {
     ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
-    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata");
+    upgrader.processReferences(mutations::add, scanData.entrySet(), "accumulo.metadata", List.of());
 
     assertEquals(1, mutations.size());
     var u1 = mutations.get(0);
@@ -399,12 +472,15 @@ public class Upgrader11to12Test extends WithTestNames {
     Upgrader11to12 upgrader = new Upgrader11to12();
 
     ServerContext context = createMock(ServerContext.class);
+    VolumeManager volumeManager = createMock(VolumeManager.class);
     ZooSession zk = createStrictMock(ZooSession.class);
     ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
     ZooPropStore store = createMock(ZooPropStore.class);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(context.getVolumeManager()).andReturn(volumeManager).once();
+    expect(volumeManager.getVolumes()).andReturn(List.of()).once();
     expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
 
     zrw.recursiveDelete("/tracers", ZooUtil.NodeMissingPolicy.SKIP);
@@ -474,7 +550,7 @@ public class Upgrader11to12Test extends WithTestNames {
     upgrader.processReferences(mutations::add,
         rtm.getKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
             .collect(Collectors.toList()),
-        "accumulo.metadata");
+        "accumulo.metadata", List.of());
     assertEquals(1, mutations.size());
     var mutation = mutations.get(0);
     rtm.update(mutation);
@@ -500,7 +576,7 @@ public class Upgrader11to12Test extends WithTestNames {
     upgrader.processReferences(mutations::add,
         rtm.getKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
             .collect(Collectors.toList()),
-        "accumulo.metadata");
+        "accumulo.metadata", List.of());
     assertEquals(1, mutations.size());
     var mutation = mutations.get(0);
     rtm.update(mutation);
