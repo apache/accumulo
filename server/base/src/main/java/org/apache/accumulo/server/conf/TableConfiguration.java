@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.TableId;
@@ -50,20 +51,21 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class TableConfiguration extends ZooBasedConfiguration {
+public class TableConfiguration extends LayeredConfiguration {
 
   private final static Logger log = LoggerFactory.getLogger(TableConfiguration.class);
 
   private final TableId tableId;
 
-  private final EnumMap<IteratorScope,Deriver<ParsedIteratorConfig>> iteratorConfig;
+  private final EnumMap<IteratorScope,
+      AccumuloConfiguration.Deriver<ParsedIteratorConfig>> iteratorConfig;
 
   private final Deriver<ScanDispatcher> scanDispatchDeriver;
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, TablePropKey.of(tableId), parent);
+    super(parent, new ZooBasedConfiguration(log, context, TablePropKey.of(tableId)));
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);

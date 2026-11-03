@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.server.conf;
 
+import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ResourceGroupConfiguration extends ZooBasedConfiguration {
+public class ResourceGroupConfiguration extends LayeredConfiguration {
 
   private static final Logger LOG = LoggerFactory.getLogger(ResourceGroupConfiguration.class);
 
@@ -32,7 +33,7 @@ public class ResourceGroupConfiguration extends ZooBasedConfiguration {
 
   public ResourceGroupConfiguration(ServerContext context, ResourceGroupPropKey rgPropKey,
       SystemConfiguration parent) {
-    super(LOG, context, rgPropKey, parent);
+    super(parent, new ZooBasedConfiguration(LOG, context, rgPropKey));
     runtimeFixedProps = parent.getRuntimeFixedProperties();
   }
 

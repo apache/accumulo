@@ -19,13 +19,14 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SystemConfiguration extends ZooBasedConfiguration {
+public class SystemConfiguration extends LayeredConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SystemConfiguration.class);
 
@@ -33,7 +34,7 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
   public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
       AccumuloConfiguration parent) {
-    super(log, context, propStoreKey, parent);
+    super(parent, new ZooBasedConfiguration(log, context, propStoreKey));
     runtimeFixedProps = new RuntimeFixedProperties(getSnapshot(), context.getSiteConfiguration());
   }
 

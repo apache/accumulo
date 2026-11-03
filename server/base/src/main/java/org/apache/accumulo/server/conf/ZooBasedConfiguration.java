@@ -48,17 +48,13 @@ import com.google.common.annotations.VisibleForTesting;
 public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   protected final Logger log;
-  private final AccumuloConfiguration parent;
   private final PropStoreKey propStoreKey;
-
   private final PropSnapshot propSnapshot;
 
-  public ZooBasedConfiguration(Logger log, ServerContext context, PropStoreKey propStoreKey,
-      AccumuloConfiguration parent) {
+  public ZooBasedConfiguration(Logger log, ServerContext context, PropStoreKey propStoreKey) {
     this.log = requireNonNull(log, "a Logger must be supplied");
     requireNonNull(context, "the context cannot be null");
     this.propStoreKey = requireNonNull(propStoreKey, "a PropCacheId must be supplied");
-    this.parent = requireNonNull(parent, "An AccumuloConfiguration parent must be supplied");
 
     propSnapshot = PropSnapshot.create(propStoreKey, context.getPropStore());
   }
@@ -73,24 +69,19 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
   }
 
   /**
-   * The update count is the sum of the change count of this configuration and the change counts of
-   * the parents. The count is used to detect if any changes occurred in the configuration hierarchy
-   * and if the configuration needs to be recalculated to maintain consistency with values in the
-   * backend store.
+   * The update count is the change count of this configuration. The count is used to detect if any
+   * changes occurred in the configuration hierarchy and if the configuration needs to be
+   * recalculated to maintain consistency with values in the backend store.
    * <p>
    * The count is required to be an increasing value.
    */
   @Override
   public long getUpdateCount() {
-    long count = getDataVersion() + getParent().getUpdateCount();
-
+    long count = getDataVersion();
+    // TODO update log trace
     log.trace("update count result for: {} - data version: {} update: {}", propStoreKey,
         getDataVersion(), count);
     return count;
-  }
-
-  public AccumuloConfiguration getParent() {
-    return parent;
   }
 
   public PropStoreKey getPropStoreKey() {
@@ -104,17 +95,11 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
     if (value != null) {
       return value;
     }
-    AccumuloConfiguration parent = getParent();
-    if (parent != null) {
-      return parent.get(property);
-    }
     return null;
   }
 
   @Override
   public void getProperties(final Map<String,String> props, final Predicate<String> filter) {
-
-    parent.getProperties(props, filter);
 
     Map<String,String> theseProps = getSnapshot();
 
@@ -131,7 +116,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   @Override
   public boolean isPropertySet(final Property property) {
-    return getSnapshot().get(property.getKey()) != null || getParent().isPropertySet(property);
+    return getSnapshot().get(property.getKey()) != null;
   }
 
   public @NonNull Map<String,String> getSnapshot() {
