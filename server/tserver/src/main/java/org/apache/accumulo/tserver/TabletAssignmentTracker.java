@@ -63,9 +63,9 @@ class TabletAssignmentTracker {
     final Map<KeyExtent,Tablet> online;
 
     Overlapping(Set<KeyExtent> unopened, Set<KeyExtent> opening, Map<KeyExtent,Tablet> online) {
-      this.unopened = unopened;
-      this.opening = opening;
-      this.online = online;
+      this.unopened = Collections.unmodifiableSet(unopened);
+      this.opening = Collections.unmodifiableSet(opening);
+      this.online = Collections.unmodifiableMap(online);
     }
 
     boolean isEmpty() {
@@ -79,8 +79,7 @@ class TabletAssignmentTracker {
    *
    * @return null if the extent was added, otherwise the tablets it overlaps
    */
-  Overlapping addUnopenedIfNoOverlap(KeyExtent extent) {
-    synchronized (lock) {
+  synchronized Overlapping addUnopenedIfNoOverlap(KeyExtent extent) {
       // Checking if the current tablet is in any of the sets
       // below is not a strong enough check to catch all overlapping tablets
       // when splits and fix splits are occurring
@@ -216,7 +215,7 @@ class TabletAssignmentTracker {
       List<KeyExtent> copy = new ArrayList<>(unopened.size() + opening.size());
       copy.addAll(unopened);
       copy.addAll(opening);
-      return copy;
+      return Collections.unmodifiableList(copy);
     }
   }
 

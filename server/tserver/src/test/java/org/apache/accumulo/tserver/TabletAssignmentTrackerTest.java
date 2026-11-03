@@ -72,7 +72,7 @@ public class TabletAssignmentTrackerTest {
     assertEquals(0, tracker.getUnopenedCount());
     assertEquals(1, tracker.getOpeningCount());
     assertEquals(List.of(ALL), tracker.getUnopenedAndOpening());
-    assertEquals(Set.of(ALL), tracker.getOpeningAndOnline().opening);
+    assertEquals(Set.of(), tracker.getOpeningAndOnline().online);
 
     Tablet tablet = tablet(ALL);
     tracker.openingToOnline(ALL, tablet);
