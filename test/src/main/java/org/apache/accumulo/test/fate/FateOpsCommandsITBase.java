@@ -829,7 +829,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     assertEquals(2, status.getTransactions().size());
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateId)
         .collect(Collectors.toList()), List.of(tx1, tx3));
-    // The two real FateIds should have NEW status, and the fake fateId with UNKNOWN status is skipped
+    // The two real FateIds should have NEW status, the fake fateId with UNKNOWN status is skipped
     assertEquals(
         status.getTransactions().stream().map(AdminUtil.TransactionStatus::getStatus)
             .collect(Collectors.toList()),
@@ -840,9 +840,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     // None of them should have a Repo since none of them were seeded with work
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
         .collect(Collectors.toList()), Arrays.asList(null, null));
-    // The FateId that doesn't exist was not returned but should have a creation time of 0, the others should not
-    List<Long> timeCreated = status.getTransactions().stream()
-        .map(AdminUtil.TransactionStatus::getTimeCreated).toList();
+    // The FateId that doesn't exist was not returned but should have a creation time of 0, the
+    // others should not
+    List<Long> timeCreated =
+        status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTimeCreated).toList();
     assertNotEquals(0, timeCreated.get(0));
     assertNotEquals(0, timeCreated.get(1));
     // All should have the store.type() type

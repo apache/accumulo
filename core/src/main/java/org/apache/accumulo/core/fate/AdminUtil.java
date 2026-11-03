@@ -379,6 +379,13 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
+          TStatus status = txStore.getStatus();
+
+          // the transaction was deleted while its info was being read, skip it
+          if (status == TStatus.UNKNOWN) {
+            return;
+          }
+
           // fate op will not be set if the tx is not seeded with work (it is NEW)
           Fate.FateOperation fateOp = txStore.getTransactionInfo(Fate.TxInfo.FATE_OP) == null ? null
               : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.FATE_OP));
@@ -405,11 +412,9 @@ public class AdminUtil<T> {
             }
           }
 
-          TStatus status = txStore.getStatus();
           long timeCreated = txStore.timeCreated();
-
           // the transaction was deleted while its info was being read, skip it
-          if (status == TStatus.UNKNOWN || timeCreated == 0) {
+          if (timeCreated == 0) {
             return;
           }
 
