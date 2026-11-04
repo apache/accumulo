@@ -1220,7 +1220,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     TabletAssignmentTracker.Overlapping overlapping =
         server.assignmentTracker.addUnopenedIfNoOverlap(extent);
-    if (overlapping != null) {
+    if (!overlapping.isEmpty()) {
       Set<KeyExtent> all = new HashSet<>(
           overlapping.unopened.size() + overlapping.opening.size() + overlapping.online.size(),
           1.0f);

@@ -23,13 +23,11 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,59 +52,75 @@ public class TabletAssignmentTrackerTest {
     return tablet;
   }
 
+  private static void assertState(TabletAssignmentTracker tracker, Set<KeyExtent> unopened,
+      Set<KeyExtent> opening, Set<KeyExtent> online) {
+    Set<KeyExtent> unopenedAndOpening = new HashSet<>(unopened);
+    unopenedAndOpening.addAll(opening);
+    assertEquals(unopenedAndOpening, Set.copyOf(tracker.getUnopenedAndOpening()));
+    assertEquals(unopened.size(), tracker.getUnopenedCount());
+    assertEquals(opening.size(), tracker.getOpeningCount());
+    assertEquals(opening, tracker.getOpeningAndOnline().opening);
+    assertEquals(online, tracker.getOpeningAndOnline().online.keySet());
+    assertEquals(online, tracker.getOnline().keySet());
+  }
+
   @Test
   public void testLifecycle() {
     var tracker = new TabletAssignmentTracker();
 
-    assertNull(tracker.addUnopenedIfNoOverlap(ALL));
-    assertEquals(1, tracker.getUnopenedCount());
+    assertTrue(tracker.addUnopenedIfNoOverlap(ALL).isEmpty());
+    assertState(tracker, Set.of(ALL), Set.of(), Set.of());
 
     // overlapping assignments are rejected
     var overlapping = tracker.addUnopenedIfNoOverlap(LOW);
-    assertNotNull(overlapping);
     assertEquals(Set.of(ALL), overlapping.unopened);
-    assertEquals(1, tracker.getUnopenedCount());
+    assertEquals(Set.of(), overlapping.opening);
+    assertEquals(Map.of(), overlapping.online);
+    assertState(tracker, Set.of(ALL), Set.of(), Set.of());
 
     assertTrue(tracker.unopenedToOpening(ALL));
     assertFalse(tracker.unopenedToOpening(ALL));
-    assertEquals(0, tracker.getUnopenedCount());
-    assertEquals(1, tracker.getOpeningCount());
-    assertEquals(List.of(ALL), tracker.getUnopenedAndOpening());
-    assertEquals(Set.of(), tracker.getOpeningAndOnline().online);
+    assertState(tracker, Set.of(), Set.of(ALL), Set.of());
 
     Tablet tablet = tablet(ALL);
     tracker.openingToOnline(ALL, tablet);
-    assertEquals(0, tracker.getOpeningCount());
+    assertState(tracker, Set.of(), Set.of(), Set.of(ALL));
     assertSame(tablet, tracker.getOnline().get(ALL));
-    assertEquals(Map.of(ALL, tablet), tracker.addUnopenedIfNoOverlap(HIGH).online);
+
+    overlapping = tracker.addUnopenedIfNoOverlap(HIGH);
+    assertEquals(Set.of(), overlapping.unopened);
+    assertEquals(Set.of(), overlapping.opening);
+    assertEquals(Map.of(ALL, tablet), overlapping.online);
 
     tracker.split(ALL, tablet(LOW), tablet(HIGH));
-    assertEquals(Set.of(LOW, HIGH), tracker.getOnline().keySet());
+    assertState(tracker, Set.of(), Set.of(), Set.of(LOW, HIGH));
 
     tracker.removeOnline(LOW);
     tracker.removeOnline(HIGH);
-    assertTrue(tracker.getOnline().isEmpty());
+    assertState(tracker, Set.of(), Set.of(), Set.of());
   }
 
   @Test
   public void testRetry() {
     var tracker = new TabletAssignmentTracker();
-    assertNull(tracker.addUnopenedIfNoOverlap(ALL));
+    assertTrue(tracker.addUnopenedIfNoOverlap(ALL).isEmpty());
     assertTrue(tracker.unopenedToOpening(ALL));
 
     tracker.openingToUnopened(ALL, LOW);
-    assertEquals(List.of(LOW), tracker.getUnopenedAndOpening());
+    assertState(tracker, Set.of(LOW), Set.of(), Set.of());
 
     assertTrue(tracker.removeUnopened(LOW));
     assertFalse(tracker.removeUnopened(LOW));
+    assertState(tracker, Set.of(), Set.of(), Set.of());
     // assignment was canceled by an unload before it ran
     assertFalse(tracker.unopenedToOpening(LOW));
 
     // a rolled back split can put an extent in unopened that overlaps another unopened extent
-    assertNull(tracker.addUnopenedIfNoOverlap(HIGH));
-    assertNull(tracker.addUnopenedIfNoOverlap(LOW));
+    assertTrue(tracker.addUnopenedIfNoOverlap(HIGH).isEmpty());
+    assertTrue(tracker.addUnopenedIfNoOverlap(LOW).isEmpty());
     assertTrue(tracker.unopenedToOpening(LOW));
     tracker.openingToUnopened(LOW, ALL);
+    assertState(tracker, Set.of(HIGH, ALL), Set.of(), Set.of());
     assertThrows(IllegalStateException.class, () -> tracker.unopenedToOpening(ALL));
   }
 
@@ -114,7 +128,7 @@ public class TabletAssignmentTrackerTest {
   @Timeout(30)
   public void testAwaitNotOpening() throws Exception {
     var tracker = new TabletAssignmentTracker();
-    assertNull(tracker.addUnopenedIfNoOverlap(ALL));
+    assertTrue(tracker.addUnopenedIfNoOverlap(ALL).isEmpty());
     assertTrue(tracker.unopenedToOpening(ALL));
 
     Thread waiter = new Thread(() -> tracker.awaitNotOpening(ALL));
@@ -125,5 +139,28 @@ public class TabletAssignmentTrackerTest {
 
     tracker.removeOpening(ALL);
     waiter.join();
+    assertState(tracker, Set.of(), Set.of(), Set.of());
+  }
+
+  @Test
+  public void testReturnsAreImmutable() {
+    var tracker = new TabletAssignmentTracker();
+    assertTrue(tracker.addUnopenedIfNoOverlap(LOW).isEmpty());
+    assertTrue(tracker.unopenedToOpening(LOW));
+    tracker.openingToOnline(LOW, tablet(LOW));
+    assertTrue(tracker.addUnopenedIfNoOverlap(HIGH).isEmpty());
+    assertTrue(tracker.unopenedToOpening(HIGH));
+
+    var overlapping = tracker.addUnopenedIfNoOverlap(ALL);
+    assertThrows(UnsupportedOperationException.class, overlapping.unopened::clear);
+    assertThrows(UnsupportedOperationException.class, overlapping.opening::clear);
+    assertThrows(UnsupportedOperationException.class, overlapping.online::clear);
+
+    var openingAndOnline = tracker.getOpeningAndOnline();
+    assertThrows(UnsupportedOperationException.class, openingAndOnline.opening::clear);
+    assertThrows(UnsupportedOperationException.class, openingAndOnline.online::clear);
+    assertThrows(UnsupportedOperationException.class, () -> tracker.getOnline().clear());
+    assertThrows(UnsupportedOperationException.class,
+        () -> tracker.getUnopenedAndOpening().clear());
   }
 }
