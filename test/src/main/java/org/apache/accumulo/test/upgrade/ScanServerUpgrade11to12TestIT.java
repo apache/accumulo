@@ -110,7 +110,8 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
           Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1");
       log.info("Removed constraints from table {}", tableName);
       Thread.sleep(10_000);
-    } catch (AccumuloException | AccumuloSecurityException | InterruptedException e) {
+    } catch (AccumuloException | AccumuloSecurityException | InterruptedException
+        | TableNotFoundException e) {
       if (e instanceof InterruptedException) {
         Thread.currentThread().interrupt();
       }
