@@ -19,11 +19,12 @@
 
 -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <base href="${rootContext}"/>
     <title>${title} - Accumulo ${version}</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- Set the saved theme before loading CSS to reduce light-mode flash on reload -->
     <script>
       (function() {
@@ -78,7 +79,7 @@
     <script src="resources/js/modals.js"></script>
   </head>
 
-  <body>
+  <body class="d-flex flex-column min-vh-100">
     <#include "navbar.ftl">
 
     <a id="critical-alert-banner" class="critical-alert-banner alert alert-danger d-none" href="alerts" aria-live="polite">
@@ -89,10 +90,9 @@
       <span class="btn btn-danger btn-sm fw-semibold">View alerts</span>
     </a>
 
-    <div id="main" class="container-fluid">
+    <div id="main" class="container-fluid d-flex flex-column flex-grow-1">
       <#include "${template}">
-      <br />
-      <div id="lastUpdateDiv" class="center">
+      <div id="lastUpdateDiv" class="center mt-auto">
       </div>
     </div>
 
