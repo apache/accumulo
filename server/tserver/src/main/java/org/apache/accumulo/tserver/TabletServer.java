@@ -555,7 +555,7 @@ public class TabletServer extends AbstractServer
       return NOOP_CLOSEABLE;
     } else {
       recoveryLock.lock();
-      return () -> recoveryLock.unlock();
+      return recoveryLock::unlock;
     }
   }
 

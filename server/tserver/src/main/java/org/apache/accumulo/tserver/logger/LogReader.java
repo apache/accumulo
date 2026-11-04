@@ -176,8 +176,9 @@ public class LogReader implements KeywordExecutable {
         } else {
           // read the log entries in a sorted RFile. This has to be a directory that contains the
           // finished file.
-          try (var rli = new RecoveryLogsIterator(context,
-              Collections.singletonList(ResolvedSortedLog.resolve(path, fs)), null, null, false)) {
+          var rsl = ResolvedSortedLog.resolve(path, fs);
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(rsl), null,
+              null, false)) {
             while (rli.hasNext()) {
               Entry<LogFileKey,LogFileValue> entry = rli.next();
               printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,

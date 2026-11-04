@@ -88,8 +88,7 @@ public class RecoveryLogsIterator
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey && !logFiles.isEmpty()) {
-        validateFirstKey(context, cryptoService, fs, logFiles, logDir.getDir(), fileLenCache,
-            cacheProvider);
+        validateFirstKey(context, cryptoService, fs, logDir, fileLenCache, cacheProvider);
       }
 
       for (Path log : logFiles) {
@@ -158,18 +157,17 @@ public class RecoveryLogsIterator
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
   private void validateFirstKey(ServerContext context, CryptoService cs, FileSystem fs,
-      SortedSet<Path> logFiles, Path fullLogPath, Cache<String,Long> fileLenCache,
-      CacheProvider cacheProvider) throws IOException {
-    Path first = logFiles.first();
-    try (FileSKVIterator fileIter =
-        openLogFile(context, first, cs, fs, fileLenCache, cacheProvider)) {
+      ResolvedSortedLog sortedLogs, Cache<String,Long> fileLenCache, CacheProvider cacheProvider)
+      throws IOException {
+    try (FileSKVIterator fileIter = openLogFile(context, sortedLogs.getChildren().first(), cs, fs,
+        fileLenCache, cacheProvider)) {
       Iterator<Entry<Key,Value>> iterator = new IteratorAdapter(fileIter);
 
       if (iterator.hasNext()) {
         Key firstKey = iterator.next().getKey();
         LogFileKey key = LogFileKey.fromKey(firstKey);
         if (key.getEvent() != LogEvents.OPEN) {
-          throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
+          throw new IllegalStateException("First log entry is not OPEN " + sortedLogs);
         }
       }
     }

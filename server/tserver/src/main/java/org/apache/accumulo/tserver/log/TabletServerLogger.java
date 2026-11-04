@@ -22,6 +22,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_CREATOR_POOL;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,8 +66,8 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Central logging facility for the TServerInfo.
@@ -85,9 +86,6 @@ public class TabletServerLogger {
   private final long maxAge;
 
   private final TabletServer tserver;
-
-  // Cache for resolved sorted logs to avoid repeated expensive I/O operations
-  private final Cache<LogEntry,ResolvedSortedLog> sortedLogCache;
 
   // The current logger
   private DfsLogger currentLog = null;
@@ -116,6 +114,9 @@ public class TabletServerLogger {
   private Retry createRetry = null;
 
   private final RetryFactory writeRetryFactory;
+
+  // Cache for resolved sorted logs to avoid repeated expensive I/O operations
+  private final Cache<LogEntry,ResolvedSortedLog> sortedLogCache;
 
   private abstract static class TestCallWithWriteLock {
     abstract boolean test();
@@ -171,7 +172,7 @@ public class TabletServerLogger {
     this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
     this.sortedLogCache =
-        CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).maximumSize(10_000).build();
+        Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).maximumSize(10_000).build();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -573,17 +574,18 @@ public class TabletServerLogger {
     return seq;
   }
 
-  private List<ResolvedSortedLog> resolve(Collection<LogEntry> walogs) throws IOException {
+  private List<ResolvedSortedLog> resolve(Collection<LogEntry> walogs) {
     List<ResolvedSortedLog> sortedLogs = new ArrayList<>(walogs.size());
-    VolumeManager fs = tserver.getContext().getVolumeManager();
     for (var logEntry : walogs) {
-      try {
-        ResolvedSortedLog resolvedLog =
-            sortedLogCache.get(logEntry, () -> ResolvedSortedLog.resolve(logEntry, fs));
-        sortedLogs.add(resolvedLog);
-      } catch (Exception e) {
-        throw new IOException("Failed to resolve sorted log for " + logEntry.filename, e);
-      }
+      var sortedLog = sortedLogCache.get(logEntry, le1 -> {
+        try {
+          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      });
+
+      sortedLogs.add(sortedLog);
     }
     return sortedLogs;
   }

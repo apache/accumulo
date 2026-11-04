@@ -157,6 +157,7 @@ class AssignmentHandler implements Runnable {
     boolean successful = false;
 
     try (var recoveryMemory = server.acquireRecoveryMemory(tabletMetadata)) {
+
       TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
           server.getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);

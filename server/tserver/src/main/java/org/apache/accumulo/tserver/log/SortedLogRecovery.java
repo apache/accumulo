@@ -78,14 +78,6 @@ public class SortedLogRecovery {
     this.fileLenCache = fileLenCache;
   }
 
-  public boolean needsRecovery(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs)
-      throws IOException {
-    Entry<Integer,List<ResolvedSortedLog>> maxEntry =
-        findLogsThatDefineTablet(extent, recoveryDirs);
-    int tabletId = maxEntry.getKey();
-    return tabletId != -1;
-  }
-
   static LogFileKey maxKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
     key.setEvent(event);
@@ -307,7 +299,15 @@ public class SortedLogRecovery {
   }
 
   Collection<String> asNames(List<ResolvedSortedLog> recoveryLogs) {
-    return Collections2.transform(recoveryLogs, rl -> rl.getDir().getName());
+    return Collections2.transform(recoveryLogs, rsl -> rsl.getDir().getName());
+  }
+
+  public boolean needsRecovery(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs)
+      throws IOException {
+    Entry<Integer,List<ResolvedSortedLog>> maxEntry =
+        findLogsThatDefineTablet(extent, recoveryDirs);
+    int tabletId = maxEntry.getKey();
+    return tabletId != -1;
   }
 
   public void recover(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs,
