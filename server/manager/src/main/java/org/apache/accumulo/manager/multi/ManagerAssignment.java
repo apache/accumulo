@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
@@ -30,19 +31,26 @@ public abstract class ManagerAssignment {
 
   /**
    * Generic utility code to assign partitions to host. It evenly spread the partitions across host
-   * and tries to keep partition already on a host in place if possible.
+   * and tries to keep partition already on a host in place if possible. When there is more than one
+   * host, nothing is assigned to the primary host only the other host.
    */
-  public static <T> Map<HostAndPort,Set<T>> computeAssignments(Map<HostAndPort,Set<T>> current,
-      Set<T> desiredPartitions) {
-    if (current.isEmpty()) {
-      return Map.of();
+  public static <T> Map<HostAndPort,Set<T>> computeAssignments(HostAndPort primary,
+      Map<HostAndPort,Set<T>> current, Set<T> desiredPartitions) {
+    Preconditions.checkState(current.containsKey(primary), "primary %s not seen in %s", primary,
+        current.keySet());
+
+    Map<HostAndPort,Set<T>> assignments = new HashMap<>();
+
+    if (!current.keySet().equals(Set.of(primary))) {
+      current = new HashMap<>(current);
+      current.remove(primary);
+      assignments.put(primary, Set.of());
     }
 
     int minAssignments = desiredPartitions.size() / current.size();
     int maxAssignments = minAssignments + Math.min(desiredPartitions.size() % current.size(), 1);
     int hostThatCanHaveMax = desiredPartitions.size() % current.size();
 
-    Map<HostAndPort,Set<T>> assignments = new HashMap<>();
     Set<T> assigned = new HashSet<>();
 
     Set<HostAndPort> hostThatHaveMax = new HashSet<>();
