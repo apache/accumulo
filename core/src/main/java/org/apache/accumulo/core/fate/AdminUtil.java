@@ -380,9 +380,10 @@ public class AdminUtil<T> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
           TStatus status = txStore.getStatus();
+          long timeCreated = txStore.timeCreated();
 
           // the transaction was deleted while its info was being read, skip it
-          if (status == TStatus.UNKNOWN) {
+          if (status == TStatus.UNKNOWN || timeCreated == 0) {
             return;
           }
 
@@ -410,12 +411,6 @@ public class AdminUtil<T> {
             if (includeDetails) {
               details = repo.getDetails();
             }
-          }
-
-          long timeCreated = txStore.timeCreated();
-          // the transaction was deleted while its info was being read, skip it
-          if (timeCreated == 0) {
-            return;
           }
 
           if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
