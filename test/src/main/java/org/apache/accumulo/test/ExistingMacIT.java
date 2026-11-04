@@ -68,9 +68,6 @@ public class ExistingMacIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
     // NativeMap.java was changed to fail if native lib missing in ACCUMULO-4596
-    // testExistingInstance will fail because the native path is not set in
-    // MiniAccumuloConfigImpl.useExistingInstance
-    // so disable Native maps for this test
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, "false");
 
     // use raw local file system so walogs sync and flush will work
@@ -131,10 +128,6 @@ public class ExistingMacIT extends ConfigurableMacBase {
     FileUtils.deleteQuietly(testDir2);
 
     MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
-    macConfig2.useExistingInstance(
-        getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties").toFile(),
-        hadoopConfDir);
-
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
 
@@ -173,9 +166,6 @@ public class ExistingMacIT extends ConfigurableMacBase {
       FileUtils.deleteQuietly(testDir2);
 
       MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
-      macConfig2.useExistingInstance(
-          getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties").toFile(),
-          hadoopConfDir);
 
       System.out.println(
           "conf " + getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties"));

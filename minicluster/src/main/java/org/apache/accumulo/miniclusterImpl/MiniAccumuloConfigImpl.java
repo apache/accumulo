@@ -45,7 +45,6 @@ import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -112,9 +111,6 @@ public class MiniAccumuloConfigImpl {
 
   private boolean initialized = false;
 
-  // TODO Nuke existingInstance and push it over to StandaloneAccumuloCluster
-  private Boolean existingInstance = null;
-
   private boolean useMiniDFS = false;
   private int numMiniDFSDataNodes = 1;
 
@@ -167,19 +163,14 @@ public class MiniAccumuloConfigImpl {
       zooKeeperDir = dir.resolve("zookeeper");
       logDir = dir.resolve("logs");
 
-      // Never want to override these if an existing instance, which may be using the defaults
-      if (existingInstance == null || !existingInstance) {
-        existingInstance = false;
-        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.toAbsolutePath());
-        mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
-      }
-
       // Disable metrics for MiniAccumulo if not specifically enabled
       if (!siteConfig.containsKey(Property.GENERAL_MICROMETER_ENABLED.getKey())) {
         setProperty(Property.GENERAL_MICROMETER_ENABLED, "false");
         setProperty(Property.GENERAL_MICROMETER_FACTORY, "");
       }
 
+      mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.toAbsolutePath());
+      mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
@@ -205,21 +196,10 @@ public class MiniAccumuloConfigImpl {
         updateConfigForCredentialProvider();
       }
 
-      if (existingInstance == null || !existingInstance) {
-        existingInstance = false;
-        String zkHost;
-        if (useExistingZooKeepers()) {
-          zkHost = existingZooKeepers;
-        } else {
-          // zookeeper port should be set explicitly in this class, not just on the site config
-          if (zooKeeperPort == 0) {
-            zooKeeperPort = PortUtils.getRandomFreePort();
-          }
-
-          zkHost = DEFAULT_ZOOKEEPER_HOST + ":" + zooKeeperPort;
-        }
-        siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), zkHost);
+      if (zooKeeperPort == 0) {
+        zooKeeperPort = PortUtils.getRandomFreePort();
       }
+      siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
       initialized = true;
     }
     return this;
@@ -314,29 +294,13 @@ public class MiniAccumuloConfigImpl {
    * @param siteConfig key/values that you normally put in accumulo.properties can be put here.
    */
   public MiniAccumuloConfigImpl setSiteConfig(Map<String,String> siteConfig) {
-    if (existingInstance != null && existingInstance) {
-      throw new UnsupportedOperationException(
-          "Cannot set set config info when using an existing instance.");
-    }
-
-    this.existingInstance = Boolean.FALSE;
-
-    return _setSiteConfig(siteConfig);
-  }
-
-  public MiniAccumuloConfigImpl setClientProps(Map<String,String> clientProps) {
-    if (existingInstance != null && existingInstance) {
-      throw new UnsupportedOperationException(
-          "Cannot set zookeeper info when using an existing instance.");
-    }
-    this.existingInstance = Boolean.FALSE;
-    this.clientProps = clientProps;
+    this.siteConfig = new HashMap<String,String>(siteConfig);
+    this.configuredSiteConfig = new HashMap<String,String>(siteConfig);
     return this;
   }
 
-  private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
-    this.siteConfig = new HashMap<>(siteConfig);
-    this.configuredSiteConfig = new HashMap<>(siteConfig);
+  public MiniAccumuloConfigImpl setClientProps(Map<String,String> clientProps) {
+    this.clientProps = clientProps;
     return this;
   }
 
@@ -348,13 +312,6 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public MiniAccumuloConfigImpl setZooKeeperPort(int zooKeeperPort) {
-    if (existingInstance != null && existingInstance) {
-      throw new UnsupportedOperationException(
-          "Cannot set zookeeper info when using an existing instance.");
-    }
-
-    this.existingInstance = Boolean.FALSE;
-
     this.configuredZooKeeperPort = zooKeeperPort;
     this.zooKeeperPort = zooKeeperPort;
     return this;
@@ -369,13 +326,6 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.1
    */
   public MiniAccumuloConfigImpl setZooKeeperStartupTime(long zooKeeperStartupTime) {
-    if (existingInstance != null && existingInstance) {
-      throw new UnsupportedOperationException(
-          "Cannot set zookeeper info when using an existing instance.");
-    }
-
-    this.existingInstance = Boolean.FALSE;
-
     this.zooKeeperStartupTime = zooKeeperStartupTime;
     return this;
   }
@@ -734,50 +684,6 @@ public class MiniAccumuloConfigImpl {
    */
   public void setUseCredentialProvider(boolean useCredentialProvider) {
     this.useCredentialProvider = useCredentialProvider;
-  }
-
-  /**
-   * Informs MAC that it's running against an existing accumulo instance. It is assumed that it's
-   * already initialized and hdfs/zookeeper are already running.
-   *
-   * @param accumuloProps a File representation of the accumulo.properties file for the instance
-   *        being run
-   * @param hadoopConfDir a File representation of the hadoop configuration directory containing
-   *        core-site.xml and hdfs-site.xml
-   *
-   * @return MiniAccumuloConfigImpl which uses an existing accumulo configuration
-   *
-   * @since 1.6.2
-   *
-   * @throws IOException when there are issues converting the provided Files to URLs
-   */
-  public MiniAccumuloConfigImpl useExistingInstance(File accumuloProps, File hadoopConfDir)
-      throws IOException {
-    if (existingInstance != null && !existingInstance) {
-      throw new UnsupportedOperationException(
-          "Cannot set to useExistingInstance after specifying config/zookeeper");
-    }
-
-    this.existingInstance = Boolean.TRUE;
-
-    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY, "accumulo.properties");
-    this.hadoopConfDir = hadoopConfDir;
-    var siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
-
-    Map<String,String> siteConfigMap = new HashMap<>();
-    siteConfiguration.getProperties(siteConfigMap, key -> true, false);
-    _setSiteConfig(siteConfigMap);
-
-    return this;
-  }
-
-  /**
-   * @return MAC should run assuming it's configured for an initialized accumulo instance
-   *
-   * @since 1.6.2
-   */
-  public boolean useExistingInstance() {
-    return existingInstance != null && existingInstance;
   }
 
   /**
