@@ -64,9 +64,10 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      // wait for three coordinator locations to show up in zookeeper
+      // wait for two coordinator locations to show up in zookeeper, the primary manager will not be
+      // assigned anything
       Wait.waitFor(
-          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 3);
+          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 2);
       assertEquals(getExpectedGroups(),
           getServerContext().getCoordinatorLocations().locations().keySet());
 
@@ -92,9 +93,10 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
       getCluster().getConfig().getClusterServerConfiguration().setNumManagers(5);
       getCluster().getClusterControl().start(ServerType.MANAGER);
 
-      // wait for five coordinator locations to show up in zookeeper
+      // wait for four coordinator locations to show up in zookeeper, the primary manager will not
+      // be assigned anything
       Wait.waitFor(
-          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 5);
+          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 4);
       assertEquals(getExpectedGroups(),
           getServerContext().getCoordinatorLocations().locations().keySet());
 
@@ -110,9 +112,9 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
         getCluster().getClusterControl().killProcess(ServerType.MANAGER, proc);
       }
 
-      // wait for three coordinator locations to show up in zookeeper
+      // wait for one coordinator locations to show up in zookeeper
       Wait.waitFor(
-          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 2,
+          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 1,
           120_000);
       assertEquals(getExpectedGroups(),
           getServerContext().getCoordinatorLocations().locations().keySet());
@@ -122,8 +124,6 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
 
       compact(client, table2, 2, GROUP2, true);
       verify(client, table2, 30);
-
     }
   }
-
 }

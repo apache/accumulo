@@ -42,6 +42,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ManagerClient;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -100,7 +101,14 @@ public class CoordinatorManager {
 
         log.trace("Configured groups {}", configuredGroups);
 
-        var desired = computeAssignments(current, configuredGroups);
+        var primaryManager = ManagerClient.getPrimaryManagerLocation(context);
+        if (primaryManager == null) {
+          // This code is running in the primary manager, so should find ourselves.
+          throw new IllegalStateException("No primary manager found");
+        }
+
+        var desired =
+            computeAssignments(HostAndPort.fromString(primaryManager), current, configuredGroups);
 
         log.trace("Desired assignments {}", desired);
         if (!current.equals(desired)) {
