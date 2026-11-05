@@ -122,10 +122,8 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
-import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -1284,17 +1282,6 @@ public class TabletServer extends AbstractServer
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
     List<LogEntry> sorted = new ArrayList<>(logEntries);
     sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
-
-    // Validate that recovery logs exist before attempting recovery
-    for (LogEntry entry : sorted) {
-      Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
-      finished = SortedLogState.getFinishedMarkerPath(finished);
-      TabletServer.log.debug("Looking for " + finished);
-      if (!fs.exists(finished)) {
-        throw new IOException(
-            "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
-      }
-    }
 
     logger.recover(getContext(), extent, sorted, tabletFiles, mutationReceiver);
   }
