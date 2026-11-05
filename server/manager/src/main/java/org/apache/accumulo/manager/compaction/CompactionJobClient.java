@@ -101,7 +101,7 @@ public class CompactionJobClient implements AutoCloseable {
       var resolvedJob = new ResolvedCompactionJob(job, tabletMetadata);
       var hostPort = coordinatorLocations.get(resolvedJob.getGroup());
       if (hostPort == null) {
-        log.trace("Ignoring job, no coordinator found {}", job.getGroup());
+        log.trace("Ignoring job, no coordinator found for group {}", job.getGroup());
         ignoredCounts.merge(job.getGroup(), 1L, Long::sum);
         continue;
       }
