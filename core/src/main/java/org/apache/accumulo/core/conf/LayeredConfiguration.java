@@ -73,6 +73,5 @@ public class LayeredConfiguration<INNER extends AccumuloConfiguration,
   @Override
   public void invalidateCache() {
     outer.invalidateCache();
-    inner.invalidateCache();
   }
 }
