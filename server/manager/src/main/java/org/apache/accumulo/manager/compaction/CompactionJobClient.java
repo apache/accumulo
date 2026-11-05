@@ -107,7 +107,7 @@ public class CompactionJobClient implements AutoCloseable {
       }
       var coordinator = coordinatorConnections.get(hostPort);
       if (coordinator == null) {
-        log.trace("Ignoring job, no connection found {}", job.getGroup());
+        log.trace("Ignoring job, no connection found for coordinator {}", hostPort);
         ignoredCounts.merge(job.getGroup(), 1L, Long::sum);
         continue;
       }
