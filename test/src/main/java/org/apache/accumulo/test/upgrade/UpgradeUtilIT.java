@@ -110,8 +110,6 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     Wait.waitFor(() -> ctx.getZooReader()
         .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
-    new UpgradeUtil().execute(new String[] {"--prepare"});
     runUpgradeAndCheckOutput(ctx, null, false, false);
   }
 
