@@ -561,12 +561,6 @@ public class TabletServer extends AbstractServer
     }
   }
 
-  void releaseRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
-      recoveryLock.unlock();
-    }
-  }
-
   public boolean needsRecovery(TabletMetadata tabletMetadata) {
     var logEntries = tabletMetadata.getLogs();
 
