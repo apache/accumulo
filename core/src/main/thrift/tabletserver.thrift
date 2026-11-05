@@ -232,7 +232,7 @@ service TabletServerClientService {
   ) throws (
     1:NoSuchScanIDException nssi
   )
-  
+
   list<data.TKeyExtent> refreshTablets(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
