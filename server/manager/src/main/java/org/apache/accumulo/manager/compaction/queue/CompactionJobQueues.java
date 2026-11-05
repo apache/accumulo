@@ -151,6 +151,12 @@ public class CompactionJobQueues {
   }
 
   private void add(KeyExtent extent, ResourceGroupId groupId, Collection<CompactionJob> jobs) {
+    var pq = getOrCreateQueue(groupId);
+    if (pq == null) {
+      log.trace("Ignored request to add jobs extent:{} group:{} #jobs:{}", extent, groupId,
+          jobs.size());
+      return;
+    }
 
     if (log.isTraceEnabled()) {
       log.trace("Adding jobs to queue {} {} {}", groupId, extent,
@@ -158,12 +164,6 @@ public class CompactionJobQueues {
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
     }
 
-    var pq = getOrCreateQueue(groupId);
-    if (pq == null) {
-      log.trace("Ignored request to add jobs extent:{} group:{} #jobs:{}", extent, groupId,
-          jobs.size());
-      return;
-    }
     pq.add(extent, jobs, currentGenerations.get(DataLevel.of(extent.tableId())).get());
   }
 
