@@ -106,12 +106,13 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
     createPrepareMarker(ctx);
 
-    stopManagerAndWait(ctx);
+    cluster.getClusterControl().adminStopAll();
+    Wait.waitFor(() -> ctx.getZooReader()
+        .getChildren(ctx.getZooKeeperRoot() + Constants.ZMANAGER_LOCK).isEmpty());
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     new UpgradeUtil().execute(new String[] {"--prepare"});
-    assertTrue(ctx.getZooReader().exists(ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE));
-
+    runUpgradeAndCheckOutput(ctx, null, false, false);
   }
 
   private void createPrepareMarker(ServerContext ctx) throws Exception {
@@ -208,7 +209,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
   }
 
   private void runUpgradeAndCheckOutput(ServerContext ctx, KeyExtent extent,
-      boolean failureDueToLogs) throws Exception {
+      boolean failureExpected, boolean failureDueToLogs) throws Exception {
     StringWriter writer = new StringWriter();
     LoggerContext loggerContext = LoggerContext.getContext(false);
     Configuration cfg = loggerContext.getConfiguration();
@@ -227,13 +228,20 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
       assertTrue(
           ctx.getZooReader().exists(ctx.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE));
       String logMessages = writer.toString();
-      if (failureDueToLogs) {
-        assertTrue(logMessages.contains(extent + " needs recovery due to walogs being present"),
-            "Expected --prepare to report recovery for " + extent + " logs, got " + logMessages);
+      if (failureExpected) {
+        if (failureDueToLogs) {
+          assertTrue(logMessages.contains(extent + " needs recovery due to walogs being present"),
+              "Expected --prepare to report recovery for " + extent + " logs, got " + logMessages);
+        } else {
+          assertTrue(logMessages.contains(extent + " needs recovery due to location being set"),
+              "Expected --prepare to report recovery for " + extent + " location, got "
+                  + logMessages);
+        }
       } else {
-        assertTrue(logMessages.contains(extent + " needs recovery due to location being set"),
-            "Expected --prepare to report recovery for " + extent + " location, got "
-                + logMessages);
+        assertFalse(logMessages.contains(" needs recovery due to walogs being present"),
+            "Expected --prepare to report recovery for logs, got " + logMessages);
+        assertFalse(logMessages.contains(" needs recovery due to location being set"),
+            "Expected --prepare to report recovery for location, got " + logMessages);
       }
     } finally {
       cfg.getLoggerConfig(UpgradeUtil.class.getName()).removeAppender(appender.getName());
@@ -252,7 +260,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
       // root tablet metadata. Leaving them up causes the test to hang.
       stopAllServersBeforeRootTabletMutation();
       insertLogsRemoveLocation(ctx, rtm.getExtent(), rtm.getLocation());
-      runUpgradeAndCheckOutput(ctx, rtm.getExtent(), true);
+      runUpgradeAndCheckOutput(ctx, rtm.getExtent(), true, true);
     }
   }
 
@@ -266,7 +274,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
       // root tablet metadata. Leaving them up causes the test to hang.
       stopAllServersBeforeRootTabletMutation();
       insertLocationRemoveLogs(ctx, rtm.getExtent(), rtm.getLogs(), rtm.getLocation());
-      runUpgradeAndCheckOutput(ctx, rtm.getExtent(), false);
+      runUpgradeAndCheckOutput(ctx, rtm.getExtent(), true, false);
     }
   }
 
@@ -285,7 +293,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
       stopServersAndRemoveRootLocation(ctx);
 
-      runUpgradeAndCheckOutput(ctx, metadataTablet.getExtent(), true);
+      runUpgradeAndCheckOutput(ctx, metadataTablet.getExtent(), true, true);
     }
   }
 
@@ -305,7 +313,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
       stopServersAndRemoveRootLocation(ctx);
 
-      runUpgradeAndCheckOutput(ctx, metadataTablet.getExtent(), false);
+      runUpgradeAndCheckOutput(ctx, metadataTablet.getExtent(), true, false);
     }
   }
 
@@ -331,7 +339,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
       stopServersAndRemoveRootLocation(ctx);
 
-      runUpgradeAndCheckOutput(ctx, userTablet.getExtent(), true);
+      runUpgradeAndCheckOutput(ctx, userTablet.getExtent(), true, true);
     }
   }
 
@@ -359,7 +367,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
       stopServersAndRemoveRootLocation(ctx);
 
-      runUpgradeAndCheckOutput(ctx, userTablet.getExtent(), false);
+      runUpgradeAndCheckOutput(ctx, userTablet.getExtent(), true, false);
     }
   }
 
