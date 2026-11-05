@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -101,6 +102,7 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.log.LogSortWork;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -238,6 +240,8 @@ public class Upgrader11to12 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
+    LOG.info("Updating recovery work payloads");
+    updateRecoveryWork(context);
     LOG.info("Removing ZTracer node");
     removeZTracersNode(context);
     LOG.info("Updating file references in root tablet");
@@ -270,6 +274,54 @@ public class Upgrader11to12 implements Upgrader {
     addAssistantManager(context);
     LOG.info("Adding shutting down tservers node");
     addShuttingDownTservers(context);
+  }
+
+  private void updateRecoveryWork(ServerContext context) {
+    try {
+      upgradeRecoveryWork(context.getZooSession().asReaderWriter());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while updating recovery work payloads", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Could not update recovery work payloads", e);
+    }
+  }
+
+  @VisibleForTesting
+  void upgradeRecoveryWork(ZooReaderWriter zrw) throws KeeperException, InterruptedException {
+    for (String child : zrw.getChildren(Constants.ZRECOVERY)) {
+      if (child.equals("locks")) {
+        continue;
+      }
+
+      String childPath = Constants.ZRECOVERY + "/" + child;
+      String serialized = new String(zrw.getData(childPath), UTF_8);
+      String updated = convertRecoveryWork(child, serialized);
+      if (!serialized.equals(updated)
+          && !zrw.overwritePersistentData(childPath, updated.getBytes(UTF_8), -1)) {
+        throw new IllegalStateException("Could not update recovery work " + childPath);
+      }
+    }
+  }
+
+  static String convertRecoveryWork(String child, String serialized) {
+    var sortId = UUID.fromString(child);
+    String[] parts = serialized.split("\\|", -1);
+
+    // This item may already have been converted if an earlier upgrade attempt failed partway
+    // through. Validate it and leave it unchanged so the operation is safe to retry.
+    if (parts.length == 3) {
+      LogSortWork work = LogSortWork.fromString(serialized);
+      if (!work.sortId().equals(sortId)) {
+        throw new IllegalStateException("Recovery work ID does not match child " + child);
+      }
+      return work.serialize();
+    }
+
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("Malformed legacy recovery work for " + child);
+    }
+    return new LogSortWork(sortId, parts[0], parts[1]).serialize();
   }
 
   @Override
