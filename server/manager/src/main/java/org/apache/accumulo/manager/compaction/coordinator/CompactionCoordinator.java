@@ -147,7 +147,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <li>Handles RPC request to reserve any compaction job in the metadata table.</li>
  * <li>Handles RPC request to complete any compaction job. This initiates a fate operation to commit
  * the job.</li>
- * <li>Handles RPC request to fail a compaction job which updates the metadata table.</li>
+ * <li>Handles RPC request to fail any compaction job which updates the metadata table.</li>
  * </ul>
  *
  * <p>
