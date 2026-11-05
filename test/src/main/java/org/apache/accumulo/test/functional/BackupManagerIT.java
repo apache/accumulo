@@ -69,5 +69,4 @@ public class BackupManagerIT extends ConfigurableMacBase {
       backup.destroy();
     }
   }
-
 }
