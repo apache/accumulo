@@ -260,6 +260,16 @@ public enum Property {
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.spi.crypto.CryptoFactory interface.",
       "2.1.0"),
+  INSTANCE_WAL_PROVIDERS("instance.wal.providers", "{}", PropertyType.JSON,
+      "Map of WAL provider class names and their configuration. Keys are class names that implement "
+          + "org.apache.accumulo.core.spi.wal.WalProvider. Values are string-valued option maps. Use an "
+          + "empty map when a provider has no options. All configured providers are validated at startup, must be "
+          + "available to Managers, TabletServers, ScanServers, and GC, and must include providers "
+          + "referenced by existing WALs.",
+      "4.0.0"),
+  INSTANCE_WAL_PROVIDER("instance.wal.provider", "", PropertyType.CLASSNAME,
+      "Class implementing org.apache.accumulo.core.spi.wal.WalProvider, will be used to create new WALs.",
+      "4.0.0"),
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but"

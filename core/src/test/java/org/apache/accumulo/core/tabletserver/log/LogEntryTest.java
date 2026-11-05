@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ public class LogEntryTest {
 
   private final String validHost = "localhost+9997";
   private final UUID validUUID = UUID.randomUUID();
+  private static final String PROVIDER_ID = "example";
   private final String validPath = "viewfs:/a/accumulo/wal/" + validHost + "/" + validUUID;
 
   @Test
@@ -48,8 +50,8 @@ public class LogEntryTest {
 
   @Test
   public void testFromPath() {
-    var logEntry = LogEntry.fromPath(validPath);
-    verifyLogEntry(logEntry, new Text("-/" + validPath));
+    var logEntry = LogEntry.fromPath(PROVIDER_ID, validPath);
+    verifyLogEntry(logEntry, new Text(PROVIDER_ID + "/" + validPath));
   }
 
   @Test
@@ -58,6 +60,33 @@ public class LogEntryTest {
     var logEntry = LogEntry.fromMetaWalEntry(
         new SimpleImmutableEntry<>(new Key("1<", LogColumnFamily.STR_NAME, columnQualifier), null));
     verifyLogEntry(logEntry, new Text(columnQualifier));
+  }
+
+  @Test
+  public void testProviderIdentityFromMetadata() {
+    var entry = LogEntry.fromPath("example", validPath);
+    var qualifier = entry.getColumnQualifier();
+    var restored = LogEntry.fromMetaWalEntry(new SimpleImmutableEntry<>(
+        new Key("1<", LogColumnFamily.STR_NAME, qualifier.toString()), new Value()));
+
+    assertEquals("example", restored.getProviderId());
+    assertEquals(validPath, restored.getPath());
+    assertEquals(entry, restored);
+    assertEquals(PROVIDER_ID, LogEntry.fromPath(PROVIDER_ID, validPath).getProviderId());
+  }
+
+  @Test
+  public void testLegacyMetadataQualifierRejected() {
+    var legacyEntry = new SimpleImmutableEntry<>(
+        new Key("1<", LogColumnFamily.STR_NAME, "-/" + validPath), new Value());
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.fromMetaWalEntry(legacyEntry));
+  }
+
+  @Test
+  public void testProviderIdMustBeAlphanumeric() {
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider-id", validPath));
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider_id", validPath));
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider.id", validPath));
   }
 
   // helper for testing build from constructor or from metadata
@@ -71,8 +100,8 @@ public class LogEntryTest {
 
   @Test
   public void testEquals() {
-    LogEntry one = LogEntry.fromPath(validPath);
-    LogEntry two = LogEntry.fromPath(validPath);
+    LogEntry one = LogEntry.fromPath(PROVIDER_ID, validPath);
+    LogEntry two = LogEntry.fromPath(PROVIDER_ID, validPath);
 
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
@@ -93,13 +122,14 @@ public class LogEntryTest {
     var validPath3 = "dir2/" + validPath2;
 
     Stream.of(validPath1, validPath2, validPath3)
-        .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
+        .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(PROVIDER_ID, s)));
   }
 
   @Test
   public void testBadPathLength() {
     Stream.of("foo", "", validHost).forEach(badPath -> {
-      var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(badPath));
+      var e = assertThrows(IllegalArgumentException.class,
+          () -> LogEntry.fromPath(PROVIDER_ID, badPath));
       assertTrue(e.getMessage().contains("The path should end with tserver/UUID."));
     });
   }
@@ -108,7 +138,8 @@ public class LogEntryTest {
   public void testInvalidHostPort() {
     Stream.of("default:9997", "default+badPort").forEach(badHostAndPort -> {
       var badPath = badHostAndPort + "/" + validUUID;
-      var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(badPath));
+      var e = assertThrows(IllegalArgumentException.class,
+          () -> LogEntry.fromPath(PROVIDER_ID, badPath));
       assertTrue(e.getMessage().contains("Expected: host+port. Found '" + badHostAndPort + "'"));
     });
   }
@@ -117,7 +148,8 @@ public class LogEntryTest {
   public void testInvalidUUID() {
     var badUUID = "badUUID";
     var pathWithBadUUID = validHost + "/" + badUUID;
-    var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(pathWithBadUUID));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> LogEntry.fromPath(PROVIDER_ID, pathWithBadUUID));
     assertTrue(e.getMessage().contains("Expected valid UUID. Found '" + badUUID + "'"));
   }
 

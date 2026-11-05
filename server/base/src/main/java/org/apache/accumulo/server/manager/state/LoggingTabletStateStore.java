@@ -30,8 +30,8 @@ import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.hadoop.fs.Path;
 
 import com.google.common.net.HostAndPort;
 
@@ -82,7 +82,7 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void unassign(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers) throws DistributedStoreException {
     wrapped.unassign(tablets, logsForDeadServers);
 
     if (logsForDeadServers == null) {
@@ -96,7 +96,7 @@ class LoggingTabletStateStore implements TabletStateStore {
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 

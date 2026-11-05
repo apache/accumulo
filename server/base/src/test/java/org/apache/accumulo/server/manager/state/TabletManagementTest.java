@@ -55,6 +55,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sc
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -108,9 +109,11 @@ public class TabletManagementTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-    LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    LogEntry le1 =
+        LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
     le1.addToMutation(mutation);
-    LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    LogEntry le2 =
+        LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
     le2.addToMutation(mutation);
 
     StoredTabletFile sf1 =

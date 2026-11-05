@@ -45,6 +45,7 @@ import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
@@ -175,7 +176,8 @@ public class LogReader extends ServerKeywordExecutable<ReaderOpts> {
         } else {
           // read the log entries in a sorted RFile. This has to be a directory that contains the
           // finished file.
-          var rsl = ResolvedSortedLog.resolve(LogEntry.fromPath(path.toString()), fs);
+          var rsl = ResolvedSortedLog
+              .resolve(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, path.toString()), fs);
           try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(rsl), null,
               null, false)) {
             while (rli.hasNext()) {

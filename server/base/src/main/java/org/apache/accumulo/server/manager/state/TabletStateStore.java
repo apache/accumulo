@@ -31,9 +31,9 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.Path;
 
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
@@ -84,14 +84,14 @@ public interface TabletStateStore {
    * @param logsForDeadServers a cache of logs in use by servers when they died
    */
   void unassign(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException;
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers) throws DistributedStoreException;
 
   /**
    * Mark tablets as having no known or future location, but desiring to be returned to their
    * previous tserver.
    */
   void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException;
 
   /**
@@ -100,13 +100,13 @@ public interface TabletStateStore {
   void unsuspend(Collection<TabletMetadata> tablets) throws DistributedStoreException;
 
   public static void unassign(ServerContext context, TabletMetadata tm,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers) throws DistributedStoreException {
     getStoreForTablet(tm.getExtent(), context).unassign(Collections.singletonList(tm),
         logsForDeadServers);
   }
 
   public static void suspend(ServerContext context, TabletMetadata tm,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     getStoreForTablet(tm.getExtent(), context).suspend(Collections.singletonList(tm),
         logsForDeadServers, suspensionTimestamp);

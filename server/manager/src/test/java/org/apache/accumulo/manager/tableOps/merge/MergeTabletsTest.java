@@ -92,6 +92,7 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.hadoop.io.Text;
@@ -330,7 +331,8 @@ public class MergeTabletsTest {
     testUnexpectedColumn(tmb -> tmb.putOperation(otherOpid), "had unexpected opid",
         otherOpid.toString());
 
-    var walog = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    var walog =
+        LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
     testUnexpectedColumn(tmb -> tmb.putWal(walog), "has unexpected walogs 1");
 
     FateId ucfid1 = otherFateId;

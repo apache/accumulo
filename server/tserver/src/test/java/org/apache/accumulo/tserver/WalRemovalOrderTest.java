@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +35,8 @@ import com.google.common.collect.Sets;
 public class WalRemovalOrderTest {
 
   private DfsLogger mockLogger(String filename) {
-    var mockLogEntry = LogEntry.fromPath(filename + "+1234/11111111-1111-1111-1111-111111111111");
+    var mockLogEntry = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID,
+        filename + "+1234/11111111-1111-1111-1111-111111111111");
     return DfsLogger.fromLogEntry(mockLogEntry);
   }
 
