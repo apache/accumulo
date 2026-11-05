@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.gc;
 
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -35,20 +36,33 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   public final TableId tableId; // 2a
   public final boolean isScan;
   public final boolean isDirectory;
+  public final boolean isExternal;
 
   // the exact path from the file reference string that is stored in the metadata
   protected final String metadataPath;
 
   protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan,
       boolean isDirectory) {
-    this.tableId = Objects.requireNonNull(tableId);
-    this.metadataPath = Objects.requireNonNull(metadataPath);
+    this(tableId, metadataPath, isScan, isDirectory, false);
+  }
+
+  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan, boolean isDirectory,
+      boolean isExternal) {
+    this.tableId = requireNonNull(tableId);
+    this.metadataPath = requireNonNull(metadataPath);
     this.isScan = isScan;
     this.isDirectory = isDirectory;
+    this.isExternal = isExternal;
   }
 
   public static ReferenceFile forFile(TableId tableId, StoredTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false, false);
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false, false,
+        tabletFile.isExternal());
+  }
+
+  public static ReferenceFile forFile(TableId tableId, ReferencedTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), false, false,
+        tabletFile.isExternal());
   }
 
   public static ReferenceFile forFile(TableId tableId, Path metadataPathPath) {
@@ -56,11 +70,18 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false);
+    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false,
+        tabletFile.isExternal());
   }
 
   public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), true, false);
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), true, false,
+        tabletFile.isExternal());
+  }
+
+  public static ReferenceFile forScan(TableId tableId, ReferencedTabletFile tabletFile) {
+    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false,
+        tabletFile.isExternal());
   }
 
   public static ReferenceFile forScan(TableId tableId, Path metadataPathPath) {
@@ -80,6 +101,11 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   @Override
   public boolean isScan() {
     return isScan;
+  }
+
+  @Override
+  public boolean isExternal() {
+    return isExternal;
   }
 
   @Override

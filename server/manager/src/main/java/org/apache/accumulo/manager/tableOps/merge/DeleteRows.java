@@ -138,7 +138,7 @@ public class DeleteRows extends AbstractFateOperation {
               // If the existing file is disjoint then later we will delete if the file is not part
               // of the newFiles set which means it is disjoint with all ranges
               if (fenced != null) {
-                final StoredTabletFile newFile = StoredTabletFile.of(existing.getPath(), fenced);
+                final StoredTabletFile newFile = existing.withRange(fenced);
                 log.trace("{} Adding new file {} with range {}", fateId, newFile.getMetadataPath(),
                     newFile.getRange());
 

@@ -42,9 +42,11 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
@@ -76,6 +78,10 @@ public class GarbageCollectionTest {
       this.candidates.add(candidate);
       this.timestamp = timestamp + 1;
       return candidate;
+    }
+
+    public GcCandidate addExternalCandidate(String path) {
+      return addCandidate(GcVolumeUtil.encodeExternalCandidatePath(path));
     }
 
     public Long getTimestamp() {
@@ -144,6 +150,13 @@ public class GarbageCollectionTest {
       tableIds.add(tid);
     }
 
+    public void addExternalFileReference(String tableId, String endRow, String file) {
+      TableId tid = TableId.of(tableId);
+      references.put(tableId + ":" + endRow + ":" + file,
+          ReferenceFile.forFile(tid, StoredTabletFile.ofExternal(new Path(file))));
+      tableIds.add(tid);
+    }
+
     public void removeFileReference(String tableId, String endRow, String file) {
       references.remove(tableId + ":" + endRow + ":" + file);
       removeLastTableIdRef(TableId.of(tableId));
@@ -164,6 +177,13 @@ public class GarbageCollectionTest {
       TableId tid = TableId.of(tableId);
       references.put(tableId + ":" + endRow + ":scan:" + scan,
           ReferenceFile.forScan(tid, new Path(scan)));
+      tableIds.add(tid);
+    }
+
+    public void addExternalScanReference(String tableId, String endRow, String scan) {
+      TableId tid = TableId.of(tableId);
+      references.put(tableId + ":" + endRow + ":scan:" + scan,
+          ReferenceFile.forScan(tid, StoredTabletFile.ofExternal(new Path(scan))));
       tableIds.add(tid);
     }
 
@@ -259,6 +279,35 @@ public class GarbageCollectionTest {
 
     assertFileDeleted(gce, candThree);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne, candTwo, candFour);
+  }
+
+  @Test
+  public void externalFileReferencesPreventDeletion() throws Exception {
+    TestGCE gce = new TestGCE();
+    String path = "hdfs://external-nn/imports/F0001.rf";
+    var candidate = gce.addExternalCandidate(path);
+    gce.addExternalFileReference("4", null, path);
+    gce.addExternalScanReference("4", null, path);
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    gca.collect(gce);
+
+    assertFileDeleted(gce);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
+
+    candidate = gce.addExternalCandidate(path);
+    gce.removeFileReference("4", null, path);
+    gca.collect(gce);
+
+    assertFileDeleted(gce);
+    assertTrue(gce.candidates.contains(candidate));
+    assertNoCandidatesRemoved(gce);
+
+    gce.removeScanReference("4", null, path);
+    gca.collect(gce);
+
+    assertFileDeleted(gce, candidate);
+    assertNoCandidatesRemoved(gce);
   }
 
   @Test

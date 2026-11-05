@@ -205,24 +205,25 @@ public class TableDiskUsage {
 
             // get the table referenced by the file which may not be the same as the current
             // table we are scanning if the file is shared between multiple tables
-            final TableId fileTableRef = stf.getTableId();
+            final TableId fileTableRef = stf.isExternal() ? tableId : stf.getTableId();
+            final String fileKey = stf.isExternal() ? stf.getMetadataPath() : stf.getFileName();
 
             // if this is a ref to a different table than the one we are scanning then we need
             // to make sure the table is also linked for this shared file if the table is
             // part of the set of tables we are running du on so we can track shared usages
             if (!fileTableRef.equals(tableId) && tableIds.contains(fileTableRef)) {
               // link the table and the shared file for computing shared sizes
-              tdu.linkFileAndTable(fileTableRef, stf.getFileName());
+              tdu.linkFileAndTable(fileTableRef, fileKey);
             }
 
             // link the file to the table we are scanning for
-            tdu.linkFileAndTable(tableId, stf.getFileName());
+            tdu.linkFileAndTable(tableId, fileKey);
 
             // add the file size for the table if not already seen for this scan
             if (allFiles.add(stf)) {
               // This tracks the file size for individual files for computing shared file statistics
               // later
-              tdu.addFileSize(stf.getFileName(), dataFileValue.getSize());
+              tdu.addFileSize(fileKey, dataFileValue.getSize());
             }
           }
         }

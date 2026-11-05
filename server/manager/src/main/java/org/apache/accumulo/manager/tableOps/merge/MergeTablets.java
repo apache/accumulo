@@ -291,11 +291,11 @@ public class MergeTablets extends AbstractFateOperation {
   /**
    * Fence a file to a tablets data range.
    */
-  private static StoredTabletFile fenceFile(KeyExtent extent, StoredTabletFile file) {
+  static StoredTabletFile fenceFile(KeyExtent extent, StoredTabletFile file) {
     Range fenced = extent.toDataRange();
     // Clip range if exists
     fenced = file.hasRange() ? file.getRange().clip(fenced) : fenced;
-    return StoredTabletFile.of(file.getPath(), fenced);
+    return file.withRange(fenced);
   }
 
   @Override

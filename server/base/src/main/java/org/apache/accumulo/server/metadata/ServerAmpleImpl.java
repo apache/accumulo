@@ -52,6 +52,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -151,7 +153,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     if (DataLevel.of(tableId) == DataLevel.ROOT) {
       // Directories are unexpected for the root tablet, so convert to stored tablet file
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
-          .map(reference -> StoredTabletFile.of(URI.create(reference.getMetadataPath())))));
+          .map(reference -> reference.isExternal()
+              ? StoredTabletFile.ofExternal(new Path(reference.getMetadataPath()))
+              : StoredTabletFile.of(URI.create(reference.getMetadataPath())))));
       return;
     }
 
@@ -267,11 +271,19 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
-    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath());
+    String path = ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath();
+    if (tabletFilePathToRemove.isExternal()) {
+      path = GcVolumeUtil.encodeExternalCandidatePath(path);
+    }
+    return createDelMutation(path);
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetadataPath());
+    String path = pathToRemove.getMetadataPath();
+    if (pathToRemove.isExternal()) {
+      path = GcVolumeUtil.encodeExternalCandidatePath(path);
+    }
+    return createDelMutation(path);
   }
 
   private Mutation createDelMutation(String path) {
