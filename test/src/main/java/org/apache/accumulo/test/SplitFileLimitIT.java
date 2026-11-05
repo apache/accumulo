@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -50,6 +51,9 @@ public class SplitFileLimitIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setProperty(Property.SPLIT_MAXOPEN, Integer.toString(MAX_FILES_TO_OPEN));
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(2);
+      cfg.setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME, "10ms");
+      cfg.setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME, "100ms");
     });
   }
 
@@ -144,6 +148,7 @@ public class SplitFileLimitIT extends SharedMiniClusterBase {
       var extent = new KeyExtent(tableId, null, null);
 
       assertEquals(MAX_FILES_TO_OPEN, ctx.getAmple().readTablet(extent).getFiles().size());
+      assertNull(ctx.getAmple().readTablet(extent).getUnSplittable());
 
       client.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "1K");
