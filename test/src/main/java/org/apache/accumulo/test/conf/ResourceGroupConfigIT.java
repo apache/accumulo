@@ -513,14 +513,11 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
 
       Wait.waitFor(() -> cc.getServerPaths()
-          .getCompactor(ResourceGroupPredicate.exact(first), AddressSelector.all(), true).size()
-          == 0);
+          .getCompactor(ResourceGroupPredicate.exact(first), AddressSelector.all(), true).isEmpty(), 60_000);
       Wait.waitFor(() -> cc.getServerPaths()
-          .getScanServer(ResourceGroupPredicate.exact(second), AddressSelector.all(), true).size()
-          == 0);
+          .getScanServer(ResourceGroupPredicate.exact(second), AddressSelector.all(), true).isEmpty(), 60_000);
       Wait.waitFor(() -> cc.getServerPaths()
-          .getTabletServer(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
-          == 0);
+          .getTabletServer(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).isEmpty(), 60_000);
 
       rgops.remove(first);
       rgops.remove(second);
