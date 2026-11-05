@@ -157,7 +157,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * </p>
  *
  * <ul>
- * <li>An instance of this class runs in every manager process and accepts RPC request.</li>
+ * <li>An instance of this class runs in every manager process and accepts RPC requests.</li>
  * <li>{@link CoordinatorManager} runs in the primary manager. It examines Accumulo configuration
  * and finds the set of compactor resource groups. It then evenly assigns those compactor resource
  * groups to instances of this class running in different manager processes. After it has made
