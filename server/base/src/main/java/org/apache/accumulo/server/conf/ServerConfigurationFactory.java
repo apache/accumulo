@@ -247,7 +247,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
           .entrySet()) {
         keyCount++;
         PropStoreKey propKey = NamespacePropKey.of(entry.getKey());
-        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+        if (!propStore.validateDataVersion(propKey, entry.getValue().getOuter().getDataVersion())) {
           keyChangedCount++;
           namespaceConfigs.invalidate(entry.getKey());
         }
@@ -259,7 +259,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         keyCount++;
         TableId tid = entry.getKey();
         PropStoreKey propKey = TablePropKey.of(tid);
-        if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
+        if (!propStore.validateDataVersion(propKey, entry.getValue().getOuter().getDataVersion())) {
           keyChangedCount++;
           tableConfigs.invalidate(tid);
           tableParentConfigs.invalidate(tid);

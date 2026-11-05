@@ -25,7 +25,8 @@ import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ResourceGroupConfiguration extends LayeredConfiguration<SystemConfiguration, ZooBasedConfiguration> {
+public class ResourceGroupConfiguration
+    extends LayeredConfiguration<SystemConfiguration,ZooBasedConfiguration> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ResourceGroupConfiguration.class);
 

@@ -43,10 +43,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.conf.*;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -108,7 +105,7 @@ public class ZooBasedConfigurationTest {
     replay(context, propStore);
     assertNotNull(context.getPropStore());
 
-    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysKey, siteConfig);
+    var configuration = new SystemConfiguration(context, sysKey, siteConfig);
     assertNotNull(configuration);
 
   }
@@ -126,7 +123,7 @@ public class ZooBasedConfigurationTest {
 
     replay(context, propStore);
 
-    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysPropKey, siteConfig);
+    var configuration = new SystemConfiguration(context, sysPropKey, siteConfig);
 
     assertNotNull(configuration);
     assertEquals("1G", configuration.get(TABLE_SPLIT_THRESHOLD));
@@ -154,8 +151,9 @@ public class ZooBasedConfigurationTest {
     replay(context, propStore);
 
     NamespaceConfiguration nsConfig = new NamespaceConfiguration(context, nsId, siteConfig);
-
-    ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsConfig);
+    LayeredConfiguration<NamespaceConfiguration,ZooBasedConfiguration> lc =
+        new TableConfiguration(context, tableId, nsConfig);
+    ZooBasedConfiguration zbc = lc.getOuter();
     Map<String,String> readProps = zbc.getSnapshot();
 
     assertNotNull(zbc.getSnapshot());
@@ -184,8 +182,11 @@ public class ZooBasedConfigurationTest {
 
     AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
-    ZooBasedConfiguration sysConfig =
-        new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig);
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredSysConfig =
+        new LayeredConfiguration<>(defaultConfig,
+            new ZooBasedConfiguration(log, context, sysPropKey));
+
+    ZooBasedConfiguration sysConfig = layeredSysConfig.getOuter();
     assertNotNull(sysConfig);
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED));
   }
@@ -201,8 +202,11 @@ public class ZooBasedConfigurationTest {
 
     AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
-    ZooBasedConfiguration sysConfig =
-        new ZooBasedConfiguration(log, context, rgPropKey, defaultConfig);
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredSysConfig =
+        new LayeredConfiguration<>(defaultConfig,
+            new ZooBasedConfiguration(log, context, rgPropKey));
+
+    ZooBasedConfiguration sysConfig = layeredSysConfig.getOuter();
     assertNotNull(sysConfig);
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED));
   }
@@ -216,8 +220,7 @@ public class ZooBasedConfigurationTest {
 
     replay(propStore, context);
 
-    var zbc =
-        new ZooBasedConfiguration(log, context, sysPropKey, DefaultConfiguration.getInstance());
+    var zbc = new ZooBasedConfiguration(log, context, sysPropKey);
     assertThrows(IllegalStateException.class, () -> zbc.get("anyproperty"));
   }
 
@@ -247,11 +250,18 @@ public class ZooBasedConfigurationTest {
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
-    ZooBasedConfiguration sysConfig =
-        new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig);
-    ZooBasedConfiguration nsConfig = new ZooBasedConfiguration(log, context, nsPropKey, sysConfig);
-    ZooBasedConfiguration tableConfig =
-        new ZooBasedConfiguration(log, context, tablePropKey, nsConfig);
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredSysConfig =
+        new LayeredConfiguration<>(defaultConfig,
+            new ZooBasedConfiguration(log, context, sysPropKey));
+    ZooBasedConfiguration sysConfig = layeredSysConfig.getOuter();
+
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredNsConfig =
+        new LayeredConfiguration<>(sysConfig, new ZooBasedConfiguration(log, context, sysPropKey));
+    ZooBasedConfiguration nsConfig = layeredNsConfig.getOuter();
+
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredTableConfig =
+        new LayeredConfiguration<>(nsConfig, new ZooBasedConfiguration(log, context, tablePropKey));
+    ZooBasedConfiguration tableConfig = layeredTableConfig.getOuter();
 
     assertNotNull(tableConfig);
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED));
@@ -316,11 +326,18 @@ public class ZooBasedConfigurationTest {
 
     ConfigurationCopy defaultConfig = new ConfigurationCopy(Map.of());
 
-    ZooBasedConfiguration sysConfig =
-        new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig);
-    ZooBasedConfiguration nsConfig = new ZooBasedConfiguration(log, context, nsPropKey, sysConfig);
-    ZooBasedConfiguration tableConfig =
-        new ZooBasedConfiguration(log, context, tablePropKey, nsConfig);
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredSysConfig =
+        new LayeredConfiguration<>(defaultConfig,
+            new ZooBasedConfiguration(log, context, sysPropKey));
+    ZooBasedConfiguration sysConfig = layeredSysConfig.getOuter();
+
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredNsConfig =
+        new LayeredConfiguration<>(sysConfig, new ZooBasedConfiguration(log, context, sysPropKey));
+    ZooBasedConfiguration nsConfig = layeredNsConfig.getOuter();
+
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredTableConfig =
+        new LayeredConfiguration<>(nsConfig, new ZooBasedConfiguration(log, context, tablePropKey));
+    ZooBasedConfiguration tableConfig = layeredTableConfig.getOuter();
 
     assertNotNull(tableConfig);
     assertEquals(0, defaultConfig.getUpdateCount());
@@ -352,11 +369,18 @@ public class ZooBasedConfigurationTest {
 
     ConfigurationCopy defaultConfig = new ConfigurationCopy(Map.of());
 
-    ZooBasedConfiguration sysConfig =
-        new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig);
-    ZooBasedConfiguration nsConfig = new ZooBasedConfiguration(log, context, nsPropKey, sysConfig);
-    ZooBasedConfiguration tableConfig =
-        new ZooBasedConfiguration(log, context, tablePropKey, nsConfig);
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredSysConfig =
+        new LayeredConfiguration<>(defaultConfig,
+            new ZooBasedConfiguration(log, context, sysPropKey));
+    ZooBasedConfiguration sysConfig = layeredSysConfig.getOuter();
+
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredNsConfig =
+        new LayeredConfiguration<>(sysConfig, new ZooBasedConfiguration(log, context, sysPropKey));
+    ZooBasedConfiguration nsConfig = layeredNsConfig.getOuter();
+
+    LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> layeredTableConfig =
+        new LayeredConfiguration<>(nsConfig, new ZooBasedConfiguration(log, context, tablePropKey));
+    ZooBasedConfiguration tableConfig = layeredTableConfig.getOuter();
 
     assertNotNull(tableConfig);
     assertEquals(0, defaultConfig.getUpdateCount());

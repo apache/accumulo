@@ -22,11 +22,15 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SystemConfiguration extends LayeredConfiguration<AccumuloConfiguration, ZooBasedConfiguration> {
+import com.google.common.annotations.VisibleForTesting;
+
+public class SystemConfiguration
+    extends LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> {
 
   private static final Logger log = LoggerFactory.getLogger(SystemConfiguration.class);
 
@@ -35,7 +39,8 @@ public class SystemConfiguration extends LayeredConfiguration<AccumuloConfigurat
   public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
       AccumuloConfiguration parent) {
     super(parent, new ZooBasedConfiguration(log, context, propStoreKey));
-    runtimeFixedProps = new RuntimeFixedProperties(getOuter().getSnapshot(), context.getSiteConfiguration());
+    runtimeFixedProps =
+        new RuntimeFixedProperties(getOuter().getSnapshot(), context.getSiteConfiguration());
   }
 
   @Override
@@ -71,6 +76,16 @@ public class SystemConfiguration extends LayeredConfiguration<AccumuloConfigurat
 
   RuntimeFixedProperties getRuntimeFixedProperties() {
     return runtimeFixedProps;
+  }
+
+  @VisibleForTesting
+  public void zkChangeEvent(PropStoreKey propStoreKey) {
+    getOuter().zkChangeEvent(propStoreKey);
+  }
+
+  @VisibleForTesting
+  public AccumuloConfiguration getParent() {
+    return getInner();
   }
 
 }

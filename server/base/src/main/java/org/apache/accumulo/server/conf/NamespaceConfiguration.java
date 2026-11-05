@@ -26,7 +26,8 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NamespaceConfiguration extends LayeredConfiguration<AccumuloConfiguration, ZooBasedConfiguration> {
+public class NamespaceConfiguration
+    extends LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> {
 
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
 

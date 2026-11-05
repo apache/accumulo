@@ -309,7 +309,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
     assertFalse(shouldNotBeSet.isEmpty());
 
-    var conf = new ZooBasedConfiguration(log, context, sysPropKey, parent);
+    var conf = new ZooBasedConfiguration(log, context, sysPropKey);
 
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, inGetProperties(conf));
 
