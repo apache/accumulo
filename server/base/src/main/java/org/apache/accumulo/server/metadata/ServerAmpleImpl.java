@@ -29,7 +29,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -254,11 +253,10 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new IllegalStateException(e);
       }
       scanner.setRange(range);
-      scanner.addScanIterator(new IteratorSetting(25, "gcCandidate", GcCandidateFilter.class));
       return scanner.stream()
           .map(
               entry -> new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
-                  entry.getKey().getTimestamp()))
+                  entry.getKey().getTimestamp(), DeletesSection.isDir(entry.getValue())))
           .iterator();
     } else {
       throw new IllegalArgumentException();
@@ -267,16 +265,18 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
-    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath());
+    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath(),
+        tabletFilePathToRemove.isDirectory());
   }
 
   public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetadataPath());
+    return createDelMutation(pathToRemove.getMetadataPath(), false);
   }
 
-  private Mutation createDelMutation(String path) {
+  private Mutation createDelMutation(String path, boolean isDir) {
     Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT,
+        isDir ? DeletesSection.DIR_VALUE : DeletesSection.FILE_VALUE);
     return delFlag;
   }
 

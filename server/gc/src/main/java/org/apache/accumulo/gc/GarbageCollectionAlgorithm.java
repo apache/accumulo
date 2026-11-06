@@ -42,6 +42,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +126,28 @@ public class GarbageCollectionAlgorithm {
     for (GcCandidate candidate : candidates) {
       String relPath;
       try {
-        relPath = makeRelative(candidate.getPath(), 0);
+        // TODO this path parsing is probably inefficient
+        Path path = new Path(candidate.getPath());
+        var parent = path.getParent();
+        if (parent == null) {
+          // TODO this is awful
+          throw new IllegalArgumentException();
+        }
+        // TODO eventually want to drop table id
+        if (candidate.isDir()) {
+          relPath = "/" + parent.getName() + "/" + path.getName();
+        } else {
+          var grandParent = parent.getParent();
+          if (grandParent == null) {
+            // TODO this is awful
+            throw new IllegalArgumentException();
+          }
+          relPath =
+              "/" + parent.getParent().getName() + "/" + parent.getName() + "/" + path.getName();
+        }
+
+        // TODO do not really need to call this, just following what other code does for now
+        relPath = makeRelative(relPath, 0);
       } catch (IllegalArgumentException iae) {
         log.warn("Ignoring invalid deletion candidate {}", candidate);
         continue;

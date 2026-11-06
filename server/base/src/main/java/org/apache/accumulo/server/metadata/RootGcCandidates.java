@@ -96,8 +96,9 @@ public class RootGcCandidates {
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
+      // TODO does this need to encode dir
       return names.stream()
-          .map(name -> new GcCandidate(parent + Path.SEPARATOR + name, uidGen.nextLong()));
+          .map(name -> new GcCandidate(parent + Path.SEPARATOR + name, uidGen.nextLong(), false));
     }).sorted();
   }
 
