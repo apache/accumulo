@@ -277,6 +277,19 @@ public class GarbageCollectionTest {
   }
 
   @Test
+  public void externalFileUrisAreNormalizedForMatching() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var candidate = gce.addCandidate("hdfs://nn//external///rfiles//source.rf");
+    gce.addFileReference("4", null, "hdfs://nn/external/rfiles/source.rf");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
+  }
+
+  @Test
   public void externalScanReferenceProtectsCandidate() throws Exception {
     TestGCE gce = new TestGCE();
     var candidate = gce.addCandidate("hdfs://nn/external/rfiles/source.rf");
@@ -534,6 +547,19 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     assertFileDeleted(gce);
+  }
+
+  @Test
+  public void blipPrefixDoesNotMatchSiblingDirectory() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("/4/b-0/F000.rf");
+    var siblingCandidate = gce.addCandidate("/4/b-01/F001.rf");
+    gce.blips.add("/4/b-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, siblingCandidate);
+    assertTrue(gce.candidates.contains(protectedCandidate));
   }
 
   @Test

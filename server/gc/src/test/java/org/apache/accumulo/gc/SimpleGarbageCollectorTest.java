@@ -165,24 +165,24 @@ public class SimpleGarbageCollectorTest {
     replay(vol1, vol2, volMgr2);
 
     TreeMap<String,GcCandidate> confirmed = new TreeMap<>();
-    confirmed.put("DIR|5a/t-0001", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
-    confirmed.put("FILE|hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf",
+    confirmed.put("5a/t-0001/", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
+    confirmed.put("5a/t-0001/F0001.rf|hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf", 1L));
-    confirmed.put("FILE|hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf",
+    confirmed.put("5a/t-0001/F0002.rf|hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf", 2L));
-    confirmed.put("FILE|hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf",
+    confirmed.put("5a/t-0002/F0001.rf|hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf", 3L));
     var allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    confirmed.put("DIR|5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
-    confirmed.put("FILE|hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf",
+    confirmed.put("5b/t-0003/", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
+    confirmed.put("5b/t-0003/F0001.rf|hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf", 5L));
-    confirmed.put("FILE|hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf",
+    confirmed.put("5b/t-0003/F0002.rf|hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf",
         new GcCandidate("hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf", 6L));
-    confirmed.put("FILE|hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf",
+    confirmed.put("5b/t-0003/F0003.rf|hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf",
         new GcCandidate("hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf", 7L));
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    confirmed.put("DIR|5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
-    confirmed.put("FILE|hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf",
+    confirmed.put("5b/t-0004/", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
+    confirmed.put("5b/t-0004/F0001.rf|hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L));
 
     List<GcCandidate> processedDeletes = new ArrayList<>();
@@ -190,23 +190,23 @@ public class SimpleGarbageCollectorTest {
     GCRun.minimizeDeletes(confirmed, processedDeletes, volMgr2, log, Duration.ofMinutes(1));
 
     TreeMap<String,GcCandidate> expected = new TreeMap<>();
-    expected.put("DIR|5a/t-0001", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
-    expected.put("FILE|hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf",
+    expected.put("5a/t-0001/", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
+    expected.put("5a/t-0002/F0001.rf|hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf",
         new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf", 3L));
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    expected.put("DIR|5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
-    expected.put("FILE|hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf",
+    expected.put("5b/t-0003/", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
+    expected.put("5b/t-0003/F0003.rf|hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf",
         new GcCandidate("hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf", 7L));
     allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    expected.put("DIR|5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
+    expected.put("5b/t-0004/", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
 
     assertEquals(expected, confirmed);
     assertEquals(
         Arrays.asList(new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf", 1L),
             new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf", 2L),
             new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf", 5L),
-            new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L),
-            new GcCandidate("hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf", 6L)),
+            new GcCandidate("hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf", 6L),
+            new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L)),
         processedDeletes);
   }
 }

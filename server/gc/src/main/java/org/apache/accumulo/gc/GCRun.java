@@ -412,7 +412,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       Duration loggingInterval) {
     Set<Path> deleteDirs = new HashSet<>();
     for (Map.Entry<String,GcCandidate> entry : confirmedDeletes.entrySet()) {
-      if (entry.getKey().startsWith(GarbageCollectionAlgorithm.DIRECTORY_CANDIDATE_KEY_PREFIX)) {
+      if (GarbageCollectionAlgorithm.isDir(entry.getKey())) {
         Path dirPath = new Path(entry.getValue().getPath());
         deleteDirs.addAll(GcVolumeUtil.expandAllVolumesUri(fs, dirPath));
       }
@@ -426,7 +426,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     while (cdIter.hasNext()) {
       progressCount++;
       Map.Entry<String,GcCandidate> entry = cdIter.next();
-      if (!entry.getKey().startsWith(GarbageCollectionAlgorithm.DIRECTORY_CANDIDATE_KEY_PREFIX)) {
+      if (!GarbageCollectionAlgorithm.isDir(entry.getKey())) {
         Path filePath = new Path(entry.getValue().getPath());
         Path parent = filePath.getParent();
         while (parent != null) {

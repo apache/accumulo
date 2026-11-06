@@ -55,8 +55,6 @@ import io.opentelemetry.context.Scope;
 public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
-  static final String DIRECTORY_CANDIDATE_KEY_PREFIX = "DIR|";
-  private static final String FILE_CANDIDATE_KEY_PREFIX = "FILE|";
 
   /**
    * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
@@ -73,6 +71,15 @@ public class GarbageCollectionAlgorithm {
    * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
    */
   private String makeRelative(String path, int expectedLen) {
+    String relative = tryMakeRelative(path, expectedLen);
+    if (relative == null) {
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+    }
+    return relative;
+  }
+
+  // Returns null when the path does not match the expected Accumulo table path layout.
+  private String tryMakeRelative(String path, int expectedLen) {
     String relPath = path;
 
     // remove prefixed old relative path
@@ -105,7 +112,7 @@ public class GarbageCollectionAlgorithm {
         // return the last 2 tokens after tables, like 4/t0
         relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else {
-        throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+        return null;
       }
     } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
         && !path.contains(":")) {
@@ -116,7 +123,7 @@ public class GarbageCollectionAlgorithm {
       // return the last 2 tokens of the relative path, like 4/t0
       relPath = tokens[0] + "/" + tokens[1];
     } else {
-      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+      return null;
     }
 
     log.trace("{} -> {} expectedLen = {}", path, relPath, expectedLen);
@@ -124,14 +131,9 @@ public class GarbageCollectionAlgorithm {
   }
 
   private String makeCandidateKey(String path) {
-    try {
-      String relative = makeRelative(path, 0);
-      if (SimpleGarbageCollector.isDir(relative)) {
-        return DIRECTORY_CANDIDATE_KEY_PREFIX + relative;
-      }
-    } catch (IllegalArgumentException e) {
-      // Paths for external files do not have the Accumulo tables/<table>/<tablet> structure.
-      // Their full URI is their identity, so don't discard them or compare by path suffix.
+    String relative = tryMakeRelative(path, 0);
+    if (relative != null && SimpleGarbageCollector.isDir(relative)) {
+      return directoryCandidateKey(relative);
     }
 
     return fileCandidateKey(path);
@@ -142,11 +144,18 @@ public class GarbageCollectionAlgorithm {
       throw new IllegalArgumentException("GC file candidate is a directory: " + path);
     }
     Path candidatePath = new Path(path);
+    String normalizedPath = candidatePath.toString();
     if (candidatePath.toUri().getScheme() != null) {
       if (candidatePath.getName().isEmpty()) {
         throw new IllegalArgumentException("GC file candidate does not identify a file: " + path);
       }
-      return FILE_CANDIDATE_KEY_PREFIX + candidatePath;
+      String relative = tryMakeRelative(normalizedPath, 3);
+      if (relative != null) {
+        // Keep managed files ordered by their relative tablet path so directory range lookups can
+        // find every volume. The normalized URI suffix preserves identity across volumes.
+        return relative + "|" + normalizedPath;
+      }
+      return normalizedPath;
     }
 
     // Relative paths are retained for compatibility with older metadata entries. Once paths are
@@ -155,11 +164,20 @@ public class GarbageCollectionAlgorithm {
     if (relative == null) {
       throw new IllegalArgumentException("Invalid relative GC file candidate: " + path);
     }
-    return FILE_CANDIDATE_KEY_PREFIX + "RELATIVE|" + relative;
+    return relative;
   }
 
   private String directoryCandidateKey(String relativePath) {
-    return DIRECTORY_CANDIDATE_KEY_PREFIX + relativePath;
+    String normalized = relativePath;
+    while (normalized.endsWith("/")) {
+      normalized = normalized.substring(0, normalized.length() - 1);
+    }
+    return normalized + "/";
+  }
+
+  static boolean isDir(String candidateKey) {
+    return candidateKey != null && !candidateKey.isEmpty()
+        && candidateKey.charAt(candidateKey.length() - 1) == '/';
   }
 
   private String tabletDirectoryKey(String filePath) {
@@ -170,14 +188,6 @@ public class GarbageCollectionAlgorithm {
       return null;
     }
     return directoryCandidateKey(relativeFile.substring(0, relativeFile.lastIndexOf('/')));
-  }
-
-  private String tryMakeRelative(String path, int expectedLen) {
-    try {
-      return makeRelative(path, expectedLen);
-    } catch (IllegalArgumentException e) {
-      return null;
-    }
   }
 
   private SortedMap<String,GcCandidate> makeCandidateMap(Collection<GcCandidate> candidates) {
@@ -249,12 +259,16 @@ public class GarbageCollectionAlgorithm {
           if (new Path(reference).toUri().getScheme() == null) {
             String relativePath = tryMakeRelative(reference, 3);
             if (relativePath != null) {
+              String absoluteFilePrefix = relativePath + "|";
               Iterator<Entry<String,GcCandidate>> candidateIter =
-                  candidateMap.entrySet().iterator();
+                  candidateMap.tailMap(absoluteFilePrefix).entrySet().iterator();
               while (candidateIter.hasNext()) {
                 Entry<String,GcCandidate> candidateEntry = candidateIter.next();
-                if (candidateEntry.getKey().startsWith(FILE_CANDIDATE_KEY_PREFIX) && relativePath
-                    .equals(tryMakeRelative(candidateEntry.getValue().getPath(), 0))) {
+                String key = candidateEntry.getKey();
+                if (!key.startsWith(absoluteFilePrefix)) {
+                  break;
+                }
+                if (relativePath.equals(tryMakeRelative(candidateEntry.getValue().getPath(), 0))) {
                   inUseCandidates.add(candidateEntry.getValue());
                   candidateIter.remove();
                 }
@@ -306,30 +320,48 @@ public class GarbageCollectionAlgorithm {
           blipCount++;
           String blipPath = blipiter.next();
           Path blip = new Path(blipPath);
+          String normalizedBlipPath = blip.toString();
           boolean absoluteBlip = blip.toUri().getScheme() != null;
           String relativeBlip = null;
-          try {
-            relativeBlip = makeRelative(blipPath, 2);
-          } catch (IllegalArgumentException e) {
-            // External bulk-load paths are matched using their full URI below.
+          relativeBlip = tryMakeRelative(normalizedBlipPath, 2);
+
+          int count = 0;
+          if (relativeBlip != null) {
+            String relativePrefix = directoryCandidateKey(relativeBlip);
+            Iterator<Entry<String,GcCandidate>> relativeIter =
+                candidateMap.tailMap(relativePrefix).entrySet().iterator();
+            while (relativeIter.hasNext()) {
+              Entry<String,GcCandidate> candidateEntry = relativeIter.next();
+              if (!candidateEntry.getKey().startsWith(relativePrefix)) {
+                break;
+              }
+
+              if (!absoluteBlip) {
+                count++;
+                relativeIter.remove();
+              } else {
+                Path candidatePath = new Path(candidateEntry.getValue().getPath());
+                if (candidatePath.toUri().getScheme() == null
+                    || isDescendantOrSame(blip, candidatePath)) {
+                  count++;
+                  relativeIter.remove();
+                }
+              }
+            }
           }
 
-          Iterator<Entry<String,GcCandidate>> candidateIter = candidateMap.entrySet().iterator();
-          int count = 0;
-          while (candidateIter.hasNext()) {
-            Entry<String,GcCandidate> candidateEntry = candidateIter.next();
-            Path candidatePath = new Path(candidateEntry.getValue().getPath());
-            if (isDescendantOrSame(blip, candidatePath)) {
+          if (absoluteBlip) {
+            String absolutePrefix =
+                normalizedBlipPath.endsWith("/") ? normalizedBlipPath : normalizedBlipPath + "/";
+            Iterator<Entry<String,GcCandidate>> absoluteIter =
+                candidateMap.tailMap(absolutePrefix).entrySet().iterator();
+            while (absoluteIter.hasNext()) {
+              Entry<String,GcCandidate> candidateEntry = absoluteIter.next();
+              if (!candidateEntry.getKey().startsWith(absolutePrefix)) {
+                break;
+              }
               count++;
-              candidateIter.remove();
-            } else if (absoluteBlip && candidatePath.toUri().getScheme() == null
-                && hasRelativeBulkPath(relativeBlip, candidateEntry.getValue().getPath())) {
-              count++;
-              candidateIter.remove();
-            } else if (!absoluteBlip
-                && hasRelativeBulkPath(relativeBlip, candidateEntry.getValue().getPath())) {
-              count++;
-              candidateIter.remove();
+              absoluteIter.remove();
             }
           }
 
@@ -341,19 +373,6 @@ public class GarbageCollectionAlgorithm {
     }
 
     return blipCount;
-  }
-
-  private boolean hasRelativeBulkPath(String relativeDir, String candidatePath) {
-    if (relativeDir == null) {
-      return false;
-    }
-    try {
-      String relativeCandidate = makeRelative(candidatePath, 0);
-      return relativeCandidate.equals(relativeDir)
-          || relativeCandidate.startsWith(relativeDir + "/");
-    } catch (IllegalArgumentException e) {
-      return false;
-    }
   }
 
   private static boolean isDescendantOrSame(Path ancestor, Path candidate) {
@@ -413,10 +432,10 @@ public class GarbageCollectionAlgorithm {
 
     // find the table ids that had dirs deleted
     for (String delete : candidateMap.keySet()) {
-      if (!delete.startsWith(DIRECTORY_CANDIDATE_KEY_PREFIX)) {
+      if (!isDir(delete)) {
         continue;
       }
-      String relativeDir = delete.substring(DIRECTORY_CANDIDATE_KEY_PREFIX.length());
+      String relativeDir = delete.substring(0, delete.length() - 1);
       String[] tokens = relativeDir.split("/");
       if (tokens.length == 2) {
         // its a directory
