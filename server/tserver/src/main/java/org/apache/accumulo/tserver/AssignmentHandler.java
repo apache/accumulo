@@ -156,9 +156,7 @@ class AssignmentHandler implements Runnable {
     Tablet tablet = null;
     boolean successful = false;
 
-    try {
-      server.acquireRecoveryMemory(extent);
-
+    try (var recoveryMemory = server.acquireRecoveryMemory(tabletMetadata)) {
       TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
           server.getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);
@@ -205,8 +203,6 @@ class AssignmentHandler implements Runnable {
       TableId tableId = extent.tableId();
       ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
           extent.getUUID().toString(), server.getClientAddressString(), e));
-    } finally {
-      server.releaseRecoveryMemory(extent);
     }
 
     if (successful) {
