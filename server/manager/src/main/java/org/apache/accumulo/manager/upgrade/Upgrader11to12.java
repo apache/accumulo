@@ -80,6 +80,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -87,6 +88,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -226,7 +228,7 @@ public class Upgrader11to12 implements Upgrader {
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
+      ExternalCompactionColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME);
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";
@@ -821,8 +823,71 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  private static void upgradeWalEntry(Entry<Key,Value> entry, Value value, Mutation mutation,
+      Collection<Volume> volumes) throws IOException {
+    try {
+      LogEntry.fromMetaWalEntry(entry);
+      return;
+    } catch (IllegalArgumentException e) {
+      // Relative and non-qualified absolute paths need to be resolved against the volume where
+      // the WAL was created. A valid absolute URI was accepted above and is left untouched.
+    }
+
+    Text qualifier = entry.getKey().getColumnQualifier();
+    String qualifierString = qualifier.toString();
+    int separator = qualifierString.indexOf('/');
+    if (separator < 0) {
+      throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
+    }
+
+    String oldPath = qualifierString.substring(separator + 1);
+    Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
+    // Validate the expected WAL path structure before writing an upgraded reference.
+    LogEntry.fromPath(qualifiedPath.toString());
+
+    Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
+    mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
+    mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
+  }
+
+  private static Path qualifyWalPath(Path walPath, Collection<Volume> volumes) throws IOException {
+    String path = walPath.toUri().getPath();
+    String[] parts = path.split("/");
+    if (parts.length < 2) {
+      throw new IllegalArgumentException(
+          "WAL path must end with tablet server and UUID: " + walPath);
+    }
+
+    String tserver = parts[parts.length - 2];
+    String uuid = parts[parts.length - 1];
+    Set<Path> matchingPaths = new HashSet<>();
+
+    for (Volume volume : volumes) {
+      Path candidate;
+      if (walPath.isAbsolute()) {
+        // An absolute path without a scheme can be qualified by each configured volume's FS.
+        candidate = volume.getFileSystem().makeQualified(new Path(path));
+      } else {
+        // Relative references may contain an obsolete prefix. WALs are stored under
+        // <volume>/wal/<tserver>/<uuid>, so use the identifying suffix to construct the candidate.
+        candidate = volume
+            .prefixChild(Constants.WAL_DIR + Path.SEPARATOR + tserver + Path.SEPARATOR + uuid);
+      }
+
+      if (volume.containsPath(candidate) && volume.getFileSystem().exists(candidate)) {
+        matchingPaths.add(candidate);
+      }
+    }
+
+    if (matchingPaths.size() != 1) {
+      throw new IllegalArgumentException("Expected WAL " + walPath
+          + " to exist on exactly one configured volume, but found " + matchingPaths);
+    }
+    return matchingPaths.iterator().next();
+  }
+
   void processReferences(MutationWriter batchWriter, Iterable<Map.Entry<Key,Value>> scanner,
-      String tableName) {
+      String tableName, Collection<Volume> volumes) {
     try {
       Mutation update = null;
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -847,6 +912,13 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
+        } else if (family.equals(LogColumnFamily.NAME)) {
+          try {
+            upgradeWalEntry(entry, value, update, volumes);
+          } catch (IllegalArgumentException | IOException e) {
+            throw new IllegalStateException("Invalid WAL reference in " + tableName + " tablet "
+                + key.getRow() + ": " + key.getColumnQualifier(), e);
+          }
         } else if (family.equals(ScanFileColumnFamily.NAME)) {
           LOG.debug("Deleting scan reference from:{}. Ref: {}", tableName, key.getRow());
           update.at().family(ScanFileColumnFamily.NAME).qualifier(key.getColumnQualifier())
@@ -895,7 +967,8 @@ public class Upgrader11to12 implements Upgrader {
           .forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
       ArrayList<Mutation> mutations = new ArrayList<>();
 
-      processReferences(mutations::add, entries.entrySet(), "root_table_metadata");
+      processReferences(mutations::add, entries.entrySet(), "root_table_metadata",
+          context.getVolumeManager().getVolumes());
 
       Preconditions.checkState(mutations.size() <= 1);
 
@@ -949,7 +1022,8 @@ public class Upgrader11to12 implements Upgrader {
         new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
       UPGRADE_FAMILIES.forEach(scanner::fetchColumnFamily);
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
-      processReferences(batchWriter::addMutation, scanner, metaName);
+      processReferences(batchWriter::addMutation, scanner, metaName,
+          context.getVolumeManager().getVolumes());
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + metaName, ex);
     } catch (MutationsRejectedException mex) {
