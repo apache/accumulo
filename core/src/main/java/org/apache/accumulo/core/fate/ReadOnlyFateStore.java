@@ -62,6 +62,11 @@ public interface ReadOnlyFateStore<T> {
   ReadOnlyFateTxStore<T> read(FateId fateId);
 
   /**
+   * Reads the entire row data related to fate transaction without reserving it.
+   */
+  ReadOnlyFateTxStore<T> readRow(FateId fateId);
+
+  /**
    * Storage for an individual fate transaction
    */
   interface ReadOnlyFateTxStore<T> {

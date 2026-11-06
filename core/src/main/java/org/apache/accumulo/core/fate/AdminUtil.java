@@ -378,7 +378,7 @@ public class AdminUtil<T> {
       try (Stream<FateId> fateIds = store.list().map(FateIdStatus::getFateId)) {
         fateIds.forEach(fateId -> {
 
-          ReadOnlyFateTxStore<T> txStore = store.read(fateId);
+          ReadOnlyFateTxStore<T> txStore = store.readRow(fateId);
 
           // fate op will not be set if the tx is not seeded with work (it is NEW)
           Fate.FateOperation fateOp = txStore.getTransactionInfo(Fate.TxInfo.FATE_OP) == null ? null
@@ -410,7 +410,7 @@ public class AdminUtil<T> {
           long timeCreated = txStore.timeCreated();
 
           // the transaction was deleted while its info was being read, skip it
-          if (status == TStatus.UNKNOWN || timeCreated == 0) {
+          if (status == TStatus.UNKNOWN) {
             return;
           }
 
