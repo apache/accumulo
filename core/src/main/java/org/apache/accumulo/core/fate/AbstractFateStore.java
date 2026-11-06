@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate.TxInfo;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Retry;
@@ -244,6 +245,20 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   @Override
   public ReadOnlyFateTxStore<T> read(FateId fateId) {
     return newUnreservedFateTxStore(fateId);
+  }
+
+  public ReadOnlyFateTxStore<T> readRow(FateId fateId)
+  {
+    // use UserFateStore.getTransactions to scan 1 row
+    try (Stream<FateIdStatus> transactions = list()){
+      // use metaFateStore.getFateData to get the transaction's status, op and top
+      transactions.forEach(fateIdStatus -> {
+        MetaFateStore.FateData<T> fateData = getFateData(fateId, fateIdStatus);
+
+      });
+    }
+    // if row is missing or node returns UNKNOWN: ctime 0, and no op or top
+    return;
   }
 
   @Override
