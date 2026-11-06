@@ -242,8 +242,10 @@ public class GarbageCollectionAlgorithm {
             throw new RuntimeException("Bad file reference " + reference);
           }
 
-          if (new Path(reference).toUri().getScheme() == null
-              && tryMakeRelative(reference, 3) == null) {
+          Path refPath = new Path(reference);
+          boolean absolute = refPath.toUri().getScheme() != null;
+
+          if (!absolute && tryMakeRelative(reference, 3) == null) {
             throw new IllegalArgumentException("Invalid relative file reference " + reference);
           }
 
@@ -256,7 +258,7 @@ public class GarbageCollectionAlgorithm {
           // Old relative references do not identify a filesystem location. Conservatively protect
           // any managed-volume candidate with the corresponding legacy suffix. Absolute references
           // always use exact URI identity and cannot alias an external file by suffix.
-          if (new Path(reference).toUri().getScheme() == null) {
+          if (!absolute) {
             String relativePath = tryMakeRelative(reference, 3);
             if (relativePath != null) {
               String absoluteFilePrefix = relativePath + "|";
