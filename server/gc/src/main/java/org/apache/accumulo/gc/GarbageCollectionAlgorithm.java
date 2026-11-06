@@ -202,7 +202,12 @@ public class GarbageCollectionAlgorithm {
     Set<TableId> tableIdsSeen = new HashSet<>(tableIdsBefore.size());
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
-        tableIdsSeen.add(ref.getTableId());
+
+        try {
+          tableIdsSeen.add(ref.getTableId());
+        } catch (UnsupportedOperationException uoe) {
+          // ScanServerRefTabletFile's don't have table ids
+        }
 
         if (ref.isDirectory()) {
           ServerColumnFamily.validateDirCol(ref.getMetadataPath());

@@ -27,7 +27,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
@@ -59,8 +58,7 @@ public class ScanServerMetadataEntriesCleanIT_SimpleSuite extends SharedMiniClus
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f,
-            Set.of(TableId.of("2a"))))
+        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();

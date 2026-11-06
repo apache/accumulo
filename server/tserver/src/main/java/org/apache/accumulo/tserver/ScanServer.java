@@ -762,7 +762,6 @@ public class ScanServer extends AbstractServer
 
     try {
       Set<StoredTabletFile> filesToReserve = new HashSet<>();
-      Map<String,Set<TableId>> refTableIds = new HashMap<>();
       Set<String> pathsWithReservedRefs = new HashSet<>();
       for (StoredTabletFile reservedFile : reservedFiles.keySet()) {
         pathsWithReservedRefs.add(reservedFile.getNormalizedPathStr());
@@ -796,17 +795,15 @@ public class ScanServer extends AbstractServer
             newRefPaths.add(filePath);
             pathsWithReservedRefs.add(filePath);
           }
-          refTableIds.computeIfAbsent(filePath, ignored -> new HashSet<>()).addAll(idsForRef);
           LOG.trace("RFFS {} need to add scan ref for file {} and tables {}", myReservationId, file,
               idsForRef);
         }
       }
 
-      if (!refTableIds.isEmpty()) {
-        for (Map.Entry<String,Set<TableId>> entry : refTableIds.entrySet()) {
-          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, entry.getKey(),
-              entry.getValue()));
-        }
+      if (!newRefPaths.isEmpty()) {
+        newRefPaths.forEach(file -> {
+          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress, file));
+        });
         scanServerMetrics.recordWriteOutReservationTime(
             () -> getContext().getAmple().scanServerRefs().put(refs));
       }
@@ -1015,7 +1012,7 @@ public class ScanServer extends AbstractServer
             influxFiles.add(file);
             confirmed.add(file);
             refsToDelete.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
-                file.getNormalizedPathStr(), entry.getValue().tableIds));
+                file.getNormalizedPathStr()));
 
             // remove the entry from the map while holding the write lock ensuring no new
             // reservations are added to the map values while the metadata operation to delete is

@@ -19,11 +19,8 @@
 package org.apache.accumulo.core.metadata;
 
 import java.net.URI;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
@@ -33,29 +30,22 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
-    justification = "Constructor validation is required for proper initialization")
 public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
+  private final Value NULL_VALUE = new Value(new byte[0]);
   private final Text serverAddress;
   private final Text uuid;
-  private final Set<TableId> tableIds;
 
-  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file,
-      Collection<TableId> tableIds) {
+  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
     super(new Path(URI.create(file)));
     this.serverAddress = new Text(serverAddress);
     uuid = new Text(serverLockUUID.toString());
-    this.tableIds = copyAndValidateTableIds(tableIds);
   }
 
   public ScanServerRefTabletFile(Key k, Value value) {
     super(new Path(URI.create(k.getColumnQualifier().toString())));
     serverAddress = k.getColumnFamily();
     uuid = k.getRow();
-    tableIds = decodeTableIds(Objects.requireNonNull(value).toString());
   }
 
   public Mutation putMutation() {
@@ -79,42 +69,12 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
   }
 
   public Value getValue() {
-    TreeSet<String> sortedIds = new TreeSet<>();
-    for (TableId tableId : tableIds) {
-      sortedIds.add(tableId.canonical());
-    }
-    return new Value(String.join(",", sortedIds));
+    return NULL_VALUE;
   }
 
   public Set<TableId> getTableIds() {
-    return Set.copyOf(tableIds);
-  }
-
-  private static Set<TableId> decodeTableIds(String serialized) {
-    if (serialized.isEmpty()) {
-      throw new IllegalArgumentException("Serialized table IDs must not be empty");
-    }
-
-    Set<TableId> tableIds = new HashSet<>();
-    for (String tableId : serialized.split(",")) {
-      if (tableId.isEmpty()) {
-        throw new IllegalArgumentException("Serialized table IDs must not contain empty IDs");
-      }
-      tableIds.add(TableId.of(tableId));
-    }
-    return copyAndValidateTableIds(tableIds);
-  }
-
-  private static Set<TableId> copyAndValidateTableIds(Collection<TableId> tableIds) {
-    Objects.requireNonNull(tableIds, "Table IDs must be supplied");
-    Set<TableId> copy = new HashSet<>(tableIds);
-    if (copy.isEmpty()) {
-      throw new IllegalArgumentException("Table IDs must not be empty");
-    }
-    for (TableId tableId : copy) {
-      Objects.requireNonNull(tableId, "Table IDs must not contain null");
-    }
-    return copy;
+    throw new UnsupportedOperationException(
+        "getTableIds not supported for ScanServerRefTabletFile");
   }
 
   public Text getServerAddress() {
