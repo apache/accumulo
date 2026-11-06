@@ -21,6 +21,7 @@ package org.apache.accumulo.miniclusterImpl;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,6 +56,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class MiniAccumuloClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterControl.class);
+  private static final Duration STOP_TIMEOUT = Duration.ofSeconds(60);
 
   protected MiniAccumuloClusterImpl cluster;
 
@@ -291,7 +293,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       if (group == null) {
         return;
       }
-      cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, group, 60, TimeUnit.SECONDS);
+      cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, group, STOP_TIMEOUT);
       compactorProcesses.remove(compactorResourceGroup);
     }
   }
@@ -302,7 +304,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       if (group == null) {
         return;
       }
-      cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, group, 60, TimeUnit.SECONDS);
+      cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, group, STOP_TIMEOUT);
       scanServerProcesses.remove(sserverResourceGroup);
     }
   }
@@ -313,7 +315,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       if (group == null) {
         return;
       }
-      cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, group, 60, TimeUnit.SECONDS);
+      cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, group, STOP_TIMEOUT);
       tabletServerProcesses.remove(tserverResourceGroup);
     }
   }
@@ -324,8 +326,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       case MANAGER:
         synchronized (managerProcesses) {
           try {
-            cluster.stopProcessesWithTimeout(ServerType.MANAGER, managerProcesses, 60,
-                TimeUnit.SECONDS);
+            cluster.stopProcessesWithTimeout(ServerType.MANAGER, managerProcesses, STOP_TIMEOUT);
             try {
               System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
                   "file://" + cluster.getAccumuloPropertiesPath());
@@ -371,7 +372,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           try {
             final List<Process> procs = new ArrayList<>();
             tabletServerProcesses.values().forEach(procs::addAll);
-            cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, procs, 60, TimeUnit.SECONDS);
+            cluster.stopProcessesWithTimeout(ServerType.TABLET_SERVER, procs, STOP_TIMEOUT);
           } finally {
             tabletServerProcesses.clear();
           }
@@ -395,7 +396,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           try {
             final List<Process> procs = new ArrayList<>();
             scanServerProcesses.values().forEach(procs::addAll);
-            cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, procs, 60, TimeUnit.SECONDS);
+            cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, procs, STOP_TIMEOUT);
           } finally {
             scanServerProcesses.clear();
           }
@@ -406,7 +407,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           try {
             final List<Process> procs = new ArrayList<>();
             compactorProcesses.values().forEach(procs::addAll);
-            cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, procs, 60, TimeUnit.SECONDS);
+            cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, procs, STOP_TIMEOUT);
           } finally {
             compactorProcesses.clear();
           }

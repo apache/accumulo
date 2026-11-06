@@ -36,10 +36,10 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -152,7 +152,7 @@ public class ZooPropLoaderTest {
     assertNotNull(cache.get(propStoreKey));
 
     // read cached entry - load count should not change.
-    ticker.advance(1, TimeUnit.MINUTES);
+    ticker.advance(Duration.ofMinutes(1));
     assertNotNull(cache.get(propStoreKey));
   }
 
@@ -210,7 +210,7 @@ public class ZooPropLoaderTest {
     // load cache
     assertNotNull(cache.get(propStoreKey));
 
-    ticker.advance(70, TimeUnit.MINUTES);
+    ticker.advance(Duration.ofMinutes(70));
 
     assertNotNull(cache.get(propStoreKey));
 
@@ -257,13 +257,13 @@ public class ZooPropLoaderTest {
     // prime cache
     assertNotNull(cache.get(propStoreKey));
 
-    ticker.advance(5, TimeUnit.MINUTES);
+    ticker.advance(Duration.ofMinutes(5));
 
     // read cached value
     assertNotNull(cache.get(propStoreKey));
 
     // advance so expire called.
-    ticker.advance(120, TimeUnit.MINUTES);
+    ticker.advance(Duration.ofMinutes(120));
 
     assertNull(cache.get(propStoreKey));
   }
