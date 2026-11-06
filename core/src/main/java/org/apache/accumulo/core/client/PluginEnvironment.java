@@ -147,7 +147,7 @@ public interface PluginEnvironment {
     static Configuration from(Map<String,String> properties, boolean includeDefaults) {
       AccumuloConfiguration config = new ConfigurationCopy(properties);
       if (includeDefaults) {
-        config = new LayeredConfiguration(DefaultConfiguration.getInstance(), config);
+        config = new LayeredConfiguration<>(DefaultConfiguration.getInstance(), config);
       }
       return new ConfigurationImpl(config);
     }

@@ -19,26 +19,28 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NamespaceConfiguration extends ZooBasedConfiguration {
+public class NamespaceConfiguration
+    extends LayeredConfiguration<AccumuloConfiguration,ZooBasedConfiguration> {
 
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
 
   public NamespaceConfiguration(ServerContext context, NamespaceId namespaceId,
       AccumuloConfiguration parent) {
-    super(log, context, NamespacePropKey.of(namespaceId), parent);
+    super(parent, new ZooBasedConfiguration(log, context, NamespacePropKey.of(namespaceId)));
   }
 
   protected NamespaceId getNamespaceId() {
-    var id = ((NamespacePropKey) getPropStoreKey()).getId();
+    var id = ((NamespacePropKey) getOuter().getPropStoreKey()).getId();
     if (id == null) {
       throw new IllegalArgumentException(
-          "Invalid request for namespace id on " + getPropStoreKey());
+          "Invalid request for namespace id on " + getOuter().getPropStoreKey());
     }
     return id;
   }

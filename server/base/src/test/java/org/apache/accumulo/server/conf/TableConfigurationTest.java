@@ -126,7 +126,7 @@ public class TableConfigurationTest {
   @Test
   public void testGetters() {
     assertEquals(TID, tableConfig.getTableId());
-    assertEquals(nsConfig, tableConfig.getParent());
+    assertEquals(nsConfig, tableConfig.getInner());
   }
 
   @Test
@@ -142,7 +142,7 @@ public class TableConfigurationTest {
     expectLastCall().atLeastOnce();
     replay(propStore);
 
-    tableConfig.zkChangeEvent(propKey);
+    tableConfig.getOuter().zkChangeEvent(propKey);
 
     assertEquals("sekrit", tableConfig.get(p));
 
@@ -165,7 +165,7 @@ public class TableConfigurationTest {
     expectLastCall().atLeastOnce();
     replay(propStore);
 
-    nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
+    nsConfig.getOuter().zkChangeEvent(NamespacePropKey.of(NID));
 
     assertEquals("123", tableConfig.get(TABLE_FILE_MAX)); // from ns
     assertEquals("aPassword1", tableConfig.get(INSTANCE_SECRET)); // from sys
@@ -197,8 +197,8 @@ public class TableConfigurationTest {
 
     Map<String,String> props = new java.util.HashMap<>();
 
-    tableConfig.zkChangeEvent(TablePropKey.of(TID));
-    nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
+    tableConfig.getOuter().zkChangeEvent(TablePropKey.of(TID));
+    nsConfig.getOuter().zkChangeEvent(NamespacePropKey.of(NID));
 
     tableConfig.getProperties(props, all);
 
@@ -235,8 +235,8 @@ public class TableConfigurationTest {
 
     replay(propStore);
 
-    tableConfig.zkChangeEvent(TablePropKey.of(TID));
-    nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
+    tableConfig.getOuter().zkChangeEvent(TablePropKey.of(TID));
+    nsConfig.getOuter().zkChangeEvent(NamespacePropKey.of(NID));
 
     Map<String,String> props = new java.util.HashMap<>();
 
@@ -273,7 +273,7 @@ public class TableConfigurationTest {
 
     replay(propStore);
 
-    tableConfig.zkChangeEvent(propKey);
+    tableConfig.getOuter().zkChangeEvent(propKey);
     assertEquals("invalid", tableConfig.get(Property.INSTANCE_SECRET));
 
     tableConfig.invalidateCache();

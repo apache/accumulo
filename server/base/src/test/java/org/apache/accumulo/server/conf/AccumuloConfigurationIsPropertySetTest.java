@@ -299,17 +299,12 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
     readyMocks(context, propStore);
 
-    var setOnParent = Set.of(TABLE_BLOOM_SIZE);
-    var parent = new ConfigurationCopy(setToMap(setOnParent));
-
-    var shouldBeSet = new HashSet<Property>();
-    shouldBeSet.addAll(setOnSystem);
-    shouldBeSet.addAll(setOnParent);
+    var shouldBeSet = new HashSet<Property>(setOnSystem);
     assertFalse(shouldBeSet.isEmpty());
     var shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
     assertFalse(shouldNotBeSet.isEmpty());
 
-    var conf = new ZooBasedConfiguration(log, context, sysPropKey, parent);
+    var conf = new ZooBasedConfiguration(log, context, sysPropKey);
 
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, inGetProperties(conf));
 
