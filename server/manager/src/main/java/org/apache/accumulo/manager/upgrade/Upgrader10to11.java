@@ -156,7 +156,8 @@ public class Upgrader10to11 implements Upgrader {
 
   private Mutation createDelMutation(String path) {
     Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, MetadataSchema.DeletesSection.SkewedKeyValue.NAME);
+    // TODO is this only files?
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, MetadataSchema.DeletesSection.FILE_VALUE);
     return delFlag;
   }
 

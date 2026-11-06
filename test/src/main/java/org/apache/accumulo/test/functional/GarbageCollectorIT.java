@@ -60,7 +60,6 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -251,7 +250,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         // path is invalid but value is expected - only way the invalid entry will come through
         // processing and
         // show up to produce error in output to allow while loop to end
-        bw.addMutation(createDelMutation("/", "", "", SkewedKeyValue.STR_NAME));
+        bw.addMutation(createDelMutation("/", "", "", DeletesSection.STR_DIR_VALUE)); // TODO is
+                                                                                      // this
+                                                                                      // correct??
       }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
@@ -341,8 +342,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     // Create multiple candidate entries
     List<GcCandidate> candidates =
-        List.of(new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L),
-            new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
+        List.of(new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L, false),
+            new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L, false));
 
     List<StoredTabletFile> stfs = candidates.stream()
         .map(temp -> StoredTabletFile.of(new Path(temp.getPath()))).collect(Collectors.toList());

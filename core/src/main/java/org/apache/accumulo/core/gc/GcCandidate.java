@@ -24,10 +24,16 @@ import java.util.Objects;
 public class GcCandidate implements Comparable<GcCandidate> {
   private final long uid;
   private final String path;
+  private final boolean isDir;
 
-  public GcCandidate(String path, long uid) {
+  public GcCandidate(String path, long uid, boolean isDir) {
     this.path = path;
     this.uid = uid;
+    this.isDir = isDir;
+  }
+
+  public boolean isDir() {
+    return isDir;
   }
 
   public String getPath() {
@@ -49,7 +55,8 @@ public class GcCandidate implements Comparable<GcCandidate> {
       return true;
     }
     if (obj instanceof GcCandidate candidate) {
-      return this.uid == candidate.getUid() && this.path.equals(candidate.getPath());
+      return this.uid == candidate.getUid() && this.path.equals(candidate.getPath())
+          && isDir == candidate.isDir;
     }
     return false;
   }
@@ -58,14 +65,16 @@ public class GcCandidate implements Comparable<GcCandidate> {
   public int compareTo(GcCandidate candidate) {
     var cmp = this.path.compareTo(candidate.getPath());
     if (cmp == 0) {
-      return Long.compare(this.uid, candidate.getUid());
-    } else {
-      return cmp;
+      cmp = Long.compare(this.uid, candidate.getUid());
+      if (cmp == 0) {
+        cmp = Boolean.compare(isDir, candidate.isDir);
+      }
     }
+    return cmp;
   }
 
   @Override
   public String toString() {
-    return path + ", UUID: " + uid;
+    return path + ", UUID: " + uid + " isDir: " + isDir;
   }
 }

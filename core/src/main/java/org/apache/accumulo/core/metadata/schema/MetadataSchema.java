@@ -520,14 +520,20 @@ public class MetadataSchema {
       return row.substring(encoded_prefix_length);
     }
 
-    /**
-     * Value to indicate that the row has been skewed/encoded.
-     */
-    public static class SkewedKeyValue {
-      public static final String STR_NAME = "skewed";
-      public static final Value NAME = new Value(STR_NAME);
+    public static String STR_DIR_VALUE = "D";
+    public static Value DIR_VALUE = new Value(STR_DIR_VALUE);
+    public static String STR_FILE_VALUE = "F";
+    public static Value FILE_VALUE = new Value(STR_FILE_VALUE);
+
+    public static boolean isDir(Value v) {
+      return v.equals(DIR_VALUE);
     }
 
+    // TODO move to upgrade code
+    /*
+     * public static class SkewedKeyValue { public static final String STR_NAME = "skewed"; public
+     * static final Value NAME = new Value(STR_NAME); }
+     */
   }
 
   /**
