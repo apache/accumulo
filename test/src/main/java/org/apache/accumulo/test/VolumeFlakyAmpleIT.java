@@ -33,7 +33,7 @@ public class VolumeFlakyAmpleIT extends VolumeITBase {
     super.configure(cfg, hadoopCoreSite);
     cfg.setServerClass(ServerType.MANAGER, rg -> FlakyAmpleManager.class);
     cfg.setServerClass(ServerType.TABLET_SERVER, rg -> FlakyAmpleTserver.class);
-    // The test creates a lots of tablet that need to compact. Reserving and commiting compactions
+    // The test creates a lots of tablet that need to compact. Reserving and committing compactions
     // is slower because of FlakyAmple causing conditional mutations to fail. So start more
     // compactors to compensate for this.
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(3);
