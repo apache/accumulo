@@ -154,13 +154,18 @@ class TabletAssignmentTracker {
    * Blocks until the extent is no longer opening, either because it came online or failed to open.
    */
   synchronized void awaitNotOpening(KeyExtent extent) {
+    boolean interrupted = false;
     while (opening.contains(extent)) {
       try {
         log.info("Waiting for tablet {} to finish opening before unloading.", extent);
         wait();
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+        // re-interrupting here would make every later wait() throw without releasing the monitor
+        interrupted = true;
       }
+    }
+    if (interrupted) {
+      Thread.currentThread().interrupt();
     }
   }
 

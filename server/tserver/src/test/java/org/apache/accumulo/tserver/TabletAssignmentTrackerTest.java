@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -139,6 +140,33 @@ public class TabletAssignmentTrackerTest {
 
     tracker.removeOpening(ALL);
     waiter.join();
+    assertState(tracker, Set.of(), Set.of(), Set.of());
+  }
+
+  @Test
+  // on a livelock removeOpening blocks on the monitor, which only a separate thread can time out
+  @Timeout(value = 30, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  public void testAwaitNotOpeningInterrupted() throws Exception {
+    var tracker = new TabletAssignmentTracker();
+    assertTrue(tracker.addUnopenedIfNoOverlap(ALL).isEmpty());
+    assertTrue(tracker.unopenedToOpening(ALL));
+
+    var stillInterrupted = new AtomicBoolean();
+    Thread waiter = new Thread(() -> {
+      // interrupt before waiting so the first wait() throws while holding the monitor
+      Thread.currentThread().interrupt();
+      tracker.awaitNotOpening(ALL);
+      stillInterrupted.set(Thread.currentThread().isInterrupted());
+    });
+    waiter.setDaemon(true);
+    waiter.start();
+    while (waiter.getState() != Thread.State.WAITING) {
+      Thread.sleep(10);
+    }
+
+    tracker.removeOpening(ALL);
+    waiter.join();
+    assertTrue(stillInterrupted.get());
     assertState(tracker, Set.of(), Set.of(), Set.of());
   }
 
