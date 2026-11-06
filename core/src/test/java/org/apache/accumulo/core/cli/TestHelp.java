@@ -19,8 +19,9 @@
 package org.apache.accumulo.core.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +46,7 @@ public class TestHelp {
     HelpStub help = new HelpStub();
     try {
       help.parseArgs("program", args);
-      fail("Expected parseArgs to exit for an invalid argument");
+      fail("Expected parseArgs to exit for an invalid argument " + Arrays.toString(args));
     } catch (RuntimeException e) {
       assertEquals("1", e.getMessage());
     }
@@ -62,7 +63,6 @@ public class TestHelp {
     TestHelpOpt opts = new TestHelpOpt();
     try {
       opts.parseArgs("program", args);
-      assertTrue(opts.test);
       fail("Expected parseArgs to exit for --help");
     } catch (RuntimeException e) {
       assertEquals("0", e.getMessage());
