@@ -43,7 +43,6 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -109,7 +108,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
+        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();
@@ -212,7 +211,6 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
       final String tableName = getUniqueNames(1)[0];
 
       client.tableOperations().create(tableName);
-      TableId tid = TableId.of(ctx.tableOperations().tableIdMap().get(tableName));
 
       // Make multiple files
       final int fileCount = 3;
@@ -240,7 +238,8 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       Set<String> metadataScanFileRefs = new HashSet<>();
       metadataEntries.forEach(m -> {
-        metadataScanFileRefs.add(new ScanServerRefTabletFile(m.getKey()).getFilePath().toString());
+        metadataScanFileRefs
+            .add(new ScanServerRefTabletFile(m.getKey(), m.getValue()).getFilePath().toString());
       });
       assertEquals(fileCount, metadataScanFileRefs.size());
 
@@ -250,10 +249,9 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         refs = references.collect(Collectors.toList());
       }
       assertTrue(refs.size() > fileCount * 2);
-      List<Reference> tableRefs =
-          refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())
-              .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
-              .collect(Collectors.toList());
+      List<Reference> tableRefs = refs.stream().filter(r -> !r.isDirectory())
+          .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
+          .collect(Collectors.toList());
       log.info("Reference List:{}", tableRefs);
       // There should be 6 references here. 3 for the table file entries, and 3 for the scan
       // server references

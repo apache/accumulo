@@ -47,6 +47,13 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     this.isDirectory = isDirectory;
   }
 
+  protected ReferenceFile(ScanServerRefTabletFile file, boolean isScan, boolean isDirectory) {
+    this.tableId = null;
+    this.metadataPath = Objects.requireNonNull(file.getNormalizedPathStr());
+    this.isScan = isScan;
+    this.isDirectory = isDirectory;
+  }
+
   public static ReferenceFile forFile(TableId tableId, StoredTabletFile tabletFile) {
     return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false, false);
   }
@@ -55,8 +62,8 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     return new ReferenceFile(tableId, metadataPathPath.toString(), false, false);
   }
 
-  public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false);
+  public static ReferenceFile forScan(ScanServerRefTabletFile tabletFile) {
+    return new ReferenceFile(tabletFile, true, false);
   }
 
   public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {

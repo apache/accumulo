@@ -67,7 +67,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       return scanner.stream().onClose(scanner::close)
-          .map(e -> new ScanServerRefTabletFile(e.getKey()));
+          .map(e -> new ScanServerRefTabletFile(e.getKey(), e.getValue()));
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
     }
@@ -81,7 +81,8 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
       scanner.setRange(new Range(scanServerLockUUID.toString()));
 
       Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey())).collect(Collectors.toSet());
+          .map(e -> new ScanServerRefTabletFile(e.getKey(), e.getValue()))
+          .collect(Collectors.toSet());
 
       if (!refsToDelete.isEmpty()) {
         this.delete(refsToDelete);

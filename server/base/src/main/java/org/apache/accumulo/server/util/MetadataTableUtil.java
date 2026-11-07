@@ -76,6 +76,7 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,30 +111,33 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      // insert deletes before deleting data from metadata... this makes the code fault-tolerant
+      // Insert delete markers before deleting data from metadata. When table deletion is
+      // optimized, files outside the table directories in configured volumes still need explicit
+      // candidates because deleting those directories cannot remove them.
+      ms.fetchColumnFamily(DataFileColumnFamily.NAME);
       if (insertDeletes) {
-
-        ms.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+      }
 
-        for (Entry<Key,Value> cell : ms) {
-          Key key = cell.getKey();
+      for (Entry<Key,Value> cell : ms) {
+        Key key = cell.getKey();
 
-          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+        if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+          if (insertDeletes || !isInTableDirectories(context, tableId, stf.getPath())) {
             bw.addMutation(ample.createDeleteMutation(ReferenceFile.forFile(tableId, stf)));
-          }
-
-          if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
-            bw.addMutation(ample.createDeleteMutation(uri));
           }
         }
 
-        bw.flush();
-
-        ms.clearColumns();
+        if (insertDeletes && ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
+          bw.addMutation(ample.createDeleteMutation(uri));
+        }
       }
+
+      bw.flush();
+
+      ms.clearColumns();
 
       for (Entry<Key,Value> cell : ms) {
         Key key = cell.getKey();
@@ -159,6 +163,20 @@ public class MetadataTableUtil {
         bw.addMutation(m);
       }
     }
+  }
+
+  private static boolean isInTableDirectories(ServerContext context, TableId tableId, Path file) {
+    for (String tablesDir : context.getTablesDirs()) {
+      Path tableDir = new Path(tablesDir, tableId.canonical());
+      Path parent = file;
+      while (parent != null) {
+        if (parent.equals(tableDir)) {
+          return true;
+        }
+        parent = parent.getParent();
+      }
+    }
+    return false;
   }
 
   public static Pair<List<LogEntry>,SortedMap<StoredTabletFile,DataFileValue>>

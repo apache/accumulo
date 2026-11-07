@@ -72,11 +72,18 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
   }
 
   private String getTableURI(String rootTabletDir) {
-    Path ret = FileType.TABLE.getVolume(new Path(rootTabletDir));
-    if (ret == null) {
+    Path path = new Path(rootTabletDir);
+    try {
+      Path ret = FileType.TABLE.getVolume(path);
+      if (ret != null) {
+        return ret.toString();
+      }
       return "RELATIVE";
+    } catch (IllegalArgumentException e) {
+      // External file references need not contain the Accumulo tables directory. Include their
+      // full URI so this command remains useful without inventing a volume root.
+      return "EXTERNAL: " + path;
     }
-    return ret.toString();
   }
 
   private String getLogURI(String logEntry) {
