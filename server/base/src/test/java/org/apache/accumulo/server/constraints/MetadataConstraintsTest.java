@@ -289,15 +289,28 @@ public class MetadataConstraintsTest {
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
-    // mutation that looks like a load
+    // a valid bulk load marker with a location update
+    m = new Mutation(new Text("0;foo"));
+    m.put(
+        BulkFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
+        new Value(fateId1.canonical()));
+    m.put(
+        DataFileColumnFamily.NAME, StoredTabletFile
+            .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
+        new DataFileValue(1, 1).encodeAsValue());
+    m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    // A location update must not bypass bulk file consistency checks.
     m = new Mutation(new Text("0;foo"));
     m.put(
         BulkFileColumnFamily.NAME, StoredTabletFile
             .of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile")).getMetadataText(),
         new Value(fateId1.canonical()));
     m.put(CurrentLocationColumnFamily.NAME, new Text("789"), new Value("127.0.0.1:9997"));
-    violations = mc.check(createEnv(), m);
-    assertTrue(violations.isEmpty());
+    assertViolation(mc, m, (short) 8);
 
     // deleting a load flag
     m = new Mutation(new Text("0;foo"));
