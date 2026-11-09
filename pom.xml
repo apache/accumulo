@@ -304,12 +304,12 @@ under the License.
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
         <groupId>com.google.guava</groupId>
         <artifactId>failureaccess</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>33.4.6-jre</version>
+        <version>33.8.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -680,6 +680,12 @@ under the License.
         <version>3.25.1</version>
       </dependency>
       <dependency>
+        <!-- converge transitive dependency version between guava and caffeine -->
+        <groupId>org.jspecify</groupId>
+        <artifactId>jspecify</artifactId>
+        <version>1.0.1</version>
+      </dependency>
+      <dependency>
         <groupId>org.latencyutils</groupId>
         <artifactId>LatencyUtils</artifactId>
         <version>2.0.3</version>
@@ -725,7 +731,7 @@ under the License.
         <!-- version specified to converge transitive dependency of hadoop and curator -->
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
-        <version>1.1.10.5</version>
+        <version>1.1.10.9</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>

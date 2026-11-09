@@ -20,9 +20,9 @@ package org.apache.accumulo.core.util.tables;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -49,7 +49,7 @@ public class TableZooHelper implements AutoCloseable {
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
   private final Cache<TableZooHelper,TableMap> instanceToMapCache =
-      CacheBuilder.newBuilder().expireAfterAccess(10, MINUTES).build();
+      CacheBuilder.newBuilder().expireAfterAccess(Duration.ofMinutes(10)).build();
 
   public TableZooHelper(ClientContext context) {
     this.context = Objects.requireNonNull(context);

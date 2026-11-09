@@ -19,9 +19,9 @@
 package org.apache.accumulo.tserver.compactions;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_SERVICE_COMPACTION_PLANNER_POOL;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -146,7 +146,8 @@ public class CompactionService {
       queuedForPlanning.put(kind, new ConcurrentHashMap<KeyExtent,Compactable>());
     }
 
-    maxScanFilesExceededErrorCache = CacheBuilder.newBuilder().expireAfterWrite(5, MINUTES).build();
+    maxScanFilesExceededErrorCache =
+        CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(5)).build();
 
     log.debug("Created new compaction service id:{} rate limit:{} planner:{} planner options:{}",
         myId, maxRate, plannerClass, plannerOptions);

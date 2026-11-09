@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,7 +70,7 @@ public class RecoveryManager {
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
     existenceCache =
-        CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+        CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMillis(timeToCacheExistsInMillis))
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor =
