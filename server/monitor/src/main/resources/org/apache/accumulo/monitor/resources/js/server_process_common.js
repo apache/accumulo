@@ -280,10 +280,11 @@ function createDataTable(table, storageKey) {
           dt.colReorder.reset();
           // reset sorting to the DataTables default (first column ascending)
           dt.order([
-              [0, 'asc']
+            [0, 'asc']
           ]).draw();
         }
-    }],
+      }
+    ],
     "layout": {
       "topStart": "pageLength",
       "topEnd": ["search", "buttons"],
