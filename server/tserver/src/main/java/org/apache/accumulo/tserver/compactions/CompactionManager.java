@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -228,7 +229,7 @@ public class CompactionManager {
     Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
 
     unknownCompactionServiceErrorCache =
-        CacheBuilder.newBuilder().expireAfterWrite(5, MINUTES).build();
+        CacheBuilder.newBuilder().expireAfterWrite(Duration.ofMinutes(5)).build();
 
     currentCfg.getPlanners().forEach((serviceName, plannerClassName) -> {
       try {

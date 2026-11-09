@@ -18,10 +18,9 @@
  */
 package org.apache.accumulo.core.iterators;
 
-import static java.util.concurrent.TimeUnit.HOURS;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -187,7 +186,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =
-      CacheBuilder.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
+      CacheBuilder.newBuilder().expireAfterWrite(Duration.ofHours(1)).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
