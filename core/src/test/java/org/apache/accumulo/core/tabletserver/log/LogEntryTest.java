@@ -71,6 +71,11 @@ public class LogEntryTest {
         new Key("1<", LogColumnFamily.STR_NAME, logEntry.getColumnQualifier().toString()), null));
     assertEquals(logEntry, roundTripped);
     assertEquals(logEntry.getPath(), roundTripped.getPath());
+    assertEquals(logEntry.getUniqueID(), roundTripped.getUniqueID());
+    assertEquals(logEntry.getTServer(), roundTripped.getTServer());
+    assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
+    assertEquals("viewfs:/a/accumulo/wal/" + validHost + "/" + roundTripped.getUniqueID(),
+        logEntry.getPath().toString());
   }
 
   @Test

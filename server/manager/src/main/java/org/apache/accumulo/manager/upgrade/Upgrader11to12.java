@@ -829,25 +829,28 @@ public class Upgrader11to12 implements Upgrader {
       LogEntry.fromMetaWalEntry(entry);
       return;
     } catch (IllegalArgumentException e) {
-      // Relative and non-qualified absolute paths need to be resolved against the volume where
-      // the WAL was created. A valid absolute URI was accepted above and is left untouched.
+      if (e.getMessage().startsWith("Invalid path format. The path must be an absolute URI: ")) {
+        // The wal entry passed all of the other checks, except that it's not an absolute
+        // URI.
+        Text qualifier = entry.getKey().getColumnQualifier();
+        String qualifierString = qualifier.toString();
+        int separator = qualifierString.indexOf('/');
+        if (separator < 0) {
+          throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
+        }
+
+        String oldPath = qualifierString.substring(separator + 1);
+        Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
+        // Validate the expected WAL path structure before writing an upgraded reference.
+        LogEntry.fromPath(qualifiedPath.toString());
+
+        Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
+        mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
+        mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
+      } else {
+        throw e;
+      }
     }
-
-    Text qualifier = entry.getKey().getColumnQualifier();
-    String qualifierString = qualifier.toString();
-    int separator = qualifierString.indexOf('/');
-    if (separator < 0) {
-      throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
-    }
-
-    String oldPath = qualifierString.substring(separator + 1);
-    Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
-    // Validate the expected WAL path structure before writing an upgraded reference.
-    LogEntry.fromPath(qualifiedPath.toString());
-
-    Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
-    mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
-    mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
   }
 
   private static Path qualifyWalPath(Path walPath, Collection<Volume> volumes) throws IOException {
