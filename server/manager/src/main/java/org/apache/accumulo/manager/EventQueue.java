@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -126,9 +127,8 @@ public class EventQueue {
 
   private static final List<Event> ALL_LEVELS = List.of(new Event());
 
-  public synchronized List<Event> poll(long duration, TimeUnit timeUnit)
-      throws InterruptedException {
-    CountDownTimer timer = CountDownTimer.startNew(duration, timeUnit);
+  public synchronized List<Event> poll(Duration duration) throws InterruptedException {
+    CountDownTimer timer = CountDownTimer.startNew(duration);
     while (!allLevels && levels.isEmpty() && !timer.isExpired()) {
       wait(Math.max(1, timer.timeLeft(TimeUnit.MILLISECONDS)));
     }
@@ -149,6 +149,6 @@ public class EventQueue {
   }
 
   public List<Event> take() throws InterruptedException {
-    return poll(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+    return poll(Duration.ofNanos(Long.MAX_VALUE));
   }
 }

@@ -94,4 +94,11 @@ public class CountDownTimerTest {
     assertThrows(IllegalArgumentException.class,
         () -> CountDownTimer.startNew(Duration.ofMillis(-1)));
   }
+
+  @Test
+  public void testHugeDurationSaturates() {
+    var cdTimer = CountDownTimer.startNew(Duration.ofMillis(Long.MAX_VALUE));
+    assertFalse(cdTimer.isExpired());
+    assertTrue(cdTimer.timeLeft(TimeUnit.DAYS) > 0);
+  }
 }
