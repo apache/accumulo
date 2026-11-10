@@ -1205,4 +1205,62 @@ public class GarbageCollectionTest {
     assertTrue(msg.startsWith("Saw table IDs in ZK that were not in metadata table:  [3]"));
 
   }
+
+  /**
+   * Tests makeRelative with expectedLen 0 (any), 2 (dir) and 3 (file).
+   */
+  @Test
+  public void testMakeRelative() {
+    var gca = new GarbageCollectionAlgorithm();
+    String fullFile = "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf";
+    String fullDir = "hdfs://foo:6000/accumulo/tables/4/t0";
+
+    // full paths
+    assertRelative(gca, fullFile, 0, "4/t0/F000.rf");
+    assertRelative(gca, fullFile, 3, "4/t0/F000.rf");
+    assertRelative(gca, "hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf", 0, "4/t0/F001.rf");
+    assertRelative(gca, fullDir, 0, "4/t0");
+    assertRelative(gca, fullDir, 2, "4/t0");
+    assertRelative(gca, fullDir + "/", 0, "4/t0");
+    assertRelative(gca, fullDir + "//", 2, "4/t0");
+
+    // relative paths
+    assertRelative(gca, "4/t0/F000.rf", 0, "4/t0/F000.rf");
+    assertRelative(gca, "4/t0/F000.rf", 3, "4/t0/F000.rf");
+    assertRelative(gca, "../4/t0/F000.rf", 0, "4/t0/F000.rf");
+    assertRelative(gca, "/4/t0/F000.rf", 0, "4/t0/F000.rf");
+    assertRelative(gca, "4//t0///F000.rf/", 0, "4/t0/F000.rf");
+    assertRelative(gca, "4/t0", 0, "4/t0");
+    assertRelative(gca, "4/t0", 2, "4/t0");
+    assertRelative(gca, "4/b-0", 2, "4/b-0");
+    assertRelative(gca, "4/B-0", 2, "4/B-0");
+    assertRelative(gca, "//4//t0//", 0, "4/t0");
+    assertRelative(gca, "../4/t0", 2, "4/t0");
+
+    // wrong expectedLen
+    assertInvalid(gca, fullFile, 2);
+    assertInvalid(gca, fullDir, 3);
+    assertInvalid(gca, "4/t0/F000.rf", 2);
+    assertInvalid(gca, "4/t0", 3);
+
+    // malformed paths
+    assertInvalid(gca, "", 0);
+    assertInvalid(gca, "/", 0);
+    assertInvalid(gca, "4", 0);
+    assertInvalid(gca, "a/b/c/d", 0);
+    assertInvalid(gca, "../../4/t0/F000.rf", 0);
+    assertInvalid(gca, "hdfs://foo:6000/accumulo/nottables/4/t0/F000.rf", 0);
+    assertInvalid(gca, "hdfs://foo:6000/tables", 0);
+    assertInvalid(gca, "4:x/t0", 0);
+    assertInvalid(gca, "a:/t0/F000.rf", 0);
+  }
+
+  private static void assertRelative(GarbageCollectionAlgorithm gca, String path, int len,
+      String expected) {
+    assertEquals(expected, gca.makeRelative(path, len), path);
+  }
+
+  private static void assertInvalid(GarbageCollectionAlgorithm gca, String path, int len) {
+    assertThrows(IllegalArgumentException.class, () -> gca.makeRelative(path, len), path);
+  }
 }
