@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -68,8 +69,8 @@ public class RecoveryManager {
     this.manager = manager;
     existenceCache = this.manager.getContext().getCaches()
         .createNewBuilder(CacheName.RECOVERY_MANAGER_PATH_CACHE, true)
-        .expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-        .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
+        .expireAfterWrite(Duration.ofMillis(timeToCacheExistsInMillis)).maximumWeight(10_000_000)
+        .weigher((path, exist) -> path.toString().length()).build();
 
     executor =
         ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "Walog sort starter");

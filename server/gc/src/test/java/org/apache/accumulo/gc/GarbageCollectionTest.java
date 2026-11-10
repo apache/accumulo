@@ -473,14 +473,14 @@ public class GarbageCollectionTest {
   public void testBlip() throws Exception {
     TestGCE gce = new TestGCE();
 
-    gce.addCandidate("/4/b-0");
-    gce.addCandidate("/4/b-0/F002.rf");
-    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf");
+    gce.addCandidate("/4/B-0");
+    gce.addCandidate("/4/B-0/F002.rf");
+    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/B-0/F001.rf");
     gce.addCandidate("/5/b-0");
     gce.addCandidate("/5/b-0/F002.rf");
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-0/F001.rf");
 
-    gce.blips.add("/4/b-0");
+    gce.blips.add("/4/B-0");
     gce.blips.add("hdfs://foo.com:6000/accumulo/tables/5/b-0");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
@@ -490,13 +490,13 @@ public class GarbageCollectionTest {
     assertFileDeleted(gce);
 
     // Remove the first blip
-    gce.blips.remove("/4/b-0");
+    gce.blips.remove("/4/B-0");
 
     // And we should lose all files in that blip and the blip directory itself -- relative and
     // absolute
     gca.collect(gce);
-    assertFileDeleted(gce, new GcCandidate("/4/b-0", 0L), new GcCandidate("/4/b-0/F002.rf", 1L),
-        new GcCandidate("hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf", 2L));
+    assertFileDeleted(gce, new GcCandidate("/4/B-0", 0L), new GcCandidate("/4/B-0/F002.rf", 1L),
+        new GcCandidate("hdfs://foo.com:6000/accumulo/tables/4/B-0/F001.rf", 2L));
 
     gce.blips.remove("hdfs://foo.com:6000/accumulo/tables/5/b-0");
 

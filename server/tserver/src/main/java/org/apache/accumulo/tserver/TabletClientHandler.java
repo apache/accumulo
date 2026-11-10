@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1031,44 +1030,14 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     final KeyExtent extent = KeyExtent.fromThrift(textent);
 
-    synchronized (server.unopenedTablets) {
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
-
-          // Checking if the current tablet is in any of the sets
-          // below is not a strong enough check to catch all overlapping tablets
-          // when splits and fix splits are occurring
-          Set<KeyExtent> unopenedOverlapping =
-              KeyExtent.findOverlapping(extent, server.unopenedTablets);
-          Set<KeyExtent> openingOverlapping =
-              KeyExtent.findOverlapping(extent, server.openingTablets);
-          Set<KeyExtent> onlineOverlapping =
-              KeyExtent.findOverlapping(extent, server.getOnlineTablets());
-
-          Set<KeyExtent> all = new HashSet<>(
-              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
-              1.0f);
-          all.addAll(unopenedOverlapping);
-          all.addAll(openingOverlapping);
-          all.addAll(onlineOverlapping);
-
-          if (!all.isEmpty()) {
-
-            // ignore self, for error logging
-            all.remove(extent);
-
-            if (!all.isEmpty()) {
-              log.error(
-                  "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
-                      + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
-                  extent, unopenedOverlapping, openingOverlapping, onlineOverlapping);
-            }
-            return;
-          }
-
-          server.unopenedTablets.add(extent);
-        }
-      }
+    TabletAssignmentTracker.Overlapping overlapping =
+        server.assignmentTracker.addUnopenedIfNoOverlap(extent);
+    if (!overlapping.isEmpty()) {
+      log.error(
+          "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
+              + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
+          extent, overlapping.unopened, overlapping.opening, overlapping.online);
+      return;
     }
 
     TabletLogger.loading(extent, server.getTabletSession());
