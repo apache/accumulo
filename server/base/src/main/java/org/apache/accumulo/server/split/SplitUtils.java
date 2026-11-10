@@ -201,9 +201,13 @@ public class SplitUtils {
       return new TreeSet<>();
     }
 
-    if (tabletMetadata.getFiles().size() >= maxFilesToOpen) {
-      log.warn("Tablet {} has {} files which exceeds the max to open for split, so can not split.",
-          tabletMetadata.getExtent(), tabletMetadata.getFiles().size());
+    int fileCount = tabletMetadata.getFiles().size();
+    if (fileCount >= maxFilesToOpen) {
+      log.warn(
+          "Tablet {} has {} files, which reaches the configured maximum of {} ({}) for split"
+              + " examination, so it can not be split. Increase {} to allow it to be examined.",
+          tabletMetadata.getExtent(), fileCount, maxFilesToOpen, Property.SPLIT_MAXOPEN.getKey(),
+          Property.SPLIT_MAXOPEN.getKey());
       return new TreeSet<>();
     }
 
