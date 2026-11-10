@@ -42,6 +42,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,18 +56,8 @@ public class GarbageCollectionAlgorithm {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
   /**
-   * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
-   *
-   * <pre>
-   *      1- For files: table-id/tablet-directory/filename.rf
-   *      2- For directories: table-id/tablet-directory
-   * </pre>
-   *
-   * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
-   * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
-   * the original path. This method will also remove prefixed relative paths like ../4/t0/F000.rf
-   * and return 4/t0/F000.rf. It also strips out empty tokens from paths like
-   * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
+   * Normalizes a candidate, directory, or blip path to a table-relative GC key. File references use
+   * {@link #makeRelativeFileReference(String)} because they must be absolute URIs.
    */
   private String makeRelative(String path, int expectedLen) {
     String relPath = path;
@@ -119,6 +110,34 @@ public class GarbageCollectionAlgorithm {
     return relPath;
   }
 
+  /**
+   * Extracts the table-relative GC key from an absolute file reference URI, such as
+   * hdfs://foo:6000/accumulo/tables/4/t0/F000.rf -> 4/t0/F000.rf.
+   */
+  private String makeRelativeFileReference(String path) {
+    Path referencePath = new Path(path);
+    if (!referencePath.isAbsolute() || referencePath.toUri().getScheme() == null) {
+      throw new IllegalArgumentException("File reference must be an absolute URI: " + path);
+    }
+
+    String[] tokens = path.split("/");
+    String[] suffix = new String[4];
+    int suffixLen = 0;
+    for (int i = tokens.length - 1; i >= 0 && suffixLen < suffix.length; i--) {
+      if (!tokens[i].isEmpty()) {
+        suffix[suffixLen++] = tokens[i];
+      }
+    }
+
+    if (suffixLen != suffix.length || !Constants.TABLE_DIR.equals(suffix[3])) {
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+    }
+
+    String relativePath = suffix[2] + "/" + suffix[1] + "/" + suffix[0];
+    log.trace("{} -> {}", path, relativePath);
+    return relativePath;
+  }
+
   private SortedMap<String,GcCandidate> makeRelative(Collection<GcCandidate> candidates) {
     SortedMap<String,GcCandidate> ret = new TreeMap<>();
 
@@ -161,15 +180,7 @@ public class GarbageCollectionAlgorithm {
           }
         } else {
           String reference = ref.getMetadataPath();
-          if (reference.startsWith("/")) {
-            log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
-                ref.getTableId());
-            reference = "/" + ref.getTableId() + ref.getMetadataPath();
-          } else if (!reference.contains(":") && !reference.startsWith("../")) {
-            throw new RuntimeException("Bad file reference " + reference);
-          }
-
-          String relativePath = makeRelative(reference, 3);
+          String relativePath = makeRelativeFileReference(reference);
 
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use

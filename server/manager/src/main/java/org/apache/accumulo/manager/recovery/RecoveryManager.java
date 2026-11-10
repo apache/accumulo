@@ -191,8 +191,8 @@ public class RecoveryManager {
     }
 
     String sortId = walog.getUniqueID().toString();
-    String filename = walog.getPath();
-    String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
+    String filename = walog.getPath().toString();
+    String dest = RecoveryPath.getRecoveryPath(walog.getPath()).toString();
 
     boolean sortQueued;
     synchronized (this) {
