@@ -34,8 +34,10 @@ public class DefaultConfiguration extends AccumuloConfiguration {
 
   private static final Supplier<DefaultConfiguration> instance = memoize(DefaultConfiguration::new);
 
-  private final Map<String,String> resolvedProps =
-      Arrays.stream(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+  private final Map<String,
+      String> resolvedProps = Arrays.stream(Property.values())
+          .filter(
+              p -> p.getType() != PropertyType.PREFIX && p.getType() != PropertyType.CLOSED_PREFIX)
           .collect(Collectors.toMap(Property::getKey, Property::getDefaultValue));
 
   private DefaultConfiguration() {}

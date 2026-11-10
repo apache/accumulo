@@ -37,7 +37,7 @@ public class ConfigurationDocGen {
 
     beginTable("Property");
     for (Property prop : sortedProps.values()) {
-      if (prop.getType() == PropertyType.PREFIX) {
+      if (prop.getType() == PropertyType.PREFIX || prop.getType() == PropertyType.CLOSED_PREFIX) {
         prefixSection(prop);
       } else {
         property(prop);
@@ -145,7 +145,7 @@ public class ConfigurationDocGen {
 
   void propertyTypeDescriptions() {
     for (PropertyType type : PropertyType.values()) {
-      if (type == PropertyType.PREFIX) {
+      if (type == PropertyType.PREFIX || type == PropertyType.CLOSED_PREFIX) {
         continue;
       }
       doc.println(

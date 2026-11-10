@@ -50,7 +50,8 @@ public class PropertyTest {
   public void testProperties() {
     HashSet<String> validPrefixes = new HashSet<>();
     for (Property prop : Property.values()) {
-      if (prop.getType().equals(PropertyType.PREFIX)) {
+      if (prop.getType().equals(PropertyType.PREFIX)
+          || prop.getType().equals(PropertyType.CLOSED_PREFIX)) {
         validPrefixes.add(prop.getKey());
       }
     }
@@ -58,7 +59,7 @@ public class PropertyTest {
     HashSet<String> propertyNames = new HashSet<>();
     for (Property prop : Property.values()) {
       // make sure properties default values match their type
-      if (prop.getType() == PropertyType.PREFIX) {
+      if (prop.getType() == PropertyType.PREFIX || prop.getType() == PropertyType.CLOSED_PREFIX) {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
@@ -174,6 +175,7 @@ public class PropertyTest {
         case URI:
         case PATH:
         case PREFIX:
+        case CLOSED_PREFIX:
         case STRING:
           // Skipping these values as they have default type of null
           LOG.debug("Skipping property {} due to property type: \"{}\"", property.getKey(),
@@ -263,7 +265,8 @@ public class PropertyTest {
   @Test
   public void validatePropertyKeys() {
     for (Property prop : Property.values()) {
-      if (prop.getType().equals(PropertyType.PREFIX)) {
+      if (prop.getType().equals(PropertyType.PREFIX)
+          || prop.getType().equals(PropertyType.CLOSED_PREFIX)) {
         assertTrue(prop.getKey().endsWith("."));
         assertNull(prop.getDefaultValue());
       }
@@ -294,9 +297,11 @@ public class PropertyTest {
       assertTrue(Property.isValidPropertyKey(prop.getKey()));
       if (prop.getType().equals(PropertyType.PREFIX)) {
         assertTrue(Property.isValidPropertyKey(prop.getKey() + "foo9"));
+      } else if (prop.getType().equals(PropertyType.CLOSED_PREFIX)) {
+        assertFalse(Property.isValidPropertyKey(prop.getKey() + "foo9"),
+            prop.getKey() + "foo9 should be invalid (closed prefix)");
       }
     }
-
     assertFalse(Property.isValidPropertyKey("abc.def"));
   }
 
@@ -311,13 +316,24 @@ public class PropertyTest {
         } else {
           assertFalse(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));
         }
-      } else {
-        assertFalse(Property.isValidTablePropertyKey(prop.getKey()));
+      } else if (prop.getType().equals(PropertyType.CLOSED_PREFIX)) {
+        // arbitrary suffixes under a closed prefix are NOT automatically valid
+        assertFalse(Property.isValidPropertyKey(prop.getKey() + "foo9"),
+            prop.getKey() + "foo9 should be invalid (closed prefix)");
       }
-
     }
-
     assertFalse(Property.isValidTablePropertyKey("abc.def"));
+  }
+
+  @Test
+  public void testIsValidPropertyKey_nestedOpenPrefixUnderClosedPrefix() {
+    // tserver is now CLOSED_PREFIX, but tserver.scan.executors. (nested) is still an open PREFIX
+    assertFalse(Property.isValidPropertyKey("tserver.made.up.property"));
+    assertTrue(Property.isValidPropertyKey(
+        Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "myCustomExecutor.threads"));
+    // general.custom. remains an open prefix for arbitrary user properties
+    assertTrue(Property.isValidPropertyKey(
+        Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "anything.goes.here"));
   }
 
   @Test
