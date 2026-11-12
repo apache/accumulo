@@ -277,6 +277,21 @@ public class GarbageCollectionTest {
   }
 
   @Test
+  public void managedFilesAreMatchedByFullUriWithLegacyCandidates() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var otherVolume = gce.addCandidate("hdfs://nn1/accumulo/tables/4/t0/F000.rf");
+    var referencedCandidate = gce.addCandidate("hdfs://nn2/accumulo/tables/4/t0/F000.rf");
+    var relativeCandidate = gce.addCandidate("/4/t0/F000.rf");
+    gce.addFileReference("4", null, referencedCandidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, otherVolume);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, referencedCandidate, relativeCandidate);
+  }
+
+  @Test
   public void externalFileUrisAreNormalizedForMatching() throws Exception {
     TestGCE gce = new TestGCE();
 
@@ -560,6 +575,36 @@ public class GarbageCollectionTest {
 
     assertFileDeleted(gce, siblingCandidate);
     assertTrue(gce.candidates.contains(protectedCandidate));
+  }
+
+  @Test
+  public void absoluteBlipDoesNotProtectOtherVolumes() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("hdfs://nn1/accumulo/tables/4/B-0/F000.rf");
+    var otherVolume = gce.addCandidate("hdfs://nn2/accumulo/tables/4/B-0/F000.rf");
+    var relativeCandidate = gce.addCandidate("/4/B-0/F001.rf");
+    gce.blips.add("hdfs://nn1/accumulo/tables/4/B-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, otherVolume);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(Set.of(protectedCandidate, relativeCandidate), gce.candidates);
+  }
+
+  @Test
+  public void externalBlipProtectsOnlyDescendants() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("hdfs://nn1/external/B-0/F000.rf");
+    var siblingCandidate = gce.addCandidate("hdfs://nn1/external/B-01/F000.rf");
+    var otherVolume = gce.addCandidate("hdfs://nn2/external/B-0/F000.rf");
+    gce.blips.add("hdfs://nn1/external/B-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, siblingCandidate, otherVolume);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(Set.of(protectedCandidate), gce.candidates);
   }
 
   @Test
