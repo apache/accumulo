@@ -802,7 +802,7 @@ public class ScanServer extends AbstractServer
 
       if (!newRefPaths.isEmpty()) {
         newRefPaths.forEach(file -> {
-          refs.add(new ScanServerRefTabletFile(file, serverLockUUID, serverAddress));
+          refs.add(new ScanServerRefTabletFile(file, serverAddress, serverLockUUID));
         });
         scanServerMetrics.recordWriteOutReservationTime(
             () -> getContext().getAmple().scanServerRefs().put(refs));
@@ -1011,8 +1011,8 @@ public class ScanServer extends AbstractServer
             // then adding the file to influxFiles will make it wait until we finish
             influxFiles.add(file);
             confirmed.add(file);
-            refsToDelete.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(),
-                serverLockUUID, serverAddress));
+            refsToDelete.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
+                serverLockUUID));
 
             // remove the entry from the map while holding the write lock ensuring no new
             // reservations are added to the map values while the metadata operation to delete is
