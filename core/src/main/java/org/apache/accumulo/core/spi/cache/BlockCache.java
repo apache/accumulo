@@ -61,10 +61,8 @@ public interface BlockCache {
   }
 
   /**
-   * This method allows a cache to prevent concurrent loads of the same block. However a cache
+   * This method allows a cache to prevent concurrent loads of the same block. However, a cache
    * implementation is not required to prevent concurrent loads.
-   * {@link SynchronousLoadingBlockCache} is an abstract class that a cache can extent which does
-   * prevent concurrent loading of the same block.
    *
    *
    * @param blockName Block name to fetch

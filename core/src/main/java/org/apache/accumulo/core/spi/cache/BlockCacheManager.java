@@ -83,16 +83,16 @@ public abstract class BlockCacheManager {
      * running in a tserver.
      *
      * <pre>
-     * tserver.cache.config.lru.default.evictAfter=3600
-     * tserver.cache.config.lru.default.loadFactor=.75
-     * tserver.cache.config.lru.index.loadFactor=.55
-     * tserver.cache.config.lru.data.loadFactor=.65
+     * tserver.cache.config.myplugin.default.evictAfter=3600
+     * tserver.cache.config.myplugin.default.loadFactor=.75
+     * tserver.cache.config.myplugin.index.loadFactor=.55
+     * tserver.cache.config.myplugin.data.loadFactor=.65
      * </pre>
      *
      * <p>
-     * If this method is called with {@code prefix=lru} and {@code type=INDEX} then it would return
-     * a map with the following key values. The load factor setting for index overrides the default
-     * value.
+     * If this method is called with {@code prefix=myplugin} and {@code type=INDEX} then it would
+     * return a map with the following key values. The load factor setting for index overrides the
+     * default value.
      *
      * <pre>
      * evictAfter=3600
