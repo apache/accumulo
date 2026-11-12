@@ -36,13 +36,13 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
   private final Text serverAddress;
   private final Text uuid;
 
-  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
+  public ScanServerRefTabletFile(String file, UUID serverLockUUID, String serverAddress) {
     super(new Path(URI.create(file)));
     this.serverAddress = new Text(serverAddress);
     uuid = new Text(serverLockUUID.toString());
   }
 
-  public ScanServerRefTabletFile(Key k, Value value) {
+  public ScanServerRefTabletFile(Key k) {
     super(new Path(URI.create(k.getColumnQualifier().toString())));
     serverAddress = k.getColumnFamily();
     uuid = k.getRow();

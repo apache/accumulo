@@ -101,7 +101,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf", "F0000072.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
+        .map(f -> new ScanServerRefTabletFile(f, serverLockUUID, server.toString()))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();

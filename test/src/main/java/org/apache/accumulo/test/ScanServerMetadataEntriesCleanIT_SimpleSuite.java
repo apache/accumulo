@@ -58,7 +58,7 @@ public class ScanServerMetadataEntriesCleanIT_SimpleSuite extends SharedMiniClus
 
     Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
         .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(serverLockUUID, server.toString(), f))
+        .map(f -> new ScanServerRefTabletFile(f, serverLockUUID, server.toString()))
         .collect(Collectors.toSet());
 
     ServerContext ctx = getCluster().getServerContext();
