@@ -55,7 +55,8 @@ public class GarbageCollectionAlgorithm {
    * Normalizes a candidate, directory, or blip path to a table-relative GC key. File references use
    * {@link #makeRelativeFileReference(String)} because they must be absolute URIs.
    */
-  private String makeRelative(String path, int expectedLen) {
+  @VisibleForTesting
+  String makeRelative(String path, int expectedLen) {
     // remove prefixed old relative path
     int position = path.startsWith("../") ? 3 : 0;
     int componentCount = 0;
