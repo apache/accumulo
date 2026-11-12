@@ -38,6 +38,8 @@ github:
     projects: true
   dependabot_alerts:  true
   dependabot_updates: false
+  collaborators:
+    - Amemeda
 
   rulesets:
     - name: "Default Branch Protection"

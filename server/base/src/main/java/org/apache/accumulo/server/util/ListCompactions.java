@@ -157,8 +157,6 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
         description = "display details about the running compactions")
     boolean details = false;
 
-    @Parameter(names = {"-j", "--json"}, description = "format the output as json")
-    boolean jsonOutput = false;
   }
 
   public ListCompactions() {
@@ -208,7 +206,7 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
   public void execute(JCommander cl, RunningCommandOpts options) throws Exception {
     List<RunningCompactionSummary> compactions =
         getRunningCompactions(getServerContext(), options.details);
-    if (options.jsonOutput) {
+    if (options.json) {
       try {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(compactions));

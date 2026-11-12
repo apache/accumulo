@@ -468,7 +468,8 @@ public enum Property {
           + " the storage volumes if there are no other references to the files in the "
           + " metadata table. When deleting a lot of tables this optimization can be costly. "
           + " Setting this value to false will skip this optimization and the table directory "
-          + " cleanup will occur in the Garbage Collector instead.",
+          + " cleanup will occur in the Garbage Collector instead. The value should be false  "
+          + " when recursive deletes are not efficient on underlying volumes.",
       "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
@@ -599,8 +600,10 @@ public enum Property {
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT, """
       To find a tablets split points, all RFiles are opened and their indexes \
       are read. This setting determines how many RFiles can be opened at once. \
-      When there are more RFiles than this setting the tablet will be marked \
-      as un-splittable.
+      When a tablet has this many RFiles or more, it can not be examined for \
+      split points and will be marked as un-splittable until its RFile count \
+      drops below this setting (for example, after a compaction) or this \
+      setting is increased and the servers are restarted.
       """, "4.0.0"),
   // properties that are specific to scan server behavior
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -1040,7 +1043,7 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
-  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "180d", PropertyType.TIMEDURATION,
       """
           Key values written to a tablet are temporarily stored in a per tablet in memory map.  When \
           the age of the oldest key value in a tablets in memory map exceeds this configuration, then  \
@@ -1749,11 +1752,11 @@ public enum Property {
       TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
       TSERV_WAL_TOLERATED_CREATION_FAILURES, TSERV_WAL_TOLERATED_WAIT_INCREMENT,
       TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
-      TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
-      TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
-      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE,
-      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS,
-      TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
+      TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK, TSERV_LOG_BUSY_TABLETS_COUNT,
+      TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT, TSERV_SLOW_FILEPERMIT_MILLIS,
+      TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT,
+      TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
       TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
       // GC options

@@ -22,11 +22,11 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -124,6 +124,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -132,7 +134,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     TabletIngestClientService.Iface, TabletManagementClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
-  private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
+  private final Supplier<Long> scanResultWaitTime;
   private final TabletServer server;
   protected final ServerContext context;
   protected final AuditedSecurityOperation security;
@@ -144,8 +146,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     this.writeTracker = writeTracker;
     this.security = context.getSecurityOperation();
     this.server = server;
-    MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
-        .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
+    scanResultWaitTime =
+        Suppliers
+            .memoizeWithExpiration(
+                () -> server.getContext().getConfiguration()
+                    .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT),
+                Duration.ofSeconds(10));
     log.debug("{} created", TabletClientHandler.class.getName());
   }
 
@@ -1024,44 +1030,14 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     final KeyExtent extent = KeyExtent.fromThrift(textent);
 
-    synchronized (server.unopenedTablets) {
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
-
-          // Checking if the current tablet is in any of the sets
-          // below is not a strong enough check to catch all overlapping tablets
-          // when splits and fix splits are occurring
-          Set<KeyExtent> unopenedOverlapping =
-              KeyExtent.findOverlapping(extent, server.unopenedTablets);
-          Set<KeyExtent> openingOverlapping =
-              KeyExtent.findOverlapping(extent, server.openingTablets);
-          Set<KeyExtent> onlineOverlapping =
-              KeyExtent.findOverlapping(extent, server.getOnlineTablets());
-
-          Set<KeyExtent> all = new HashSet<>(
-              unopenedOverlapping.size() + openingOverlapping.size() + onlineOverlapping.size(),
-              1.0f);
-          all.addAll(unopenedOverlapping);
-          all.addAll(openingOverlapping);
-          all.addAll(onlineOverlapping);
-
-          if (!all.isEmpty()) {
-
-            // ignore self, for error logging
-            all.remove(extent);
-
-            if (!all.isEmpty()) {
-              log.error(
-                  "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
-                      + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
-                  extent, unopenedOverlapping, openingOverlapping, onlineOverlapping);
-            }
-            return;
-          }
-
-          server.unopenedTablets.add(extent);
-        }
-      }
+    TabletAssignmentTracker.Overlapping overlapping =
+        server.assignmentTracker.addUnopenedIfNoOverlap(extent);
+    if (!overlapping.isEmpty()) {
+      log.error(
+          "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
+              + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
+          extent, overlapping.unopened, overlapping.opening, overlapping.online);
+      return;
     }
 
     TabletLogger.loading(extent, server.getTabletSession());
@@ -1290,7 +1266,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     // Might be null if there is no active logger
     LogEntry le = server.logger.getLogEntry();
-    return le == null ? Collections.emptyList() : Collections.singletonList(le.getPath());
+    return le == null ? Collections.emptyList()
+        : Collections.singletonList(le.getPath().toString());
   }
 
   @Override
@@ -1303,8 +1280,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private TSummaries getSummaries(Future<SummaryCollection> future) throws TimeoutException {
     try {
-      SummaryCollection sc =
-          future.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
+      SummaryCollection sc = future.get(scanResultWaitTime.get(), TimeUnit.MILLISECONDS);
       return sc.toThrift();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
