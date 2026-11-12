@@ -71,7 +71,8 @@ public class GarbageCollectionAlgorithm {
    * @return the normalized table-relative path: {@code tableId/tabletDir/fileName} for a file or
    *         {@code tableId/tabletDir} for a directory
    */
-  private String makeRelative(String path, int expectedLen) {
+  @VisibleForTesting
+  String makeRelative(String path, int expectedLen) {
     // remove prefixed old relative path
     int position = path.startsWith("../") ? 3 : 0;
     int componentCount = 0;
