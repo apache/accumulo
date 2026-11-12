@@ -204,6 +204,7 @@ public class InMemoryWalProvider implements WalProvider {
       public void close() throws IOException {
         MemoryWriter.this.close();
       }
+
     };
     private long length;
     private boolean closed;
@@ -272,6 +273,16 @@ public class InMemoryWalProvider implements WalProvider {
         flushPending();
         closed = true;
       }
+    }
+
+    @Override
+    public boolean isHealthy() throws IOException {
+      return true;
+    }
+
+    @Override
+    public String getDiagnostics() throws IOException {
+      return "";
     }
   }
 }

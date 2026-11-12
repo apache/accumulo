@@ -155,20 +155,14 @@ public interface WalProvider {
     long getLength() throws IOException;
 
     /**
-     * Returns the current replication level when the provider can report one, or {@code -1} when
-     * that information is unavailable.
+     * Returns whether or not the writer is healthy
      */
-    default int getCurrentReplication() throws IOException {
-      return -1;
-    }
+    boolean isHealthy() throws IOException;
 
     /**
-     * Returns a diagnostic description of the current storage pipeline, or an empty array when the
-     * provider has no pipeline information.
+     * Returns a String containing implementation relevant information
      */
-    default String[] getPipeline() {
-      return new String[0];
-    }
+    String getDiagnostics() throws IOException;
 
     /**
      * Closes the WAL and releases all associated resources. Closing must be idempotent because

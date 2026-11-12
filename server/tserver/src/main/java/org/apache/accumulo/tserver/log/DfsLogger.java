@@ -124,7 +124,6 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   private boolean closed = false;
 
   private class LogSyncingTask implements Runnable {
-    private int expectedReplication = 0;
 
     private final AtomicLong syncCounter;
     private final AtomicLong flushCounter;
@@ -182,33 +181,16 @@ public final class DfsLogger implements Comparable<DfsLogger> {
               flushCounter.incrementAndGet();
             }
           }
-        } catch (IOException | RuntimeException ex) {
-          fail(work, ex, "synching");
-        }
-        if (timer.hasElapsed(slowFlushDuration)) {
-          log.info("Slow sync cost: {} ms, current pipeline: {}", timer.elapsed(MILLISECONDS),
-              Arrays.toString(getPipeLine()));
-          if (expectedReplication > 0) {
-            int current = expectedReplication;
-            try {
-              current = logFile.getCurrentReplication();
-            } catch (IOException e) {
-              fail(work, e, "getting replication level");
-            }
-            if (current < expectedReplication) {
-              fail(work,
-                  new IOException(
-                      "replication of " + current + " is less than " + expectedReplication),
+          if (timer.hasElapsed(slowFlushDuration)) {
+            log.info("Slow sync cost: {} ms, current information: {}", timer.elapsed(MILLISECONDS),
+                logFile.getDiagnostics());
+            if (!logFile.isHealthy()) {
+              fail(work, new IOException("WalProvider is reporting it's not healthly"),
                   "replication check");
             }
           }
-        }
-        if (expectedReplication == 0) {
-          try {
-            expectedReplication = logFile.getCurrentReplication();
-          } catch (IOException e) {
-            fail(work, e, "getting replication level");
-          }
+        } catch (IOException | RuntimeException ex) {
+          fail(work, ex, "syncing");
         }
 
         for (LogWork logWork : work) {
@@ -639,19 +621,6 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   @Override
   public int compareTo(DfsLogger o) {
     return logEntry.getPath().compareTo(o.logEntry.getPath());
-  }
-
-  /*
-   * The following method was shamelessly lifted from HBASE-11240 (sans reflection). Thanks HBase!
-   */
-
-  /**
-   * This method gets the pipeline for the current walog.
-   *
-   * @return diagnostic storage pipeline
-   */
-  String[] getPipeLine() {
-    return logFile == null ? new String[0] : logFile.getPipeline();
   }
 
 }

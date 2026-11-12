@@ -34,6 +34,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSOutputStream;
+import org.apache.hadoop.hdfs.DFSStripedOutputStream;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 
 /** Filesystem-backed WAL provider. */
@@ -152,23 +153,28 @@ public class DfsWalProvider implements WalProvider {
     }
 
     @Override
-    public int getCurrentReplication() throws IOException {
+    public boolean isHealthy() throws IOException {
       var wrapped = output.getWrappedStream();
-      return wrapped instanceof DFSOutputStream dfs ? dfs.getCurrentBlockReplication() : -1;
+      if (wrapped instanceof DFSOutputStream repl) {
+        return repl.getCurrentBlockReplication() > 1;
+      } else if (wrapped instanceof DFSStripedOutputStream) {
+        return true;
+      } else {
+        return false;
+      }
     }
 
     @Override
-    public String[] getPipeline() {
+    public String getDiagnostics() throws IOException {
+      StringBuilder buf = new StringBuilder();
       var wrapped = output.getWrappedStream();
       if (wrapped instanceof DFSOutputStream dfs) {
         DatanodeInfo[] pipeline = dfs.getPipeline();
-        String[] names = new String[pipeline.length];
         for (int i = 0; i < pipeline.length; i++) {
-          names[i] = pipeline[i].getName();
+          buf.append("name: ").append(pipeline[i].getName()).append("\n");
         }
-        return names;
       }
-      return new String[0];
+      return buf.toString();
     }
 
     @Override
