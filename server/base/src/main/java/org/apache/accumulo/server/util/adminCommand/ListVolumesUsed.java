@@ -86,8 +86,8 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
     }
   }
 
-  private String getLogURI(String logEntry) {
-    Path ret = FileType.WAL.getVolume(new Path(logEntry));
+  private String getLogURI(Path logEntry) {
+    Path ret = FileType.WAL.getVolume(logEntry);
     if (ret == null) {
       return "RELATIVE";
     }
@@ -133,7 +133,7 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
 
     WalStateManager wals = new WalStateManager(context);
     for (var wal : wals.getAllState()) {
-      volumes.add(getLogURI(wal.path().toString()));
+      volumes.add(getLogURI(wal.path()));
     }
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);

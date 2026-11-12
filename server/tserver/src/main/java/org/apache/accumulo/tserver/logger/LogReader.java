@@ -136,7 +136,8 @@ public class LogReader extends ServerKeywordExecutable<ReaderOpts> {
       Set<Integer> tabletIds = new HashSet<>();
 
       for (String file : opts.files) {
-        Path path = new Path(file);
+        Path tmpPath = new Path(file);
+        Path path = fs.getFileSystemByPath(tmpPath).makeQualified(tmpPath);
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 

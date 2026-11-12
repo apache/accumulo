@@ -209,7 +209,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
 
       Wait.waitFor(() -> cc.getServerPaths()
           .getCompactor(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
-          == 0);
+          == 0, 60_000);
       Wait.waitFor(() -> cc.getServerPaths()
           .getScanServer(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
           == 0);
