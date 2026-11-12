@@ -20,10 +20,10 @@ package org.apache.accumulo.manager.fate;
 
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 public class FateWorkerEnv implements FateEnv {
 
   private static final Logger log = LoggerFactory.getLogger(FateWorkerEnv.class);
+  private static final Duration EVENT_POLL_TIMEOUT = Duration.ofMillis(100);
 
   private final ServerContext ctx;
   private final ExecutorService refreshPool;
@@ -84,7 +85,7 @@ public class FateWorkerEnv implements FateEnv {
     public void run() {
       while (!stopped.get()) {
         try {
-          var events = queue.poll(100, TimeUnit.MILLISECONDS);
+          var events = queue.poll(EVENT_POLL_TIMEOUT);
           if (events.isEmpty()) {
             continue;
           }
