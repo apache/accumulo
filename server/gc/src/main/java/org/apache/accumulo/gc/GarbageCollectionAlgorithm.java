@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.gc;
 
-import static java.util.Arrays.stream;
-import static java.util.function.Predicate.not;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,7 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -42,6 +38,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,68 +52,159 @@ public class GarbageCollectionAlgorithm {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
   /**
-   * This method takes a file or directory path and returns a relative path in 1 of 2 forms:
-   *
-   * <pre>
-   *      1- For files: table-id/tablet-directory/filename.rf
-   *      2- For directories: table-id/tablet-directory
-   * </pre>
-   *
-   * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
-   * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
-   * the original path. This method will also remove prefixed relative paths like ../4/t0/F000.rf
-   * and return 4/t0/F000.rf. It also strips out empty tokens from paths like
-   * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
+   * Normalizes a candidate, directory, or blip path to a table-relative GC key. File references use
+   * {@link #makeRelativeFileReference(String)} because they must be absolute URIs.
    */
   private String makeRelative(String path, int expectedLen) {
-    String relPath = path;
-
     // remove prefixed old relative path
-    if (relPath.startsWith("../")) {
-      relPath = relPath.substring(3);
-    }
+    int position = path.startsWith("../") ? 3 : 0;
+    int componentCount = 0;
+    int start0 = 0;
+    int end0 = 0;
+    int start1 = 0;
+    int end1 = 0;
+    int start2 = 0;
+    int end2 = 0;
+    int start3 = 0;
+    int end3 = 0;
+    boolean hasColon = false;
 
-    // remove trailing slash
-    while (relPath.endsWith("/")) {
-      relPath = relPath.substring(0, relPath.length() - 1);
-    }
-
-    // remove beginning slash
-    while (relPath.startsWith("/")) {
-      relPath = relPath.substring(1);
-    }
-
-    // Handle paths like a//b///c by dropping the empty tokens.
-    String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
-
-    if (tokens.length > 3 && path.contains(":")) {
-      // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
-      if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
-          && (expectedLen == 0 || expectedLen == 3)) {
-        // return the last 3 tokens after tables, like 4/t0/F000.rf
-        relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
-            + tokens[tokens.length - 1];
-      } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
-          && (expectedLen == 0 || expectedLen == 2)) {
-        // return the last 2 tokens after tables, like 4/t0
-        relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
-      } else {
-        throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+    // Scan once, ignoring empty components and retaining only the last four ranges.
+    while (position < path.length()) {
+      while (position < path.length() && path.charAt(position) == '/') {
+        position++;
       }
-    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
-        && !path.contains(":")) {
+      if (position == path.length()) {
+        break;
+      }
+
+      int componentStart = position;
+      while (position < path.length() && path.charAt(position) != '/') {
+        if (path.charAt(position) == ':') {
+          hasColon = true;
+        }
+        position++;
+      }
+      int componentEnd = position;
+
+      start0 = start1;
+      end0 = end1;
+      start1 = start2;
+      end1 = end2;
+      start2 = start3;
+      end2 = end3;
+      start3 = componentStart;
+      end3 = componentEnd;
+      componentCount++;
+    }
+
+    int outputStart1;
+    int outputEnd1;
+    int outputStart2;
+    int outputEnd2;
+    int outputStart3 = 0;
+    int outputEnd3 = 0;
+    int outputComponents;
+
+    if (componentCount > 3 && hasColon) {
+      // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
+      int tablesLength = end0 - start0;
+      if (tablesLength == Constants.TABLE_DIR.length()
+          && path.regionMatches(start0, Constants.TABLE_DIR, 0, tablesLength)
+          && (expectedLen == 0 || expectedLen == 3)) {
+        // return the last 3 components after tables, like 4/t0/F000.rf
+        outputStart1 = start1;
+        outputEnd1 = end1;
+        outputStart2 = start2;
+        outputEnd2 = end2;
+        outputStart3 = start3;
+        outputEnd3 = end3;
+        outputComponents = 3;
+      } else {
+        int directoryTablesLength = end1 - start1;
+        if (directoryTablesLength == Constants.TABLE_DIR.length()
+            && path.regionMatches(start1, Constants.TABLE_DIR, 0, directoryTablesLength)
+            && (expectedLen == 0 || expectedLen == 2)) {
+          // return the last 2 components after tables, like 4/t0
+          outputStart1 = start2;
+          outputEnd1 = end2;
+          outputStart2 = start3;
+          outputEnd2 = end3;
+          outputComponents = 2;
+        } else {
+          throw new IllegalArgumentException(
+              "Failed to make path relative. Bad reference: " + path);
+        }
+      }
+    } else if (componentCount == 3 && (expectedLen == 0 || expectedLen == 3) && !hasColon) {
       // we already have a relative path so return it, like 4/t0/F000.rf
-      relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
-    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
-        && !path.contains(":")) {
-      // return the last 2 tokens of the relative path, like 4/t0
-      relPath = tokens[0] + "/" + tokens[1];
+      outputStart1 = start1;
+      outputEnd1 = end1;
+      outputStart2 = start2;
+      outputEnd2 = end2;
+      outputStart3 = start3;
+      outputEnd3 = end3;
+      outputComponents = 3;
+    } else if (componentCount == 2 && (expectedLen == 0 || expectedLen == 2) && !hasColon) {
+      // return the last 2 components of the relative path, like 4/t0
+      outputStart1 = start2;
+      outputEnd1 = end2;
+      outputStart2 = start3;
+      outputEnd2 = end3;
+      outputComponents = 2;
     } else {
       throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
     }
 
+    String relPath;
+    boolean contiguous = outputEnd1 + 1 == outputStart2 && path.charAt(outputEnd1) == '/';
+    if (outputComponents == 2) {
+      if (contiguous) {
+        relPath = path.substring(outputStart1, outputEnd2);
+      } else {
+        relPath = new StringBuilder(outputEnd1 - outputStart1 + outputEnd2 - outputStart2 + 1)
+            .append(path, outputStart1, outputEnd1).append('/')
+            .append(path, outputStart2, outputEnd2).toString();
+      }
+    } else if (contiguous && outputEnd2 + 1 == outputStart3 && path.charAt(outputEnd2) == '/') {
+      relPath = path.substring(outputStart1, outputEnd3);
+    } else {
+      relPath = new StringBuilder(
+          outputEnd1 - outputStart1 + outputEnd2 - outputStart2 + outputEnd3 - outputStart3 + 2)
+          .append(path, outputStart1, outputEnd1).append('/').append(path, outputStart2, outputEnd2)
+          .append('/').append(path, outputStart3, outputEnd3).toString();
+    }
+
     log.trace("{} -> {} expectedLen = {}", path, relPath, expectedLen);
     return relPath;
+  }
+
+  /**
+   * Extracts the table-relative GC key from an absolute file reference URI, such as
+   * hdfs://foo:6000/accumulo/tables/4/t0/F000.rf -> 4/t0/F000.rf.
+   */
+  private String makeRelativeFileReference(String path) {
+    Path referencePath = new Path(path);
+    if (!referencePath.isAbsolute() || referencePath.toUri().getScheme() == null) {
+      throw new IllegalArgumentException("File reference must be an absolute URI: " + path);
+    }
+
+    String[] tokens = path.split("/");
+    String[] suffix = new String[4];
+    int suffixLen = 0;
+    for (int i = tokens.length - 1; i >= 0 && suffixLen < suffix.length; i--) {
+      if (!tokens[i].isEmpty()) {
+        suffix[suffixLen++] = tokens[i];
+      }
+    }
+
+    if (suffixLen != suffix.length || !Constants.TABLE_DIR.equals(suffix[3])) {
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+    }
+
+    String relativePath = suffix[2] + "/" + suffix[1] + "/" + suffix[0];
+    log.trace("{} -> {}", path, relativePath);
+    return relativePath;
   }
 
   private SortedMap<String,GcCandidate> makeRelative(Collection<GcCandidate> candidates) {
@@ -161,15 +249,7 @@ public class GarbageCollectionAlgorithm {
           }
         } else {
           String reference = ref.getMetadataPath();
-          if (reference.startsWith("/")) {
-            log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
-                ref.getTableId());
-            reference = "/" + ref.getTableId() + ref.getMetadataPath();
-          } else if (!reference.contains(":") && !reference.startsWith("../")) {
-            throw new RuntimeException("Bad file reference " + reference);
-          }
-
-          String relativePath = makeRelative(reference, 3);
+          String relativePath = makeRelativeFileReference(reference);
 
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
@@ -202,8 +282,13 @@ public class GarbageCollectionAlgorithm {
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
       SortedMap<String,GcCandidate> candidateMap) throws TableNotFoundException {
     long blipCount = 0;
-    boolean checkForBulkProcessingFiles = candidateMap.keySet().stream().anyMatch(
-        relativePath -> relativePath.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX));
+    boolean checkForBulkProcessingFiles = false;
+    for (String relativePath : candidateMap.keySet()) {
+      if (containsBulkPrefix(relativePath)) {
+        checkForBulkProcessingFiles = true;
+        break;
+      }
+    }
 
     if (checkForBulkProcessingFiles) {
       try (Stream<String> blipStream = gce.getBlipPaths()) {
@@ -239,6 +324,16 @@ public class GarbageCollectionAlgorithm {
     }
 
     return blipCount;
+  }
+
+  private boolean containsBulkPrefix(String path) {
+    int prefixLength = Constants.BULK_PREFIX.length();
+    for (int i = 0; i <= path.length() - prefixLength; i++) {
+      if (path.regionMatches(true, i, Constants.BULK_PREFIX, 0, prefixLength)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -287,10 +382,11 @@ public class GarbageCollectionAlgorithm {
 
     // find the table ids that had dirs deleted
     for (String delete : candidateMap.keySet()) {
-      String[] tokens = delete.split("/");
-      if (tokens.length == 2) {
+      int firstSlash = delete.indexOf('/');
+      if (firstSlash > 0 && firstSlash < delete.length() - 1
+          && delete.indexOf('/', firstSlash + 1) == -1) {
         // its a directory
-        TableId tableId = TableId.of(delete.split("/")[0]);
+        TableId tableId = TableId.of(delete.substring(0, firstSlash));
         tableIdsWithDeletes.add(tableId);
       }
     }

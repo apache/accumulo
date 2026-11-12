@@ -26,8 +26,10 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -38,8 +40,14 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.spi.file.rfile.compression.Bzip2;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lz4;
+import org.apache.accumulo.core.spi.file.rfile.compression.Lzo;
+import org.apache.accumulo.core.spi.file.rfile.compression.Snappy;
+import org.apache.accumulo.core.spi.file.rfile.compression.ZStandard;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
@@ -277,6 +285,11 @@ public enum Property {
           + "org.apache.accumulo.server.rpc.ThriftServerType for more information. "
           + "Only useful for benchmarking thrift servers.",
       "1.7.0"),
+  GENERAL_RPC_SERVER_SELECTOR_THREADS("general.rpc.server.threaded.selector.threads", "2",
+      PropertyType.COUNT,
+      "The number of selector threads to use for the TThreadedSelectorServer. "
+          + " If the value ends with C, then it will be multiplied by the number of cores on the system.",
+      "2.1.7"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH,
       "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs.", "1.4.1"),
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING,
@@ -455,7 +468,8 @@ public enum Property {
           + " the storage volumes if there are no other references to the files in the "
           + " metadata table. When deleting a lot of tables this optimization can be costly. "
           + " Setting this value to false will skip this optimization and the table directory "
-          + " cleanup will occur in the Garbage Collector instead.",
+          + " cleanup will occur in the Garbage Collector instead. The value should be false  "
+          + " when recursive deletes are not efficient on underlying volumes.",
       "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
@@ -586,8 +600,10 @@ public enum Property {
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT, """
       To find a tablets split points, all RFiles are opened and their indexes \
       are read. This setting determines how many RFiles can be opened at once. \
-      When there are more RFiles than this setting the tablet will be marked \
-      as un-splittable.
+      When a tablet has this many RFiles or more, it can not be examined for \
+      split points and will be marked as un-splittable until its RFile count \
+      drops below this setting (for example, after a compaction) or this \
+      setting is increased and the servers are restarted.
       """, "4.0.0"),
   // properties that are specific to scan server behavior
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -1027,7 +1043,7 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
-  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "180d", PropertyType.TIMEDURATION,
       """
           Key values written to a tablet are temporarily stored in a per tablet in memory map.  When \
           the age of the oldest key value in a tablets in memory map exceeds this configuration, then  \
@@ -1736,11 +1752,11 @@ public enum Property {
       TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
       TSERV_WAL_TOLERATED_CREATION_FAILURES, TSERV_WAL_TOLERATED_WAIT_INCREMENT,
       TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
-      TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
-      TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
-      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE,
-      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS,
-      TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
+      TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK, TSERV_LOG_BUSY_TABLETS_COUNT,
+      TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT, TSERV_SLOW_FILEPERMIT_MILLIS,
+      TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT,
+      TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
       TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
       // GC options
@@ -1859,6 +1875,26 @@ public enum Property {
       Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
+  }
+
+  /**
+   * A set Map of identified System Properties to be used in ConfigurationDocGen.java
+   *
+   * @return A Map of each property's value and description as Strings
+   */
+  public static TreeMap<String,String> getSystemProperties() {
+    TreeMap<String,String> systemProps = new TreeMap<>(Map.of());
+    systemProps.put(TServerClient.DEBUG_HOST,
+        "Set to host:port for the client to connect to a specific server.");
+    systemProps.put(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "Path to accumulo.properties file.");
+    systemProps.put(Bzip2.CODEC_BZIP2, "BZip2 Codec Compression Algorithm.");
+    systemProps.put(Lz4.CODEC_LZ4, "LZ4 Codec Compression Algorithm.");
+    systemProps.put(Lzo.CODEC_LZO, "LZO Codec Compression Algorithm.");
+    systemProps.put(Snappy.CODEC_SNAPPY, "Snappy Codec Compression Algorithm.");
+    systemProps.put(ZStandard.CODEC_ZSTANDARD, "ZStandard Codec Compression Algorithm.");
+
+    return systemProps;
   }
 
   static {

@@ -184,8 +184,8 @@ public class ZooCacheTest {
   private void testGet_Retry(Exception e) throws Exception {
     Stat existsStat = new Stat();
     expect(zk.getData(ZPATH, null, existsStat)).andThrow(e);
-    if (!(e instanceof KeeperException.NoNodeException)) {
-      // Retry will not happen on NoNodeException or BadVersionException
+    if (!(e instanceof KeeperException.NoNodeException) && !(e instanceof InterruptedException)) {
+      // Retry will not happen on NoNodeException, BadVersionException, or InterruptedException
       expect(zk.getData(ZPATH, null, existsStat)).andReturn(DATA);
     }
     replay(zk);
@@ -193,6 +193,8 @@ public class ZooCacheTest {
     if (e instanceof KeeperException.NoNodeException
         || e instanceof KeeperException.BadVersionException) {
       assertNull(zc.get(ZPATH));
+    } else if (e instanceof InterruptedException) {
+      assertThrows(IllegalStateException.class, () -> zc.get(ZPATH));
     } else {
       assertArrayEquals(DATA, zc.get(ZPATH));
     }

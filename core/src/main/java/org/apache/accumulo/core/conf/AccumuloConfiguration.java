@@ -385,14 +385,19 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
 
   /**
-   * Gets a property of type {@link PropertyType#PATH}.
+   * Gets a property of type {@link PropertyType#PATH} or {@link PropertyType#ABSOLUTEPATH}.
    *
    * @param property property to get
    * @return property value
    * @throws IllegalArgumentException if the property is of the wrong type
    */
   public String getPath(Property property) {
-    checkType(property, PropertyType.PATH);
+    if (property.getType() != PropertyType.PATH
+        && property.getType() != PropertyType.ABSOLUTEPATH) {
+      throw new IllegalArgumentException("Configuration method intended for type "
+          + PropertyType.PATH + " or " + PropertyType.ABSOLUTEPATH + " called with a "
+          + property.getType() + " argument (" + property.getKey() + ")");
+    }
 
     String pathString = get(property);
     if (pathString == null) {
@@ -626,15 +631,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * this configuration.
    */
   public void invalidateCache() {}
-
-  /**
-   * get a parent configuration or null if it does not exist.
-   *
-   * @since 2.1.0
-   */
-  public AccumuloConfiguration getParent() {
-    return null;
-  }
 
   public Stream<Entry<String,String>> stream() {
     return StreamSupport.stream(this.spliterator(), false);

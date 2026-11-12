@@ -20,6 +20,8 @@ package org.apache.accumulo.core.spi.file.rfile.compression;
 
 public class Bzip2 implements CompressionAlgorithmConfiguration {
 
+  public static final String CODEC_BZIP2 = "io.compression.codec.bzip2.class";
+
   @Override
   public String getName() {
     return "bzip2";
@@ -32,7 +34,7 @@ public class Bzip2 implements CompressionAlgorithmConfiguration {
 
   @Override
   public String getCodecClassNameProperty() {
-    return "io.compression.codec.bzip2.class";
+    return CODEC_BZIP2;
   }
 
   @Override

@@ -56,7 +56,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -66,15 +65,15 @@ public class MiniAccumuloClusterTest extends WithTestNames {
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
-  @TempDir
-  private static Path tempDir;
+  private static Path testDir;
 
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
+    testDir = MiniTestDirs.createTestDir(MiniAccumuloClusterTest.class.getName());
     MiniAccumuloConfig config =
-        new MiniAccumuloConfig(tempDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
+        new MiniAccumuloConfig(testDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.GENERAL_SERVER_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
@@ -200,7 +199,7 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
   @Test
   public void testRandomPorts() throws Exception {
-    Path accumuloProps = tempDir.resolve("conf").resolve("accumulo.properties");
+    Path accumuloProps = testDir.resolve("conf").resolve("accumulo.properties");
     var config = new PropertiesConfiguration();
     try (var reader = Files.newBufferedReader(accumuloProps, UTF_8)) {
       config.read(reader);

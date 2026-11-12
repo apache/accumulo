@@ -579,8 +579,10 @@ function getComponentStatus(statusData, componentType) {
     return 'ERROR';
   }
 
-  var status = statusData.componentStatuses[componentType];
-  if (!status || !status.hasServers) {
+  const status = statusData.componentStatuses[componentType];
+
+  // scan servers are optional, so having none is not an error
+  if (!status || (!status.hasServers && componentType !== 'SCAN_SERVER')) {
     return 'ERROR';
   }
 

@@ -72,6 +72,12 @@ public class FateExecutor<T> {
   private static final Logger log = LoggerFactory.getLogger(FateExecutor.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
+  // How long the work finder waits for a worker to take a FateId before trying again.
+  private static final long TRANSFER_TIMEOUT_MS = 100;
+  // Idle workers sleep instead of blocking, so keep this at half the transfer timeout. Then even
+  // a single worker polls at least once while the work finder is waiting.
+  private static final long IDLE_POLL_MS = TRANSFER_TIMEOUT_MS / 2;
+
   private final T environment;
   private final Fate<T> fate;
   private final Thread workFinder;
@@ -344,7 +350,8 @@ public class FateExecutor<T> {
                   // threads were busy, the queue size was 100, and there are three runnable things
                   // in the store. Do not want to keep scanning the store adding those same 3
                   // runnable things until the queue is full.
-                  if (workQueue.tryTransfer(fateIdStatus.getFateId(), 100, MILLISECONDS)) {
+                  if (workQueue.tryTransfer(fateIdStatus.getFateId(), TRANSFER_TIMEOUT_MS,
+                      MILLISECONDS)) {
                     break;
                   }
                 } catch (InterruptedException e) {
@@ -398,7 +405,7 @@ public class FateExecutor<T> {
           FateId unreservedFateId = workQueue.poll();
 
           if (unreservedFateId == null) {
-            Thread.sleep(1);
+            Thread.sleep(IDLE_POLL_MS);
             continue;
           }
           var optionalopStore = fate.getStore().tryReserve(unreservedFateId);

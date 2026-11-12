@@ -156,7 +156,7 @@ under the License.
     <minimalJavaBuildVersion>21</minimalJavaBuildVersion>
     <modernizer.javaVersion>${javaVersion}</modernizer.javaVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2026-06-30T00:16:12Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-09-16T16:35:01Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -167,7 +167,7 @@ under the License.
     <!-- dependency and plugin versions managed with properties -->
     <version.accumulo-access>1.0.0-beta2</version.accumulo-access>
     <version.auto-service>1.1.1</version.auto-service>
-    <version.bouncycastle>1.84</version.bouncycastle>
+    <version.bouncycastle>1.86</version.bouncycastle>
     <version.curator>5.8.0</version.curator>
     <version.errorprone>2.41.0</version.errorprone>
     <version.flatbuffers>24.3.25</version.flatbuffers>
@@ -315,12 +315,12 @@ under the License.
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
         <groupId>com.google.guava</groupId>
         <artifactId>failureaccess</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>33.4.6-jre</version>
+        <version>33.8.0-jre</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -628,7 +628,7 @@ under the License.
       <dependency>
         <groupId>org.freemarker</groupId>
         <artifactId>freemarker</artifactId>
-        <version>2.3.34</version>
+        <version>2.3.35</version>
       </dependency>
       <dependency>
         <groupId>org.glassfish</groupId>
@@ -673,7 +673,7 @@ under the License.
         <version>3.25.1</version>
       </dependency>
       <dependency>
-        <!-- for dependency convergence between Micrometer and Caffeine -->
+        <!-- for dependency convergence between Micrometer, Guava, and Caffeine -->
         <groupId>org.jspecify</groupId>
         <artifactId>jspecify</artifactId>
         <version>1.0.1</version>
@@ -698,7 +698,7 @@ under the License.
         <!-- version specified to converge transitive dependency of hadoop and curator -->
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
-        <version>1.1.10.5</version>
+        <version>1.1.10.9</version>
       </dependency>
       <dependency>
         <groupId>org.yaml</groupId>

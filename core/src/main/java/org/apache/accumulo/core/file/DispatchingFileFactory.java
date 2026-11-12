@@ -49,11 +49,6 @@ class DispatchingFileFactory extends FileOperations {
   }
 
   @Override
-  protected long getFileSize(FileOptions options) throws IOException {
-    return findFileFactory(options).getFileSize(options);
-  }
-
-  @Override
   protected FileSKVWriter openWriter(FileOptions options) throws IOException {
     FileOperations fileOps = new RFileOperations();
     FileSKVWriter writer = fileOps.openWriter(options);

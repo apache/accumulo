@@ -49,7 +49,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -61,6 +60,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -621,23 +621,19 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(),
         config.getZooKeepers());
 
+    try {
+      // fail fast before starting servers - they'll fail to start if this node exists already
+      if (getServerContext().getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
+        throw new IllegalStateException("Cannot start, instance is prepared for upgrade: "
+            + Constants.ZPREPARE_FOR_UPGRADE + " exists");
+      }
+      SetGoalState.setGoalState(getServerContext(), ManagerGoalState.NORMAL);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Could not set manager goal state", e);
+    }
+
     control.start(ServerType.TABLET_SERVER);
     control.start(ServerType.SCAN_SERVER);
-
-    int ret = 0;
-    for (int i = 0; i < 5; i++) {
-      ret = exec(Main.class, SetGoalState.class.getName(), ManagerGoalState.NORMAL.toString())
-          .getProcess().waitFor();
-      if (ret == 0) {
-        break;
-      }
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-    if (ret != 0) {
-      throw new IllegalStateException("Could not set manager goal state, process returned " + ret
-          + ". Check the logs in " + config.getLogDir() + " for errors.");
-    }
-
     control.start(ServerType.MANAGER);
     control.start(ServerType.GARBAGE_COLLECTOR);
 
@@ -869,7 +865,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
-      Thread.sleep(500);
+      if (tsActualCount < tsExpectedCount) {
+        Thread.sleep(500);
+      }
     }
 
     int ssActualCount = 0;
@@ -878,7 +876,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
-      Thread.sleep(500);
+      if (ssActualCount < ssExpectedCount) {
+        Thread.sleep(500);
+      }
     }
 
     int ecActualCount = 0;
@@ -887,7 +887,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
-      Thread.sleep(500);
+      if (ecActualCount < ecExpectedCount) {
+        Thread.sleep(500);
+      }
     }
 
     while (context.getServerPaths().getManager(true) == null) {
@@ -1139,39 +1141,27 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return executor;
   }
 
+  /**
+   * Stops the processes in parallel. The given timeout is the total wait for all given processes.
+   */
   public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
-      final long timeout, final TimeUnit unit) {
+      final Duration timeout) {
 
-    final List<Future<Integer>> futures = new ArrayList<>();
-    for (Process proc : procs) {
-      futures.add(executor.submit(() -> {
-        proc.destroy();
-        proc.waitFor(timeout, unit);
-        return proc.exitValue();
-      }));
-    }
+    // signal all first so they stop in parallel
+    procs.forEach(Process::destroy);
 
-    while (!futures.isEmpty()) {
-      futures.removeIf(f -> {
-        if (f.isDone()) {
-          try {
-            f.get();
-          } catch (ExecutionException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-              Thread.currentThread().interrupt();
-            }
-            log.warn("{} did not fully stop after {} seconds", type, unit.toSeconds(timeout), e);
-          }
-          return true;
+    final CountDownTimer timer = CountDownTimer.startNew(timeout);
+    try {
+      for (Process proc : procs) {
+        boolean stopped = proc.waitFor(timer.timeLeft(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+        if (!stopped) {
+          log.warn("{} (pid {}) did not fully stop after {} seconds", type, proc.pid(),
+              timeout.toSeconds());
         }
-        return false;
-      });
-      try {
-        Thread.sleep(250);
-      } catch (InterruptedException e) {
-        log.warn("Interrupted while trying to stop " + type + " processes.");
-        Thread.currentThread().interrupt();
       }
+    } catch (InterruptedException e) {
+      log.warn("Interrupted while trying to stop {} processes.", type);
+      Thread.currentThread().interrupt();
     }
   }
 

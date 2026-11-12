@@ -45,7 +45,7 @@
 
           <div class="row row-cols-1 row-cols-lg-2 row-cols-xxl-3 g-3 mb-4">
             <div class="col">
-              <div class="card h-100">
+              <div class="card">
                 <div class="card-header fw-semibold">Instance</div>
                 <ul id="instance-overview-list" class="list-group list-group-flush">
                   <li class="list-group-item text-center">
@@ -58,7 +58,7 @@
               </div>
             </div>
             <div class="col">
-              <div class="card h-100">
+              <div class="card">
                 <div class="card-header fw-semibold">Ingest</div>
                 <ul id="ingest-overview-list" class="list-group list-group-flush">
                   <li class="list-group-item text-center">
