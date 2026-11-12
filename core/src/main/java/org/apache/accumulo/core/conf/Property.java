@@ -600,8 +600,10 @@ public enum Property {
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT, """
       To find a tablets split points, all RFiles are opened and their indexes \
       are read. This setting determines how many RFiles can be opened at once. \
-      When there are more RFiles than this setting the tablet will be marked \
-      as un-splittable.
+      When a tablet has this many RFiles or more, it can not be examined for \
+      split points and will be marked as un-splittable until its RFile count \
+      drops below this setting (for example, after a compaction) or this \
+      setting is increased and the servers are restarted.
       """, "4.0.0"),
   // properties that are specific to scan server behavior
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,

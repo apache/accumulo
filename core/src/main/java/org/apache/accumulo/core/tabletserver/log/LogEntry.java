@@ -22,10 +22,12 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -35,22 +37,37 @@ import com.google.common.net.HostAndPort;
 
 public final class LogEntry {
 
-  private final String path;
+  private static final String LOG_PATH =
+      "%s" + Path.SEPARATOR + Constants.WAL_DIR + Path.SEPARATOR + "%s" + Path.SEPARATOR + "%s";
+
+  private final Path path;
   private final HostAndPort tserver;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
-  private LogEntry(String path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
+  private LogEntry(Path path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
     this.path = path;
     this.tserver = tserver;
     this.uniqueId = uniqueId;
     this.columnQualifier = columnQualifier;
   }
 
+  public static LogEntry withSwitchedVolume(LogEntry entry, Path newPath) {
+    return new LogEntry(newPath, entry.getTServer(), entry.getUniqueID(),
+        entry.getColumnQualifier());
+  }
+
+  public static LogEntry forServer(String volume, HostAndPort address) {
+    UUID filename = UUID.randomUUID();
+    String addressForFilename = address.toString().replace(':', '+');
+    String filePath = LOG_PATH.formatted(volume, addressForFilename, filename);
+    return new LogEntry(validatePath(new Path(filePath)), address, filename, null);
+  }
+
   /**
-   * Creates a new LogEntry object after validating the expected format of the path. We expect the
-   * path to contain a tserver (host+port) followed by a UUID as the file name as the last two
-   * components.<br>
+   * Creates a new LogEntry object after validating the expected format of the path. The path must
+   * be an absolute filesystem URI and contain a tserver (host+port) followed by a UUID as the file
+   * name as the last two components.<br>
    * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
    * valid path.
    *
@@ -96,7 +113,16 @@ public final class LogEntry {
       throw new IllegalArgumentException(badUuidMsg);
     }
 
-    return new LogEntry(path, tserver, uuid, columnQualifier);
+    Path logPath = validatePath(new Path(path));
+    return new LogEntry(logPath, tserver, uuid, columnQualifier);
+  }
+
+  private static Path validatePath(Path path) {
+    if (path.toUri().getScheme() == null || !path.isAbsolute()) {
+      throw new IllegalArgumentException(
+          "Invalid path format. The path must be an absolute URI: " + path);
+    }
+    return path;
   }
 
   /**
@@ -120,12 +146,12 @@ public final class LogEntry {
 
   @NonNull
   @VisibleForTesting
-  HostAndPort getTServer() {
+  public HostAndPort getTServer() {
     return tserver;
   }
 
   @NonNull
-  public String getPath() {
+  public Path getPath() {
     return path;
   }
 
@@ -136,7 +162,7 @@ public final class LogEntry {
 
   @Override
   public String toString() {
-    return path;
+    return path.toString();
   }
 
   @Override
