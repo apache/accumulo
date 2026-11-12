@@ -30,7 +30,6 @@ import java.util.Objects;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -107,10 +106,6 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
 
   public ReferencedTabletFile getTabletFile() {
     return referencedTabletFile;
-  }
-
-  public TableId getTableId() {
-    return referencedTabletFile.getTableId();
   }
 
   @Override

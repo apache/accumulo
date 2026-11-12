@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -259,6 +260,60 @@ public class GarbageCollectionTest {
 
     assertFileDeleted(gce, candThree);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne, candTwo, candFour);
+  }
+
+  @Test
+  public void externalFilesAreMatchedByFullUri() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/a/shared.rf");
+    var referencedCandidate = gce.addCandidate("hdfs://nn2/external/b/shared.rf");
+    gce.addFileReference("4", null, referencedCandidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, sameNameDifferentLocation);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, referencedCandidate);
+  }
+
+  @Test
+  public void managedFilesAreMatchedByFullUriWithLegacyCandidates() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var otherVolume = gce.addCandidate("hdfs://nn1/accumulo/tables/4/t0/F000.rf");
+    var referencedCandidate = gce.addCandidate("hdfs://nn2/accumulo/tables/4/t0/F000.rf");
+    var relativeCandidate = gce.addCandidate("/4/t0/F000.rf");
+    gce.addFileReference("4", null, referencedCandidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, otherVolume);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, referencedCandidate, relativeCandidate);
+  }
+
+  @Test
+  public void externalFileUrisAreNormalizedForMatching() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var candidate = gce.addCandidate("hdfs://nn//external///rfiles//source.rf");
+    gce.addFileReference("4", null, "hdfs://nn/external/rfiles/source.rf");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
+  }
+
+  @Test
+  public void externalScanReferenceProtectsCandidate() throws Exception {
+    TestGCE gce = new TestGCE();
+    var candidate = gce.addCandidate("hdfs://nn/external/rfiles/source.rf");
+    gce.addScanReference("4", null, candidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertNoCandidatesRemoved(gce);
   }
 
   @Test
@@ -510,6 +565,49 @@ public class GarbageCollectionTest {
   }
 
   @Test
+  public void blipPrefixDoesNotMatchSiblingDirectory() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("/4/b-0/F000.rf");
+    var siblingCandidate = gce.addCandidate("/4/b-01/F001.rf");
+    gce.blips.add("/4/b-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, siblingCandidate);
+    assertTrue(gce.candidates.contains(protectedCandidate));
+  }
+
+  @Test
+  public void absoluteBlipDoesNotProtectOtherVolumes() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("hdfs://nn1/accumulo/tables/4/B-0/F000.rf");
+    var otherVolume = gce.addCandidate("hdfs://nn2/accumulo/tables/4/B-0/F000.rf");
+    var relativeCandidate = gce.addCandidate("/4/B-0/F001.rf");
+    gce.blips.add("hdfs://nn1/accumulo/tables/4/B-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, otherVolume);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(Set.of(protectedCandidate, relativeCandidate), gce.candidates);
+  }
+
+  @Test
+  public void externalBlipProtectsOnlyDescendants() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("hdfs://nn1/external/B-0/F000.rf");
+    var siblingCandidate = gce.addCandidate("hdfs://nn1/external/B-01/F000.rf");
+    var otherVolume = gce.addCandidate("hdfs://nn2/external/B-0/F000.rf");
+    gce.blips.add("hdfs://nn1/external/B-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, siblingCandidate, otherVolume);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(Set.of(protectedCandidate), gce.candidates);
+  }
+
+  @Test
   public void testDirectories() throws Exception {
     TestGCE gce = new TestGCE();
 
@@ -676,15 +774,13 @@ public class GarbageCollectionTest {
   }
 
   @Test
-  public void testBadFileRef3() {
-    assertThrows(IllegalArgumentException.class,
-        () -> badRefTest("hdfs://foo.com:6000/accumulo/F00.rf"));
+  public void testExternalFileReferenceDoesNotNeedTabletPathLayout() {
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/F00.rf"));
   }
 
   @Test
-  public void testBadFileRef4() {
-    assertThrows(IllegalArgumentException.class,
-        () -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
+  public void testExternalFileReferenceCanHaveArbitraryPath() {
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
   }
 
   @Test
@@ -717,7 +813,8 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     System.out.println(gce.fileDeletions);
-    assertFileDeleted(gce);
+    assertFileDeleted(gce, new GcCandidate("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf", 8L),
+        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf", 11L));
   }
 
   @Test

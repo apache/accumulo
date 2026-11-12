@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -52,10 +53,19 @@ public class GarbageCollectionAlgorithm {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
   /**
-   * Normalizes a candidate, directory, or blip path to a table-relative GC key. File references use
-   * {@link #makeRelativeFileReference(String)} because they must be absolute URIs.
+   * Normalizes a candidate, directory, or blip path to a table-relative GC key. Absolute file paths
+   * retain their full URI identity in {@link #fileCandidateKey(String)}.
    */
   private String makeRelative(String path, int expectedLen) {
+    String relative = tryMakeRelative(path, expectedLen);
+    if (relative == null) {
+      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+    }
+    return relative;
+  }
+
+  // Returns null when the path does not match the expected Accumulo table path layout.
+  private String tryMakeRelative(String path, int expectedLen) {
     // remove prefixed old relative path
     int position = path.startsWith("../") ? 3 : 0;
     int componentCount = 0;
@@ -132,8 +142,7 @@ public class GarbageCollectionAlgorithm {
           outputEnd2 = end3;
           outputComponents = 2;
         } else {
-          throw new IllegalArgumentException(
-              "Failed to make path relative. Bad reference: " + path);
+          return null;
         }
       }
     } else if (componentCount == 3 && (expectedLen == 0 || expectedLen == 3) && !hasColon) {
@@ -153,7 +162,7 @@ public class GarbageCollectionAlgorithm {
       outputEnd2 = end3;
       outputComponents = 2;
     } else {
-      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
+      return null;
     }
 
     String relPath;
@@ -179,46 +188,75 @@ public class GarbageCollectionAlgorithm {
     return relPath;
   }
 
-  /**
-   * Extracts the table-relative GC key from an absolute file reference URI, such as
-   * hdfs://foo:6000/accumulo/tables/4/t0/F000.rf -> 4/t0/F000.rf.
-   */
-  private String makeRelativeFileReference(String path) {
-    Path referencePath = new Path(path);
-    if (!referencePath.isAbsolute() || referencePath.toUri().getScheme() == null) {
-      throw new IllegalArgumentException("File reference must be an absolute URI: " + path);
+  private String makeCandidateKey(String path) {
+    String relative = tryMakeRelative(path, 0);
+    if (relative != null && SimpleGarbageCollector.isDir(relative)) {
+      return directoryCandidateKey(relative);
     }
 
-    String[] tokens = path.split("/");
-    String[] suffix = new String[4];
-    int suffixLen = 0;
-    for (int i = tokens.length - 1; i >= 0 && suffixLen < suffix.length; i--) {
-      if (!tokens[i].isEmpty()) {
-        suffix[suffixLen++] = tokens[i];
-      }
-    }
-
-    if (suffixLen != suffix.length || !Constants.TABLE_DIR.equals(suffix[3])) {
-      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
-    }
-
-    String relativePath = suffix[2] + "/" + suffix[1] + "/" + suffix[0];
-    log.trace("{} -> {}", path, relativePath);
-    return relativePath;
+    return fileCandidateKey(path);
   }
 
-  private SortedMap<String,GcCandidate> makeRelative(Collection<GcCandidate> candidates) {
+  private String fileCandidateKey(String path) {
+    if (path.endsWith("/")) {
+      throw new IllegalArgumentException("GC file candidate is a directory: " + path);
+    }
+    Path candidatePath = new Path(path);
+    String normalizedPath = candidatePath.toString();
+    if (candidatePath.toUri().getScheme() != null) {
+      if (candidatePath.getName().isEmpty()) {
+        throw new IllegalArgumentException("GC file candidate does not identify a file: " + path);
+      }
+      String relative = tryMakeRelative(normalizedPath, 3);
+      if (relative != null) {
+        // Keep managed files ordered by their relative tablet path so directory range lookups can
+        // find every volume. The normalized URI suffix preserves identity across volumes.
+        return relative + "|" + normalizedPath;
+      }
+      return normalizedPath;
+    }
+
+    // Relative paths are retained for compatibility with older metadata entries. Once paths are
+    // absolute, full URI identity is required so files at distinct locations cannot alias.
+    String relative = tryMakeRelative(path, 3);
+    if (relative == null) {
+      throw new IllegalArgumentException("Invalid relative GC file candidate: " + path);
+    }
+    return relative;
+  }
+
+  private String directoryCandidateKey(String relativePath) {
+    String normalized = relativePath;
+    while (normalized.endsWith("/")) {
+      normalized = normalized.substring(0, normalized.length() - 1);
+    }
+    return normalized + "/";
+  }
+
+  static boolean isDir(String candidateKey) {
+    return candidateKey != null && !candidateKey.isEmpty()
+        && candidateKey.charAt(candidateKey.length() - 1) == '/';
+  }
+
+  private String tabletDirectoryKey(String filePath) {
+    String relativeFile = tryMakeRelative(filePath, 3);
+    if (relativeFile == null) {
+      // External files are not in an Accumulo tablet directory and have no directory candidate to
+      // suppress.
+      return null;
+    }
+    return directoryCandidateKey(relativeFile.substring(0, relativeFile.lastIndexOf('/')));
+  }
+
+  private SortedMap<String,GcCandidate> makeCandidateMap(Collection<GcCandidate> candidates) {
     SortedMap<String,GcCandidate> ret = new TreeMap<>();
 
     for (GcCandidate candidate : candidates) {
-      String relPath;
       try {
-        relPath = makeRelative(candidate.getPath(), 0);
-      } catch (IllegalArgumentException iae) {
+        ret.put(makeCandidateKey(candidate.getPath()), candidate);
+      } catch (IllegalArgumentException e) {
         log.warn("Ignoring invalid deletion candidate {}", candidate);
-        continue;
       }
-      ret.put(relPath, candidate);
     }
 
     return ret;
@@ -232,14 +270,19 @@ public class GarbageCollectionAlgorithm {
     Set<TableId> tableIdsSeen = new HashSet<>(tableIdsBefore.size());
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
-        tableIdsSeen.add(ref.getTableId());
+
+        try {
+          tableIdsSeen.add(ref.getTableId());
+        } catch (UnsupportedOperationException uoe) {
+          // ScanServerRefTabletFile's don't have table ids
+        }
 
         if (ref.isDirectory()) {
           ServerColumnFamily.validateDirCol(ref.getMetadataPath());
 
           String dir = "/" + ref.getTableId() + "/" + ref.getMetadataPath();
 
-          dir = makeRelative(dir, 2);
+          dir = directoryCandidateKey(makeRelative(dir, 2));
 
           GcCandidate gcTemp = candidateMap.remove(dir);
           if (gcTemp != null) {
@@ -249,24 +292,41 @@ public class GarbageCollectionAlgorithm {
           }
         } else {
           String reference = ref.getMetadataPath();
-          String relativePath = makeRelativeFileReference(reference);
+          Path refPath = new Path(reference);
+          if (!refPath.isAbsolute() || refPath.toUri().getScheme() == null) {
+            throw new IllegalArgumentException(
+                "File reference must be an absolute URI: " + reference);
+          }
 
-          // WARNING: This line is EXTREMELY IMPORTANT.
-          // You MUST REMOVE candidates that are still in use
-          GcCandidate gcTemp = candidateMap.remove(relativePath);
+          List<GcCandidate> inUseCandidates = new ArrayList<>();
+          GcCandidate gcTemp = candidateMap.remove(fileCandidateKey(reference));
           if (gcTemp != null) {
-            log.debug("File Candidate was still in use: {}", relativePath);
-            // Prevent deletion of candidates that are still in use by scans, because they won't be
-            // recreated once the scan is finished.
-            if (!ref.isScan()) {
-              candidateEntriesToBeDeleted.add(gcTemp);
+            inUseCandidates.add(gcTemp);
+          }
+
+          // Legacy relative candidates do not identify a filesystem location. Conservatively
+          // protect them by suffix, while absolute candidates always require exact URI identity.
+          String relativePath = tryMakeRelative(refPath.toString(), 3);
+          if (relativePath != null) {
+            GcCandidate relativeCandidate = candidateMap.remove(relativePath);
+            if (relativeCandidate != null) {
+              inUseCandidates.add(relativeCandidate);
             }
           }
 
-          String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-          GcCandidate gcT = candidateMap.remove(dir);
+          for (GcCandidate inUseCandidate : inUseCandidates) {
+            log.debug("File Candidate was still in use: {}", reference);
+            // Prevent deletion of candidates that are still in use by scans, because they won't be
+            // recreated once the scan is finished.
+            if (!ref.isScan()) {
+              candidateEntriesToBeDeleted.add(inUseCandidate);
+            }
+          }
+
+          String dirKey = tabletDirectoryKey(reference);
+          GcCandidate gcT = dirKey == null ? null : candidateMap.remove(dirKey);
           if (gcT != null) {
-            log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
+            log.debug("Directory Candidate was still in use by file ref: {}", reference);
             // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
             // once.
           }
@@ -283,8 +343,8 @@ public class GarbageCollectionAlgorithm {
       SortedMap<String,GcCandidate> candidateMap) throws TableNotFoundException {
     long blipCount = 0;
     boolean checkForBulkProcessingFiles = false;
-    for (String relativePath : candidateMap.keySet()) {
-      if (containsBulkPrefix(relativePath)) {
+    for (GcCandidate candidate : candidateMap.values()) {
+      if (containsBulkPrefix(candidate.getPath())) {
         checkForBulkProcessingFiles = true;
         break;
       }
@@ -301,18 +361,48 @@ public class GarbageCollectionAlgorithm {
         while (blipiter.hasNext()) {
           blipCount++;
           String blipPath = blipiter.next();
-          blipPath = makeRelative(blipPath, 2);
-
-          Iterator<String> tailIter = candidateMap.tailMap(blipPath).keySet().iterator();
+          Path blip = new Path(blipPath);
+          String normalizedBlipPath = blip.toString();
+          boolean absoluteBlip = blip.toUri().getScheme() != null;
+          String relativeBlip = tryMakeRelative(normalizedBlipPath, 2);
 
           int count = 0;
+          if (relativeBlip != null) {
+            String relativePrefix = directoryCandidateKey(relativeBlip);
+            Iterator<Entry<String,GcCandidate>> relativeIter =
+                candidateMap.tailMap(relativePrefix).entrySet().iterator();
+            while (relativeIter.hasNext()) {
+              Entry<String,GcCandidate> candidateEntry = relativeIter.next();
+              if (!candidateEntry.getKey().startsWith(relativePrefix)) {
+                break;
+              }
 
-          while (tailIter.hasNext()) {
-            if (tailIter.next().startsWith(blipPath)) {
+              if (!absoluteBlip) {
+                count++;
+                relativeIter.remove();
+              } else {
+                Path candidatePath = new Path(candidateEntry.getValue().getPath());
+                if (candidatePath.toUri().getScheme() == null
+                    || isDescendantOrSame(blip, candidatePath)) {
+                  count++;
+                  relativeIter.remove();
+                }
+              }
+            }
+          }
+
+          if (absoluteBlip) {
+            String absolutePrefix =
+                normalizedBlipPath.endsWith("/") ? normalizedBlipPath : normalizedBlipPath + "/";
+            Iterator<Entry<String,GcCandidate>> absoluteIter =
+                candidateMap.tailMap(absolutePrefix).entrySet().iterator();
+            while (absoluteIter.hasNext()) {
+              Entry<String,GcCandidate> candidateEntry = absoluteIter.next();
+              if (!candidateEntry.getKey().startsWith(absolutePrefix)) {
+                break;
+              }
               count++;
-              tailIter.remove();
-            } else {
-              break;
+              absoluteIter.remove();
             }
           }
 
@@ -324,6 +414,17 @@ public class GarbageCollectionAlgorithm {
     }
 
     return blipCount;
+  }
+
+  private static boolean isDescendantOrSame(Path ancestor, Path candidate) {
+    Path current = candidate;
+    while (current != null) {
+      if (current.equals(ancestor)) {
+        return true;
+      }
+      current = current.getParent();
+    }
+    return false;
   }
 
   private boolean containsBulkPrefix(String path) {
@@ -382,9 +483,12 @@ public class GarbageCollectionAlgorithm {
 
     // find the table ids that had dirs deleted
     for (String delete : candidateMap.keySet()) {
+      if (!isDir(delete)) {
+        continue;
+      }
       int firstSlash = delete.indexOf('/');
-      if (firstSlash > 0 && firstSlash < delete.length() - 1
-          && delete.indexOf('/', firstSlash + 1) == -1) {
+      if (firstSlash > 0 && firstSlash < delete.length() - 2
+          && delete.indexOf('/', firstSlash + 1) == delete.length() - 1) {
         // its a directory
         TableId tableId = TableId.of(delete.substring(0, firstSlash));
         tableIdsWithDeletes.add(tableId);
@@ -469,7 +573,7 @@ public class GarbageCollectionAlgorithm {
     gce.incrementCandidatesStat(origSize);
     log.info("Batch {} total deletion candidates: {}", batchCount, origSize);
 
-    SortedMap<String,GcCandidate> candidateMap = makeRelative(currentBatch);
+    SortedMap<String,GcCandidate> candidateMap = makeCandidateMap(currentBatch);
 
     long blips = confirmDeletesTrace(gce, candidateMap);
     gce.incrementInUseStat(origSize - candidateMap.size());
