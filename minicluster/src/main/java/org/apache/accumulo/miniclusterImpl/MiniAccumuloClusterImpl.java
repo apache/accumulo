@@ -60,6 +60,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -631,15 +632,19 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(),
         config.getZooKeepers());
 
-    control.start(ServerType.TABLET_SERVER);
-    control.start(ServerType.SCAN_SERVER);
-
     try {
+      // fail fast before starting servers - they'll fail to start if this node exists already
+      if (getServerContext().getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
+        throw new IllegalStateException("Cannot start, instance is prepared for upgrade: "
+            + Constants.ZPREPARE_FOR_UPGRADE + " exists");
+      }
       SetGoalState.setGoalState(getServerContext(), ManagerGoalState.NORMAL);
     } catch (KeeperException e) {
       throw new IllegalStateException("Could not set manager goal state", e);
     }
 
+    control.start(ServerType.TABLET_SERVER);
+    control.start(ServerType.SCAN_SERVER);
     control.start(ServerType.MANAGER);
     control.start(ServerType.GARBAGE_COLLECTOR);
 
@@ -1151,18 +1156,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    * Stops the processes in parallel. The given timeout is the total wait for all given processes.
    */
   public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
-      final long timeout, final TimeUnit unit) {
+      final Duration timeout) {
 
     // signal all first so they stop in parallel
     procs.forEach(Process::destroy);
 
-    final CountDownTimer timer = CountDownTimer.startNew(timeout, unit);
+    final CountDownTimer timer = CountDownTimer.startNew(timeout);
     try {
       for (Process proc : procs) {
         boolean stopped = proc.waitFor(timer.timeLeft(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
         if (!stopped) {
           log.warn("{} (pid {}) did not fully stop after {} seconds", type, proc.pid(),
-              unit.toSeconds(timeout));
+              timeout.toSeconds());
         }
       }
     } catch (InterruptedException e) {

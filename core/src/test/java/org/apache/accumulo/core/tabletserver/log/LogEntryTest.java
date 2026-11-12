@@ -63,6 +63,7 @@ public class LogEntryTest {
   }
 
   @Test
+<<<<<<< HEAD
   public void testProviderIdentityFromMetadata() {
     var entry = LogEntry.fromPath("example", validPath);
     var qualifier = entry.getColumnQualifier();
@@ -87,12 +88,34 @@ public class LogEntryTest {
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider-id", validPath));
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider_id", validPath));
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider.id", validPath));
+=======
+  public void testForServer() {
+    var logEntry = LogEntry.forServer("viewfs:/a/accumulo",
+        HostAndPort.fromString(validHost.replace('+', ':')));
+    assertTrue(logEntry.getPath().toUri().getScheme() != null);
+
+    var roundTripped = LogEntry.fromMetaWalEntry(new SimpleImmutableEntry<>(
+        new Key("1<", LogColumnFamily.STR_NAME, logEntry.getColumnQualifier().toString()), null));
+    assertEquals(logEntry, roundTripped);
+    assertEquals(logEntry.getPath(), roundTripped.getPath());
+    assertEquals(logEntry.getUniqueID(), roundTripped.getUniqueID());
+    assertEquals(logEntry.getTServer(), roundTripped.getTServer());
+    assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
+    assertEquals("viewfs:/a/accumulo/wal/" + validHost + "/" + roundTripped.getUniqueID(),
+        logEntry.getPath().toString());
+  }
+
+  @Test
+  public void testForServerRequiresQualifiedVolume() {
+    assertThrows(IllegalArgumentException.class,
+        () -> LogEntry.forServer("/accumulo", HostAndPort.fromString("localhost:9997")));
+>>>>>>> main
   }
 
   // helper for testing build from constructor or from metadata
   private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
-    assertEquals(validPath, logEntry.getPath());
+    assertEquals(validPath, logEntry.getPath().toString());
     assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
     assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
     assertEquals(validUUID, logEntry.getUniqueID());
@@ -117,12 +140,29 @@ public class LogEntryTest {
 
   @Test
   public void testValidPaths() {
-    var validPath1 = validHost + "/" + validUUID;
-    var validPath2 = "dir1/" + validPath1;
-    var validPath3 = "dir2/" + validPath2;
+    var validPath1 = "file:///accumulo/wal/" + validHost + "/" + validUUID;
+    var validPath2 = "hdfs://nn1/accumulo/wal/" + validHost + "/" + validUUID;
 
+<<<<<<< HEAD
     Stream.of(validPath1, validPath2, validPath3)
         .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(PROVIDER_ID, s)));
+=======
+    Stream.of(validPath1, validPath2).forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
+  }
+
+  @Test
+  public void testRelativePathsAreInvalid() {
+    Stream.of(validHost + "/" + validUUID, "file:accumulo/wal/" + validHost + "/" + validUUID)
+        .forEach(s -> assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(s)));
+  }
+
+  @Test
+  public void testRelativeMetadataPathIsInvalid() {
+    var qualifier = "prefix/" + validHost + "/" + validUUID;
+    var entry = new SimpleImmutableEntry<Key,Value>(
+        new Key("1<", LogColumnFamily.STR_NAME, qualifier), null);
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.fromMetaWalEntry(entry));
+>>>>>>> main
   }
 
   @Test

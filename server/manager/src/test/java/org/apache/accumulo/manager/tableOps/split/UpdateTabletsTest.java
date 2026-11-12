@@ -467,8 +467,12 @@ public class UpdateTabletsTest {
     assertTrue(e.getMessage().contains(opid2.toString()));
 
     // Test splitting a tablet with walogs
+<<<<<<< HEAD
     var walog =
         LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
+=======
+    var walog = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
+>>>>>>> main
     var tablet4 = TabletMetadata.builder(origExtent).putOperation(opid).putWal(walog)
         .build(ColumnType.LOCATION);
     e = assertThrows(IllegalStateException.class, () -> testError(origExtent, tablet4, fateId));

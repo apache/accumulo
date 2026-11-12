@@ -192,10 +192,15 @@ public class ListTabletsCommandTest {
 
     KeyExtent extent = new KeyExtent(tableId, new Text("d"), null);
 
+<<<<<<< HEAD
     LogEntry le1 =
         LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
     LogEntry le2 =
         LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
+=======
+    LogEntry le1 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
+    LogEntry le2 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
+>>>>>>> main
 
     TabletMetadata tm1 =
         TabletMetadata.builder(extent).putTabletAvailability(TabletAvailability.ONDEMAND)

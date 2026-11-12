@@ -24,9 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -47,7 +45,6 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -55,6 +52,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log =
@@ -115,17 +114,13 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
-      // Fake out something that looks like host:port, it's irrelevant
-      String fakeServer = "127.0.0.1:12345";
+      LogEntry logEntry =
+          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
+              HostAndPort.fromParts("127.0.0.1", 12345));
 
-      java.nio.file.Path walogs =
-          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
-      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
-      java.nio.file.Path emptyWalog = walogServerDir.resolve(UUID.randomUUID().toString());
+      log.info("Created empty WAL at {}", logEntry.getPath().toUri());
 
-      log.info("Created empty WAL at {}", emptyWalog.toUri());
-
-      fs.create(new Path(emptyWalog.toUri())).close();
+      fs.create(logEntry.getPath()).close();
 
       assertTrue(client.securityOperations().hasTablePermission("root",
           SystemTables.METADATA.tableName(), TablePermission.WRITE),
@@ -137,9 +132,12 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
+<<<<<<< HEAD
       LogEntry logEntry =
           LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, emptyWalog.toUri().toString());
 
+=======
+>>>>>>> main
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 
@@ -170,20 +168,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   public void testPartialHeaderWalRecoveryCompletes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       MiniAccumuloClusterImpl cluster = getCluster();
-      FileSystem fs = getCluster().getFileSystem();
+      FileSystem fs = cluster.getFileSystem();
 
-      // Fake out something that looks like host:port, it's irrelevant
-      String fakeServer = "127.0.0.1:12345";
-
-      java.nio.file.Path walogs =
-          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
-      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
-      java.nio.file.Path partialHeaderWalog = walogServerDir.resolve(UUID.randomUUID().toString());
-
-      log.info("Created WAL with malformed header at {}", partialHeaderWalog.toUri());
+      LogEntry logEntry =
+          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
+              HostAndPort.fromParts("127.0.0.1", 12345));
+      log.info("Created WAL with malformed header at {}", logEntry.getPath().toUri());
 
       // Write half of the header
-      FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toUri()));
+      FSDataOutputStream wal = fs.create(logEntry.getPath());
       wal.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8), 0,
           DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
       wal.close();
@@ -198,9 +191,12 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
+<<<<<<< HEAD
       LogEntry logEntry =
           LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, partialHeaderWalog.toUri().toString());
 
+=======
+>>>>>>> main
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 

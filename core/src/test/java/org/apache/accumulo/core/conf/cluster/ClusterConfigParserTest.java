@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
@@ -133,18 +132,19 @@ public class ClusterConfigParserTest extends WithTestNames {
     });
   }
 
+  @Test
   public void testShellOutputMain() throws Exception {
 
     // Test that the main method in ClusterConfigParser properly parses the configuration
     // and outputs to a given file instead of System.out when provided
     testShellOutput(configFile -> {
       try {
-        Path outputFile = tempDir.resolve(testName());
-        ClusterConfigParser
-            .main(new String[] {configFile.getFile(), outputFile.toAbsolutePath().toString()});
+        final Path outputFile = tempDir.resolve(testName());
+        ClusterConfigParser.main(new String[] {Path.of(configFile.toURI()).toString(),
+            outputFile.toAbsolutePath().toString()});
 
         return outputFile;
-      } catch (IOException e) {
+      } catch (Exception e) {
         throw new RuntimeException(e.getMessage(), e);
       }
     });

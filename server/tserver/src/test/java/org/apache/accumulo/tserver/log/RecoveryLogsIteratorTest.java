@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -175,6 +176,19 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     var exception = assertThrows(IOException.class, () -> createRecoveryDir(logs, dirs, false),
         "Finish marker should not be found");
     assertTrue(exception.getMessage().contains("'finished' flag not found"));
+  }
+
+  @Test
+  public void testSingleFile() throws IOException {
+    String destPath = "file://" + workDir + "/" + VolumeManager.FileType.WAL.getDirectory()
+        + "/localhost+9997/" + UUID.randomUUID();
+    fs.create(new Path(destPath));
+
+    assertThrows(IOException.class,
+        () -> new RecoveryLogsIterator(context,
+            Collections.singletonList(ResolvedSortedLog.resolve(LogEntry.fromPath(destPath), fs)),
+            null, null, false),
+        "Finish marker should not be found for a single file.");
   }
 
   @Test

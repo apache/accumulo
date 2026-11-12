@@ -109,11 +109,17 @@ public class TabletManagementTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
+<<<<<<< HEAD
     LogEntry le1 =
         LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
     le1.addToMutation(mutation);
     LogEntry le2 =
         LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
+=======
+    LogEntry le1 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
+    le1.addToMutation(mutation);
+    LogEntry le2 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
+>>>>>>> main
     le2.addToMutation(mutation);
 
     StoredTabletFile sf1 =

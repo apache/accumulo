@@ -61,6 +61,7 @@
  */
 
 var dataTableRefs = new Map();
+var dataTableColKeys = new Map();
 
 /**
  * This function returns the entire response from session storage
@@ -144,15 +145,23 @@ function getDataTableCols(storageKey) {
 }
 
 /**
- * This function refreshes the table. It destroys the DataTable
+ * This function refreshes the table. If the columns are unchanged since the
+ * last refresh, it only reloads the rows. Otherwise, it destroys the DataTable
  * and clears the HTML table. Then it recreates the table header
  * HTML elements from the columns, redefines the DataTable,
  * and executes an ajax method to load the data.
  */
 function refreshTable(table, storageKey) {
+  var dataTableRef = dataTableRefs.get(table);
+  var colsKey = JSON.stringify(getStoredColumns(storageKey));
+
+  // If column data has not changed, only reload the rows so scroll position and column state do not reset
+  if (dataTableRef != null && dataTableColKeys.get(table) === colsKey) {
+    ajaxReloadTable(dataTableRef);
+    return;
+  }
 
   // Destroy the DataTable
-  var dataTableRef = dataTableRefs.get(table);
   if (dataTableRef != null) {
     dataTableRef.destroy();
   }
@@ -182,6 +191,7 @@ function refreshTable(table, storageKey) {
   dataTableRef = createDataTable(table, storageKey);
   ajaxReloadTable(dataTableRef);
   dataTableRefs.set(table, dataTableRef);
+  dataTableColKeys.set(table, colsKey);
 }
 
 /**
@@ -253,10 +263,28 @@ function createDataTable(table, storageKey) {
       });
     },
     "buttons": [{
-      "extend": 'colvis',
-      "text": '<i class="bi bi-gear"></i>',
-      "titleAttr": 'Columns'
-    }],
+        "extend": 'colvis',
+        "text": '<i class="bi bi-gear"></i>',
+        "titleAttr": 'Columns'
+      },
+      {
+        "extend": 'spacer'
+      },
+      {
+        "text": 'Reset',
+        "titleAttr": 'Reset column selection, column order, and sorting',
+        "action": function (e, dt) {
+          // reset column selection
+          dt.columns().visible(true);
+          // reset column order
+          dt.colReorder.reset();
+          // reset sorting to the DataTables default (first column ascending)
+          dt.order([
+            [0, 'asc']
+          ]).draw();
+        }
+      }
+    ],
     "layout": {
       "topStart": "pageLength",
       "topEnd": ["search", "buttons"],

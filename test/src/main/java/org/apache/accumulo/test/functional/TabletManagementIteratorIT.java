@@ -98,6 +98,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -115,6 +116,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -672,8 +674,13 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
+<<<<<<< HEAD
     String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
     LogEntry logEntry = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, fileName);
+=======
+    LogEntry logEntry = LogEntry.forServer(((MiniAccumuloClusterImpl) getCluster()).getConfig()
+        .getAccumuloDir().toPath().toUri().toString(), HostAndPort.fromParts("localhost", 9997));
+>>>>>>> main
     logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);

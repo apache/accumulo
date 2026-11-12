@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -104,6 +103,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
 
@@ -161,8 +161,15 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
 
       // Write a WAL to the test metadata and then re-run the repo to check for an error
       try (TabletsMutator tm = testAmple.mutateTablets()) {
+<<<<<<< HEAD
         var walFilePath = Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
         tm.mutateTablet(extent).putWal(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, walFilePath))
+=======
+        tm.mutateTablet(extent)
+            .putWal(LogEntry.forServer(
+                getCluster().getConfig().getAccumuloDir().toPath().toUri().toString(),
+                HostAndPort.fromParts("tserver", 8080)))
+>>>>>>> main
             .mutate();
       }
 

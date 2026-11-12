@@ -28,10 +28,10 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
@@ -155,7 +155,7 @@ public class PropCacheCaffeineImplTest {
     replay(context, propStoreWatcher, zooPropLoader);
     assertNotNull(cache.get(tablePropKey)); // will call load
 
-    ticker.advance(90, TimeUnit.MINUTES);
+    ticker.advance(Duration.ofMinutes(90));
     assertNotNull(cache.get(tablePropKey)); // expired - will call load.
   }
 
@@ -177,8 +177,8 @@ public class PropCacheCaffeineImplTest {
       elapsed = 0L;
     }
 
-    public void advance(final long value, final TimeUnit units) {
-      elapsed += TimeUnit.NANOSECONDS.convert(value, units);
+    public void advance(final Duration duration) {
+      elapsed += duration.toNanos();
     }
 
     @Override
