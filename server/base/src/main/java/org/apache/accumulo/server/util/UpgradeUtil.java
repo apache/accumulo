@@ -18,24 +18,37 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.RowIterator;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +57,8 @@ import com.beust.jcommander.DefaultUsageFormatter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 
 @AutoService(KeywordExecutable.class)
 public class UpgradeUtil implements KeywordExecutable {
@@ -113,13 +128,11 @@ public class UpgradeUtil implements KeywordExecutable {
     if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       SecurityUtil.serverLogin(siteConf);
     }
+    try (ServerContext ctx = new ServerContext(siteConf)) {
 
-    String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
-    Path instanceDir = new Path(volDir, "instance_id");
-    InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
+      InstanceId iid = ctx.getInstanceID();
+      ZooReaderWriter zoo = ctx.getZooReaderWriter();
 
-    if (opts.prepare) {
       SortedMap<String,String> tablePropsInSite = new TreeMap<>();
       // get table props in site conf excluding default config
       siteConf.getProperties(tablePropsInSite,
@@ -202,12 +215,93 @@ public class UpgradeUtil implements KeywordExecutable {
       new ZooZap().zap(siteConf, "-manager", "-compaction-coordinators", "-tservers", "-compactors",
           "-sservers", "--monitor", "--gc");
 
+      // Wait for tserver locks to be removed, then ensure that no tablets have logs
+      // as this indicates recovery needs to be performed.
+      final ZooCache zc = new ZooCache(zoo, null);
+      try {
+        waitForTServerLocks(ctx, siteConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+        try {
+          findTabletsNeedingRecovery(Constants.ZROOT + "/" + iid, zc);
+        } catch (IllegalStateException e) {
+          LOG.error(
+              "Error occurred checking for tablets that need recovery. Check messages above for more information.");
+        }
+      } finally {
+        zc.close();
+      }
+
       LOG.info("Instance {} prepared for upgrade. Server processes will not start while"
           + " in this state. To undo this state and abort upgrade preparations delete"
           + " the zookeeper node: {}. If you abort and restart the instance, then you "
           + " should re-run this utility before upgrading.", iid.canonical(), zUpgradepath);
     }
 
+  }
+
+  private void waitForTServerLocks(ServerContext ctx, long zkTimeout)
+      throws KeeperException, InterruptedException {
+
+    LiveTServerSet serverSet = new LiveTServerSet(ctx, (current, deleted, added) -> {});
+    while (!serverSet.getCurrentServers().isEmpty()) {
+      Thread.sleep(zkTimeout);
+      serverSet.scanServers();
+      var servers = serverSet.getCurrentServers();
+      LOG.info("{} TabletServer locks still exist in ZooKeeper", servers.size());
+      if (servers.size() > 0) {
+        LOG.info("Waiting on the following TabletServers to stop:");
+        servers.forEach(server -> LOG.info("{}", server));
+      }
+    }
+  }
+
+  private Iterator<TabletMetadata> readChildTablets(TabletMetadata tabletMetadata) {
+    var extent = tabletMetadata.getExtent();
+    Preconditions.checkState(extent.isMeta());
+    Collection<StoredTabletFile> files = tabletMetadata.getFiles();
+    if (files == null || files.isEmpty()) {
+      return Collections.emptyIterator();
+    }
+    // RFileScanner sets up the system iterator stack by default
+    Scanner rfileScanner = RFile.newScanner()
+        .from(files.stream().map(stf -> stf.getPath().toString()).toArray(String[]::new))
+        .withTableProperties(IteratorConfigUtil.getInitialTableIterators()).build();
+    var range = extent.toDataRange().clip(MetadataSchema.TabletsSection.getRange(), true);
+    if (range == null) {
+      return Collections.emptyIterator();
+    }
+    rfileScanner.setRange(range);
+    RowIterator rowIter = new RowIterator(rfileScanner);
+    return Iterators.transform(rowIter,
+        ri -> TabletMetadata.convertRow(ri, EnumSet.allOf(ColumnType.class), false));
+  }
+
+  // Return true if no location && no logs
+  private void checkTablet(TabletMetadata tm) {
+    boolean error = false;
+    if (tm.getLocation() != null) {
+      LOG.warn("Tablet {} needs recovery due to location being set: {}", tm.getExtent(),
+          tm.getLocation());
+      error = true;
+    } else if (!tm.getLogs().isEmpty()) {
+      LOG.warn("Tablet {} needs recovery due to walogs being present: {}", tm.getExtent(),
+          tm.getLogs());
+      error = true;
+    }
+    if (error) {
+      LOG.warn("Because some tablets have data in write ahead logs, continuing with the "
+          + "upgrade is not advisable. It's recommended to abort this upgrade using the "
+          + "instructions below and restart the instance to allow Tablet recovery to occur.");
+      throw new IllegalStateException("Tablet " + tm.getExtent() + " needs recovery.");
+    }
+  }
+
+  void findTabletsNeedingRecovery(String zkRoot, ZooCache cache) throws IOException {
+    TabletMetadata rootTabletMetadata = TabletsMetadata.getRootMetadata(zkRoot, cache);
+    checkTablet(rootTabletMetadata);
+    readChildTablets(rootTabletMetadata).forEachRemaining(tm -> {
+      checkTablet(tm);
+      readChildTablets(tm).forEachRemaining(this::checkTablet);
+    });
   }
 
 }
