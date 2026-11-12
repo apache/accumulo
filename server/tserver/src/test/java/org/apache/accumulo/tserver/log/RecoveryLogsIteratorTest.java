@@ -186,7 +186,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     assertThrows(IOException.class,
         () -> new RecoveryLogsIterator(context,
-            Collections.singletonList(ResolvedSortedLog.resolve(LogEntry.fromPath(destPath), fs)),
+            Collections.singletonList(ResolvedSortedLog
+                .resolve(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, destPath), fs)),
             null, null, false),
         "Finish marker should not be found for a single file.");
   }

@@ -27,11 +27,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-<<<<<<< HEAD
 import org.apache.accumulo.core.spi.wal.WalProvider;
-=======
 import org.apache.hadoop.fs.Path;
->>>>>>> main
 import org.apache.hadoop.io.Text;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -41,25 +38,17 @@ import com.google.common.net.HostAndPort;
 
 public final class LogEntry {
 
-<<<<<<< HEAD
-  private final String path;
-  private final String providerId;
-=======
   private static final String LOG_PATH =
       "%s" + Path.SEPARATOR + Constants.WAL_DIR + Path.SEPARATOR + "%s" + Path.SEPARATOR + "%s";
 
   private final Path path;
->>>>>>> main
+  private final String providerId;
   private final HostAndPort tserver;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
-<<<<<<< HEAD
-  private LogEntry(String path, String providerId, HostAndPort tserver, UUID uniqueId,
+  private LogEntry(Path path, String providerId, HostAndPort tserver, UUID uniqueId,
       Text columnQualifier) {
-=======
-  private LogEntry(Path path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
->>>>>>> main
     this.path = path;
     this.providerId = providerId;
     this.tserver = tserver;
@@ -68,15 +57,15 @@ public final class LogEntry {
   }
 
   public static LogEntry withSwitchedVolume(LogEntry entry, Path newPath) {
-    return new LogEntry(newPath, entry.getTServer(), entry.getUniqueID(),
-        entry.getColumnQualifier());
+    return new LogEntry(validatePath(newPath), entry.getProviderId(), entry.getTServer(),
+        entry.getUniqueID(), entry.getColumnQualifier());
   }
 
-  public static LogEntry forServer(String volume, HostAndPort address) {
+  public static LogEntry forServer(String providerId, String volume, HostAndPort address) {
     UUID filename = UUID.randomUUID();
     String addressForFilename = address.toString().replace(':', '+');
     String filePath = LOG_PATH.formatted(volume, addressForFilename, filename);
-    return new LogEntry(validatePath(new Path(filePath)), address, filename, null);
+    return fromPath(providerId, filePath);
   }
 
   /**
@@ -132,11 +121,8 @@ public final class LogEntry {
       throw new IllegalArgumentException(badUuidMsg);
     }
 
-<<<<<<< HEAD
-    return new LogEntry(path, providerId, tserver, uuid, columnQualifier);
-=======
     Path logPath = validatePath(new Path(path));
-    return new LogEntry(logPath, tserver, uuid, columnQualifier);
+    return new LogEntry(logPath, providerId, tserver, uuid, columnQualifier);
   }
 
   private static Path validatePath(Path path) {
@@ -145,7 +131,6 @@ public final class LogEntry {
           "Invalid path format. The path must be an absolute URI: " + path);
     }
     return path;
->>>>>>> main
   }
 
   /**

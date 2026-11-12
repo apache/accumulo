@@ -331,12 +331,8 @@ public class MergeTabletsTest {
     testUnexpectedColumn(tmb -> tmb.putOperation(otherOpid), "had unexpected opid",
         otherOpid.toString());
 
-<<<<<<< HEAD
-    var walog =
-        LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, "localhost+8020/" + UUID.randomUUID());
-=======
-    var walog = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
->>>>>>> main
+    var walog = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID,
+        "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
     testUnexpectedColumn(tmb -> tmb.putWal(walog), "has unexpected walogs 1");
 
     FateId ucfid1 = otherFateId;

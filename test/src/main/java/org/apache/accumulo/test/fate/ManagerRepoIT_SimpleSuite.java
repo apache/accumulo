@@ -161,15 +161,10 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
 
       // Write a WAL to the test metadata and then re-run the repo to check for an error
       try (TabletsMutator tm = testAmple.mutateTablets()) {
-<<<<<<< HEAD
-        var walFilePath = Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
-        tm.mutateTablet(extent).putWal(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, walFilePath))
-=======
         tm.mutateTablet(extent)
-            .putWal(LogEntry.forServer(
+            .putWal(LogEntry.forServer(DfsWalProvider.PROVIDER_ID,
                 getCluster().getConfig().getAccumuloDir().toPath().toUri().toString(),
                 HostAndPort.fromParts("tserver", 8080)))
->>>>>>> main
             .mutate();
       }
 

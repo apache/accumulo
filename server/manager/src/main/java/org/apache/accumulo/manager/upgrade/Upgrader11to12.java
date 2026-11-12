@@ -88,11 +88,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
-<<<<<<< HEAD
 import org.apache.accumulo.core.spi.wal.WalProvider;
-=======
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
->>>>>>> main
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -234,11 +231,7 @@ public class Upgrader11to12 implements Upgrader {
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-<<<<<<< HEAD
       ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME, LogColumnFamily.NAME);
-=======
-      ExternalCompactionColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME);
->>>>>>> main
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";
@@ -841,31 +834,30 @@ public class Upgrader11to12 implements Upgrader {
 
   private static void upgradeWalEntry(Entry<Key,Value> entry, Value value, Mutation mutation,
       Collection<Volume> volumes) throws IOException {
+    Text qualifier = entry.getKey().getColumnQualifier();
+    String qualifierString = qualifier.toString();
+    int separator = qualifierString.indexOf('/');
+    Preconditions.checkArgument(separator > 0, "Malformed write-ahead log %s", qualifierString);
+    String providerId = qualifierString.substring(0, separator);
+    if (providerId.equals("-")) {
+      providerId = DfsWalProvider.PROVIDER_ID;
+    }
+    String reference = qualifierString.substring(separator + 1);
+    LogEntry logEntry;
     try {
-      LogEntry.fromMetaWalEntry(entry);
-      return;
+      logEntry = LogEntry.fromPath(providerId, reference);
     } catch (IllegalArgumentException e) {
-      if (e.getMessage().startsWith("Invalid path format. The path must be an absolute URI: ")) {
-        // The wal entry passed all of the other checks, except that it's not an absolute
-        // URI.
-        Text qualifier = entry.getKey().getColumnQualifier();
-        String qualifierString = qualifier.toString();
-        int separator = qualifierString.indexOf('/');
-        if (separator < 0) {
-          throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
-        }
-
-        String oldPath = qualifierString.substring(separator + 1);
-        Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
-        // Validate the expected WAL path structure before writing an upgraded reference.
-        LogEntry.fromPath(qualifiedPath.toString());
-
-        Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
-        mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
-        mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
-      } else {
+      if (!providerId.equals(DfsWalProvider.PROVIDER_ID) || !e.getMessage()
+          .startsWith("Invalid path format. The path must be an absolute URI: ")) {
         throw e;
       }
+      Path qualifiedPath = qualifyWalPath(new Path(reference), volumes);
+      logEntry = LogEntry.fromPath(providerId, qualifiedPath.toString());
+    }
+    Text newQualifier = logEntry.getColumnQualifier();
+    if (!newQualifier.equals(qualifier)) {
+      mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
+      mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
     }
   }
 
@@ -953,8 +945,6 @@ public class Upgrader11to12 implements Upgrader {
               tableName, key.getRow());
           update.at().family(ExternalCompactionColumnFamily.NAME)
               .qualifier(key.getColumnQualifier()).delete();
-        } else if (family.equals(LogColumnFamily.NAME)) {
-          upgradeWalReference(key, value, update);
         } else {
           throw new IllegalStateException("Processing: " + tableName
               + " Received unexpected column family processing references: " + family);
@@ -969,16 +959,6 @@ public class Upgrader11to12 implements Upgrader {
       LOG.warn("Failed to update reference for table: " + tableName);
       LOG.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
       throw new IllegalStateException("Failed to process table: " + tableName, mex);
-    }
-  }
-
-  @VisibleForTesting
-  static void upgradeWalReference(Key key, Value value, Mutation mutation) {
-    String qualifier = key.getColumnQualifier().toString();
-    if (qualifier.startsWith("-/")) {
-      Text upgradedQualifier = new Text(DfsWalProvider.PROVIDER_ID + qualifier.substring(1));
-      mutation.at().family(LogColumnFamily.NAME).qualifier(upgradedQualifier).put(value);
-      mutation.at().family(LogColumnFamily.NAME).qualifier(key.getColumnQualifier()).delete();
     }
   }
 
@@ -1074,6 +1054,8 @@ public class Upgrader11to12 implements Upgrader {
         zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
+      rtm.getKeyValues()
+          .forEach(entry -> verifyNoLegacyWalReference(entry.getKey(), "root tablet"));
     } catch (KeeperException | InterruptedException e) {
       if (e instanceof InterruptedException) {
         Thread.currentThread().interrupt();

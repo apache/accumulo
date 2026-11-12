@@ -171,15 +171,11 @@ public class TabletMetadataTest {
 
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000").put("server2:8555");
 
-<<<<<<< HEAD
-    LogEntry le1 = LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID());
+    LogEntry le1 =
+        LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
     le1.addToMutation(mutation);
-    LogEntry le2 = LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID());
-=======
-    LogEntry le1 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
-    le1.addToMutation(mutation);
-    LogEntry le2 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
->>>>>>> main
+    LogEntry le2 =
+        LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
     le2.addToMutation(mutation);
 
     StoredTabletFile sf1 = StoredTabletFile.of(new Path("hdfs://nn1/acc/tables/1/t-0001/sf1.rf"));
@@ -521,12 +517,8 @@ public class TabletMetadataTest {
     assertThrows(UnsupportedOperationException.class,
         () -> tm.getFilesMap().put(stf, new DataFileValue(0, 0, 0)));
     assertTrue(tm.getLogs().isEmpty());
-    assertThrows(UnsupportedOperationException.class, () -> tm.getLogs()
-<<<<<<< HEAD
-        .add(LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID())));
-=======
-        .add(LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID())));
->>>>>>> main
+    assertThrows(UnsupportedOperationException.class, () -> tm.getLogs().add(
+        LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID())));
     assertTrue(tm.getScans().isEmpty());
     assertThrows(UnsupportedOperationException.class, () -> tm.getScans().add(stf));
     assertTrue(tm.getLoaded().isEmpty());
@@ -544,11 +536,7 @@ public class TabletMetadataTest {
     b.table(TableId.of("4"));
     b.extCompaction(ecid, ecMeta);
     b.file(stf, new DataFileValue(0, 0, 0));
-<<<<<<< HEAD
-    b.log(LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID()));
-=======
-    b.log(LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID()));
->>>>>>> main
+    b.log(LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID()));
     b.scan(stf);
     b.loadedFile(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
@@ -566,12 +554,8 @@ public class TabletMetadataTest {
     assertThrows(UnsupportedOperationException.class,
         () -> tm2.getFilesMap().put(stf, new DataFileValue(0, 0, 0)));
     assertEquals(1, tm2.getLogs().size());
-    assertThrows(UnsupportedOperationException.class, () -> tm2.getLogs()
-<<<<<<< HEAD
-        .add(LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID())));
-=======
-        .add(LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID())));
->>>>>>> main
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getLogs().add(
+        LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID())));
     assertEquals(1, tm2.getScans().size());
     assertThrows(UnsupportedOperationException.class, () -> tm2.getScans().add(stf));
     assertEquals(1, tm2.getLoaded().size());
@@ -847,13 +831,10 @@ public class TabletMetadataTest {
         new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1", CompactionKind.USER, (short) 3,
             ResourceGroupId.of("Q1"), true, FateId.from(type, UUID.randomUUID()));
 
-<<<<<<< HEAD
-    LogEntry le1 = LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID());
-    LogEntry le2 = LogEntry.fromPath("example", "localhost+8020/" + UUID.randomUUID());
-=======
-    LogEntry le1 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
-    LogEntry le2 = LogEntry.fromPath("file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
->>>>>>> main
+    LogEntry le1 =
+        LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
+    LogEntry le2 =
+        LogEntry.fromPath("example", "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
 
     FateId selFilesFateId = FateId.from(type, UUID.randomUUID());
     SelectedFiles selFiles = new SelectedFiles(Set.of(sf1, sf4), false, selFilesFateId,

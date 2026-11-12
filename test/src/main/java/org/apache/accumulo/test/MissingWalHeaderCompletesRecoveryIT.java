@@ -114,9 +114,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
-      LogEntry logEntry =
-          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
-              HostAndPort.fromParts("127.0.0.1", 12345));
+      LogEntry logEntry = LogEntry.forServer(DfsWalProvider.PROVIDER_ID,
+          cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
+          HostAndPort.fromParts("127.0.0.1", 12345));
 
       log.info("Created empty WAL at {}", logEntry.getPath().toUri());
 
@@ -132,12 +132,6 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-<<<<<<< HEAD
-      LogEntry logEntry =
-          LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, emptyWalog.toUri().toString());
-
-=======
->>>>>>> main
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 
@@ -170,9 +164,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
-      LogEntry logEntry =
-          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
-              HostAndPort.fromParts("127.0.0.1", 12345));
+      LogEntry logEntry = LogEntry.forServer(DfsWalProvider.PROVIDER_ID,
+          cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
+          HostAndPort.fromParts("127.0.0.1", 12345));
       log.info("Created WAL with malformed header at {}", logEntry.getPath().toUri());
 
       // Write half of the header
@@ -191,12 +185,6 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-<<<<<<< HEAD
-      LogEntry logEntry =
-          LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, partialHeaderWalog.toUri().toString());
-
-=======
->>>>>>> main
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 

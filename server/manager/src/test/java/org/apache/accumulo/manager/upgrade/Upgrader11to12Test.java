@@ -85,14 +85,11 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
-<<<<<<< HEAD
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.WalStateManager;
-=======
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
->>>>>>> main
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -200,22 +197,21 @@ public class Upgrader11to12Test extends WithTestNames {
 
     var u2 = mutations.get(1);
     LOG.info("c:{}", u2.prettyPrint());
-    // 1 add, 2 delete
-    assertEquals(3, u2.getUpdates().size());
-    assertEquals(2, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
+    // 2 add, 3 delete (including the WAL provider ID conversion)
+    assertEquals(5, u2.getUpdates().size());
+    assertEquals(3, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
     assertTrue(UPGRADE_FAMILIES.contains(LogColumnFamily.NAME));
 
   }
 
   @Test
-<<<<<<< HEAD
   void upgradeWalReferenceTest() {
     String path = "hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
     Key key = Key.builder().row("123").family(LogColumnFamily.NAME).qualifier("-/" + path).build();
     Value value = new Value();
     ArrayList<Mutation> mutations = new ArrayList<>();
     new Upgrader11to12().processReferences(mutations::add, List.of(Map.entry(key, value)),
-        "accumulo.metadata");
+        "accumulo.metadata", List.of());
 
     assertTrue(UPGRADE_FAMILIES.contains(LogColumnFamily.NAME));
     assertEquals(1, mutations.size());
@@ -232,7 +228,7 @@ public class Upgrader11to12Test extends WithTestNames {
         .qualifier(DfsWalProvider.PROVIDER_ID + "/" + path).build();
     ArrayList<Mutation> retryMutations = new ArrayList<>();
     new Upgrader11to12().processReferences(retryMutations::add,
-        List.of(Map.entry(upgradedKey, value)), "accumulo.metadata");
+        List.of(Map.entry(upgradedKey, value)), "accumulo.metadata", List.of());
     assertTrue(retryMutations.isEmpty());
   }
 
@@ -280,7 +276,9 @@ public class Upgrader11to12Test extends WithTestNames {
     replay(context, zk, zrw);
     new Upgrader11to12().upgradeWalMarkers(context);
     verify(context, zk, zrw);
-=======
+  }
+
+  @Test
   public void processReferencesQualifiesWalPathsUsingVolume(@TempDir java.nio.file.Path tempDir)
       throws Exception {
     Configuration conf = new Configuration();
@@ -304,7 +302,7 @@ public class Upgrader11to12Test extends WithTestNames {
             .qualifier(oldQualifier).build();
         scanData.put(walKey, new Value("wal-value"));
         oldQualifiers.add(oldQualifier);
-        expectedQualifiers.add("-/" + existingWal);
+        expectedQualifiers.add(DfsWalProvider.PROVIDER_ID + "/" + existingWal);
       }
 
       ArrayList<Mutation> mutations = new ArrayList<>();
@@ -357,7 +355,6 @@ public class Upgrader11to12Test extends WithTestNames {
       assertTrue(error.getMessage().contains("accumulo.metadata tablet 123"));
       assertTrue(error.getCause().getMessage().contains("exactly one configured volume"));
     }
->>>>>>> main
   }
 
   @Test

@@ -35,13 +35,8 @@ import com.google.common.collect.Sets;
 public class WalRemovalOrderTest {
 
   private DfsLogger mockLogger(String filename) {
-<<<<<<< HEAD
     var mockLogEntry = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID,
-        filename + "+1234/11111111-1111-1111-1111-111111111111");
-=======
-    var mockLogEntry = LogEntry
-        .fromPath("file:/accumulo/wal/" + filename + "+1234/11111111-1111-1111-1111-111111111111");
->>>>>>> main
+        "file:/accumulo/wal/" + filename + "+1234/11111111-1111-1111-1111-111111111111");
     return DfsLogger.fromLogEntry(mockLogEntry);
   }
 

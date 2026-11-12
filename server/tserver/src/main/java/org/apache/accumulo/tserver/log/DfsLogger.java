@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,7 +74,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.net.HostAndPort;
 
 /**
  * Wrap a connection to a logger.
@@ -305,7 +305,6 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   /**
    * Create a new DfsLogger with the provided characteristics.
    */
-<<<<<<< HEAD
   public static DfsLogger createNew(ServerContext context, WalProvider provider,
       AtomicLong syncCounter, AtomicLong flushCounter, String address) throws IOException {
 
@@ -330,21 +329,6 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       }
       throw e;
     }
-=======
-  public static DfsLogger createNew(ServerContext context, AtomicLong syncCounter,
-      AtomicLong flushCounter, HostAndPort address) throws IOException {
-
-    var chooserEnv =
-        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
-    String logVolume = context.getVolumeManager().choose(chooserEnv, context.getBaseUris());
-
-    LogEntry log = LogEntry.forServer(logVolume, address);
-    DfsLogger dfsLogger = new DfsLogger(log);
-    long slowFlushMillis =
-        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
-    dfsLogger.open(context, syncCounter, flushCounter, slowFlushMillis);
-    return dfsLogger;
->>>>>>> main
   }
 
   /**
@@ -415,50 +399,16 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    * exception is thrown from this method, it is the callers responsibility to ensure that
    * {@link #close()} is called to prevent leaking the file handle and/or syncing thread.
    */
-<<<<<<< HEAD
   private synchronized void open(ServerContext context, WalProvider.Writer writer, String address,
       AtomicLong syncCounter, AtomicLong flushCounter, long slowFlushMillis) throws IOException {
     log.debug("Address is {}", address);
-=======
-  private synchronized void open(ServerContext context, AtomicLong syncCounter,
-      AtomicLong flushCounter, long slowFlushMillis) throws IOException {
-    log.debug("Address is {}", logEntry.getTServer());
->>>>>>> main
 
     log.debug("DfsLogger.open() begin");
 
     LoggerOperation op;
     try {
-<<<<<<< HEAD
       logFile = writer;
       OutputStream output = logFile.getOutputStream();
-=======
-      Path logfilePath = logEntry.getPath();
-      short replication = (short) serverConf.getCount(Property.TSERV_WAL_REPLICATION);
-      if (replication == 0) {
-        replication = fs.getDefaultReplication(logfilePath);
-      }
-      long blockSize = getWalBlockSize(serverConf);
-      if (serverConf.getBoolean(Property.TSERV_WAL_SYNC)) {
-        logFile = fs.createSyncable(logfilePath, 0, replication, blockSize);
-      } else {
-        logFile = fs.create(logfilePath, true, 0, replication, blockSize);
-      }
-
-      // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
-      try {
-        logFile.setDropBehind(Boolean.TRUE);
-      } catch (UnsupportedOperationException e) {
-        log.debug("setDropBehind writes not enabled for wal file: {}", logFile);
-      } catch (IOException e) {
-        log.debug("IOException setting drop behind for file: {}, msg: {}", logFile, e.getMessage());
-      }
-
-      // check again that logfile can be sync'd
-      if (!fs.canSyncAndFlush(logfilePath)) {
-        log.warn("sync not supported for log file {}. Data loss may occur.", logEntry.getPath());
-      }
->>>>>>> main
 
       // Initialize the log file with a header and its encryption
       CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL);
@@ -467,11 +417,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       output.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
-<<<<<<< HEAD
           writer.getReference());
-=======
-          logEntry.getUniqueID());
->>>>>>> main
       FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, new DataOutputStream(output));

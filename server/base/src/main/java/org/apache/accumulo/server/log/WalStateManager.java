@@ -136,7 +136,7 @@ public class WalStateManager {
   }
 
   public void addNewWalMarker(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
-    updateState(tsi, entry.getProviderId(), new Path(entry.getPath()), WalState.OPEN);
+    updateState(tsi, entry.getProviderId(), entry.getPath(), WalState.OPEN);
   }
 
   private void updateState(TServerInstance tsi, Path path, WalState state)
@@ -168,11 +168,11 @@ public class WalStateManager {
   }
 
   public void walUnreferenced(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
-    updateState(tsi, entry.getProviderId(), new Path(entry.getPath()), WalState.UNREFERENCED);
+    updateState(tsi, entry.getProviderId(), entry.getPath(), WalState.UNREFERENCED);
   }
 
   public void closeWal(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
-    closeWal(tsi, new Path(entry.getPath()), entry.getProviderId());
+    closeWal(tsi, entry.getPath(), entry.getProviderId());
   }
 
   public static WalStatePath parse(byte[] data) {

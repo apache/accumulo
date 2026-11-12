@@ -674,13 +674,10 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-<<<<<<< HEAD
-    String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
-    LogEntry logEntry = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, fileName);
-=======
-    LogEntry logEntry = LogEntry.forServer(((MiniAccumuloClusterImpl) getCluster()).getConfig()
-        .getAccumuloDir().toPath().toUri().toString(), HostAndPort.fromParts("localhost", 9997));
->>>>>>> main
+    LogEntry logEntry = LogEntry.forServer(
+        DfsWalProvider.PROVIDER_ID, ((MiniAccumuloClusterImpl) getCluster()).getConfig()
+            .getAccumuloDir().toPath().toUri().toString(),
+        HostAndPort.fromParts("localhost", 9997));
     logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);

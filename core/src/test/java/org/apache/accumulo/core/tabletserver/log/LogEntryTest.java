@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +64,6 @@ public class LogEntryTest {
   }
 
   @Test
-<<<<<<< HEAD
   public void testProviderIdentityFromMetadata() {
     var entry = LogEntry.fromPath("example", validPath);
     var qualifier = entry.getColumnQualifier();
@@ -71,7 +71,7 @@ public class LogEntryTest {
         new Key("1<", LogColumnFamily.STR_NAME, qualifier.toString()), new Value()));
 
     assertEquals("example", restored.getProviderId());
-    assertEquals(validPath, restored.getPath());
+    assertEquals(new Path(validPath), restored.getPath());
     assertEquals(entry, restored);
     assertEquals(PROVIDER_ID, LogEntry.fromPath(PROVIDER_ID, validPath).getProviderId());
   }
@@ -88,9 +88,11 @@ public class LogEntryTest {
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider-id", validPath));
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider_id", validPath));
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath("provider.id", validPath));
-=======
+  }
+
+  @Test
   public void testForServer() {
-    var logEntry = LogEntry.forServer("viewfs:/a/accumulo",
+    var logEntry = LogEntry.forServer(PROVIDER_ID, "viewfs:/a/accumulo",
         HostAndPort.fromString(validHost.replace('+', ':')));
     assertTrue(logEntry.getPath().toUri().getScheme() != null);
 
@@ -107,9 +109,8 @@ public class LogEntryTest {
 
   @Test
   public void testForServerRequiresQualifiedVolume() {
-    assertThrows(IllegalArgumentException.class,
-        () -> LogEntry.forServer("/accumulo", HostAndPort.fromString("localhost:9997")));
->>>>>>> main
+    assertThrows(IllegalArgumentException.class, () -> LogEntry.forServer(PROVIDER_ID, "/accumulo",
+        HostAndPort.fromString("localhost:9997")));
   }
 
   // helper for testing build from constructor or from metadata
@@ -143,17 +144,17 @@ public class LogEntryTest {
     var validPath1 = "file:///accumulo/wal/" + validHost + "/" + validUUID;
     var validPath2 = "hdfs://nn1/accumulo/wal/" + validHost + "/" + validUUID;
 
-<<<<<<< HEAD
-    Stream.of(validPath1, validPath2, validPath3)
-        .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(PROVIDER_ID, s)));
-=======
-    Stream.of(validPath1, validPath2).forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
+    for (String path : new String[] {validPath1, validPath2}) {
+      assertDoesNotThrow(() -> LogEntry.fromPath(PROVIDER_ID, path));
+    }
   }
 
   @Test
   public void testRelativePathsAreInvalid() {
-    Stream.of(validHost + "/" + validUUID, "file:accumulo/wal/" + validHost + "/" + validUUID)
-        .forEach(s -> assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(s)));
+    for (String path : new String[] {validHost + "/" + validUUID,
+        "file:accumulo/wal/" + validHost + "/" + validUUID}) {
+      assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(PROVIDER_ID, path));
+    }
   }
 
   @Test
@@ -162,7 +163,6 @@ public class LogEntryTest {
     var entry = new SimpleImmutableEntry<Key,Value>(
         new Key("1<", LogColumnFamily.STR_NAME, qualifier), null);
     assertThrows(IllegalArgumentException.class, () -> LogEntry.fromMetaWalEntry(entry));
->>>>>>> main
   }
 
   @Test
