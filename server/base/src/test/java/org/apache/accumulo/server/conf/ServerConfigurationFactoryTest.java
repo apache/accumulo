@@ -28,11 +28,14 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.ConfigCheckUtil.ConfigCheckException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -127,6 +130,27 @@ public class ServerConfigurationFactoryTest {
     TableConfiguration tableConfigSingleton = scf.getTableConfiguration(TID);
     assertEquals(TID, tableConfigSingleton.getTableId());
     assertSame(tableConfigSingleton, scf.getTableConfiguration(TID));
+  }
+
+  @Test
+  public void testInvalidResourceGroupConfigFailsOnLoad() {
+    PropStore badPropStore = createMock(ZooPropStore.class);
+    expect(badPropStore.get(eq(SystemPropKey.of()))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    expect(badPropStore.get(eq(ResourceGroupPropKey.DEFAULT)))
+        .andReturn(new VersionedProperties(Map.of(Property.TSERV_MAXMEM.getKey(), "notAMemSize")))
+        .anyTimes();
+    badPropStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+
+    ServerContext badContext = createMock(ServerContext.class);
+    expect(badContext.getPropStore()).andReturn(badPropStore).anyTimes();
+    expect(badContext.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
+    replay(badPropStore, badContext);
+
+    var badScf = new ServerConfigurationFactory(badContext, siteConfig, ResourceGroupId.DEFAULT);
+    assertThrows(ConfigCheckException.class, badScf::getResourceGroupConfiguration,
+        "invalid resource group property should fail when the config is loaded");
   }
 
 }

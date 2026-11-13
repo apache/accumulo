@@ -36,8 +36,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -322,8 +324,12 @@ public class UpgradeCoordinator {
         ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
             table + " table configuration");
       }
+      for (ResourceGroupId rg : context.resourceGroupOperations().list()) {
+        ConfigCheckUtil.validate(context.resourceGroupOperations().getProperties(rg).entrySet(),
+            rg + " resource group configuration");
+      }
     } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
-        | TableNotFoundException e) {
+        | TableNotFoundException | ResourceGroupNotFoundException e) {
       throw new IllegalStateException("Error checking properties", e);
     }
     try {

@@ -89,8 +89,10 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       return sysConf;
     });
     this.resourceGroupConfig = memoize(() -> {
-      return new ResourceGroupConfiguration(context, ResourceGroupPropKey.of(rgid),
+      var rgConf = new ResourceGroupConfiguration(context, ResourceGroupPropKey.of(rgid),
           (SystemConfiguration) getSystemConfiguration());
+      ConfigCheckUtil.validate(rgConf, "resource group config: " + rgid);
+      return rgConf;
     });
     tableParentConfigs =
         Caches.getInstance().createNewBuilder(CacheName.TABLE_PARENT_CONFIGS, false)

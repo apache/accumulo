@@ -43,21 +43,7 @@ public class SystemConfiguration extends ZooBasedConfiguration {
     if (Property.isFixedZooPropertyKey(property)) {
       return runtimeFixedProps.get(property);
     }
-
-    String key = property.getKey();
-    String value = null;
-    if (Property.isValidZooPropertyKey(key)) {
-      value = getSnapshot().get(key);
-    }
-
-    if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null) {
-        log.error("Using parent value for {} due to improperly formatted {}: {}", key,
-            property.getType(), value);
-      }
-      value = getParent().get(property);
-    }
-    return value;
+    return super.get(property);
   }
 
   @Override
