@@ -37,7 +37,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -395,9 +395,8 @@ public class Fate<T> extends FateClient<T> {
    * optionally waits on them. Leaves the fate object in a state where it can still update and read
    * fate data, like add a new fate operation or get the status of an existing fate operation.
    */
-  public void shutdown(long timeout, TimeUnit timeUnit) {
-    log.info("Shutting down {} FATE, waiting: {} seconds", store.type(),
-        TimeUnit.SECONDS.convert(timeout, timeUnit));
+  public void shutdown(Duration timeout) {
+    log.info("Shutting down {} FATE, waiting: {} seconds", store.type(), timeout.toSeconds());
     // important this is set before shutdownNow is called as the background
     // threads will check this to see if shutdown related errors should be ignored.
     if (keepRunning.compareAndSet(true, false)) {
@@ -412,18 +411,17 @@ public class Fate<T> extends FateClient<T> {
       fatePoolsWatcherFuture.cancel(false);
     }
 
-    if (timeout > 0) {
-      long start = System.nanoTime();
+    if (timeout.compareTo(Duration.ZERO) > 0) {
+      final CountDownTimer countdown = CountDownTimer.startNew(timeout);
       try {
-        waitForAllFateExecShutdown(start, timeout, timeUnit);
-        waitForDeadResCleanerShutdown(start, timeout, timeUnit);
+        waitForAllFateExecShutdown(countdown);
+        waitForDeadResCleanerShutdown(countdown);
 
         if (anyFateExecutorIsAlive() || deadResCleanerIsAlive()) {
           log.warn(
-              "Waited for {}ms for all fate {} background threads to stop, but some are still running. "
+              "Waited {}ms for all fate {} background threads to stop, but some are still running. "
                   + "fate executor threads:{} dead reservation cleaner thread:{} ",
-              TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
-              anyFateExecutorIsAlive(), deadResCleanerIsAlive());
+              timeout.toMillis(), store.type(), anyFateExecutorIsAlive(), deadResCleanerIsAlive());
         }
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
@@ -450,7 +448,7 @@ public class Fate<T> extends FateClient<T> {
    * Initiates shutdown of all fate threads and prevents reads and updates of fates persisted data.
    */
   public void close() {
-    shutdown(0, SECONDS);
+    shutdown(Duration.ZERO);
     store.close();
   }
 
@@ -485,18 +483,16 @@ public class Fate<T> extends FateClient<T> {
     return deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated();
   }
 
-  private void waitForAllFateExecShutdown(long start, long timeout, TimeUnit timeUnit)
-      throws InterruptedException {
+  private void waitForAllFateExecShutdown(CountDownTimer countdown) throws InterruptedException {
     synchronized (fateExecutors) {
       for (var fateExecutor : fateExecutors) {
-        fateExecutor.waitForShutdown(start, timeout, timeUnit);
+        fateExecutor.waitForShutdown(countdown);
       }
     }
   }
 
-  private void waitForDeadResCleanerShutdown(long start, long timeout, TimeUnit timeUnit)
-      throws InterruptedException {
-    while (((System.nanoTime() - start) < timeUnit.toNanos(timeout)) && deadResCleanerIsAlive()) {
+  private void waitForDeadResCleanerShutdown(CountDownTimer countdown) throws InterruptedException {
+    while (!countdown.isExpired() && deadResCleanerIsAlive()) {
       if (deadResCleanerExecutor != null && !deadResCleanerExecutor.awaitTermination(1, SECONDS)) {
         log.debug("Fate {} is waiting for dead reservation cleaner thread to terminate",
             store.type());

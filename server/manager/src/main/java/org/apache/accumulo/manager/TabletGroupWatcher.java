@@ -128,6 +128,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
+  private static final Duration EVENT_POLL_TIMEOUT = Duration.ofMillis(100);
 
   private static final EscalatingLogger TABLET_UNLOAD_LOGGER =
       new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Logger::info);
@@ -314,7 +315,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       public void run() {
         try {
           while (manager.stillManager()) {
-            var events = eventQueue.poll(100, TimeUnit.MILLISECONDS);
+            var events = eventQueue.poll(EVENT_POLL_TIMEOUT);
 
             if (events.isEmpty()) {
               // check to see if still the manager

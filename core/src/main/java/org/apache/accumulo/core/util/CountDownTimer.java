@@ -50,11 +50,12 @@ public class CountDownTimer {
   /**
    * Starts a new countdown timer with the specified duration.
    *
-   * @param duration the countdown duration, must be non-negative.
+   * @param duration the countdown duration, must be non-negative. Durations too large to represent
+   *        in nanoseconds (~292 years) are capped, so the timer effectively never expires.
    */
   public static CountDownTimer startNew(Duration duration) {
     Preconditions.checkArgument(!duration.isNegative());
-    return new CountDownTimer(duration.toNanos());
+    return new CountDownTimer(Timer.toNanos(duration));
   }
 
   /**
