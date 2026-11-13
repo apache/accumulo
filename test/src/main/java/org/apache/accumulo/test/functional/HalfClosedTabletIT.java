@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.util.test.URLContextClassLoaderFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
@@ -71,6 +72,8 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
+      cfg.setProperty(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY,
+          URLContextClassLoaderFactory.class.getName());
     }
 
   }

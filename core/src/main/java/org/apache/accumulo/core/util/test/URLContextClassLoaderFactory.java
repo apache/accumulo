@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.classloader;
+package org.apache.accumulo.core.util.test;
 
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
@@ -34,8 +34,8 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 
 /**
- * The default implementation of ContextClassLoaderFactory. This classloader returns a
- * URLClassLoader based on the given context value which is a CSV list of URLs. For example,
+ * A test implementation of ContextClassLoaderFactory. This classloader returns a URLClassLoader
+ * based on the given context value which is a CSV list of URLs. For example,
  * file://path/one/jar1.jar,file://path/two/jar2.jar
  */
 public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {

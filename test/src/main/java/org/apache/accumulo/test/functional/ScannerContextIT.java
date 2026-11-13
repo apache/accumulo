@@ -43,8 +43,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.test.URLContextClassLoaderFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +65,12 @@ public class ScannerContextIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY,
+        URLContextClassLoaderFactory.class.getName());
   }
 
   @BeforeEach
