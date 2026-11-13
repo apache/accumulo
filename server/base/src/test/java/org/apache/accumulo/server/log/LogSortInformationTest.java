@@ -30,19 +30,28 @@ class LogSortInformationTest {
   @Test
   void roundTrip() {
     UUID sortId = UUID.randomUUID();
-    LogSortInformation work = new LogSortInformation(sortId, "hdfs://nn/wal/another-file.wal",
-        "hdfs://nn/recovery/sorted");
+    LogSortInformation work = new LogSortInformation(sortId, DfsWalProvider.PROVIDER_ID,
+        "hdfs://nn/wal/" + sortId, "hdfs://nn/recovery/sorted");
 
     assertEquals(work, LogSortInformation.deserialize(work.serialize()));
   }
 
   @Test
   void malformedPayload() {
+    String id = UUID.randomUUID().toString();
+    for (String payload : new String[] {id + "||source|dest", id + "|bad-id|source|dest",
+        id + "|dfs||dest", id + "|dfs|source| "}) {
+      assertThrows(IllegalArgumentException.class, () -> LogSortInformation.deserialize(payload));
+    }
+    assertThrows(IllegalArgumentException.class,
+        () -> new LogSortInformation(UUID.randomUUID(), "dfs", "source|extra", "dest"));
     assertThrows(IllegalArgumentException.class,
         () -> LogSortInformation.deserialize("source|dest"));
     assertThrows(IllegalArgumentException.class,
         () -> LogSortInformation.deserialize("not-a-uuid|source|dest"));
     assertThrows(IllegalArgumentException.class,
-        () -> LogSortInformation.deserialize(UUID.randomUUID() + "|source|dest|extra"));
+        () -> LogSortInformation.deserialize(UUID.randomUUID() + "|source|dest"));
+    assertThrows(IllegalArgumentException.class,
+        () -> LogSortInformation.deserialize(UUID.randomUUID() + "provider|source|dest|extra"));
   }
 }

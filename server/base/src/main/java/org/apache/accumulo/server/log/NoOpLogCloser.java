@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.manager.recovery;
+package org.apache.accumulo.server.log;
 
 import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -39,8 +38,8 @@ import org.slf4j.LoggerFactory;
  * recovery will not work if the file system implementation needs some type of recovery to occur for
  * files that were being written to, but not properly closed.
  *
- * To use this class, set the Property {@link Property#MANAGER_WAL_CLOSER_IMPLEMENTATION} to the
- * full name of this class.
+ * + * To use this class, set the {@link DfsWalProvider#LOG_CLOSER_OPTION} option for + *
+ * {@link DfsWalProvider} in {@code instance.wal.providers} to the full name of this class.
  */
 public class NoOpLogCloser implements LogCloser {
 

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.log.WalStateManager.WalStatePath;
@@ -99,7 +100,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id))
-        .andReturn(new WalStatePath(WalState.UNREFERENCED, path));
+        .andReturn(new WalStatePath(WalState.UNREFERENCED, DfsWalProvider.PROVIDER_ID, path));
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
@@ -139,7 +140,8 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
-    EasyMock.expect(marker.state(server1, id)).andReturn(new WalStatePath(WalState.CLOSED, path));
+    EasyMock.expect(marker.state(server1, id))
+        .andReturn(new WalStatePath(WalState.CLOSED, DfsWalProvider.PROVIDER_ID, path));
     EasyMock.replay(conf, context, marker, tserverSet, fs);
     var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
 
@@ -175,7 +177,8 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
-    EasyMock.expect(marker.state(server2, id)).andReturn(new WalStatePath(WalState.OPEN, path));
+    EasyMock.expect(marker.state(server2, id))
+        .andReturn(new WalStatePath(WalState.OPEN, DfsWalProvider.PROVIDER_ID, path));
 
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
     marker.removeWalMarker(server2, id);
@@ -215,7 +218,8 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
-    EasyMock.expect(marker.state(server2, id)).andReturn(new WalStatePath(WalState.OPEN, path));
+    EasyMock.expect(marker.state(server2, id))
+        .andReturn(new WalStatePath(WalState.OPEN, DfsWalProvider.PROVIDER_ID, path));
 
     EasyMock.replay(conf, context, fs, marker, tserverSet);
     GarbageCollectWriteAheadLogs gc =

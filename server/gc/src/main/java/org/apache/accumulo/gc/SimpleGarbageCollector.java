@@ -96,6 +96,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   protected SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
+    getContext().getWalProviderRegistry();
 
     final AccumuloConfiguration conf = getConfiguration();
 

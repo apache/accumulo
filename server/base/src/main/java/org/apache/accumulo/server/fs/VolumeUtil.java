@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -130,6 +131,9 @@ public class VolumeUtil {
 
     log.trace("Using volume replacements: {}", replacements);
     for (LogEntry logEntry : tm.getLogs()) {
+      if (!logEntry.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
+        continue;
+      }
       log.trace("Evaluating walog {} for replacement.", logEntry);
       LogEntry switchedLogEntry = switchVolume(logEntry, replacements);
       if (switchedLogEntry != null) {

@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
@@ -185,7 +186,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
 
     assertThrows(IOException.class,
         () -> new RecoveryLogsIterator(context,
-            Collections.singletonList(ResolvedSortedLog.resolve(LogEntry.fromPath(destPath), fs)),
+            Collections.singletonList(ResolvedSortedLog
+                .resolve(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, destPath), fs)),
             null, null, false),
         "Finish marker should not be found for a single file.");
   }
@@ -266,7 +268,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
       }
 
-      var rsl = ResolvedSortedLog.resolve(LogEntry.fromPath(origPath), fs);
+      var rsl =
+          ResolvedSortedLog.resolve(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, origPath), fs);
       dirs.add(rsl);
     }
   }

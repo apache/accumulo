@@ -18,34 +18,46 @@
  */
 package org.apache.accumulo.server.log;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.util.UUID;
+
+import org.apache.accumulo.core.spi.wal.WalProvider;
 
 /**
  * The information needed to sort a write-ahead log, and its representation in the recovery work
  * queue.
  */
-public record LogSortInformation(UUID sortId, String source, String destination) {
+public record LogSortInformation(UUID sortId, String providerId, String source,
+    String destination) {
 
   public LogSortInformation {
     requireNonNull(sortId, "sortId is null");
+    requireNonNull(providerId, "providerId is null");
     requireNonNull(source, "source is null");
     requireNonNull(destination, "destination is null");
+    checkArgument(providerId.matches(WalProvider.PROVIDER_ID_REGEX), "Invalid WAL provider ID: %s",
+        providerId);
+    checkArgument(!source.isBlank() && !destination.isBlank(),
+        "Recovery source and destination must not be blank");
+    checkArgument(source.indexOf('|') < 0 && destination.indexOf('|') < 0,
+        "Recovery source and destination must not contain '|'");
   }
 
   /** Serialize this work item for storage in ZooKeeper. */
   public String serialize() {
-    return sortId + "|" + source + "|" + destination;
+    return sortId + "|" + providerId + "|" + source + "|" + destination;
   }
 
   /** Parse a serialized recovery work item. */
   public static LogSortInformation deserialize(String serialized) {
     requireNonNull(serialized, "serialized sort information is null");
     String[] parts = serialized.split("\\|", -1);
-    if (parts.length != 3) {
-      throw new IllegalArgumentException("Malformed log sort work: " + serialized);
+    if (parts.length != 4) {
+      throw new IllegalArgumentException("serialized sort information " + serialized
+          + " is not in the expected 4-part format sortId|providerId|source|dest");
     }
-    return new LogSortInformation(UUID.fromString(parts[0]), parts[1], parts[2]);
+    return new LogSortInformation(UUID.fromString(parts[0]), parts[1], parts[2], parts[3]);
   }
 }

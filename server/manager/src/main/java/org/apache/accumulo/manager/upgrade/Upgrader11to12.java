@@ -89,6 +89,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.wal.WalProvider;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.TextUtil;
@@ -104,7 +105,10 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.log.DfsWalProvider;
+import org.apache.accumulo.server.log.HadoopLogCloser;
 import org.apache.accumulo.server.log.LogSortInformation;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -118,6 +122,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonParser;
 
 //TODO when removing this class, also remove MetadataSchema.Upgrader11to12
 public class Upgrader11to12 implements Upgrader {
@@ -238,10 +243,16 @@ public class Upgrader11to12 implements Upgrader {
   public static final Collection<Range> OLD_SCAN_SERVERS_RANGES =
       List.of(new Range("~sserv", "~sserx"), new Range("~scanref", "~scanreg"));
 
+  private static final String LEGACY_LOG_CLOSER_PROPERTY = "manager.wal.closer.implementation";
+
   @Override
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
+    LOG.info("Migrating WAL closer configuration");
+    upgradeWalCloserConfiguration(context);
+    LOG.info("Upgrading WAL provider IDs in ZooKeeper markers");
+    upgradeWalMarkers(context);
     LOG.info("Updating recovery work payloads");
     updateRecoveryWork(context);
     LOG.info("Removing ZTracer node");
@@ -278,6 +289,36 @@ public class Upgrader11to12 implements Upgrader {
     addShuttingDownTservers(context);
   }
 
+  @VisibleForTesting
+  void upgradeWalCloserConfiguration(ServerContext context) {
+    if (context.getSiteConfiguration().get(LEGACY_LOG_CLOSER_PROPERTY) != null) {
+      throw new IllegalStateException("Remove " + LEGACY_LOG_CLOSER_PROPERTY
+          + " from site configuration and configure the DFS WAL provider's logCloser option instead");
+    }
+    var key = SystemPropKey.of();
+    String oldCloser = context.getPropStore().get(key).asMap().get(LEGACY_LOG_CLOSER_PROPERTY);
+    if (oldCloser != null) {
+      validateWalCloserConfiguration(oldCloser,
+          context.getConfiguration().get(Property.INSTANCE_WAL_PROVIDERS));
+      context.getPropStore().removeProperties(key, Set.of(LEGACY_LOG_CLOSER_PROPERTY));
+    }
+  }
+
+  static void validateWalCloserConfiguration(String oldCloser, String providers) {
+    if (oldCloser.equals(HadoopLogCloser.class.getName())) {
+      return;
+    }
+    var options = JsonParser.parseString(providers).getAsJsonObject()
+        .getAsJsonObject(DfsWalProvider.class.getName());
+    if (options == null || !options.has(DfsWalProvider.LOG_CLOSER_OPTION)
+        || !oldCloser.equals(options.get(DfsWalProvider.LOG_CLOSER_OPTION).getAsString())) {
+      throw new IllegalStateException("Configure " + DfsWalProvider.class.getName() + " option "
+          + DfsWalProvider.LOG_CLOSER_OPTION + " as " + oldCloser + " in "
+          + Property.INSTANCE_WAL_PROVIDERS.getKey() + " before removing "
+          + LEGACY_LOG_CLOSER_PROPERTY);
+    }
+  }
+
   private void updateRecoveryWork(ServerContext context) {
     try {
       upgradeRecoveryWork(context.getZooSession().asReaderWriter());
@@ -312,7 +353,7 @@ public class Upgrader11to12 implements Upgrader {
 
     // This item may already have been converted if an earlier upgrade attempt failed partway
     // through. Validate it and leave it unchanged so the operation is safe to retry.
-    if (parts.length == 3) {
+    if (parts.length == 4) {
       LogSortInformation work = LogSortInformation.deserialize(serialized);
       if (!work.sortId().equals(sortId)) {
         throw new IllegalStateException("Recovery work ID does not match child " + child);
@@ -323,7 +364,8 @@ public class Upgrader11to12 implements Upgrader {
     if (parts.length != 2) {
       throw new IllegalArgumentException("Malformed legacy recovery work for " + child);
     }
-    return new LogSortInformation(sortId, parts[0], parts[1]).serialize();
+    return new LogSortInformation(sortId, DfsWalProvider.PROVIDER_ID, parts[0], parts[1])
+        .serialize();
   }
 
   @Override
@@ -877,31 +919,30 @@ public class Upgrader11to12 implements Upgrader {
 
   private static void upgradeWalEntry(Entry<Key,Value> entry, Value value, Mutation mutation,
       Collection<Volume> volumes) throws IOException {
+    Text qualifier = entry.getKey().getColumnQualifier();
+    String qualifierString = qualifier.toString();
+    int separator = qualifierString.indexOf('/');
+    Preconditions.checkArgument(separator > 0, "Malformed write-ahead log %s", qualifierString);
+    String providerId = qualifierString.substring(0, separator);
+    if (providerId.equals("-")) {
+      providerId = DfsWalProvider.PROVIDER_ID;
+    }
+    String reference = qualifierString.substring(separator + 1);
+    LogEntry logEntry;
     try {
-      LogEntry.fromMetaWalEntry(entry);
-      return;
+      logEntry = LogEntry.fromPath(providerId, reference);
     } catch (IllegalArgumentException e) {
-      if (e.getMessage().startsWith("Invalid path format. The path must be an absolute URI: ")) {
-        // The wal entry passed all of the other checks, except that it's not an absolute
-        // URI.
-        Text qualifier = entry.getKey().getColumnQualifier();
-        String qualifierString = qualifier.toString();
-        int separator = qualifierString.indexOf('/');
-        if (separator < 0) {
-          throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
-        }
-
-        String oldPath = qualifierString.substring(separator + 1);
-        Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
-        // Validate the expected WAL path structure before writing an upgraded reference.
-        LogEntry.fromPath(qualifiedPath.toString());
-
-        Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
-        mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
-        mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
-      } else {
+      if (!providerId.equals(DfsWalProvider.PROVIDER_ID) || !e.getMessage()
+          .startsWith("Invalid path format. The path must be an absolute URI: ")) {
         throw e;
       }
+      Path qualifiedPath = qualifyWalPath(new Path(reference), volumes);
+      logEntry = LogEntry.fromPath(providerId, qualifiedPath.toString());
+    }
+    Text newQualifier = logEntry.getColumnQualifier();
+    if (!newQualifier.equals(qualifier)) {
+      mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
+      mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
     }
   }
 
@@ -1006,6 +1047,71 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  private static void verifyNoLegacyWalReference(Key key, String source) {
+    if (key.getColumnFamily().equals(LogColumnFamily.NAME)
+        && key.getColumnQualifier().toString().startsWith("-/")) {
+      throw new IllegalStateException(
+          "Legacy WAL reference remains after upgrade in " + source + ": " + key);
+    }
+  }
+
+  static String upgradeWalMarker(String markerData) {
+    String[] fields = markerData.split(",", 3);
+    String upgraded;
+    if (fields.length == 2) {
+      upgraded = fields[0] + "," + DfsWalProvider.PROVIDER_ID + "," + fields[1];
+    } else if (fields.length == 3) {
+      upgraded = markerData;
+    } else {
+      throw new IllegalStateException("Malformed WAL marker: " + markerData);
+    }
+
+    String[] upgradedFields = upgraded.split(",", 3);
+    try {
+      WalStateManager.WalState.valueOf(upgradedFields[0]);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalStateException("Malformed WAL marker: " + markerData, e);
+    }
+    if (!upgradedFields[1].matches(WalProvider.PROVIDER_ID_REGEX) || upgradedFields[2].isBlank()) {
+      throw new IllegalStateException("Malformed WAL marker: " + markerData);
+    }
+    return upgraded;
+  }
+
+  @VisibleForTesting
+  void upgradeWalMarkers(ServerContext context) {
+    var zrw = context.getZooSession().asReaderWriter();
+    try {
+      String walRoot = WalStateManager.ZWALS;
+      if (!zrw.exists(walRoot)) {
+        return;
+      }
+      for (String server : zrw.getChildren(walRoot)) {
+        String serverPath = walRoot + "/" + server;
+        for (String marker : zrw.getChildren(serverPath)) {
+          String markerPath = serverPath + "/" + marker;
+          byte[] markerData = zrw.getData(markerPath);
+          String data = new String(markerData, UTF_8);
+          String upgraded = upgradeWalMarker(data);
+          if (!upgraded.equals(data)) {
+            zrw.putPersistentData(markerPath, upgraded.getBytes(UTF_8),
+                ZooUtil.NodeExistsPolicy.OVERWRITE);
+            String persisted = new String(zrw.getData(markerPath), UTF_8);
+            if (!persisted.equals(upgraded)) {
+              throw new IllegalStateException("Failed to upgrade WAL marker " + markerPath
+                  + ": expected " + upgraded + " but found " + persisted);
+            }
+          }
+        }
+      }
+    } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      throw new IllegalStateException("Error upgrading WAL provider IDs in ZooKeeper", e);
+    }
+  }
+
   @VisibleForTesting
   void updateRootTabletFileReferences(ServerContext context) {
     try {
@@ -1030,9 +1136,14 @@ public class Upgrader11to12 implements Upgrader {
       if (!mutations.isEmpty()) {
         LOG.info("Root metadata in ZooKeeper before upgrade: {}", json);
         rtm.update(mutations.get(0));
-        zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        if (!zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8),
+            stat.getVersion())) {
+          throw new IllegalStateException("Could not update root tablet file references");
+        }
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
+      new RootTabletMetadata(new String(zrw.getData(ZROOT_TABLET), UTF_8)).getKeyValues()
+          .forEach(entry -> verifyNoLegacyWalReference(entry.getKey(), "root tablet"));
     } catch (KeeperException | InterruptedException e) {
       if (e instanceof InterruptedException) {
         Thread.currentThread().interrupt();
@@ -1085,6 +1196,19 @@ public class Upgrader11to12 implements Upgrader {
       LOG.warn("Failed to update reference for table: " + metaName);
       LOG.warn("Constraint violations: {}", mex.getConstraintViolationSummaries());
       throw new IllegalStateException("Failed to process table: " + metaName, mex);
+    }
+    verifyNoLegacyWalReferences(context, metaName);
+  }
+
+  private void verifyNoLegacyWalReferences(ServerContext context, String metaName) {
+    try (Scanner scanner = context.createScanner(metaName, Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
+      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      for (Entry<Key,Value> entry : scanner) {
+        verifyNoLegacyWalReference(entry.getKey(), metaName);
+      }
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Failed to verify WAL references in " + metaName, e);
     }
   }
 

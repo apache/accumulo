@@ -86,7 +86,11 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.DfsWalProvider;
+import org.apache.accumulo.server.log.HadoopLogCloser;
 import org.apache.accumulo.server.log.LogSortInformation;
+import org.apache.accumulo.server.log.NoOpLogCloser;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -196,11 +200,85 @@ public class Upgrader11to12Test extends WithTestNames {
 
     var u2 = mutations.get(1);
     LOG.info("c:{}", u2.prettyPrint());
-    // 1 add, 2 delete
-    assertEquals(3, u2.getUpdates().size());
-    assertEquals(2, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
+    // 2 add, 3 delete (including the WAL provider ID conversion)
+    assertEquals(5, u2.getUpdates().size());
+    assertEquals(3, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
     assertTrue(UPGRADE_FAMILIES.contains(LogColumnFamily.NAME));
 
+  }
+
+  @Test
+  void upgradeWalReferenceTest() {
+    String path = "hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
+    Key key = Key.builder().row("123").family(LogColumnFamily.NAME).qualifier("-/" + path).build();
+    Value value = new Value();
+    ArrayList<Mutation> mutations = new ArrayList<>();
+    new Upgrader11to12().processReferences(mutations::add, List.of(Map.entry(key, value)),
+        "accumulo.metadata", List.of());
+
+    assertTrue(UPGRADE_FAMILIES.contains(LogColumnFamily.NAME));
+    assertEquals(1, mutations.size());
+    Mutation mutation = mutations.get(0);
+    var updates = mutation.getUpdates();
+    assertEquals(2, updates.size());
+    var added = updates.stream().filter(update -> !update.isDeleted()).findFirst().orElseThrow();
+    var deleted = updates.stream().filter(ColumnUpdate::isDeleted).findFirst().orElseThrow();
+    assertEquals(DfsWalProvider.PROVIDER_ID + "/" + path,
+        new Text(added.getColumnQualifier()).toString());
+    assertEquals("-/" + path, new Text(deleted.getColumnQualifier()).toString());
+
+    Key upgradedKey = Key.builder().row("123").family(LogColumnFamily.NAME)
+        .qualifier(DfsWalProvider.PROVIDER_ID + "/" + path).build();
+    ArrayList<Mutation> retryMutations = new ArrayList<>();
+    new Upgrader11to12().processReferences(retryMutations::add,
+        List.of(Map.entry(upgradedKey, value)), "accumulo.metadata", List.of());
+    assertTrue(retryMutations.isEmpty());
+  }
+
+  @Test
+  void upgradeWalMarkerIsIdempotentAndRejectsInvalidProviderIds() {
+    String oldData = "CLOSED,hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
+    String upgraded = "CLOSED," + DfsWalProvider.PROVIDER_ID
+        + ",hdfs://nn/accumulo/wal/host+1234/11111111-1111-1111-1111-111111111111";
+    assertEquals(upgraded, Upgrader11to12.upgradeWalMarker(oldData));
+    assertEquals(upgraded, Upgrader11to12.upgradeWalMarker(upgraded));
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader11to12.upgradeWalMarker("CLOSED,provider-id,path"));
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader11to12.upgradeWalMarker("CLOSED,-,path"));
+  }
+
+  @Test
+  void upgradeWalMarkersTest() throws Exception {
+    ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createMock(ZooSession.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+    String server = "localhost:9997[1]";
+    String uuid = "11111111-1111-1111-1111-111111111111";
+    String markerPath = WalStateManager.ZWALS + "/" + server + "/" + uuid;
+    String oldData = "CLOSED,hdfs://nn/accumulo/wal/host+1234/" + uuid;
+    String newData = "OPEN," + DfsWalProvider.PROVIDER_ID
+        + ",hdfs://nn/accumulo/wal/host+1234/22222222-2222-2222-2222-222222222222";
+
+    expect(context.getZooSession()).andReturn(zk);
+    expect(zk.asReaderWriter()).andReturn(zrw);
+    expect(zrw.exists(WalStateManager.ZWALS)).andReturn(true);
+    expect(zrw.getChildren(WalStateManager.ZWALS)).andReturn(List.of(server));
+    expect(zrw.getChildren(WalStateManager.ZWALS + "/" + server)).andReturn(List.of(uuid, "222"));
+    expect(zrw.getData(markerPath)).andReturn(oldData.getBytes(UTF_8));
+    expect(zrw.putPersistentData(markerPath,
+        ("CLOSED," + DfsWalProvider.PROVIDER_ID + "," + oldData.substring("CLOSED,".length()))
+            .getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.OVERWRITE)).andReturn(true);
+    expect(zrw.getData(markerPath)).andReturn(
+        ("CLOSED," + DfsWalProvider.PROVIDER_ID + "," + oldData.substring("CLOSED,".length()))
+            .getBytes(UTF_8));
+    expect(zrw.getData(WalStateManager.ZWALS + "/" + server + "/222"))
+        .andReturn(newData.getBytes(UTF_8));
+
+    replay(context, zk, zrw);
+    new Upgrader11to12().upgradeWalMarkers(context);
+    verify(context, zk, zrw);
   }
 
   @Test
@@ -227,7 +305,7 @@ public class Upgrader11to12Test extends WithTestNames {
             .qualifier(oldQualifier).build();
         scanData.put(walKey, new Value("wal-value"));
         oldQualifiers.add(oldQualifier);
-        expectedQualifiers.add("-/" + existingWal);
+        expectedQualifiers.add(DfsWalProvider.PROVIDER_ID + "/" + existingWal);
       }
 
       ArrayList<Mutation> mutations = new ArrayList<>();
@@ -501,6 +579,7 @@ public class Upgrader11to12Test extends WithTestNames {
     Capture<byte[]> byteCapture = newCapture();
     expect(zrw.overwritePersistentData(eq("/root_tablet"), capture(byteCapture), eq(123)))
         .andReturn(true).once();
+    expect(zrw.getData("/root_tablet")).andAnswer(byteCapture::getValue);
 
     expect(zrw.getData(eq(Constants.ZNAMESPACES))).andReturn(new byte[0]).once();
     Map<String,String> mockNamespaces = Map.of("ns1", "ns1name", "ns2", "ns2name");
@@ -636,7 +715,8 @@ public class Upgrader11to12Test extends WithTestNames {
     String source = "hdfs://localhost:8020/accumulo/wal/server/old-name.wal";
     String destination = "hdfs://localhost:8020/accumulo/recovery/sorted";
     String oldPayload = source + "|" + destination;
-    String newPayload = new LogSortInformation(sortId, source, destination).serialize();
+    String newPayload =
+        new LogSortInformation(sortId, DfsWalProvider.PROVIDER_ID, source, destination).serialize();
 
     expect(zrw.getChildren(Constants.ZRECOVERY)).andReturn(List.of(sortId.toString(), "locks"));
     expect(zrw.getData(childPath)).andReturn(oldPayload.getBytes(UTF_8));
@@ -651,7 +731,9 @@ public class Upgrader11to12Test extends WithTestNames {
   @Test
   void testConvertRecoveryWorkIsIdempotent() {
     UUID sortId = UUID.randomUUID();
-    String payload = new LogSortInformation(sortId, "source", "destination").serialize();
+    String payload =
+        new LogSortInformation(sortId, DfsWalProvider.PROVIDER_ID, "source", "destination")
+            .serialize();
 
     assertEquals(payload, Upgrader11to12.convertRecoveryWork(sortId.toString(), payload));
     assertThrows(IllegalStateException.class,
@@ -803,4 +885,70 @@ public class Upgrader11to12Test extends WithTestNames {
     verify(context, propStore, sysVerProps, systemNsProps, defaultNsProps, testNsProps, nsmap);
 
   }
+
+  @Test
+  void testMalformedRecoveryWork() {
+    String id = UUID.randomUUID().toString();
+    for (String payload : List.of("source", "|destination", "source|", id + "||source|destination",
+        id + "|bad-id|source|destination", id + "|dfs||destination")) {
+      assertThrows(IllegalArgumentException.class,
+          () -> Upgrader11to12.convertRecoveryWork(id, payload), payload);
+    }
+  }
+
+  @Test
+  void testRecoveryWorkWriteFailure() throws Exception {
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+    String id = UUID.randomUUID().toString();
+    String path = Constants.ZRECOVERY + "/" + id;
+    expect(zrw.getChildren(Constants.ZRECOVERY)).andReturn(List.of(id));
+    expect(zrw.getData(path)).andReturn("source|destination".getBytes(UTF_8));
+    expect(zrw.overwritePersistentData(eq(path),
+        aryEq((id + "|dfs|source|destination").getBytes(UTF_8)), eq(-1))).andReturn(false);
+    replay(zrw);
+    assertThrows(IllegalStateException.class, () -> new Upgrader11to12().upgradeRecoveryWork(zrw));
+    verify(zrw);
+  }
+
+  @Test
+  void testWalCloserConfigurationMigration() {
+    String dfs = DfsWalProvider.class.getName();
+    String custom = NoOpLogCloser.class.getName();
+    Upgrader11to12.validateWalCloserConfiguration(HadoopLogCloser.class.getName(),
+        "{\"" + dfs + "\":{}}");
+    Upgrader11to12.validateWalCloserConfiguration(custom,
+        "{\"" + dfs + "\":{\"logCloser\":\"" + custom + "\"}}");
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader11to12.validateWalCloserConfiguration(custom, "{\"" + dfs + "\":{}}"));
+  }
+
+  @Test
+  void testRootWalUpgradePersistsAndRetries() throws Exception {
+    String reference = "hdfs://nn/accumulo/wal/host+1234/" + UUID.randomUUID();
+    String legacy = "{\"version\":1,\"columnValues\":{\"log\":{\"-/" + reference + "\":\"\"}}}";
+    ServerContext context = createMock(ServerContext.class);
+    VolumeManager volumes = createMock(VolumeManager.class);
+    ZooSession session = createMock(ZooSession.class);
+    ZooReaderWriter zoo = createStrictMock(ZooReaderWriter.class);
+    Capture<byte[]> persisted = newCapture();
+    expect(context.getZooSession()).andReturn(session).times(2);
+    expect(session.asReaderWriter()).andReturn(zoo).times(2);
+    expect(context.getVolumeManager()).andReturn(volumes).times(2);
+    expect(volumes.getVolumes()).andReturn(List.of()).times(2);
+    expect(zoo.getData(eq("/root_tablet"), isA(Stat.class))).andReturn(legacy.getBytes(UTF_8));
+    expect(zoo.overwritePersistentData(eq("/root_tablet"), capture(persisted), eq(0)))
+        .andReturn(true);
+    expect(zoo.getData("/root_tablet")).andAnswer(persisted::getValue);
+    expect(zoo.getData(eq("/root_tablet"), isA(Stat.class))).andAnswer(persisted::getValue);
+    expect(zoo.getData("/root_tablet")).andAnswer(persisted::getValue);
+    replay(context, volumes, session, zoo);
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    upgrader.updateRootTabletFileReferences(context);
+    upgrader.updateRootTabletFileReferences(context);
+    var entries = new RootTabletMetadata(new String(persisted.getValue(), UTF_8)).toKeyValues();
+    assertEquals(1, entries.size());
+    assertEquals("dfs/" + reference, entries.firstKey().getColumnQualifier().toString());
+    verify(context, volumes, session, zoo);
+  }
+
 }

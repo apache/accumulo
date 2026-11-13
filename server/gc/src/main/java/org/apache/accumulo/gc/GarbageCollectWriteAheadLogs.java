@@ -56,6 +56,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
@@ -270,8 +271,23 @@ public class GarbageCollectWriteAheadLogs {
     try {
       for (WalStatePath stateFile : collection) {
         Path path = stateFile.path();
-        futures.put(path, removeFile(deleteThreadPool, path, counter,
-            "Removing " + stateFile.state() + " WAL " + path));
+        if (stateFile.providerId().equals(DfsWalProvider.PROVIDER_ID)) {
+          futures.put(path, removeFile(deleteThreadPool, path, counter,
+              "Removing " + stateFile.state() + " WAL " + path));
+        } else {
+          futures.put(path, deleteThreadPool.submit(() -> {
+            try {
+              log.debug("Removing {} WAL {} using provider {}", stateFile.state(), path,
+                  stateFile.providerId());
+              context.getWalProviderRegistry().get(stateFile.providerId()).delete(path.toString());
+              counter.incrementAndGet();
+            } catch (FileNotFoundException e) {
+              // ignored
+            } catch (IOException e) {
+              log.error("Unable to delete {} WAL {}", stateFile.providerId(), path, e);
+            }
+          }));
+        }
       }
 
       while (!futures.isEmpty()) {

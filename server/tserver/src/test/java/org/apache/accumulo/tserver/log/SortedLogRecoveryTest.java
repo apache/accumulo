@@ -70,6 +70,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
@@ -229,7 +230,8 @@ public class SortedLogRecoveryTest extends WithTestNames {
         logSorter.writeBuffer(destPath, buffer, parts);
 
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
-        dirs.add(ResolvedSortedLog.resolve(LogEntry.fromPath(origPath), fs));
+        dirs.add(
+            ResolvedSortedLog.resolve(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, origPath), fs));
       }
       // Recover
       SortedLogRecovery recovery = new SortedLogRecovery(context, fileLenCache, cacheProvider);
