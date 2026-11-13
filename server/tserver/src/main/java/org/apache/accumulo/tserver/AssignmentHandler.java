@@ -20,7 +20,6 @@ package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -61,38 +60,8 @@ class AssignmentHandler implements Runnable {
 
   @Override
   public void run() {
-    synchronized (server.unopenedTablets) {
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
-          // nothing should be moving between sets, do a sanity
-          // check
-          Set<KeyExtent> unopenedOverlapping =
-              KeyExtent.findOverlapping(extent, server.unopenedTablets);
-          Set<KeyExtent> openingOverlapping =
-              KeyExtent.findOverlapping(extent, server.openingTablets);
-          Set<KeyExtent> onlineOverlapping =
-              KeyExtent.findOverlapping(extent, server.onlineTablets.snapshot());
-
-          if (openingOverlapping.contains(extent) || onlineOverlapping.contains(extent)) {
-            return;
-          }
-
-          if (!unopenedOverlapping.contains(extent)) {
-            log.info("assignment {} no longer in the unopened set", extent);
-            return;
-          }
-
-          if (unopenedOverlapping.size() != 1 || !openingOverlapping.isEmpty()
-              || !onlineOverlapping.isEmpty()) {
-            throw new IllegalStateException(
-                "overlaps assigned " + extent + " " + !server.unopenedTablets.contains(extent) + " "
-                    + unopenedOverlapping + " " + openingOverlapping + " " + onlineOverlapping);
-          }
-        }
-
-        server.unopenedTablets.remove(extent);
-        server.openingTablets.add(extent);
-      }
+    if (!server.assignmentTracker.unopenedToOpening(extent)) {
+      return;
     }
 
     // check Metadata table before accepting assignment
@@ -102,11 +71,9 @@ class AssignmentHandler implements Runnable {
       tabletMetadata = server.getContext().getAmple().readTablet(extent);
 
       canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
+
     } catch (Exception e) {
-      synchronized (server.openingTablets) {
-        server.openingTablets.remove(extent);
-        server.openingTablets.notifyAll();
-      }
+      server.assignmentTracker.removeOpening(extent);
       TabletLogger.tabletLoadFailed(extent, e);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       throw new RuntimeException(e);
@@ -115,10 +82,7 @@ class AssignmentHandler implements Runnable {
     if (!canLoad) {
       log.debug("Reporting tablet {} assignment failure: unable to verify Tablet Information",
           extent);
-      synchronized (server.openingTablets) {
-        server.openingTablets.remove(extent);
-        server.openingTablets.notifyAll();
-      }
+      server.assignmentTracker.removeOpening(extent);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       return;
     }
@@ -156,14 +120,8 @@ class AssignmentHandler implements Runnable {
       // refresh the tablet metadata after setting the location (See #3358)
       tablet.refreshMetadata(RefreshPurpose.LOAD);
 
-      synchronized (server.openingTablets) {
-        synchronized (server.onlineTablets) {
-          server.openingTablets.remove(extent);
-          server.onlineTablets.put(extent, tablet);
-          server.openingTablets.notifyAll();
-          server.recentlyUnloadedCache.remove(tablet.getExtent());
-        }
-      }
+      server.recentlyUnloadedCache.remove(tablet.getExtent());
+      server.assignmentTracker.openingToOnline(extent, tablet);
 
       tablet = null; // release this reference
       successful = true;
@@ -174,13 +132,7 @@ class AssignmentHandler implements Runnable {
     if (successful) {
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
     } else {
-      synchronized (server.unopenedTablets) {
-        synchronized (server.openingTablets) {
-          server.openingTablets.remove(extent);
-          server.unopenedTablets.add(extent);
-          server.openingTablets.notifyAll();
-        }
-      }
+      server.assignmentTracker.openingToUnopened(extent, extent);
       log.warn("failed to open tablet {} reporting failure to manager", extent);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, MINUTES.toMillis(10));
