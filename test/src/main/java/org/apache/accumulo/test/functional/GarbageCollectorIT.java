@@ -30,11 +30,17 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,6 +50,10 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -51,7 +61,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.gc.GcCandidate;
-import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
@@ -60,7 +69,6 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -70,9 +78,11 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
+import org.apache.accumulo.test.ComprehensiveIT;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -83,7 +93,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
 public class GarbageCollectorIT extends ConfigurableMacBase {
@@ -249,9 +259,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
         // path is invalid but value is expected - only way the invalid entry will come through
-        // processing and
-        // show up to produce error in output to allow while loop to end
-        bw.addMutation(createDelMutation("/", "", "", SkewedKeyValue.STR_NAME));
+        // processing and show up to produce error in output to allow while loop to end
+        bw.addMutation(createDelMutation("/", "", "",
+            DeletesSection.encodeType(GcCandidate.Type.TABLET_FILE).toString()));
       }
 
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
@@ -340,9 +350,11 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     }
 
     // Create multiple candidate entries
-    List<GcCandidate> candidates =
-        List.of(new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L),
-            new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
+    List<GcCandidate> candidates = List.of(
+        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L,
+            GcCandidate.Type.TABLET_FILE),
+        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L,
+            GcCandidate.Type.TABLET_FILE));
 
     List<StoredTabletFile> stfs = candidates.stream()
         .map(temp -> StoredTabletFile.of(new Path(temp.getPath()))).collect(Collectors.toList());
@@ -446,7 +458,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
   private int countFiles(String pathStr) throws Exception {
     Path path = new Path(pathStr);
-    return Iterators.size(Arrays.asList(cluster.getFileSystem().globStatus(path)).iterator());
+    return cluster.getFileSystem().globStatus(path).length;
   }
 
   private void addEntries(AccumuloClient client) throws Exception {
@@ -458,8 +470,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         var path = URI.create(String.format("file:/%020d/%s", i, longpath));
-        Mutation delFlag =
-            ample.createDeleteMutation(ReferenceFile.forFile(TableId.of("1"), new Path(path)));
+        Mutation delFlag = ample
+            .createDeleteMutation(new GcCandidate(path.toString(), GcCandidate.Type.TABLET_FILE));
         bw.addMutation(delFlag);
       }
     }
@@ -531,5 +543,143 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     // Cleanup from test
     ample.deleteGcCandidates(datalevel, candidates, Ample.GcCandidateType.VALID);
+  }
+
+  private Path getTableDir(ClientContext ctx, TableId tableId) throws Exception {
+    final String pathString = cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES) + "/"
+        + Constants.TABLE_DIR + "/" + tableId;
+    return new Path(pathString);
+  }
+
+  private Set<String> getTabletDirs(ClientContext ctx, String tableName) throws Exception {
+    var dirs = new HashSet<String>();
+    for (var fileStat : cluster.getFileSystem()
+        .listStatus(getTableDir(ctx, ctx.getTableId(tableName)))) {
+      dirs.add(fileStat.getPath().getName());
+    }
+    return dirs;
+  }
+
+  private Set<String> getTableRows(AccumuloClient client, String table) throws Exception {
+    try (var scanner = client.createScanner(table)) {
+      return scanner.stream().map(e -> e.getKey().getRowData().toString())
+          .collect(Collectors.toSet());
+    }
+  }
+
+  /**
+   * Tests deletion of tablet, bulk and table dirs.
+   */
+  @Test
+  public void testDirDeletion() throws Exception {
+    var names = getUniqueNames(3);
+    var table1 = names[0];
+    var table2 = names[1];
+    var clone = names[2];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table1, new NewTableConfiguration()
+          .setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "100")));
+      // The GC should not touch table2 files
+      client.tableOperations().create(table2);
+      SortedSet<Text> splits = new TreeSet<>();
+      for (char c = 'a'; c <= 'z'; c++) {
+        splits.add(new Text(c + ""));
+      }
+      client.tableOperations().addSplits(table1, splits);
+      client.tableOperations().addSplits(table2, splits);
+
+      var expectedRows = new HashSet<String>();
+      try (var writer1 = client.createBatchWriter(table1);
+          var writer2 = client.createBatchWriter(table2)) {
+        for (char c = 'a'; c <= 'z'; c++) {
+          Mutation m = new Mutation(c + "");
+          m.put("", "", "" + c);
+          writer1.addMutation(m);
+          writer2.addMutation(m);
+          expectedRows.add("" + c);
+        }
+      }
+
+      client.tableOperations().flush(table1, null, null, true);
+      client.tableOperations().flush(table2, null, null, true);
+
+      var ctx = (ClientContext) client;
+
+      Map<String,String> tabletDirs = new HashMap<>();
+      try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(table1)).build()) {
+        for (var tablet : tablets) {
+          if (tablet.getEndRow() != null) {
+            tabletDirs.put(tablet.getEndRow().toString(), tablet.getDirName());
+          }
+        }
+      }
+
+      assertEquals(expectedRows, getTableRows(client, table1));
+      assertEquals(expectedRows, getTableRows(client, table2));
+
+      client.tableOperations().merge(table1, new Text("c"), new Text("g"));
+
+      assertEquals(expectedRows, getTableRows(client, table1));
+      assertEquals(expectedRows, getTableRows(client, table2));
+
+      assertEquals(Set.copyOf(tabletDirs.values()), getTabletDirs(ctx, table1));
+
+      // bulk import some data
+      TreeMap<Key,Value> bulkData = new TreeMap<>();
+      bulkData.put(Key.builder().row("h1").build(), new Value("h1"));
+      bulkData.put(Key.builder().row("j1").build(), new Value("j1"));
+      ComprehensiveIT.bulkImport(client, table1, cluster.getFileSystem(),
+          cluster.getTemporaryPath(), List.of(bulkData));
+      ComprehensiveIT.bulkImport(client, table2, cluster.getFileSystem(),
+          cluster.getTemporaryPath(), List.of(bulkData));
+      expectedRows.add("h1");
+      expectedRows.add("j1");
+
+      // should now see a bulk dir when listing the dirs for table1
+      var dirDiffs = Sets.difference(getTabletDirs(ctx, table1), Set.copyOf(tabletDirs.values()));
+      assertEquals(1, dirDiffs.size());
+      assertTrue(dirDiffs.stream().allMatch(dir -> dir.startsWith(Constants.BULK_PREFIX)));
+
+      // This compaction should cause the tablet dirs that were merged away to become empty and be
+      // deleted by the GC. Should also cause the bulk dir to be deleted.
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+
+      assertEquals(expectedRows, getTableRows(client, table1));
+      assertEquals(expectedRows, getTableRows(client, table2));
+
+      // remove the tablet dirs that were merged away
+      tabletDirs.remove("d");
+      tabletDirs.remove("e");
+      tabletDirs.remove("f");
+
+      // Wait for the tablet dirs to be deleted
+      Wait.waitFor(() -> Set.copyOf(tabletDirs.values()).equals(getTabletDirs(ctx, table1)));
+
+      assertEquals(expectedRows, getTableRows(client, table1));
+      assertEquals(expectedRows, getTableRows(client, table2));
+
+      var table1Id = ctx.getTableId(table1);
+      // Create a clone to force GC of table files when deleting table
+      client.tableOperations().clone(table1, clone, CloneConfiguration.builder().build());
+      client.tableOperations().delete(table1);
+
+      assertEquals(expectedRows, getTableRows(client, clone));
+      assertEquals(expectedRows, getTableRows(client, table2));
+
+      // TODO deleting the clone or compacting it should cause the table dir to be deleted however,
+      // there is a bug w/ inuse and deleting the clone. This is only a bug with these changes
+      // because GC no longer recursively deletes dirs. Used to work for the wrong reasons. Need to
+      // open an issue for this if these changes are merged.
+      // client.tableOperations().delete(clone);
+      client.tableOperations().compact(clone, new CompactionConfig().setWait(true));
+
+      // Wait for GC to remove table1 dir
+
+      Wait.waitFor(() -> !getCluster().getFileSystem().exists(getTableDir(ctx, table1Id)));
+
+      // GC never should have touched table2, it should still work
+      assertEquals(expectedRows, getTableRows(client, table2));
+    }
   }
 }

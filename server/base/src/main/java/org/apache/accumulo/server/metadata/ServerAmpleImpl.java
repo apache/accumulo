@@ -29,7 +29,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -40,12 +39,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
-import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
@@ -58,6 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
@@ -138,7 +136,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     try (BatchWriter writer = context.createBatchWriter(getMetaTable(DataLevel.of(tableId)))) {
       for (StoredTabletFile file : candidates) {
-        writer.addMutation(createDeleteMutation(file));
+        writer.addMutation(createDeleteMutation(GcCandidate.forTabletFile(file)));
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -146,12 +144,14 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<GcCandidate> candidates) {
 
     if (DataLevel.of(tableId) == DataLevel.ROOT) {
       // Directories are unexpected for the root tablet, so convert to stored tablet file
+      Preconditions.checkState(
+          candidates.stream().allMatch(gcc -> gcc.getType() == GcCandidate.Type.TABLET_FILE));
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
-          .map(reference -> StoredTabletFile.of(URI.create(reference.getMetadataPath())))));
+          .map(candidate -> StoredTabletFile.of(URI.create(candidate.getPath())))));
       return;
     }
 
@@ -254,29 +254,26 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new IllegalStateException(e);
       }
       scanner.setRange(range);
-      scanner.addScanIterator(new IteratorSetting(25, "gcCandidate", GcCandidateFilter.class));
-      return scanner.stream()
-          .map(
-              entry -> new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
-                  entry.getKey().getTimestamp()))
-          .iterator();
+      return scanner.stream().<GcCandidate>mapMulti((entry, consumer) -> {
+        try {
+          var candidate =
+              new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
+                  entry.getKey().getTimestamp(),
+                  DeletesSection.decodeType(entry.getValue().toString()));
+          consumer.accept(candidate);
+        } catch (RuntimeException e) {
+          log.warn("Ignoring invalid deletion candidate : {}", entry, e);
+        }
+      }).iterator();
     } else {
       throw new IllegalArgumentException();
     }
   }
 
   @Override
-  public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
-    return createDelMutation(ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath());
-  }
-
-  public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
-    return createDelMutation(pathToRemove.getMetadataPath());
-  }
-
-  private Mutation createDelMutation(String path) {
-    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
+  public Mutation createDeleteMutation(GcCandidate candidate) {
+    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(candidate.getPath())));
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.encodeType(candidate.getType()));
     return delFlag;
   }
 

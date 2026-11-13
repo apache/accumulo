@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
@@ -499,6 +501,48 @@ public class MetadataSchema {
   }
 
   /**
+   * Holds temporary delete markers used when deleting a table.
+   */
+  public static class TmpDeletesSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "tmpdel", true, RESERVED_PREFIX + "tmpdem", false);
+
+    private static String prefix(TableId tableId) {
+      return section.getRowPrefix() + tableId + ",";
+    }
+
+    private static String row(TableId tableId, GcCandidate candidate) {
+      return prefix(tableId) + candidate.getPath();
+    }
+
+    private static byte[] EMPTY_BYTES = new byte[0];
+
+    public static Mutation insert(TableId tableId, GcCandidate candidate) {
+      Mutation m = new Mutation(row(tableId, candidate));
+      m.at().family(EMPTY_BYTES).qualifier(EMPTY_BYTES)
+          .put(DeletesSection.encodeType(candidate.getType()));
+      return m;
+    }
+
+    public static GcCandidate decode(Map.Entry<Key,Value> entry) {
+      var path = entry.getKey().getRowData().toString().split(",", 2)[1];
+      var type = DeletesSection.decodeType(entry.getValue().toString());
+      return new GcCandidate(path, entry.getKey().getTimestamp(), type);
+    }
+
+    public static Mutation delete(TableId tableId, GcCandidate candidate) {
+      Mutation m = new Mutation(row(tableId, candidate));
+      m.at().family(EMPTY_BYTES).qualifier(EMPTY_BYTES).delete();
+      return m;
+    }
+
+    public static Range getRange(TableId tableId) {
+      return Range.prefix(prefix(tableId));
+    }
+
+  }
+
+  /**
    * Holds delete markers for potentially unused files/directories
    */
   public static class DeletesSection {
@@ -520,14 +564,35 @@ public class MetadataSchema {
       return row.substring(encoded_prefix_length);
     }
 
-    /**
-     * Value to indicate that the row has been skewed/encoded.
-     */
-    public static class SkewedKeyValue {
-      public static final String STR_NAME = "skewed";
-      public static final Value NAME = new Value(STR_NAME);
+    private static Value TABLET_DIR_VALUE = new Value("DIR");
+    private static Value TABLET_FILE_VALUE = new Value("FILE");
+    private static Value TABLE_DIR_VALUE = new Value("TDIR");
+    private static Value BULK_DIR_VALUE = new Value("BDIR");
+
+    public static Value encodeType(GcCandidate.Type type) {
+      return switch (type) {
+        case TABLET_DIR -> TABLET_DIR_VALUE;
+        case TABLET_FILE -> TABLET_FILE_VALUE;
+        case TABLE_DIR -> TABLE_DIR_VALUE;
+        case BULK_DIR -> BULK_DIR_VALUE;
+      };
     }
 
+    public static GcCandidate.Type decodeType(String type) {
+      return switch (type) {
+        case "DIR" -> GcCandidate.Type.TABLET_DIR;
+        case "FILE" -> GcCandidate.Type.TABLET_FILE;
+        case "TDIR" -> GcCandidate.Type.TABLE_DIR;
+        case "BDIR" -> GcCandidate.Type.BULK_DIR;
+        default -> throw new IllegalArgumentException("Unknown type " + type);
+      };
+    }
+
+    // TODO move to upgrade code
+    /*
+     * public static class SkewedKeyValue { public static final String STR_NAME = "skewed"; public
+     * static final Value NAME = new Value(STR_NAME); }
+     */
   }
 
   /**

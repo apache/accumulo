@@ -44,6 +44,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -156,7 +157,8 @@ public class Upgrader10to11 implements Upgrader {
 
   private Mutation createDelMutation(String path) {
     Mutation delFlag = new Mutation(new Text(MetadataSchema.DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, MetadataSchema.DeletesSection.SkewedKeyValue.NAME);
+    delFlag.put(EMPTY_TEXT, EMPTY_TEXT,
+        MetadataSchema.DeletesSection.encodeType(GcCandidate.Type.TABLET_FILE));
     return delFlag;
   }
 
