@@ -233,7 +233,7 @@ public class Upgrader11to12 implements Upgrader {
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME, LogColumnFamily.NAME);
+      ExternalCompactionColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME);
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";

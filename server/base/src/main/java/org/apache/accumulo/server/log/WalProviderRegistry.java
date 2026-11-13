@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
@@ -61,7 +60,6 @@ public class WalProviderRegistry {
 
   public WalProviderRegistry(ServerContext context) {
     var conf = context.getConfiguration();
-    ClassLoaderUtil.initContextFactory(conf);
     var environment = new ServiceEnvironmentImpl(context);
     String currentClass = conf.get(Property.INSTANCE_WAL_PROVIDER).trim();
     if (currentClass.isEmpty()) {

@@ -130,18 +130,8 @@ public class WalStateManager {
     }
   }
 
-  // Tablet server opens a new WAL
-  public void addNewWalMarker(TServerInstance tsi, Path path) throws WalMarkerException {
-    updateState(tsi, DfsWalProvider.PROVIDER_ID, path, WalState.OPEN);
-  }
-
   public void addNewWalMarker(TServerInstance tsi, LogEntry entry) throws WalMarkerException {
     updateState(tsi, entry.getProviderId(), entry.getPath(), WalState.OPEN);
-  }
-
-  private void updateState(TServerInstance tsi, Path path, WalState state)
-      throws WalMarkerException {
-    updateState(tsi, DfsWalProvider.PROVIDER_ID, path, state);
   }
 
   private void updateState(TServerInstance tsi, String providerId, Path path, WalState state)
@@ -160,11 +150,6 @@ public class WalStateManager {
       }
       throw new WalMarkerException(e);
     }
-  }
-
-  // Tablet server has no references to the WAL
-  public void walUnreferenced(TServerInstance tsi, Path path) throws WalMarkerException {
-    updateState(tsi, path, WalState.UNREFERENCED);
   }
 
   public void walUnreferenced(TServerInstance tsi, LogEntry entry) throws WalMarkerException {

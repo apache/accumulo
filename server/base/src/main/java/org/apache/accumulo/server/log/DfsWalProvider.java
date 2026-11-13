@@ -36,9 +36,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSOutputStream;
 import org.apache.hadoop.hdfs.DFSStripedOutputStream;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Filesystem-backed WAL provider. */
 public class DfsWalProvider implements WalProvider {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DfsWalProvider.class);
 
   /** Stable provider ID used for WALs stored on HDFS. */
   public static final String PROVIDER_ID = "dfs";
@@ -91,8 +95,7 @@ public class DfsWalProvider implements WalProvider {
       // Drop-behind is a performance hint, not a requirement.
     }
     if (!fs.canSyncAndFlush(path)) {
-      org.slf4j.LoggerFactory.getLogger(DfsWalProvider.class)
-          .warn("sync not supported for log file {}. Data loss may occur.", logPath);
+      LOG.warn("sync not supported for log file {}. Data loss may occur.", logPath);
     }
     return new DfsWriter(logPath, output);
   }

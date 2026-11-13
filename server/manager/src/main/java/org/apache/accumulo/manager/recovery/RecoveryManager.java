@@ -46,7 +46,6 @@ import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.SortedLogState;
-import org.apache.accumulo.server.manager.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.manager.recovery.LogCloser;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -229,10 +228,9 @@ public class RecoveryManager {
     synchronized (this) {
       if (!closeTasksQueued.contains(sortIdString) && !sortsQueued.contains(sortIdString)) {
         AccumuloConfiguration aconf = manager.getConfiguration();
-        LogCloser closer = walog.getProviderId().equals(DfsWalProvider.PROVIDER_ID)
-            ? Property.createInstanceFromPropertyName(aconf,
-                Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, new HadoopLogCloser())
-            : null;
+        // TODO: Should the LogCloser implementation be a part of the WalProvider SPI?
+        LogCloser closer = Property.createInstanceFromPropertyName(aconf,
+            Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, null);
         Long delay = recoveryDelay.get(sortIdString);
         if (delay == null) {
           delay = aconf.getTimeInMillis(Property.MANAGER_RECOVERY_DELAY);
