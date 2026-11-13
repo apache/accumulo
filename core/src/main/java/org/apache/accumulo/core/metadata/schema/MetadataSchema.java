@@ -587,12 +587,6 @@ public class MetadataSchema {
         default -> throw new IllegalArgumentException("Unknown type " + type);
       };
     }
-
-    // TODO move to upgrade code
-    /*
-     * public static class SkewedKeyValue { public static final String STR_NAME = "skewed"; public
-     * static final Value NAME = new Value(STR_NAME); }
-     */
   }
 
   /**

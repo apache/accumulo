@@ -667,15 +667,12 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       assertEquals(expectedRows, getTableRows(client, clone));
       assertEquals(expectedRows, getTableRows(client, table2));
 
-      // TODO deleting the clone or compacting it should cause the table dir to be deleted however,
-      // there is a bug w/ inuse and deleting the clone. This is only a bug with these changes
-      // because GC no longer recursively deletes dirs. Used to work for the wrong reasons. Need to
-      // open an issue for this if these changes are merged.
+      // Deleting the clone or compacting it should cause the table dir to be deleted however,
+      // there is a bug w/ inuse and deleting the clone. See #6645
       // client.tableOperations().delete(clone);
       client.tableOperations().compact(clone, new CompactionConfig().setWait(true));
 
       // Wait for GC to remove table1 dir
-
       Wait.waitFor(() -> !getCluster().getFileSystem().exists(getTableDir(ctx, table1Id)));
 
       // GC never should have touched table2, it should still work
