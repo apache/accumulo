@@ -3942,14 +3942,14 @@ public class CompactorService {
               case 0: // SUCCESS
                 if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                   {
-                    org.apache.thrift.protocol.TList _list18 = iprot.readListBegin();
-                    struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list18.size);
-                    @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem19;
-                    for (int _i20 = 0; _i20 < _list18.size; ++_i20)
+                    org.apache.thrift.protocol.TList _list50 = iprot.readListBegin();
+                    struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list50.size);
+                    @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem51;
+                    for (int _i52 = 0; _i52 < _list50.size; ++_i52)
                     {
-                      _elem19 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
-                      _elem19.read(iprot);
-                      struct.success.add(_elem19);
+                      _elem51 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
+                      _elem51.read(iprot);
+                      struct.success.add(_elem51);
                     }
                     iprot.readListEnd();
                   }
@@ -3990,9 +3990,9 @@ public class CompactorService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter21 : struct.success)
+            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter53 : struct.success)
             {
-              _iter21.write(oprot);
+              _iter53.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -4032,9 +4032,9 @@ public class CompactorService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter22 : struct.success)
+            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter54 : struct.success)
             {
-              _iter22.write(oprot);
+              _iter54.write(oprot);
             }
           }
         }
@@ -4051,14 +4051,14 @@ public class CompactorService {
           java.util.BitSet incoming = iprot.readBitSet(2);
           if (incoming.get(0)) {
             {
-              org.apache.thrift.protocol.TList _list23 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-              struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list23.size);
-              @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem24;
-              for (int _i25 = 0; _i25 < _list23.size; ++_i25)
+              org.apache.thrift.protocol.TList _list55 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+              struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list55.size);
+              @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem56;
+              for (int _i57 = 0; _i57 < _list55.size; ++_i57)
               {
-                _elem24 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
-                _elem24.read(iprot);
-                struct.success.add(_elem24);
+                _elem56 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
+                _elem56.read(iprot);
+                struct.success.add(_elem56);
               }
             }
             struct.setSuccessIsSet(true);
