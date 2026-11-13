@@ -161,7 +161,7 @@ public class ConfiguratorBase {
    * Sets the valid visibility count for this job.
    *
    * @param conf the Hadoop configuration object to configure
-   * @param visibilityCacheSize the LRU cache size
+   * @param visibilityCacheSize the cache size
    */
   public static void setVisibilityCacheSize(Configuration conf, int visibilityCacheSize) {
     conf.setInt(enumToConfKey(GeneralOpts.VISIBILITY_CACHE_SIZE), visibilityCacheSize);

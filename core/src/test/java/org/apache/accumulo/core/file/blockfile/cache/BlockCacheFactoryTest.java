@@ -25,22 +25,12 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.junit.jupiter.api.Test;
 
 public class BlockCacheFactoryTest {
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testCreateLruBlockCacheFactory() throws Exception {
-    DefaultConfiguration dc = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.GENERAL_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
-    BlockCacheManagerFactory.getInstance(cc);
-  }
 
   @Test
   public void testCreateTinyLfuBlockCacheFactory() throws Exception {
