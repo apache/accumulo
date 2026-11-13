@@ -41,8 +41,8 @@ public class LayeredConfigurationTest {
         Property.TABLE_DURABILITY.getKey(), "flush"));
     copyConfig2 = new ConfigurationCopy(Map.of(Property.COMPACTOR_CLIENTPORT.getKey(), "1235",
         Property.SPLIT_MAXOPEN.getKey(), "200"));
-    config = new LayeredConfiguration(
-        new LayeredConfiguration(DefaultConfiguration.getInstance(), copyConfig1), copyConfig2);
+    config = new LayeredConfiguration<>(
+        new LayeredConfiguration<>(DefaultConfiguration.getInstance(), copyConfig1), copyConfig2);
     assertNotEquals("1234", DefaultConfiguration.getInstance().get(Property.COMPACTOR_CLIENTPORT));
     assertNotEquals("1235", DefaultConfiguration.getInstance().get(Property.COMPACTOR_CLIENTPORT));
     assertNotEquals("flush", DefaultConfiguration.getInstance().get(Property.TABLE_DURABILITY));

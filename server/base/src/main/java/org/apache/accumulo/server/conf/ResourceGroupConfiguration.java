@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.server.conf;
 
+import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ResourceGroupConfiguration extends ZooBasedConfiguration {
+public class ResourceGroupConfiguration
+    extends LayeredConfiguration<SystemConfiguration,ZooBasedConfiguration> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ResourceGroupConfiguration.class);
 
@@ -32,7 +34,7 @@ public class ResourceGroupConfiguration extends ZooBasedConfiguration {
 
   public ResourceGroupConfiguration(ServerContext context, ResourceGroupPropKey rgPropKey,
       SystemConfiguration parent) {
-    super(LOG, context, rgPropKey, parent);
+    super(parent, new ZooBasedConfiguration(LOG, context, rgPropKey));
     runtimeFixedProps = parent.getRuntimeFixedProperties();
   }
 
@@ -46,7 +48,7 @@ public class ResourceGroupConfiguration extends ZooBasedConfiguration {
     String key = property.getKey();
     String value = null;
     if (Property.isValidZooPropertyKey(key)) {
-      value = getSnapshot().get(key);
+      value = getOuter().getSnapshot().get(key);
     }
 
     if (value == null || !property.getType().isValidFormat(value)) {
@@ -54,7 +56,7 @@ public class ResourceGroupConfiguration extends ZooBasedConfiguration {
         LOG.error("Using parent value for {} due to improperly formatted {}: {}", key,
             property.getType(), value);
       }
-      value = getParent().get(property);
+      value = getInner().get(property);
     }
     return value;
   }

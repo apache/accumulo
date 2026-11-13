@@ -90,7 +90,7 @@ public class NamespaceConfigurationTest {
   public void testGetters() {
     NamespaceConfiguration nsConfig = new NamespaceConfiguration(context, NSID, parent);
     assertEquals(NSID, nsConfig.getNamespaceId());
-    assertEquals(parent, nsConfig.getParent());
+    assertEquals(parent, nsConfig.getInner());
     verify(propStore, context);
   }
 

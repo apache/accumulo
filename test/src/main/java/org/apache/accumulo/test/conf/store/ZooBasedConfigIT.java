@@ -178,7 +178,7 @@ public class ZooBasedConfigIT {
     // force create empty sys config node.
     zk.create(Constants.ZCONFIG, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     var propKey = SystemPropKey.of();
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
+    ZooBasedConfiguration zbc = (new SystemConfiguration(context, propKey, parent)).getOuter();
     assertNotNull(zbc);
   }
 
@@ -191,7 +191,7 @@ public class ZooBasedConfigIT {
 
     var sysPropKey = SystemPropKey.of();
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
+    ZooBasedConfiguration zbc = (new SystemConfiguration(context, sysPropKey, parent)).getOuter();
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -228,7 +228,7 @@ public class ZooBasedConfigIT {
 
     propStore.create(NamespacePropKey.of(nsId), Map.of());
 
-    ZooBasedConfiguration zbc = new NamespaceConfiguration(context, nsId, parent);
+    ZooBasedConfiguration zbc = (new NamespaceConfiguration(context, nsId, parent)).getOuter();
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("false", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -238,7 +238,7 @@ public class ZooBasedConfigIT {
   public void throwOnNoNode() {
     replay(context);
     var nsConf = new NamespaceConfiguration(context, nsId, parent);
-    assertThrows(IllegalStateException.class, () -> nsConf.getSnapshot());
+    assertThrows(IllegalStateException.class, () -> nsConf.getOuter().getSnapshot());
   }
 
   @Test
@@ -254,7 +254,7 @@ public class ZooBasedConfigIT {
     TestListener testListener = new TestListener();
     propStore.registerAsListener(sysPropKey, testListener);
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
+    ZooBasedConfiguration zbc = (new SystemConfiguration(context, sysPropKey, parent)).getOuter();
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
