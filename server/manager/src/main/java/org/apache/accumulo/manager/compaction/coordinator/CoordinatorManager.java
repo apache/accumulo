@@ -110,8 +110,8 @@ public class CoordinatorManager {
           setAssignments(updateId, desired);
         } else {
           long newSleepTime = (long) Math.ceil(sleepTime * 1.2);
-          // Handle a small min sleep time is small, like 1ms, where the multiplication will not
-          // increase it at first.
+          // Handle a small min sleep time, like 1ms, where the multiplication will not increase it
+          // at first.
           if (sleepTime == newSleepTime) {
             newSleepTime = sleepTime + 1;
           }
