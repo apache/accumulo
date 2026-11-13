@@ -64,7 +64,11 @@
                 "type": "html",
                 "render": function (data, type, row, meta) {
                   if (type === 'display') {
-                    data = '<a class="link-body-emphasis" href="tables/' + row.tableId + '">' + row.tableName + '</a>';
+                    var link = $('<a>', {
+                      class: 'link-body-emphasis',
+                      href: 'tables/' + encodeURIComponent(row.tableId)
+                    }).text(row.tableName);
+                    data = link.prop('outerHTML');
                   }
                   return data;
                 }
@@ -98,13 +102,13 @@
         }
       </script>
       <div class="row">
-        <div class="col-xs-12">
-          <h3>Table Overview</h3>
+        <div class="col-12">
+          <h1 class="h3">Table Overview</h1>
         </div>
       </div>
       <div>
-        <table id="tableList" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">${tablesTitle}</span><br />
+        <table id="tableList" class="table caption-top table-bordered table-striped table-sm">
+          <caption><span class="table-caption">${tablesTitle}</span></caption>
           <thead>
             <tr>
               <th title="Table Name">Table&nbsp;Name</th>

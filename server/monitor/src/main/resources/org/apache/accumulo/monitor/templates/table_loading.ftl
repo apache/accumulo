@@ -27,7 +27,7 @@
   remove the spinner.
 -->
 
-            <thead><tr><th /></tr></thead>
+            <thead><tr><th></th></tr></thead>
             <tbody>
               <tr>
                 <td>
