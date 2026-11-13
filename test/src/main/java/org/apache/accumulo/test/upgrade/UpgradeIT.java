@@ -25,18 +25,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.upgrade.Upgrader11to12;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.AbstractServer;
@@ -172,4 +178,52 @@ public class UpgradeIT extends AccumuloClusterHarness {
     }
   }
 
+  @Test
+  public void testGcCandidateUpgrade() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(table);
+
+      // Some GC candidates from 2.1
+      Map<String,String> testData = new HashMap<>();
+      testData.put("~del6c383c59agcav:/tables/1/t-0000001", "skewed");
+      testData.put("~del6fb76650agcav:/tables/1/t-0000007", "skewed");
+      testData.put("~del17571942file:/v1/accumulo/tables/1/t-000003u/F000003x.rf", "skewed");
+      testData.put("~dela6d36bfffile:/v2/accumulo/tables/1/t-000003t/A000003w.rf", "skewed");
+      testData.put("~delb131253dfile:/v1/accumulo/tables/1/b-000003g", "skewed");
+
+      try (var writer = c.createBatchWriter(table)) {
+        for (var entry : testData.entrySet()) {
+          writer.addMutation(
+              new Mutation(entry.getKey()).at().family("").qualifier("").put(entry.getValue()));
+        }
+      }
+
+      Upgrader11to12.upgradeGcCandidates(c, table);
+
+      Map<String,String> output = new HashMap<>();
+
+      try (var scanner = c.createScanner(table)) {
+        scanner.forEach((k, v) -> output.put(k.getRow().toString(), v.toString()));
+      }
+
+      Map<String,String> expected = new HashMap<>();
+      expected.put("~delfdccbbd9/1/t-0000001", "DIR");
+      expected.put("~del6e94a332/1/t-0000007", "DIR");
+      expected.put("~del17571942file:/v1/accumulo/tables/1/t-000003u/F000003x.rf", "FILE");
+      expected.put("~dela6d36bfffile:/v2/accumulo/tables/1/t-000003t/A000003w.rf", "FILE");
+      expected.put("~delb131253dfile:/v1/accumulo/tables/1/b-000003g", "BDIR");
+
+      assertEquals(expected, output);
+
+      // Run a second time, should not fail or make any changes
+      Upgrader11to12.upgradeGcCandidates(c, table);
+      output.clear();
+      try (var scanner = c.createScanner(table)) {
+        scanner.forEach((k, v) -> output.put(k.getRow().toString(), v.toString()));
+      }
+      assertEquals(expected, output);
+    }
+
+  }
 }

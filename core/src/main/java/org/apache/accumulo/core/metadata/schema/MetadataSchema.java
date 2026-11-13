@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
@@ -515,7 +516,7 @@ public class MetadataSchema {
       return prefix(tableId) + candidate.getPath();
     }
 
-    private static byte[] EMPTY_BYTES = new byte[0];
+    private static final byte[] EMPTY_BYTES = new byte[0];
 
     public static Mutation insert(TableId tableId, GcCandidate candidate) {
       Mutation m = new Mutation(row(tableId, candidate));
@@ -586,6 +587,23 @@ public class MetadataSchema {
         case "BDIR" -> GcCandidate.Type.BULK_DIR;
         default -> throw new IllegalArgumentException("Unknown type " + type);
       };
+    }
+
+    private static final Text EMPTY_TEXT = new Text("");
+
+    /**
+     * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
+     * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
+     * directory for Tablet File. Otherwise, a {@link ReferencedTabletFile} object could be used.
+     * The tabletFilePathToRemove is validated and normalized before creating the mutation.
+     *
+     * @param candidate String full path of the TabletFile
+     * @return Mutation with encoded delete marker
+     */
+    public static Mutation createDeleteMutation(GcCandidate candidate) {
+      Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(candidate.getPath())));
+      delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.encodeType(candidate.getType()));
+      return delFlag;
     }
   }
 
