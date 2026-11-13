@@ -43,7 +43,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -322,7 +321,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
       }
     } finally {
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -353,7 +352,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
               "Fate ID Filters: [" + fateId2.canonical() + ", " + fateId1.canonical() + "]"));
       assertTrue(result.contains("Instance Types Filters: [" + store.type().name() + "]"));
     } finally {
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -468,7 +467,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         assertTrue(fateIdsFromResult.isEmpty());
       }
     } finally {
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -595,7 +594,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       fateIdsFromSummary = getFateIdsFromSummary();
       assertEquals(expected, fateIdsFromSummary);
     } finally {
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -645,7 +644,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     } finally {
       // Finish work and shutdown
       env.workersLatch.countDown();
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -683,7 +682,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
           || fateIdsFromSummary
               .equals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW")));
     } finally {
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -733,7 +732,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     } finally {
       // Finish work and shutdown
       env.workersLatch.countDown();
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
@@ -768,7 +767,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
       fateIdsFromSummary = getFateIdsFromSummary();
       assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
     } finally {
-      fate.shutdown(1, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(1));
     }
   }
 
