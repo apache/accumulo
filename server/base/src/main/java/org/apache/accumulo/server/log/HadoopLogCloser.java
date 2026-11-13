@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.manager.recovery;
+package org.apache.accumulo.server.log;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

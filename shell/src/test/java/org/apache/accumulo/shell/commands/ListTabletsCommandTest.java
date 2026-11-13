@@ -48,7 +48,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -192,9 +191,9 @@ public class ListTabletsCommandTest {
 
     KeyExtent extent = new KeyExtent(tableId, new Text("d"), null);
 
-    LogEntry le1 = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID,
+    LogEntry le1 = LogEntry.fromPath("exampleProvider",
         "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
-    LogEntry le2 = LogEntry.fromPath(DfsWalProvider.PROVIDER_ID,
+    LogEntry le2 = LogEntry.fromPath("exampleProvider",
         "file:/accumulo/wal/localhost+8020/" + UUID.randomUUID());
 
     TabletMetadata tm1 =

@@ -116,7 +116,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
     assertThrows(IllegalArgumentException.class,
-        () -> logProcessor.sort(context.getVolumeManager(), "/" + WALOG_FROM_15,
+        () -> logProcessor.sort(context.getVolumeManager(), "/" + WALOG_FROM_15, "dfs",
             new Path(testPath.toUri() + WALOG_FROM_15), testPath.toUri() + "manyMaps"));
   }
 
@@ -132,7 +132,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     LogSorter logSorter = new LogSorter(server);
     LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-    logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
+    logProcessor.sort(context.getVolumeManager(), "/" + walogToTest, "dfs",
         new Path(testPath.toUri() + walogToTest), destPath);
 
     assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
@@ -149,7 +149,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
 
     LogSorter logSorter = new LogSorter(server);
     LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
-    logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
+    logProcessor.sort(context.getVolumeManager(), "/" + walogToTest, "dfs",
         new Path(testPath.toUri() + walogToTest), destPath);
 
     assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));

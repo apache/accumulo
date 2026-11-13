@@ -38,6 +38,13 @@ class LogSortInformationTest {
 
   @Test
   void malformedPayload() {
+    String id = UUID.randomUUID().toString();
+    for (String payload : new String[] {id + "||source|dest", id + "|bad-id|source|dest",
+        id + "|dfs||dest", id + "|dfs|source| "}) {
+      assertThrows(IllegalArgumentException.class, () -> LogSortInformation.deserialize(payload));
+    }
+    assertThrows(IllegalArgumentException.class,
+        () -> new LogSortInformation(UUID.randomUUID(), "dfs", "source|extra", "dest"));
     assertThrows(IllegalArgumentException.class,
         () -> LogSortInformation.deserialize("source|dest"));
     assertThrows(IllegalArgumentException.class,

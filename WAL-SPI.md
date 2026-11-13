@@ -21,8 +21,8 @@
 # Write-ahead log storage SPI (current implementation)
 
 Accumulo's WAL storage SPI lets a TabletServer create raw write-ahead logs using a configured
-`WalProvider`. The provider owns storage of the raw byte stream; Accumulo owns the WAL format,
-encryption, tablet bookkeeping, sorting, and replay. The implementation is split between the
+`WalProvider`. The provider owns storage of the raw byte stream and preparation for recovery;
+Accumulo owns the WAL format, encryption, tablet bookkeeping, sorting, and replay. The implementation is split between the
 [SPI interface][spi], the [provider registry][registry], and the built-in
 [filesystem provider][dfs-provider].
 
@@ -49,6 +49,18 @@ For a provider with options, put string-valued options in its map, for example
 [distribution configuration][dist-config] shows these settings; their definitions are in
 [Property.java][property].
 
+`DfsWalProvider` accepts an optional `logCloser` option naming a public no-argument implementation
+of `org.apache.accumulo.server.manager.recovery.LogCloser`. It defaults to
+`org.apache.accumulo.server.manager.recovery.HadoopLogCloser`. For a filesystem that needs no lease
+recovery, configure the existing `NoOpLogCloser`:
+
+```properties
+instance.wal.providers={"org.apache.accumulo.server.log.DfsWalProvider":{"logCloser":"org.apache.accumulo.server.manager.recovery.NoOpLogCloser"}}
+```
+
+Closer implementations must support repeated calls and concurrent preparation of different WALs.
+Provider options are site configuration; changes require restarting the affected server processes.
+
 Each implementation needs a public no-argument constructor and a stable `getId()` matching
 `[A-Za-z0-9]+`. The ID `dfs` is reserved for `DfsWalProvider` and legacy filesystem WALs. The
 [registry][registry] loads each configured class, passes its options to `init(InitParameters)` once per
@@ -73,6 +85,9 @@ WALs without moving or rewriting the WAL files:
 - Legacy ZooKeeper WAL marker data `<state>,<reference>` becomes `<state>,dfs,<reference>`.
   Markers already containing a provider ID are retained. The upgrader checks marker format and
   verifies that an updated marker was persisted.
+- Legacy recovery work `source|destination` becomes `sortId|dfs|source|destination`, using the
+  recovery node's UUID as `sortId`. Converted work is validated and retained on retries; the `locks`
+  node is skipped. Invalid provider IDs, blank paths, mismatched IDs, or failed writes stop the upgrade.  
 - The upgrader checks for remaining legacy `-/` log qualifiers in the metadata tables; it also
   verifies the root tablet's WAL references. Malformed markers or leftover legacy qualifiers cause
   the upgrade to fail rather than silently treating them as another provider's logs.
@@ -83,6 +98,13 @@ for new writes. Otherwise the Manager's provider-reference check or subsequent r
 cannot handle those existing `dfs` references. The upgrade changes **reference metadata**, not the
 raw WAL format or the sorted-log recovery process.
 
+The global `manager.wal.closer.implementation` property is removed in 4.0. Before upgrading,
+move custom site-file settings into the DFS provider's `logCloser` option and remove the old
+site-file property. The upgrader removes an explicitly stored ZooKeeper setting after verifying
+that any non-default closer has the same replacement configured. The default Hadoop closer needs
+no explicit provider option. An unmigrated setting stops the upgrade rather than silently changing
+recovery behavior.
+
 ## Provider contract
 
 [`WalProvider`][spi] exposes:
@@ -90,14 +112,21 @@ raw WAL format or the sorted-log recovery process.
 | Method                              | Use                                                   |
 | ----------------------------------- | ----------------------------------------------------- |
 | `create(serverAddress, UUID)`       | Exclusively create a WAL and return its `Writer`.      |
+| `prepareForRecovery(reference)`     | Make an abandoned WAL consistently readable for sorting. |
 | `open(reference)`                   | Read a WAL from byte zero for sorting/recovery.        |
 | `exists(reference)`                 | Check a WAL, including while it may still be written. |
 | `delete(reference)`                 | Remove an unreferenced WAL; should be idempotent.      |
 | `getId()` / `init(InitParameters)` | Supply the persisted ID and initialize the provider. |
 
+Recovery preparation is required for every provider. It performs one storage-level lease-recovery,
+finalization, or fencing attempt and returns zero when ready, or a positive retry delay in
+milliseconds. Negative delays are invalid. Calls must be safe to repeat after retries or Manager
+failover and may run concurrently for different WALs. A provider needing no preparation returns zero.
+
 The nested `Writer` supplies `getReference()`, `getOutputStream()`, `sync(Durability)`,
-`getLength()`, and `close()`. It can optionally report `getCurrentReplication()` and
-`getPipeline()` for diagnostics (the defaults return `-1` and an empty array). Accumulo writes the
+`getLength()`, `isHealthy()`, `getDiagnostics()`, and `close()`. Health and diagnostic methods are
+required: providers without additional health information can return true and an empty diagnostic
+string. Accumulo checks health after slow syncs and fails pending writes when unhealthy. Accumulo writes the
 WAL header and records to the output stream: a provider must retain the exact bytes in order and
 return them through `open()`. Providers must be thread-safe for operations on different logs; a
 writer must also coordinate concurrent appends and sync requests. `FLUSH` must survive a
@@ -121,8 +150,8 @@ corresponding recovery destination are current integration constraints.
    header and crypto parameters, wraps the provider output stream for encryption, writes an `OPEN`
    entry, and syncs it before using the log. Subsequent tablet definitions, mutations, and
    compaction events use the existing WAL serialization. A background sync task batches durability
-   requests and calls `Writer.sync(FLUSH)` or `Writer.sync(SYNC)`; it uses the optional
-   replication/pipeline methods for diagnostics.
+   requests and calls `Writer.sync(FLUSH)` or `Writer.sync(SYNC)`; after slow syncs it calls
+   `getDiagnostics()` and `isHealthy()`.
 3. `LogEntry` associates the provider ID with the path. Tablet metadata stores it as a log-column
    qualifier of the form `<providerId>/<reference>`. [`WalStateManager`][wal-state] records the WAL
    state (`OPEN`, `CLOSED`, or `UNREFERENCED`), provider ID, and path in ZooKeeper WAL markers. This
@@ -133,14 +162,18 @@ corresponding recovery destination are current integration constraints.
 creates a filesystem-backed WAL under `wal/<host+port>/<uuid>` using `VolumeManager`; its writer
 uses `hflush()` for `FLUSH` and `hsync()` for `SYNC`. It opens and checks files through
 `VolumeManager`, and uses the filesystem trash or recursive deletion for cleanup. Where the
-underlying stream is an HDFS `DFSOutputStream`, it can report replication and pipeline information.
+underlying stream is a replicated HDFS `DFSOutputStream`, its writer records the observed replication
+after a successful sync and reports unhealthy if replication falls below that baseline. Local and
+striped streams are exempt from that replicated-stream check. Pipeline diagnostics tolerate an
+unavailable pipeline.
 
 ## Recovery and garbage collection
 
 The [Manager's `RecoveryManager`][rm] obtains the provider ID from the `LogEntry`,
-derives the sibling `recovery/<uuid>` directory using `RecoveryPath`, and queues a sort. Filesystem
-WALs with ID `dfs` use the configured Hadoop log closer before sorting; other providers do not use
-that closer. The queued work carries the provider ID, source reference, and recovery destination.
+derives the sibling `recovery/<uuid>` directory using `RecoveryPath`, and calls that provider's
+`prepareForRecovery(reference)`. The Manager schedules requested retries and queues sorting only
+when preparation returns zero. `DfsWalProvider` delegates preparation to its configured log closer.
+The queued work is serialized as `sortId|providerId|source|destination`.
 
 [`LogSorter`][sorter] opens the raw source through `VolumeManager` for `dfs` or through the
 registered provider's `open(reference)` for another ID. It decrypts and decodes Accumulo's WAL

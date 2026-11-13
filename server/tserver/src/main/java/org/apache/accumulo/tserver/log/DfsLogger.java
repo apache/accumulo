@@ -185,8 +185,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
             log.info("Slow sync cost: {} ms, current information: {}", timer.elapsed(MILLISECONDS),
                 logFile.getDiagnostics());
             if (!logFile.isHealthy()) {
-              fail(work, new IOException("WalProvider is reporting it's not healthly"),
-                  "replication check");
+              fail(work, new IOException("WAL provider reports an unhealthy writer"),
+                  "writer health check");
             }
           }
         } catch (IOException | RuntimeException ex) {

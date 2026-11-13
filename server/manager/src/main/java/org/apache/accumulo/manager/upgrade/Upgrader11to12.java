@@ -106,6 +106,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
 import org.apache.accumulo.server.log.DfsWalProvider;
+import org.apache.accumulo.server.log.HadoopLogCloser;
 import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
@@ -121,6 +122,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonParser;
 
 //TODO when removing this class, also remove MetadataSchema.Upgrader11to12
 public class Upgrader11to12 implements Upgrader {
@@ -241,10 +243,14 @@ public class Upgrader11to12 implements Upgrader {
   public static final Collection<Range> OLD_SCAN_SERVERS_RANGES =
       List.of(new Range("~sserv", "~sserx"), new Range("~scanref", "~scanreg"));
 
+  private static final String LEGACY_LOG_CLOSER_PROPERTY = "manager.wal.closer.implementation";
+
   @Override
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
+    LOG.info("Migrating WAL closer configuration");
+    upgradeWalCloserConfiguration(context);
     LOG.info("Upgrading WAL provider IDs in ZooKeeper markers");
     upgradeWalMarkers(context);
     LOG.info("Updating recovery work payloads");
@@ -281,6 +287,36 @@ public class Upgrader11to12 implements Upgrader {
     addAssistantManager(context);
     LOG.info("Adding shutting down tservers node");
     addShuttingDownTservers(context);
+  }
+
+  @VisibleForTesting
+  void upgradeWalCloserConfiguration(ServerContext context) {
+    if (context.getSiteConfiguration().get(LEGACY_LOG_CLOSER_PROPERTY) != null) {
+      throw new IllegalStateException("Remove " + LEGACY_LOG_CLOSER_PROPERTY
+          + " from site configuration and configure the DFS WAL provider's logCloser option instead");
+    }
+    var key = SystemPropKey.of();
+    String oldCloser = context.getPropStore().get(key).asMap().get(LEGACY_LOG_CLOSER_PROPERTY);
+    if (oldCloser != null) {
+      validateWalCloserConfiguration(oldCloser,
+          context.getConfiguration().get(Property.INSTANCE_WAL_PROVIDERS));
+      context.getPropStore().removeProperties(key, Set.of(LEGACY_LOG_CLOSER_PROPERTY));
+    }
+  }
+
+  static void validateWalCloserConfiguration(String oldCloser, String providers) {
+    if (oldCloser.equals(HadoopLogCloser.class.getName())) {
+      return;
+    }
+    var options = JsonParser.parseString(providers).getAsJsonObject()
+        .getAsJsonObject(DfsWalProvider.class.getName());
+    if (options == null || !options.has(DfsWalProvider.LOG_CLOSER_OPTION)
+        || !oldCloser.equals(options.get(DfsWalProvider.LOG_CLOSER_OPTION).getAsString())) {
+      throw new IllegalStateException("Configure " + DfsWalProvider.class.getName() + " option "
+          + DfsWalProvider.LOG_CLOSER_OPTION + " as " + oldCloser + " in "
+          + Property.INSTANCE_WAL_PROVIDERS.getKey() + " before removing "
+          + LEGACY_LOG_CLOSER_PROPERTY);
+    }
   }
 
   private void updateRecoveryWork(ServerContext context) {
@@ -490,10 +526,6 @@ public class Upgrader11to12 implements Upgrader {
         zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
-      RootTabletMetadata upgraded =
-          new RootTabletMetadata(new String(zrw.getData(ZROOT_TABLET), UTF_8));
-      upgraded.getKeyValues()
-          .forEach(entry -> verifyNoLegacyWalReference(entry.getKey(), "root tablet metadata"));
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
@@ -1104,10 +1136,13 @@ public class Upgrader11to12 implements Upgrader {
       if (!mutations.isEmpty()) {
         LOG.info("Root metadata in ZooKeeper before upgrade: {}", json);
         rtm.update(mutations.get(0));
-        zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        if (!zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8),
+            stat.getVersion())) {
+          throw new IllegalStateException("Could not update root tablet file references");
+        }
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
-      rtm.getKeyValues()
+      new RootTabletMetadata(new String(zrw.getData(ZROOT_TABLET), UTF_8)).getKeyValues()
           .forEach(entry -> verifyNoLegacyWalReference(entry.getKey(), "root tablet"));
     } catch (KeeperException | InterruptedException e) {
       if (e instanceof InterruptedException) {

@@ -47,7 +47,11 @@ public class DfsWalProvider implements WalProvider {
   /** Stable provider ID used for WALs stored on HDFS. */
   public static final String PROVIDER_ID = "dfs";
 
+  /** Provider option selecting a public no-argument {@link LogCloser} implementation. */
+  public static final String LOG_CLOSER_OPTION = "logCloser";
+
   private ServerContext context;
+  private LogCloser logCloser;
 
   @Override
   public String getId() {
@@ -61,6 +65,19 @@ public class DfsWalProvider implements WalProvider {
       throw new IllegalArgumentException("DfsWalProvider requires the server service environment");
     }
     context = serviceEnvironment.getContext();
+    String className =
+        params.getOptions().getOrDefault(LOG_CLOSER_OPTION, HadoopLogCloser.class.getName());
+    try {
+      logCloser = environment.instantiate(className, LogCloser.class);
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      throw new IllegalArgumentException("Unable to load DFS WAL log closer " + className, e);
+    }
+  }
+
+  @Override
+  public long prepareForRecovery(String reference) throws IOException {
+    return logCloser.close(context.getConfiguration(), context.getHadoopConf(),
+        context.getVolumeManager(), new Path(reference));
   }
 
   @Override
@@ -85,6 +102,8 @@ public class DfsWalProvider implements WalProvider {
     if (context.getConfiguration().getBoolean(Property.TSERV_WAL_SYNC)) {
       output = fs.createSyncable(path, 0, replication, blockSize);
     } else {
+      // TODO: 2nd parameter here is `true`, which signifies to overwrite
+      // an existing file. Is that correct?
       output = fs.create(path, true, 0, replication, blockSize);
     }
     try {
@@ -123,6 +142,7 @@ public class DfsWalProvider implements WalProvider {
     private final String reference;
     private final FSDataOutputStream output;
     private boolean closed;
+    private int expectedReplication;
 
     DfsWriter(String reference, FSDataOutputStream output) {
       this.reference = reference;
@@ -148,6 +168,11 @@ public class DfsWalProvider implements WalProvider {
       } else {
         throw new IllegalArgumentException("Unexpected WAL sync durability " + durability);
       }
+      var wrapped = output.getWrappedStream();
+      if (expectedReplication == 0 && wrapped instanceof DFSOutputStream dfs
+          && !(wrapped instanceof DFSStripedOutputStream)) {
+        expectedReplication = dfs.getCurrentBlockReplication();
+      }
     }
 
     @Override
@@ -158,13 +183,11 @@ public class DfsWalProvider implements WalProvider {
     @Override
     public boolean isHealthy() throws IOException {
       var wrapped = output.getWrappedStream();
-      if (wrapped instanceof DFSOutputStream repl) {
-        return repl.getCurrentBlockReplication() > 1;
-      } else if (wrapped instanceof DFSStripedOutputStream) {
-        return true;
-      } else {
-        return false;
+      if (expectedReplication > 0 && wrapped instanceof DFSOutputStream dfs
+          && !(wrapped instanceof DFSStripedOutputStream)) {
+        return dfs.getCurrentBlockReplication() >= expectedReplication;
       }
+      return true;
     }
 
     @Override
@@ -173,8 +196,10 @@ public class DfsWalProvider implements WalProvider {
       var wrapped = output.getWrappedStream();
       if (wrapped instanceof DFSOutputStream dfs) {
         DatanodeInfo[] pipeline = dfs.getPipeline();
-        for (int i = 0; i < pipeline.length; i++) {
-          buf.append("name: ").append(pipeline[i].getName()).append("\n");
+        if (pipeline != null) {
+          for (DatanodeInfo node : pipeline) {
+            buf.append("name: ").append(node.getName()).append('\n');
+          }
         }
       }
       return buf.toString();

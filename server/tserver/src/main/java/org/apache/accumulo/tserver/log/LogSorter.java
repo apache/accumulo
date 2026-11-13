@@ -159,11 +159,6 @@ public class LogSorter implements MetricsProducer {
       }
     }
 
-    public void sort(VolumeManager fs, String name, Path srcPath, String destPath)
-        throws IOException {
-      sort(fs, name, DfsWalProvider.PROVIDER_ID, srcPath, destPath);
-    }
-
     public void sort(VolumeManager fs, String name, String providerId, Path srcPath,
         String destPath) throws IOException {
       int part = 0;
@@ -244,7 +239,7 @@ public class LogSorter implements MetricsProducer {
       return 0;
     }
 
-    synchronized long getBytesCopied() throws IOException {
+    synchronized long getBytesCopied() {
       return input == null ? bytesCopied : input.getCount();
     }
   }
@@ -354,13 +349,9 @@ public class LogSorter implements MetricsProducer {
       for (Entry<String,LogProcessor> entries : currentWork.entrySet()) {
         RecoveryStatus status = new RecoveryStatus();
         status.setName(entries.getKey());
-        try {
-          double progress = entries.getValue().getBytesCopied() / walBlockSize;
-          // to be sure progress does not exceed 100%
-          status.setProgress(Math.min(progress, 99.9));
-        } catch (IOException ex) {
-          log.warn("Error getting bytes read");
-        }
+        double progress = entries.getValue().getBytesCopied() / walBlockSize;
+        // to be sure progress does not exceed 100%
+        status.setProgress(Math.min(progress, 99.9));
         status.setRuntime((int) entries.getValue().getSortTime());
         result.add(status);
       }
@@ -382,11 +373,7 @@ public class LogSorter implements MetricsProducer {
           if (start > 0) { // may not have started yet
             runtime = Math.max(start, runtime);
           }
-          try {
-            progress += processor.getBytesCopied();
-          } catch (IOException e) {
-            log.warn("Error getting bytes read");
-          }
+          progress += processor.getBytesCopied();
         }
         recoveryRuntime.set(runtime);
         recoveryAvgProgress

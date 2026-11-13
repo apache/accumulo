@@ -80,6 +80,19 @@ public interface WalProvider {
   }
 
   /**
+   * Prepares a closed or abandoned WAL for recovery, including any storage-level lease recovery or
+   * fencing needed to make its recoverable bytes consistently readable through
+   * {@link #open(String)}. Accumulo calls this after the TabletServer has closed or lost ownership
+   * of the WAL. Calls must be safe to repeat after retries or Manager failover, and may run
+   * concurrently for different WALs. Perform one attempt rather than waiting indefinitely; Accumulo
+   * schedules retries.
+   *
+   * @param reference reference returned by {@link Writer#getReference()}
+   * @return zero when ready, or a positive delay in milliseconds before retrying; never negative
+   */
+  long prepareForRecovery(String reference) throws IOException;
+
+  /**
    * Creates a new exclusive WAL for the given TabletServer and UUID. The returned reference must be
    * unique, fully qualified, and end in the supplied server address (with {@code :} replaced by
    * {@code +}) followed by the supplied UUID. The writer must preserve every byte written to its

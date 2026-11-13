@@ -81,9 +81,6 @@ public class VolumeUtil {
   }
 
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
-    if (!le.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
-      return null;
-    }
     Path switchedPath = switchVolume(le.getPath(), FileType.WAL, replacements);
     return switchedPath == null ? null : LogEntry.withSwitchedVolume(le, switchedPath);
   }

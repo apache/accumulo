@@ -84,6 +84,13 @@ public class InMemoryWalProvider implements WalProvider {
   }
 
   @Override
+  public long prepareForRecovery(String reference) throws IOException {
+    requireInitialized();
+    validateReference(reference);
+    return 0;
+  }
+
+  @Override
   public Writer create(String serverAddress, UUID id) throws IOException {
     requireInitialized();
     String hostForPath = Objects.requireNonNull(serverAddress).replace(':', '+');

@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.server.log;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 import java.util.UUID;
+
+import org.apache.accumulo.core.spi.wal.WalProvider;
 
 /**
  * The information needed to sort a write-ahead log, and its representation in the recovery work
@@ -34,6 +37,12 @@ public record LogSortInformation(UUID sortId, String providerId, String source,
     requireNonNull(providerId, "providerId is null");
     requireNonNull(source, "source is null");
     requireNonNull(destination, "destination is null");
+    checkArgument(providerId.matches(WalProvider.PROVIDER_ID_REGEX), "Invalid WAL provider ID: %s",
+        providerId);
+    checkArgument(!source.isBlank() && !destination.isBlank(),
+        "Recovery source and destination must not be blank");
+    checkArgument(source.indexOf('|') < 0 && destination.indexOf('|') < 0,
+        "Recovery source and destination must not contain '|'");
   }
 
   /** Serialize this work item for storage in ZooKeeper. */
