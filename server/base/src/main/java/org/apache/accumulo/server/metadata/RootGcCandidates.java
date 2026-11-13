@@ -96,8 +96,8 @@ public class RootGcCandidates {
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
-      return names.stream()
-          .map(name -> new GcCandidate(parent + Path.SEPARATOR + name, uidGen.nextLong()));
+      return names.stream().map(name -> new GcCandidate(parent + Path.SEPARATOR + name,
+          uidGen.nextLong(), GcCandidate.Type.TABLET_FILE));
     }).sorted();
   }
 
