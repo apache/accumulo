@@ -56,7 +56,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.LogSortWork;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
@@ -98,9 +98,9 @@ public class LogSorter implements MetricsProducer {
 
     @Override
     public void process(String child, byte[] data) {
-      LogSortWork work;
+      LogSortInformation work;
       try {
-        work = LogSortWork.fromString(new String(data, UTF_8));
+        work = LogSortInformation.deserialize(new String(data, UTF_8));
       } catch (IllegalArgumentException e) {
         log.error("Discarding malformed log sort work item {}", child, e);
         return;

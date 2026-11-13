@@ -104,7 +104,7 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
-import org.apache.accumulo.server.log.LogSortWork;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -313,7 +313,7 @@ public class Upgrader11to12 implements Upgrader {
     // This item may already have been converted if an earlier upgrade attempt failed partway
     // through. Validate it and leave it unchanged so the operation is safe to retry.
     if (parts.length == 3) {
-      LogSortWork work = LogSortWork.fromString(serialized);
+      LogSortInformation work = LogSortInformation.deserialize(serialized);
       if (!work.sortId().equals(sortId)) {
         throw new IllegalStateException("Recovery work ID does not match child " + child);
       }
@@ -323,7 +323,7 @@ public class Upgrader11to12 implements Upgrader {
     if (parts.length != 2) {
       throw new IllegalArgumentException("Malformed legacy recovery work for " + child);
     }
-    return new LogSortWork(sortId, parts[0], parts[1]).serialize();
+    return new LogSortInformation(sortId, parts[0], parts[1]).serialize();
   }
 
   @Override

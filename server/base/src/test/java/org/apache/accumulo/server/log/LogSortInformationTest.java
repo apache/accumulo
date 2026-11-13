@@ -25,23 +25,24 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-class LogSortWorkTest {
+class LogSortInformationTest {
 
   @Test
   void roundTrip() {
     UUID sortId = UUID.randomUUID();
-    LogSortWork work =
-        new LogSortWork(sortId, "hdfs://nn/wal/another-file.wal", "hdfs://nn/recovery/sorted");
+    LogSortInformation work = new LogSortInformation(sortId, "hdfs://nn/wal/another-file.wal",
+        "hdfs://nn/recovery/sorted");
 
-    assertEquals(work, LogSortWork.fromString(work.serialize()));
+    assertEquals(work, LogSortInformation.deserialize(work.serialize()));
   }
 
   @Test
   void malformedPayload() {
-    assertThrows(IllegalArgumentException.class, () -> LogSortWork.fromString("source|dest"));
     assertThrows(IllegalArgumentException.class,
-        () -> LogSortWork.fromString("not-a-uuid|source|dest"));
+        () -> LogSortInformation.deserialize("source|dest"));
     assertThrows(IllegalArgumentException.class,
-        () -> LogSortWork.fromString(UUID.randomUUID() + "|source|dest|extra"));
+        () -> LogSortInformation.deserialize("not-a-uuid|source|dest"));
+    assertThrows(IllegalArgumentException.class,
+        () -> LogSortInformation.deserialize(UUID.randomUUID() + "|source|dest|extra"));
   }
 }

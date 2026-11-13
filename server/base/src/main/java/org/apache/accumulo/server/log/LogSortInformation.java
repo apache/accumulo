@@ -26,9 +26,9 @@ import java.util.UUID;
  * The information needed to sort a write-ahead log, and its representation in the recovery work
  * queue.
  */
-public record LogSortWork(UUID sortId, String source, String destination) {
+public record LogSortInformation(UUID sortId, String source, String destination) {
 
-  public LogSortWork {
+  public LogSortInformation {
     requireNonNull(sortId, "sortId is null");
     requireNonNull(source, "source is null");
     requireNonNull(destination, "destination is null");
@@ -40,12 +40,12 @@ public record LogSortWork(UUID sortId, String source, String destination) {
   }
 
   /** Parse a serialized recovery work item. */
-  public static LogSortWork fromString(String serialized) {
-    requireNonNull(serialized, "serialized work is null");
+  public static LogSortInformation deserialize(String serialized) {
+    requireNonNull(serialized, "serialized sort information is null");
     String[] parts = serialized.split("\\|", -1);
     if (parts.length != 3) {
       throw new IllegalArgumentException("Malformed log sort work: " + serialized);
     }
-    return new LogSortWork(UUID.fromString(parts[0]), parts[1], parts[2]);
+    return new LogSortInformation(UUID.fromString(parts[0]), parts[1], parts[2]);
   }
 }

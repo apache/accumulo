@@ -86,7 +86,7 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.log.LogSortWork;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -636,7 +636,7 @@ public class Upgrader11to12Test extends WithTestNames {
     String source = "hdfs://localhost:8020/accumulo/wal/server/old-name.wal";
     String destination = "hdfs://localhost:8020/accumulo/recovery/sorted";
     String oldPayload = source + "|" + destination;
-    String newPayload = new LogSortWork(sortId, source, destination).serialize();
+    String newPayload = new LogSortInformation(sortId, source, destination).serialize();
 
     expect(zrw.getChildren(Constants.ZRECOVERY)).andReturn(List.of(sortId.toString(), "locks"));
     expect(zrw.getData(childPath)).andReturn(oldPayload.getBytes(UTF_8));
@@ -651,7 +651,7 @@ public class Upgrader11to12Test extends WithTestNames {
   @Test
   void testConvertRecoveryWorkIsIdempotent() {
     UUID sortId = UUID.randomUUID();
-    String payload = new LogSortWork(sortId, "source", "destination").serialize();
+    String payload = new LogSortInformation(sortId, "source", "destination").serialize();
 
     assertEquals(payload, Upgrader11to12.convertRecoveryWork(sortId.toString(), payload));
     assertThrows(IllegalStateException.class,

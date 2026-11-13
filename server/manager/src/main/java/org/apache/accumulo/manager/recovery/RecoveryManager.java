@@ -43,7 +43,7 @@ import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.log.LogSortWork;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.manager.recovery.LogCloser;
@@ -130,7 +130,7 @@ public class RecoveryManager {
 
   private void initiateSort(UUID sortId, String source, final String destination)
       throws KeeperException, InterruptedException {
-    String work = new LogSortWork(sortId, source, destination).serialize();
+    String work = new LogSortInformation(sortId, source, destination).serialize();
     new DistributedWorkQueue(Constants.ZRECOVERY, manager.getConfiguration(), manager)
         .addWork(sortId.toString(), work.getBytes(UTF_8));
 
