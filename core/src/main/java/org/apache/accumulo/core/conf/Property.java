@@ -1445,6 +1445,16 @@ public enum Property {
           + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
           + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
       "2.1.7"),
+  COMPACTION_COORDINATOR_ASSIGNMENT_MIN("compaction.coordinator.assignment.sleep.min", "100ms",
+      PropertyType.TIMEDURATION,
+      "When there are multiple managers compaction resource groups are assigned across manager. This is the "
+          + "minimum time between checks to see if assignments need to be adjusted.",
+      "4.0.0"),
+  COMPACTION_COORDINATOR_ASSIGNMENT_MAX("compaction.coordinator.assignment.sleep.max", "3m",
+      PropertyType.TIMEDURATION,
+      "When there are multiple managers compaction resource groups are assigned across manager. This is the "
+          + "maximum time between checks to see if assignments need to be adjusted.",
+      "4.0.0"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
       "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");

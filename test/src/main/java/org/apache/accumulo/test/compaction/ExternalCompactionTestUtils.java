@@ -56,6 +56,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -242,6 +243,12 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  }
+
+  public static Set<ResourceGroupId> getExpectedGroups() {
+    return Set.of(ResourceGroupId.DEFAULT, ResourceGroupId.of(GROUP1), ResourceGroupId.of(GROUP2),
+        ResourceGroupId.of(GROUP3), ResourceGroupId.of(GROUP4), ResourceGroupId.of(GROUP5),
+        ResourceGroupId.of(GROUP6), ResourceGroupId.of(GROUP7), ResourceGroupId.of(GROUP8));
   }
 
   public static Map<String,TExternalCompaction> getRunningCompactions(ClientContext context) {
