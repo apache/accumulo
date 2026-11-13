@@ -34,6 +34,7 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateClient;
@@ -85,9 +86,9 @@ public class CoordinatorManager {
   private final DeadCompactionDetector deadCompactionDetector;
 
   private void manageCoordinators() {
-    final long initialSleepTime = 10;
-    final long maxSleepTime = 5000;
-    long sleepTime = initialSleepTime;
+
+    long sleepTime =
+        context.getConfiguration().getTimeInMillis(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MIN);
     while (!stopped.get()) {
       try {
         long updateId = RANDOM.get().nextLong();
@@ -104,18 +105,28 @@ public class CoordinatorManager {
 
         log.trace("Desired assignments {}", desired);
         if (!current.equals(desired)) {
-          sleepTime = initialSleepTime;
+          sleepTime = context.getConfiguration()
+              .getTimeInMillis(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MIN);
           setAssignments(updateId, desired);
         } else {
-          sleepTime = Math.min(sleepTime + 10, maxSleepTime);
+          long newSleepTime = (long) Math.ceil(sleepTime * 1.2);
+          // Handle a small min sleep time is small, like 1ms, where the multiplication will not
+          // increase it at first.
+          if (sleepTime == newSleepTime) {
+            newSleepTime = sleepTime + 1;
+          }
+          sleepTime = Math.min(newSleepTime, context.getConfiguration()
+              .getTimeInMillis(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MAX));
         }
 
         advertiseAssignments(desired);
       } catch (Exception e) {
         log.warn("Failed to set compaction coordinator assignments", e);
-        sleepTime = maxSleepTime;
+        sleepTime = context.getConfiguration()
+            .getTimeInMillis(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MAX);
       }
 
+      log.trace("Sleeping {}", sleepTime);
       UtilWaitThread.sleep(sleepTime);
     }
 

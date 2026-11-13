@@ -53,9 +53,11 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
     // This test could kill a manager after its written a compaction to the metadata table, but
     // before it returns it to the compactor via RPC which creates a dead compaction. Need to speed
     // up the dead compaction detection to handle this or else the test will hang.
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "2s");
     // Speed up time to detect a dead manager process by lowering ZK timeout
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MIN, "10ms");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MAX, "1s");
   }
 
   @Test
