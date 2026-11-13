@@ -474,6 +474,10 @@ public class GarbageCollectionTest {
     gce.addCandidate(GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/5/b-1"));
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-1/F002.rf");
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-1/F001.rf");
+    gce.addCandidate(GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/6/b-2"));
+
+    gce.addDirReference("6", null, "t-0");
+    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/b-2/I1234.rf");
 
     gce.blips.add("/4/B-0");
     gce.blips.add("/5/b-1");
@@ -508,6 +512,12 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     assertFileDeleted(gce);
+
+    // removing this file ref should allow the bulk dir to be deleted
+    gce.removeFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/b-2/I1234.rf");
+
+    gca.collect(gce);
+    assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/6/b-2"));
   }
 
   @Test
@@ -807,18 +817,24 @@ public class GarbageCollectionTest {
     gce.tableIds.add(TableId.of("8"));
 
     gce.addCandidate("/4/t-0");
+    gce.addCandidate(GcCandidate.forTableDir(TableId.of("4")));
     gce.addCandidate(GcCandidate.forTableDir(TableId.of("5")));
     gce.addCandidate(GcCandidate.forTableDir(TableId.of("6")));
     gce.addCandidate(GcCandidate.forTableDir(TableId.of("8")));
+    gce.addCandidate(GcCandidate.forTableDir(TableId.of("9")));
     gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t-0/F002.rf");
-    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/t-0");
-    gce.addCandidate("hdfs://foo:6000/accumulo/tables/6/t-0");
-    gce.addCandidate("hdfs://foo:6000/accumulo/tables/7/t-0/");
+    gce.addCandidate("/5/t-0");
+    gce.addCandidate("/6/t-0");
+    gce.addCandidate("/7/t-0/");
 
+    // Table 4 only has a dir ref, this should keep the table dir from being deleted
     gce.addDirReference("4", null, "t-0");
     gce.addDirReference("7", null, "t-1");
+    // Table 8 has a dir and a file ref.
     gce.addDirReference("8", null, "t-2");
-    gce.addFileReference("8", null, "hdfs://foo:6000/accumulo/tables/8/t-0/");
+    gce.addFileReference("8", null, "hdfs://foo:6000/accumulo/tables/8/t-2/F008.rf");
+    // Table 9 only has a file ref, should keep table dir from being deleted.
+    gce.addFileReference("7", null, "hdfs://foo:6000/accumulo/tables/9/t-3/F009.rf");
 
     gca.collect(gce);
 
