@@ -107,8 +107,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.minicluster.ServerType;
@@ -116,6 +114,8 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.test.fate.TestLock;
 import org.apache.accumulo.test.functional.CompactionIT.ErrorThrowingSelector;
+import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -377,6 +377,12 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
       return null;
     }
+
+    @Override
+    public String getDetails() {
+      return null;
+    }
+
   }
 
   private FateId createCompactionCommitAndDeadMetadata(AccumuloClient c,

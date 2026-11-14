@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.file.rfile.compression;
 
 public class Snappy implements CompressionAlgorithmConfiguration {
+  public static final String CODEC_SNAPPY = "io.compression.codec.snappy.class";
 
   @Override
   public String getName() {
@@ -32,7 +33,7 @@ public class Snappy implements CompressionAlgorithmConfiguration {
 
   @Override
   public String getCodecClassNameProperty() {
-    return "io.compression.codec.snappy.class";
+    return CODEC_SNAPPY;
   }
 
   @Override

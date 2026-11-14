@@ -24,11 +24,13 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
@@ -59,8 +61,10 @@ public class PrintBCInfo {
   }
 
   public void printMetaBlockInfo() throws IOException {
-    try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
-        new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
+    FileStatus status = fs.getFileStatus(path);
+
+    try (FSDataInputStream fsin = FileOperations.openFile(fs, path, status);
+        BCFile.Reader bcfr = new BCFile.Reader(fsin, status.getLen(), conf, cryptoService)) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 
@@ -79,8 +83,10 @@ public class PrintBCInfo {
   }
 
   public String getCompressionType() throws IOException {
-    try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
-        new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
+    FileStatus status = fs.getFileStatus(path);
+
+    try (FSDataInputStream fsin = FileOperations.openFile(fs, path, status);
+        BCFile.Reader bcfr = new BCFile.Reader(fsin, status.getLen(), conf, cryptoService)) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

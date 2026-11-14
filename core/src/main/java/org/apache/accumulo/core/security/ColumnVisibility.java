@@ -529,7 +529,7 @@ public class ColumnVisibility {
     try {
       BytesAccess.validate(this.expression);
     } catch (InvalidAccessExpressionException e) {
-      // This is thrown for compatability with the exception this class used to throw when it parsed
+      // This is thrown for compatibility with the exception this class used to throw when it parsed
       // exceptions itself.
       throw new BadArgumentException(e);
     }

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.tableOps.merge.MergeTablets.validateTablet;
 
 import java.util.ArrayList;
@@ -312,5 +313,10 @@ public class DeleteRows extends AbstractFateOperation {
     }
 
     return ranges;
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
   }
 }

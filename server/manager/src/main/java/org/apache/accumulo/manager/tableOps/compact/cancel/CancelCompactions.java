@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.compact.cancel;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -30,6 +32,8 @@ import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public class CancelCompactions extends AbstractFateOperation {
 
@@ -70,4 +74,11 @@ public class CancelCompactions extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    return GSON.get().toJson(details);
+  }
 }

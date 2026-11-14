@@ -93,6 +93,9 @@ public class KerberosAuthenticator implements Authenticator {
       // znode)
       createUserNodeInZk(Base64.getEncoder().encodeToString(principalData));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("Failed to initialize security", e);
       throw new IllegalStateException(e);
     }
@@ -149,6 +152,7 @@ public class KerberosAuthenticator implements Authenticator {
       log.error("Failed to create user in ZooKeeper", e);
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("Interrupted trying to create node for user", e);
       throw new IllegalStateException(e);
     }

@@ -32,11 +32,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -60,6 +69,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -71,6 +81,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -78,11 +89,13 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Encoding;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -91,7 +104,10 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.log.LogSortInformation;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -198,6 +214,7 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader11to12.class);
+  private static final String ZDEADTSERVERS = Constants.ZDEAD + "/tservers";
   private static final String ZPROBLEMS = "/problems";
   private static final String ZTRACERS = "/tracers";
   private static final String ZTABLE_COMPACT_ID = "/compact-id";
@@ -213,7 +230,7 @@ public class Upgrader11to12 implements Upgrader {
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
+      ExternalCompactionColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME);
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";
@@ -225,6 +242,8 @@ public class Upgrader11to12 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
+    LOG.info("Updating recovery work payloads");
+    updateRecoveryWork(context);
     LOG.info("Removing ZTracer node");
     removeZTracersNode(context);
     LOG.info("Updating file references in root tablet");
@@ -257,6 +276,54 @@ public class Upgrader11to12 implements Upgrader {
     addAssistantManager(context);
     LOG.info("Adding shutting down tservers node");
     addShuttingDownTservers(context);
+  }
+
+  private void updateRecoveryWork(ServerContext context) {
+    try {
+      upgradeRecoveryWork(context.getZooSession().asReaderWriter());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while updating recovery work payloads", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Could not update recovery work payloads", e);
+    }
+  }
+
+  @VisibleForTesting
+  void upgradeRecoveryWork(ZooReaderWriter zrw) throws KeeperException, InterruptedException {
+    for (String child : zrw.getChildren(Constants.ZRECOVERY)) {
+      if (child.equals("locks")) {
+        continue;
+      }
+
+      String childPath = Constants.ZRECOVERY + "/" + child;
+      String serialized = new String(zrw.getData(childPath), UTF_8);
+      String updated = convertRecoveryWork(child, serialized);
+      if (!serialized.equals(updated)
+          && !zrw.overwritePersistentData(childPath, updated.getBytes(UTF_8), -1)) {
+        throw new IllegalStateException("Could not update recovery work " + childPath);
+      }
+    }
+  }
+
+  static String convertRecoveryWork(String child, String serialized) {
+    var sortId = UUID.fromString(child);
+    String[] parts = serialized.split("\\|", -1);
+
+    // This item may already have been converted if an earlier upgrade attempt failed partway
+    // through. Validate it and leave it unchanged so the operation is safe to retry.
+    if (parts.length == 3) {
+      LogSortInformation work = LogSortInformation.deserialize(serialized);
+      if (!work.sortId().equals(sortId)) {
+        throw new IllegalStateException("Recovery work ID does not match child " + child);
+      }
+      return work.serialize();
+    }
+
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("Malformed legacy recovery work for " + child);
+    }
+    return new LogSortInformation(sortId, parts[0], parts[1]).serialize();
   }
 
   @Override
@@ -299,6 +366,8 @@ public class Upgrader11to12 implements Upgrader {
     removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
     removeBulkFileColumnsFromTable(context, SystemTables.METADATA.tableName());
+    LOG.info("Removing major compaction temp files from prior versions");
+    deleteCompactionTempFiles(context, new DeleteStats(), new HashSet<Path>());
   }
 
   private static void addAssistantManager(ServerContext context) {
@@ -306,6 +375,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_ASSISTANT_LOCK,
           new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -315,6 +387,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZSHUTTING_DOWN_TSERVERS,
           new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -324,6 +399,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZCOMPACTIONS,
           new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }
@@ -474,6 +552,7 @@ public class Upgrader11to12 implements Upgrader {
 
       zrw.recursiveDelete(ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
       zrw.recursiveDelete("/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(ZDEADTSERVERS, ZooUtil.NodeMissingPolicy.SKIP);
 
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
@@ -484,6 +563,9 @@ public class Upgrader11to12 implements Upgrader {
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
       }
     } catch (KeeperException | InterruptedException e1) {
+      if (e1 instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e1);
     }
   }
@@ -578,7 +660,7 @@ public class Upgrader11to12 implements Upgrader {
     // should be started first before any other process.
     final ZooReader zr = context.getZooSession().asReader();
     for (String serverPath : new String[] {Constants.ZCOMPACTORS, Constants.ZSSERVERS,
-        Constants.ZTSERVERS, Constants.ZDEADTSERVERS}) {
+        Constants.ZTSERVERS, ZDEADTSERVERS}) {
       try {
         List<String> children = zr.getChildren(serverPath);
         for (String child : children) {
@@ -598,6 +680,9 @@ public class Upgrader11to12 implements Upgrader {
           }
         }
       } catch (InterruptedException | KeeperException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     }
@@ -609,8 +694,8 @@ public class Upgrader11to12 implements Upgrader {
     // state gets created last
     LOG.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
-    tableName = qualifiedTableName.getSecond();
+    var qualifiedTableName = TableNameUtil.qualify(tableName);
+    tableName = qualifiedTableName.tableName();
     String zTablePath = Constants.ZTABLES + "/" + tableId;
     final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
@@ -770,6 +855,9 @@ public class Upgrader11to12 implements Upgrader {
       context.getZooSession().asReaderWriter().recursiveDelete(ZTRACERS,
           ZooUtil.NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error removing ZTRACERS node", e);
     }
   }
@@ -787,8 +875,74 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  private static void upgradeWalEntry(Entry<Key,Value> entry, Value value, Mutation mutation,
+      Collection<Volume> volumes) throws IOException {
+    try {
+      LogEntry.fromMetaWalEntry(entry);
+      return;
+    } catch (IllegalArgumentException e) {
+      if (e.getMessage().startsWith("Invalid path format. The path must be an absolute URI: ")) {
+        // The wal entry passed all of the other checks, except that it's not an absolute
+        // URI.
+        Text qualifier = entry.getKey().getColumnQualifier();
+        String qualifierString = qualifier.toString();
+        int separator = qualifierString.indexOf('/');
+        if (separator < 0) {
+          throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
+        }
+
+        String oldPath = qualifierString.substring(separator + 1);
+        Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
+        // Validate the expected WAL path structure before writing an upgraded reference.
+        LogEntry.fromPath(qualifiedPath.toString());
+
+        Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
+        mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
+        mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  private static Path qualifyWalPath(Path walPath, Collection<Volume> volumes) throws IOException {
+    String path = walPath.toUri().getPath();
+    String[] parts = path.split("/");
+    if (parts.length < 2) {
+      throw new IllegalArgumentException(
+          "WAL path must end with tablet server and UUID: " + walPath);
+    }
+
+    String tserver = parts[parts.length - 2];
+    String uuid = parts[parts.length - 1];
+    Set<Path> matchingPaths = new HashSet<>();
+
+    for (Volume volume : volumes) {
+      Path candidate;
+      if (walPath.isAbsolute()) {
+        // An absolute path without a scheme can be qualified by each configured volume's FS.
+        candidate = volume.getFileSystem().makeQualified(new Path(path));
+      } else {
+        // Relative references may contain an obsolete prefix. WALs are stored under
+        // <volume>/wal/<tserver>/<uuid>, so use the identifying suffix to construct the candidate.
+        candidate = volume
+            .prefixChild(Constants.WAL_DIR + Path.SEPARATOR + tserver + Path.SEPARATOR + uuid);
+      }
+
+      if (volume.containsPath(candidate) && volume.getFileSystem().exists(candidate)) {
+        matchingPaths.add(candidate);
+      }
+    }
+
+    if (matchingPaths.size() != 1) {
+      throw new IllegalArgumentException("Expected WAL " + walPath
+          + " to exist on exactly one configured volume, but found " + matchingPaths);
+    }
+    return matchingPaths.iterator().next();
+  }
+
   void processReferences(MutationWriter batchWriter, Iterable<Map.Entry<Key,Value>> scanner,
-      String tableName) {
+      String tableName, Collection<Volume> volumes) {
     try {
       Mutation update = null;
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -813,6 +967,13 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
+        } else if (family.equals(LogColumnFamily.NAME)) {
+          try {
+            upgradeWalEntry(entry, value, update, volumes);
+          } catch (IllegalArgumentException | IOException e) {
+            throw new IllegalStateException("Invalid WAL reference in " + tableName + " tablet "
+                + key.getRow() + ": " + key.getColumnQualifier(), e);
+          }
         } else if (family.equals(ScanFileColumnFamily.NAME)) {
           LOG.debug("Deleting scan reference from:{}. Ref: {}", tableName, key.getRow());
           update.at().family(ScanFileColumnFamily.NAME).qualifier(key.getColumnQualifier())
@@ -861,7 +1022,8 @@ public class Upgrader11to12 implements Upgrader {
           .forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
       ArrayList<Mutation> mutations = new ArrayList<>();
 
-      processReferences(mutations::add, entries.entrySet(), "root_table_metadata");
+      processReferences(mutations::add, entries.entrySet(), "root_table_metadata",
+          context.getVolumeManager().getVolumes());
 
       Preconditions.checkState(mutations.size() <= 1);
 
@@ -872,6 +1034,9 @@ public class Upgrader11to12 implements Upgrader {
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error upgrading file references in root tablet", e);
     }
   }
@@ -899,6 +1064,9 @@ public class Upgrader11to12 implements Upgrader {
         zrw.delete(namespaceNamePath);
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating namespace mappings", e);
     }
   }
@@ -909,7 +1077,8 @@ public class Upgrader11to12 implements Upgrader {
         new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
       UPGRADE_FAMILIES.forEach(scanner::fetchColumnFamily);
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
-      processReferences(batchWriter::addMutation, scanner, metaName);
+      processReferences(batchWriter::addMutation, scanner, metaName,
+          context.getVolumeManager().getVolumes());
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + metaName, ex);
     } catch (MutationsRejectedException mex) {
@@ -919,6 +1088,7 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  @VisibleForTesting
   public void removeScanServerRanges(ServerContext context) {
     try (BatchDeleter batchDeleter =
         context.createBatchDeleter(Ample.DataLevel.USER.metaTable(), Authorizations.EMPTY, 4)) {
@@ -933,6 +1103,9 @@ public class Upgrader11to12 implements Upgrader {
     try {
       ResourceGroupPropKey.DEFAULT.createZNode(context.getZooSession().asReaderWriter());
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Error creating default resource group config node", e);
     }
   }
@@ -985,5 +1158,109 @@ public class Upgrader11to12 implements Upgrader {
 
     LOG.info(
         "Moving table properties from system configuration to namespace configurations complete.");
+  }
+
+  @VisibleForTesting
+  public void deleteCompactionTempFiles(final ServerContext ctx, final DeleteStats stats,
+      final Collection<Path> deletedFiles) {
+
+    final String pattern = "/tables/*/*/*.rf_tmp";
+    final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+    final ExecutorService svc = Executors.newFixedThreadPool(vols.size());
+    final List<Future<Void>> futures = new ArrayList<>(vols.size());
+    final Set<Path> oldCompactionTmpFiles = ConcurrentHashMap.newKeySet();
+
+    for (Volume vol : vols) {
+      final Path volPattern = new Path(vol.getBasePath() + pattern);
+      LOG.info("Looking for old compaction tmp files that match pattern: {}", volPattern);
+      futures.add(svc.submit(() -> {
+        try {
+          FileStatus[] files = vol.getFileSystem().globStatus(volPattern,
+              (p) -> (p.getName().startsWith("" + FilePrefix.FULL_COMPACTION.getPrefix())
+                  || p.getName().startsWith("" + FilePrefix.COMPACTION.getPrefix()))
+                  && p.getName().endsWith(".rf_tmp"));
+          Arrays.stream(files).forEach(fs -> oldCompactionTmpFiles.add(fs.getPath()));
+        } catch (IOException e) {
+          LOG.error("Error looking for old compaction tmp files in volume: {}", vol, e);
+        }
+        return null;
+      }));
+    }
+    svc.shutdown();
+
+    LOG.info("Waiting for tasks to complete finding files");
+    while (futures.size() > 0) {
+      Iterator<Future<Void>> iter = futures.iterator();
+      while (iter.hasNext()) {
+        Future<Void> future = iter.next();
+        if (future.isDone()) {
+          iter.remove();
+          try {
+            future.get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Error getting list of old compaction tmp files", e);
+          }
+        }
+      }
+      int remaining = futures.size();
+      if (remaining > 0) {
+        LOG.debug("Waiting for {} tasks to complete", remaining);
+        UtilWaitThread.sleep(3_000);
+      }
+    }
+    LOG.info("Found {} old compaction tmp files:", oldCompactionTmpFiles.size());
+    oldCompactionTmpFiles.forEach(p -> LOG.debug("{}", p));
+
+    LOG.info("Deleting old compaction tmp files...");
+    final ExecutorService delSvc = Executors.newFixedThreadPool(vols.size());
+    // use a linked list to make removal from the middle of the list quick
+    final List<Future<Boolean>> delFutures = new LinkedList<>();
+
+    final Set<Path> filesDeleted = ConcurrentHashMap.newKeySet();
+    oldCompactionTmpFiles.forEach(p -> {
+      delFutures.add(delSvc.submit(() -> {
+        if (ctx.getVolumeManager().exists(p)) {
+          boolean result = ctx.getVolumeManager().delete(p);
+          if (result) {
+            LOG.debug("Removed old temp file {}", p);
+            filesDeleted.add(p);
+          } else {
+            LOG.error(
+                "Unable to remove old temp file {}, operation returned false with no exception", p);
+          }
+          return result;
+        }
+        return true;
+      }));
+    });
+    delSvc.shutdown();
+
+    while (delFutures.size() > 0) {
+      Iterator<Future<Boolean>> iter = delFutures.iterator();
+      while (iter.hasNext()) {
+        Future<Boolean> future = iter.next();
+        if (future.isDone()) {
+          iter.remove();
+          try {
+            if (future.get()) {
+              stats.success++;
+            } else {
+              stats.failure++;
+            }
+          } catch (InterruptedException | ExecutionException e) {
+            stats.error++;
+            LOG.error("Error deleting a compaction tmp file", e);
+          }
+        }
+      }
+      int remaining = delFutures.size();
+      if (remaining > 0) {
+        LOG.debug("Waiting on {} background delete operations", remaining);
+        UtilWaitThread.sleep(3_000);
+      }
+    }
+    deletedFiles.addAll(filesDeleted);
+    LOG.info("Deletion of compaction tmp files completed. Success:{}, Failure:{}, Error:{}",
+        stats.success, stats.failure, stats.error);
   }
 }

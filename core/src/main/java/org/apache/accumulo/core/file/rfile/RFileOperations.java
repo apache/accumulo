@@ -62,15 +62,11 @@ public class RFileOperations extends FileOperations {
 
   private static RFileSKVIterator getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
-        .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind)
+        .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind,
+            options.status)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
         .cacheProvider(options.cacheProvider).cryptoService(options.getCryptoService());
     return RFile.getReader(cb, options.getFile());
-  }
-
-  @Override
-  protected long getFileSize(FileOptions options) throws IOException {
-    return options.getFileSystem().getFileStatus(options.getFile().getPath()).getLen();
   }
 
   @Override

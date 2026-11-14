@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.conf.store;
 
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -31,9 +31,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
@@ -262,7 +262,7 @@ public class ZooBasedConfigIT {
     long updateCount = zbc.getUpdateCount();
 
     // advance well past unload period.
-    ticker.advance(2, TimeUnit.HOURS);
+    ticker.advance(Duration.ofHours(2));
 
     var tableBPropKey = TablePropKey.of(tidB);
     propStore.create(tableBPropKey, Map.of());
@@ -362,8 +362,8 @@ public class ZooBasedConfigIT {
       elapsed = 0L;
     }
 
-    public void advance(final long value, final TimeUnit units) {
-      elapsed += TimeUnit.NANOSECONDS.convert(value, units);
+    public void advance(final Duration duration) {
+      elapsed += duration.toNanos();
     }
 
     @Override

@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.fate.meta;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.apache.accumulo.test.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.harness.WithTestNames;
+import org.apache.accumulo.test.harness.WithTestNames;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -86,11 +86,10 @@ public class ZooMutatorIT extends WithTestNames {
     if (!Files.isDirectory(newFolder)) {
       Files.createDirectories(newFolder);
     }
+    final int numTasks = 16;
+    var executor = Executors.newFixedThreadPool(numTasks);
     try (var testZk = new ZooKeeperTestingServer(newFolder.toFile()); var zk = testZk.newClient()) {
       var zrw = zk.asReaderWriter();
-
-      final int numTasks = 16;
-      var executor = Executors.newFixedThreadPool(numTasks);
 
       String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
@@ -131,7 +130,6 @@ public class ZooMutatorIT extends WithTestNames {
           countCounts.put(count, countCounts.getOrDefault(count, 0) + 1);
         }
       }
-      executor.shutdown();
 
       byte[] actual = zrw.getData("/test-zm");
       int settledCount = getCount(actual);
@@ -149,6 +147,8 @@ public class ZooMutatorIT extends WithTestNames {
 
       assertEquals(settledCount + 1, countCounts.size());
       assertEquals(expected, new String(actual, UTF_8));
+    } finally {
+      executor.shutdown();
     }
   }
 

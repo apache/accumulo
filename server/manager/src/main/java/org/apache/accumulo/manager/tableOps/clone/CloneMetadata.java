@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
@@ -59,4 +61,8 @@ class CloneMetadata extends AbstractFateOperation {
         environment.getServiceLock());
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(cloneInfo);
+  }
 }

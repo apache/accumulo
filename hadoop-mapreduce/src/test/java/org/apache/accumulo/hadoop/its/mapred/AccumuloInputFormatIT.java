@@ -40,7 +40,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.hadoop.mapred.AccumuloInputFormat;
 import org.apache.accumulo.hadoop.mapreduce.InputFormatBuilder;
 import org.apache.accumulo.hadoopImpl.mapred.RangeInputSplit;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;

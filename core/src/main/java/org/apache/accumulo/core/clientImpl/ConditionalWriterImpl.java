@@ -152,6 +152,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
         count--;
         return result;
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         throw new IllegalStateException(e);
       }
     }
@@ -285,7 +286,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private void queue(List<QCMutation> mutations) {
-    List<QCMutation> failures = new ArrayList<>();
+    ArrayList<QCMutation> failures = new ArrayList<>();
     Map<String,TabletServerMutations<QCMutation>> binnedMutations = new HashMap<>();
 
     try {
@@ -348,7 +349,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private TabletServerMutations<QCMutation> dequeue(String location) {
     var queue = getServerQueue(location).queue;
 
-    var mutations = new ArrayList<TabletServerMutations<QCMutation>>();
+    var mutations = new ArrayList<TabletServerMutations<QCMutation>>(queue.size());
     queue.drainTo(mutations);
 
     if (mutations.isEmpty()) {
@@ -362,8 +363,10 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       TabletServerMutations<QCMutation> tsm = mutations.get(0);
 
       for (int i = 1; i < mutations.size(); i++) {
-        mutations.get(i).getMutations().forEach((keyExtent, mutationList) -> tsm.getMutations()
-            .computeIfAbsent(keyExtent, k -> new ArrayList<>()).addAll(mutationList));
+        mutations.get(i).getMutations()
+            .forEach((keyExtent, mutationList) -> tsm.getMutations()
+                .computeIfAbsent(keyExtent, k -> new ArrayList<>(mutationList.size()))
+                .addAll(mutationList));
       }
 
       return tsm;
@@ -387,7 +390,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     this.classLoaderContext = config.getClassLoaderContext();
 
     Runnable failureHandler = () -> {
-      List<QCMutation> mutations = new ArrayList<>();
+      List<QCMutation> mutations = new ArrayList<>(failedMutations.size());
       failedMutations.drainTo(mutations);
       if (!mutations.isEmpty()) {
         queue(mutations);
@@ -510,9 +513,9 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     synchronized (cachedSessionIDs) {
       SessionID sid = new SessionID();
       sid.reserved = true;
-      sid.sessionID = tcs.sessionId;
-      sid.lockId = tcs.tserverLock;
-      sid.ttl = tcs.ttl;
+      sid.sessionID = tcs.getSessionId();
+      sid.lockId = tcs.getTserverLock();
+      sid.ttl = tcs.getTtl();
       sid.location = location;
       if (cachedSessionIDs.put(location, sid) != null) {
         throw new IllegalStateException();
@@ -544,7 +547,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   List<SessionID> getActiveSessions() {
-    ArrayList<SessionID> activeSessions = new ArrayList<>();
+    ArrayList<SessionID> activeSessions = new ArrayList<>(cachedSessionIDs.values().size() / 2);
     for (SessionID sid : cachedSessionIDs.values()) {
       if (sid.isActive()) {
         activeSessions.add(sid);
@@ -600,13 +603,13 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       ArrayList<QCMutation> ignored = new ArrayList<>();
 
       for (TCMResult tcmResult : tresults) {
-        if (tcmResult.status == TCMStatus.IGNORED) {
-          CMK cmk = cmidToCm.get(tcmResult.cmid);
+        if (tcmResult.getStatus() == TCMStatus.IGNORED) {
+          CMK cmk = cmidToCm.get(tcmResult.getCmid());
           ignored.add(cmk.cm);
           extentsToInvalidate.add(cmk.ke);
         } else {
-          QCMutation qcm = cmidToCm.get(tcmResult.cmid).cm;
-          qcm.queueResult(new Result(fromThrift(tcmResult.status), qcm, location.toString()));
+          QCMutation qcm = cmidToCm.get(tcmResult.getCmid()).cm;
+          qcm.queueResult(new Result(fromThrift(tcmResult.getStatus()), qcm, location.toString()));
         }
       }
 
@@ -637,8 +640,9 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   private void queueRetry(Map<Long,CMK> cmidToCm, HostAndPort location) {
-    ArrayList<QCMutation> ignored = new ArrayList<>();
-    for (CMK cmk : cmidToCm.values()) {
+    var values = cmidToCm.values();
+    ArrayList<QCMutation> ignored = new ArrayList<>(values.size());
+    for (CMK cmk : values) {
       ignored.add(cmk.cm);
     }
     queueRetry(ignored, location);
@@ -741,7 +745,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       CompressedIterators compressedIters) {
 
     mutations.getMutations().forEach((keyExtent, mutationList) -> {
-      var tcondMutaions = new ArrayList<TConditionalMutation>();
+      var tcondMutaions = new ArrayList<TConditionalMutation>(mutationList.size());
 
       for (var cm : mutationList) {
         var id = cmid.longValue();

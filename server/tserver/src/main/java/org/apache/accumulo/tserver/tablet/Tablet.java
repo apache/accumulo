@@ -104,6 +104,7 @@ import org.apache.accumulo.tserver.TservConstraintEnv;
 import org.apache.accumulo.tserver.constraints.ConstraintChecker;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerRecoveryMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.hadoop.fs.FileStatus;
@@ -202,7 +203,7 @@ public class Tablet extends TabletBase {
   private final Rate ingestByteRate = new Rate(0.95);
   private final Rate scannedRate = new Rate(0.95);
 
-  private long lastMinorCompactionFinishTime = 0;
+  private volatile long lastMinorCompactionFinishTime = 0;
 
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
@@ -268,14 +269,17 @@ public class Tablet extends TabletBase {
 
     // don't bother examining WALs for recovery if Table is being deleted
     if (!logEntries.isEmpty() && !isBeingDeleted()) {
+      TabletServerRecoveryMetrics recoveryMetrics = tabletServer.getTabletRecoveryMetrics();
+      recoveryMetrics.recoveryStarted();
       TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
       // track max time from walog entries without timestamps
       final AtomicLong maxTime = new AtomicLong(Long.MIN_VALUE);
       final CommitSession commitSession = getTabletMemory().getCommitSession();
       try {
-        Set<String> absPaths = new HashSet<>();
-        for (StoredTabletFile ref : metadata.getFiles()) {
+        Set<StoredTabletFile> files = metadata.getFiles();
+        Set<String> absPaths = new HashSet<>(files.size());
+        for (StoredTabletFile ref : files) {
           absPaths.add(ref.getNormalizedPathStr());
         }
 
@@ -291,6 +295,7 @@ public class Tablet extends TabletBase {
               }
               getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
               entriesUsedOnTablet.incrementAndGet();
+              recoveryMetrics.incrementMutationsReplayed();
             });
 
         if (maxTime.get() != Long.MIN_VALUE) {
@@ -322,6 +327,7 @@ public class Tablet extends TabletBase {
         }
 
       } catch (IOException | RuntimeException t) {
+        recoveryMetrics.recoveryFailed();
         String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           log.warn(msg, t);
@@ -330,13 +336,14 @@ public class Tablet extends TabletBase {
         }
       }
       // make some closed references that represent the recovered logs
-      currentLogs = new HashSet<>();
+      currentLogs = new HashSet<>(logEntries.size(), 1.0f);
       for (LogEntry logEntry : logEntries) {
         currentLogs.add(DfsLogger.fromLogEntry(logEntry));
       }
 
       rebuildReferencedLogs();
 
+      recoveryMetrics.recoveryCompleted();
       TabletLogger.recovered(extent, logEntries, entriesUsedOnTablet.get(),
           getTabletMemory().getNumEntries());
     }
@@ -633,6 +640,9 @@ public class Tablet extends TabletBase {
           .getData(Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
@@ -882,6 +892,7 @@ public class Tablet extends TabletBase {
         try {
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error(e.toString());
         }
       }
@@ -954,6 +965,7 @@ public class Tablet extends TabletBase {
               runningScans.size());
           this.wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.error("Interrupted waiting to completeClose for extent {}", extent, e);
         }
       }
@@ -1242,8 +1254,8 @@ public class Tablet extends TabletBase {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<LogEntry> unusedLogs = new HashSet<>();
 
-    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>();
-    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>();
+    ArrayList<LogEntry> otherLogsCopy = new ArrayList<>(otherLogs.size());
+    ArrayList<LogEntry> currentLogsCopy = new ArrayList<>(currentLogs.size());
 
     synchronized (this) {
       if (removingLogs) {

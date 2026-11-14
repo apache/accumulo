@@ -30,6 +30,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockEntry;
 import org.apache.accumulo.core.util.Timer;
@@ -68,6 +70,9 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     LockRange getRange();
   }
 
+  // Intended usage of instances of this class is that it's only used by a single thread and
+  // supports locking across threads/processes
+  @NotThreadSafe
   static class ReadLock implements DistributedLock {
 
     final QueueLock qlock;

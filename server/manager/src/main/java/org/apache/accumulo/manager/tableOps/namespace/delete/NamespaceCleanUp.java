@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.delete;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
@@ -28,6 +30,8 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 class NamespaceCleanUp extends AbstractFateOperation {
 
@@ -77,4 +81,10 @@ class NamespaceCleanUp extends AbstractFateOperation {
     // nothing to do
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    return GSON.get().toJson(details);
+  }
 }

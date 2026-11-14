@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -115,7 +117,7 @@ public class FileManager {
 
       long curTime = System.currentTimeMillis();
 
-      ArrayList<FileSKVIterator> filesToClose = new ArrayList<>();
+      ArrayList<FileSKVIterator> filesToClose = new ArrayList<>(openFiles.size());
 
       // determine which files to close in a sync block, and then close the
       // files outside of the sync block
@@ -183,7 +185,7 @@ public class FileManager {
 
   private List<FileSKVIterator> takeLRUOpenFiles(int numToTake) {
 
-    ArrayList<OpenReader> openReaders = new ArrayList<>();
+    ArrayList<OpenReader> openReaders = new ArrayList<>(openFiles.size());
 
     for (Entry<StoredTabletFile,List<OpenReader>> entry : openFiles.entrySet()) {
       openReaders.addAll(entry.getValue());
@@ -191,7 +193,7 @@ public class FileManager {
 
     Collections.sort(openReaders);
 
-    ArrayList<FileSKVIterator> ret = new ArrayList<>();
+    ArrayList<FileSKVIterator> ret = new ArrayList<>(openReaders.size());
 
     for (int i = 0; i < numToTake && i < openReaders.size(); i++) {
       OpenReader or = openReaders.get(i);
@@ -375,6 +377,7 @@ public class FileManager {
 
   }
 
+  @NotThreadSafe
   static class FileDataSource implements DataSource {
 
     private SortedKeyValueIterator<Key,Value> iter;
@@ -504,7 +507,7 @@ public class FileManager {
       Map<FileSKVIterator,StoredTabletFile> newlyReservedReaders =
           openFiles(new ArrayList<>(files.keySet()));
 
-      ArrayList<InterruptibleIterator> iters = new ArrayList<>();
+      ArrayList<InterruptibleIterator> iters = new ArrayList<>(newlyReservedReaders.size());
 
       boolean someIteratorsWillWrap =
           files.values().stream().anyMatch(DataFileValue::willWrapIterator);

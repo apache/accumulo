@@ -165,12 +165,12 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
 
   @Override
   public String keyword() {
-    return "check";
+    return "system";
   }
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.INSTANCE;
+    return CommandGroups.CHECK;
   }
 
   @Override

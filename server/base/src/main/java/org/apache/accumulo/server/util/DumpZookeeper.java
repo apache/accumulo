@@ -45,17 +45,17 @@ public class DumpZookeeper extends ServerKeywordExecutable<DumpZooOpts> {
 
   @Override
   public String keyword() {
-    return "dump-zoo";
+    return "dump";
   }
 
   @Override
   public String description() {
-    return "Writes Zookeeper data as human readable or XML to a file.";
+    return "Writes ZooKeeper data as human readable or XML to a file.";
   }
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CONFIG;
+    return CommandGroups.ZOOKEEPER;
   }
 
   private static class Encoded {

@@ -41,7 +41,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

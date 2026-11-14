@@ -28,6 +28,7 @@ public class UtilWaitThread {
     try {
       Thread.sleep(millis);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
     }
   }

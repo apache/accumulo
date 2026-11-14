@@ -20,6 +20,7 @@ package org.apache.accumulo.test.fate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -35,8 +36,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -204,7 +205,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       log.error("Failure in test", e);
       throw e;
     } finally {
-      fate.shutdown(30, TimeUnit.SECONDS);
+      fate.shutdown(Duration.ofSeconds(30));
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -282,7 +283,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       log.error("Failure in test", e);
       throw e;
     } finally {
-      fate.shutdown(30, TimeUnit.SECONDS);
+      fate.shutdown(Duration.ofSeconds(30));
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -421,7 +422,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       log.error("Failure in test", e);
       throw e;
     } finally {
-      fate.shutdown(30, TimeUnit.SECONDS);
+      fate.shutdown(Duration.ofSeconds(30));
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -457,7 +458,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       log.error("Failure in test", e);
       throw e;
     } finally {
-      fate.shutdown(30, TimeUnit.SECONDS);
+      fate.shutdown(Duration.ofSeconds(30));
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -635,7 +636,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       log.error("Failure in test", e);
       throw e;
     } finally {
-      fate.shutdown(30, TimeUnit.SECONDS);
+      fate.shutdown(Duration.ofSeconds(30));
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -689,7 +690,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       log.error("Failure in test", e);
       throw e;
     } finally {
-      fate.shutdown(30, TimeUnit.SECONDS);
+      fate.shutdown(Duration.ofSeconds(30));
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -807,6 +808,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
     @Override
     public String getReturn() {
+      return null;
+    }
+
+    @Override
+    public String getDetails() {
       return null;
     }
   }

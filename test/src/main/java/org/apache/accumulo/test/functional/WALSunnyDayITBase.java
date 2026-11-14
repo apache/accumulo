@@ -62,7 +62,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -268,9 +267,9 @@ public abstract class WALSunnyDayITBase extends ConfigurableMacBase {
       try {
         Map<String,WalState> result = new HashMap<>();
         WalStateManager wals = new WalStateManager(c);
-        for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+        for (var wal : wals.getAllState()) {
           // WALs are in use if they are not unreferenced
-          result.put(entry.getKey().toString(), entry.getValue());
+          result.put(wal.path().toString(), wal.state());
         }
         return result;
       } catch (WalMarkerException wme) {

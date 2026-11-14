@@ -32,9 +32,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.upgrade.SplitRecovery11to12;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
 public class MetaConstraintRetryIT extends AccumuloClusterHarness {

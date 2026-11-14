@@ -43,10 +43,10 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
@@ -107,6 +107,9 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
           try {
             this.getContext().getZooSession().asReader().exists(tableZPath, new StuckWatcher());
           } catch (KeeperException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             LOG.error("Error setting watch at: {}", tableZPath, e);
           }
           LOG.info("Set StuckWatcher at: {}", tableZPath);

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -56,5 +58,10 @@ class SetupNamespacePermissions extends AbstractFateOperation {
     // this way concurrent users will not get a spurious permission denied
     // error
     return new PopulateZookeeperWithNamespace(namespaceInfo);
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(namespaceInfo);
   }
 }

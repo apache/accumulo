@@ -88,6 +88,9 @@ public class FateWorker implements FateWorkerService.Iface {
           new MetaFateStore<>(context.getZooSession(), lock.getLockID(), isLockHeld);
       this.fates.put(FateInstanceType.META, fateFactory.create(fateWorkerEnv, metaStore, context));
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
     UserFateStore<FateEnv> store =

@@ -131,6 +131,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       String path = propStoreKey.getPath();
       zrw.putPrivatePersistentData(path, codec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
     } catch (IOException | KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to serialize properties for " + propStoreKey, ex);
     }
   }
@@ -218,6 +221,21 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
+  public void replaceAll(@NonNull PropStoreKey propStoreKey, Map<String,String> expected,
+      @NonNull Map<String,String> props) {
+    BiFunction<VersionedProperties,Map<String,String>,VersionedProperties> action =
+        (current, p) -> {
+          if (!current.asMap().equals(expected)) {
+            throw new ConcurrentModificationException(
+                "Current properties do not match expected, key:" + propStoreKey);
+          }
+          return current.replaceAll(p);
+        };
+
+    mutateVersionedProps(propStoreKey, action, props);
+  }
+
+  @Override
   public void replaceAll(@NonNull PropStoreKey propStoreKey, long version,
       @NonNull Map<String,String> props) {
     mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
@@ -241,6 +259,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       zrw.delete(path);
       cache.remove(propStoreKey);
     } catch (KeeperException | InterruptedException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException("Failed to delete properties for propCacheId " + propStoreKey,
           ex);
     }

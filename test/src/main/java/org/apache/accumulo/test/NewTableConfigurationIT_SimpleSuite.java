@@ -52,7 +52,7 @@ import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

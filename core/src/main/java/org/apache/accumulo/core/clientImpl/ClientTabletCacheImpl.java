@@ -155,8 +155,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   public interface TabletServerLockChecker {
     boolean isLockHeld(String tserver, String session);
-
-    void invalidateCache(String server);
   }
 
   private class LockCheckerSession {
@@ -221,7 +219,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      Map<String,TabletServerMutations<T>> binnedMutations, ArrayList<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
 
@@ -258,6 +256,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     if (!notInCache.isEmpty()) {
       notInCache.sort((o1, o2) -> WritableComparator.compareBytes(o1.getRow(), 0,
           o1.getRow().length, o2.getRow(), 0, o2.getRow().length));
+
+      failures.ensureCapacity(failures.size() + notInCache.size());
 
       // Want to ignore any entries in the cache w/o a location that were created before the
       // following time. Entries created after the following time may have been populated by the
@@ -637,7 +637,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       return;
     }
 
-    List<TKeyExtent> extentsToBringOnline = new ArrayList<>();
+    List<TKeyExtent> extentsToBringOnline = new ArrayList<>(tabletsWithNoLocation.size());
     for (var cachedTablet : tabletsWithNoLocation) {
       if (cachedTablet.getCreationTimer().elapsed().compareTo(STALE_DURATION) < 0) {
         if (cachedTablet.getAvailability() == TabletAvailability.ONDEMAND) {

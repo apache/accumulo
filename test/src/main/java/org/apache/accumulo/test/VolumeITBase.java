@@ -207,14 +207,13 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
       retry: while (true) {
         WalStateManager wals = new WalStateManager(getServerContext());
         try {
-          outer: for (Map.Entry<Path,WalStateManager.WalState> entry : wals.getAllState()
-              .entrySet()) {
+          outer: for (var wal : wals.getAllState()) {
             for (Path path : paths) {
-              if (entry.getKey().toString().startsWith(path.toString())) {
+              if (wal.path().toString().startsWith(path.toString())) {
                 continue outer;
               }
             }
-            log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
+            log.warn("Unexpected volume " + wal.path() + " (" + wal.state() + ")");
             UtilWaitThread.sleep(100);
             continue retry;
           }

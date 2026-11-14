@@ -36,11 +36,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -93,6 +93,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for tablePropUtil update");
         }
         properties = client.tableOperations().getConfiguration(tableName);
@@ -106,6 +107,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for tablePropUtil update");
         }
         properties = client.tableOperations().getConfiguration(tableName);
@@ -146,6 +148,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for namespacePropUtil update");
         }
         properties = client.namespaceOperations().getConfiguration(namespace);
@@ -159,6 +162,7 @@ public class ZooKeeperPropertiesIT_SimpleSuite extends SharedMiniClusterBase {
         try {
           Thread.sleep(250);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           fail("Thread interrupted while waiting for namespacePropUtil update");
         }
         properties = client.namespaceOperations().getConfiguration(namespace);

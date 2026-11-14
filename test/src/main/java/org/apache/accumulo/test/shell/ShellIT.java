@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.shell;
 
 import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,9 +39,9 @@ import java.util.TimeZone;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.shell.MockShell.TestShell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;

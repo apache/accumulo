@@ -44,7 +44,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.hadoop.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;

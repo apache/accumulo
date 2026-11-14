@@ -149,7 +149,7 @@ function main() {
       build_native "${@:2}"
       ;;
     dump-zoo)
-      "$bin"/accumulo config dump-zoo "${@:2}"
+      "$bin"/accumulo zk dump "${@:2}"
       ;;
     gen-monitor-cert)
       gen_monitor_cert

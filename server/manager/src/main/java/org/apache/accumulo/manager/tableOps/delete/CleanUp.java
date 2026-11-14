@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -48,6 +50,8 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 class CleanUp extends AbstractFateOperation {
 
@@ -160,4 +164,11 @@ class CleanUp extends AbstractFateOperation {
     // nothing to do
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("tableId", tableId.canonical());
+    return GSON.get().toJson(details);
+  }
 }

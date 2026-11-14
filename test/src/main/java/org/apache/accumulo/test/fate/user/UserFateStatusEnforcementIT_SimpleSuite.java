@@ -24,8 +24,8 @@ import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateStatusEnforcementITBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,7 +49,7 @@ public class UserFateStatusEnforcementIT_SimpleSuite extends FateStatusEnforceme
   public void beforeEachSetup() throws Exception {
     client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
     table = getUniqueNames(1)[0];
-    createFateTable(client, table);
+    createFateTable(client, getCluster().getServerContext(), table);
     store = new UserFateStore<>(client, table, createDummyLockID(), null);
     fateId = store.create();
     txStore = store.reserve(fateId);

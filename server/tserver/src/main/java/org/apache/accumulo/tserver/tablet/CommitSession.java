@@ -73,6 +73,7 @@ public class CommitSession {
       try {
         committer.wait(50);
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.warn("InterruptedException", e);
       }
     }

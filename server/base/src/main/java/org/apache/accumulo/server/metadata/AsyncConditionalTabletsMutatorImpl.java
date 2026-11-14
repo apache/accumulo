@@ -62,6 +62,9 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
         try {
           backgroundProcessing.get().values().forEach(resultsConsumer);
         } catch (InterruptedException | ExecutionException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           throw new IllegalStateException(e);
         }
       }
@@ -89,6 +92,9 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
       try {
         backgroundProcessing.get().values().forEach(resultsConsumer);
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     }

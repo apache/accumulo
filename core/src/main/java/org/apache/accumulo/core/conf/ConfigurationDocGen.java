@@ -48,6 +48,11 @@ public class ConfigurationDocGen {
     beginTable("Type");
     propertyTypeDescriptions();
 
+    beginSection("Java System Properties");
+    doc.println("Below are properties used to modify the runtime behavior.\n");
+    beginTable("Property");
+    systemPropertyDescriptions();
+
     doc.close();
   }
 
@@ -83,8 +88,12 @@ public class ConfigurationDocGen {
     if (depr) {
       description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
       if (prefix.isReplaced()) {
-        description += "*Replaced by:* <a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
-            + "prefix\">" + prefix.replacedBy() + "</a><br>";
+        Property replacement = prefix.replacedBy();
+        String anchor = replacement.getKey().replace(".", "_");
+        if (replacement.getType() == PropertyType.PREFIX) {
+          anchor += "prefix";
+        }
+        description += "*Replaced by:* <a href=\"#" + anchor + "\">" + replacement + "</a><br>";
       }
     }
     description += strike(sanitize(prefix.getDescription()), depr);
@@ -142,6 +151,12 @@ public class ConfigurationDocGen {
       doc.println(
           "| " + sanitize(type.toString()) + " | " + sanitize(type.getFormatDescription()) + " |");
     }
+  }
+
+  void systemPropertyDescriptions() {
+    TreeMap<String,String> systemProps = Property.getSystemProperties();
+    systemProps.forEach(
+        (key, value) -> doc.println("| " + sanitize(key) + " | " + sanitize(value) + " |"));
   }
 
   String sanitize(String str) {

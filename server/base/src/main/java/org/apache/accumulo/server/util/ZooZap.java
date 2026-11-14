@@ -65,17 +65,17 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
 
   @Override
   public String keyword() {
-    return "zoo-zap";
+    return "zap";
   }
 
   @Override
   public String description() {
-    return "Utility for zapping Zookeeper locks";
+    return "Utility for zapping ZooKeeper locks";
   }
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
+    return CommandGroups.ZOOKEEPER;
   }
 
   static class ZapOpts extends ServerOpts {
@@ -94,7 +94,7 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
     @Parameter(names = "--include-groups",
-        description = "Comma seperated list of resource groups to include")
+        description = "Comma separated list of resource groups to include")
     String includeGroups;
     @Parameter(names = "--exclude-host-ports",
         description = "File with lines of <host>:<port> to exclude from removal")
@@ -188,6 +188,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
           }
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting tserver locks", e);
       }
     }
@@ -203,6 +206,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
           }
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting compactors from zookeeper", e);
       }
 
@@ -219,6 +225,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
           }
         }
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         log.error("Error deleting scan server locks", e);
       }
     }
@@ -239,6 +248,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
     try {
       zapDirectory(zoo, path, ops);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new IllegalStateException(e);
     }
   }

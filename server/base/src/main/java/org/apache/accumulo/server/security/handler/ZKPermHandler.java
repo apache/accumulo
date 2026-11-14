@@ -81,6 +81,7 @@ public class ZKPermHandler implements PermissionHandler {
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
           return false;
         } catch (KeeperException ex) {
@@ -95,6 +96,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.warn("Unhandled KeeperException, failing closed for table permission check", e);
       return false;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
       return false;
     }
@@ -131,6 +133,7 @@ public class ZKPermHandler implements PermissionHandler {
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
           log.warn("Unhandled InterruptedException, failing closed for namespace permission check",
               e);
           return false;
@@ -146,6 +149,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.warn("Unhandled KeeperException, failing closed for table permission check", e);
       return false;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
       return false;
     }
@@ -188,6 +192,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -215,6 +220,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -243,6 +249,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -271,6 +278,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -302,6 +310,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -336,6 +345,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -353,6 +363,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException("unknownUser", SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -371,6 +382,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException("unknownUser", SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -412,6 +424,9 @@ public class ZKPermHandler implements PermissionHandler {
         createNamespacePerm(rootuser, entry.getKey(), entry.getValue());
       }
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -429,6 +444,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -468,6 +484,7 @@ public class ZKPermHandler implements PermissionHandler {
           NodeMissingPolicy.SKIP);
       ctx.getZooCache().clear((path) -> path.startsWith(Constants.ZUSERS + "/" + user));
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     } catch (KeeperException e) {
@@ -494,6 +511,7 @@ public class ZKPermHandler implements PermissionHandler {
       log.warn("Unhandled KeeperException, failing closed for table permission check", e);
       return false;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
       return false;
     }

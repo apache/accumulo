@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -57,8 +56,8 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -140,6 +139,11 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
     @Override
     public String getReturn() {
       return "";
+    }
+
+    @Override
+    public String getDetails() {
+      return null;
     }
   }
 
@@ -294,7 +298,7 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
 
     } finally {
       if (fate != null) {
-        fate.shutdown(10, TimeUnit.MINUTES);
+        fate.shutdown(Duration.ofMinutes(10));
       }
     }
   }
@@ -399,7 +403,7 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
 
     } finally {
       if (fate != null) {
-        fate.shutdown(10, TimeUnit.MINUTES);
+        fate.shutdown(Duration.ofMinutes(10));
       }
     }
   }

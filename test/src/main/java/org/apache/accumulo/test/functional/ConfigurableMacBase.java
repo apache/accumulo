@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -30,18 +30,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.miniclusterImpl.ClusterServerConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloITBase;
 import org.apache.accumulo.test.util.CertUtils;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.commons.io.FileUtils;
@@ -138,10 +136,6 @@ public class ConfigurableMacBase extends AccumuloITBase {
     for (int i = 0; i < 3; i++) {
       try {
         cluster.start();
-        try (AccumuloClient ac = Accumulo.newClient().from(getClientProperties()).build()) {
-          AccumuloITBase.setSystemTablePermsForITs(ac,
-              cluster.getServerContext().securityOperations());
-        }
         return;
       } catch (ZooKeeperBindException e) {
         lastException = e;

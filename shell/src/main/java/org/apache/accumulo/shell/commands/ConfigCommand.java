@@ -266,7 +266,7 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = TableNameUtil.qualify(tableName).getFirst();
+        String n = TableNameUtil.qualify(tableName).namespaceName();
         try {
           namespaceConfig
               .putAll(shellState.getAccumuloClient().namespaceOperations().getConfiguration(n));

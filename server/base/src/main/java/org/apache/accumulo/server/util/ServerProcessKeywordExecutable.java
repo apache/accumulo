@@ -45,7 +45,7 @@ public abstract class ServerProcessKeywordExecutable implements KeywordExecutabl
 
   @Override
   public String description() {
-    return "Starts Accumulo " + name;
+    return "Runs Accumulo " + name;
   }
 
   @Override

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.rename;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
@@ -27,6 +29,8 @@ import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public class RenameNamespace extends AbstractFateOperation {
 
@@ -68,4 +72,12 @@ public class RenameNamespace extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.WRITE);
   }
 
+  @Override
+  public String getDetails() {
+    JsonObject details = new JsonObject();
+    details.addProperty("namespaceId", namespaceId.canonical());
+    details.addProperty("oldName", oldName);
+    details.addProperty("newName", newName);
+    return GSON.get().toJson(details);
+  }
 }

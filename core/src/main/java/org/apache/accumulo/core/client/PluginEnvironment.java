@@ -24,8 +24,10 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.LayeredConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 
@@ -143,9 +145,10 @@ public interface PluginEnvironment {
      * @since 4.0.0
      */
     static Configuration from(Map<String,String> properties, boolean includeDefaults) {
-      ConfigurationCopy config = includeDefaults
-          ? new ConfigurationCopy(DefaultConfiguration.getInstance()) : new ConfigurationCopy();
-      properties.forEach(config::set);
+      AccumuloConfiguration config = new ConfigurationCopy(properties);
+      if (includeDefaults) {
+        config = new LayeredConfiguration(DefaultConfiguration.getInstance(), config);
+      }
       return new ConfigurationImpl(config);
     }
   }

@@ -29,4 +29,12 @@ public interface ReadOnlyRepo<T> {
 
   String getName();
 
+  /**
+   * Returns detailed information about the transaction. This information may include protected
+   * information and should only be used in server-side tools (not the Monitor).
+   *
+   * @return json details
+   */
+  String getDetails();
+
 }

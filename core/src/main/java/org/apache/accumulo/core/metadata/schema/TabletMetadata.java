@@ -828,10 +828,11 @@ public class TabletMetadata {
    * pulled from org.apache.accumulo.server.manager.LiveTServerSet
    */
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
-    final Set<TServerInstance> liveServers = new HashSet<>();
 
-    for (ServiceLockPath slp : context.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY,
-        AddressSelector.all(), true)) {
+    Set<ServiceLockPath> locks = context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    final Set<TServerInstance> liveServers = new HashSet<>(locks.size());
+    for (ServiceLockPath slp : locks) {
 
       checkTabletServer(context, slp).ifPresent(liveServers::add);
     }

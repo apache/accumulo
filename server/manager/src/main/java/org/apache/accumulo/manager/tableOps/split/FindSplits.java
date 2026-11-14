@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.split;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Optional;
 import java.util.SortedSet;
@@ -159,4 +160,8 @@ public class FindSplits extends AbstractFateOperation {
     return new PreSplit(extent, splits);
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(splitInfo);
+  }
 }

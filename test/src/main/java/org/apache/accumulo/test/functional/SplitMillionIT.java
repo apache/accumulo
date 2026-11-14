@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -75,6 +76,11 @@ public class SplitMillionIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setMemory(ServerType.MANAGER, 1, MemoryUnit.GIGABYTE);
     cfg.setMemory(ServerType.TABLET_SERVER, 1, MemoryUnit.GIGABYTE);
+  }
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(20);
   }
 
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},

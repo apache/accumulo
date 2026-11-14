@@ -49,7 +49,7 @@ public class SystemIteratorUtil {
   }
 
   public static IteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
-    ArrayList<TIteratorSetting> tisList = new ArrayList<>();
+    ArrayList<TIteratorSetting> tisList = new ArrayList<>(iterators.size());
 
     for (IteratorSetting iteratorSetting : iterators) {
       tisList.add(toTIteratorSetting(iteratorSetting));

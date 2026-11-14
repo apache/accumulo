@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation.SYSTEM_MERGE;
 
 import org.apache.accumulo.core.conf.Property;
@@ -87,5 +88,10 @@ public class CountFiles extends AbstractFateOperation {
         default -> throw new IllegalStateException("Unknown op " + data.op);
       };
     }
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
   }
 }

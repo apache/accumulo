@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -44,7 +44,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -53,9 +52,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
 import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Tag;
@@ -225,8 +224,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
       for (TabletMetadata tm : tabletsMetadata) {
         for (LogEntry walog : tm.getLogs()) {
           String sortId = walog.getUniqueID().toString();
-          String filename = walog.getPath();
-          String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
+          String dest = RecoveryPath.getRecoveryPath(walog.getPath()).toString();
 
           if (ctx.getZooCache().get(Constants.ZRECOVERY + "/" + sortId) != null
               || !ctx.getVolumeManager().exists(SortedLogState.getFinishedMarkerPath(dest))) {

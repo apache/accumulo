@@ -30,7 +30,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,9 +43,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -135,6 +132,7 @@ import org.apache.accumulo.tserver.log.TabletServerLogger;
 import org.apache.accumulo.tserver.managermessage.ManagerMessage;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
+import org.apache.accumulo.tserver.metrics.TabletServerRecoveryMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
 import org.apache.accumulo.tserver.scan.ScanRunState;
@@ -167,6 +165,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   TabletServerMinCMetrics mincMetrics;
   PausedCompactionMetrics pausedMetrics;
   BlockCacheMetrics blockCacheMetrics;
+  TabletServerRecoveryMetrics recoveryMetrics;
 
   @Override
   public TabletServerScanMetrics getScanMetrics() {
@@ -182,6 +181,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return pausedMetrics;
   }
 
+  public TabletServerRecoveryMetrics getTabletRecoveryMetrics() {
+    return recoveryMetrics;
+  }
+
   private final LogSorter logSorter;
   final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
@@ -189,9 +192,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
-  final OnlineTablets onlineTablets = new OnlineTablets();
-  final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
-  final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
+  final TabletAssignmentTracker assignmentTracker = new TabletAssignmentTracker();
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
 
   final TabletServerResourceManager resourceManager;
@@ -247,7 +248,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
             @Override
             public void run() {
-              Collection<Tablet> tablets = onlineTablets.snapshot().values();
+              Collection<Tablet> tablets = assignmentTracker.getOnline().values();
               logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
               logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
             }
@@ -532,6 +533,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       try {
         authKeyWatcher.updateAuthKeys();
       } catch (KeeperException | InterruptedException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         // TODO Does there need to be a better check? What are the error conditions that we'd fall
         // out here? AUTH_FAILURE?
         // If we get the error, do we just put it on a timer and retry the exists(String, Watcher)
@@ -556,9 +560,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     pausedMetrics = new PausedCompactionMetrics();
     blockCacheMetrics = new BlockCacheMetrics(this.resourceManager.getIndexCache(),
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
+    recoveryMetrics = new TabletServerRecoveryMetrics();
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics, logSorter);
+        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 
@@ -657,6 +662,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
       } catch (Exception e) {
@@ -785,25 +791,25 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       TableInfo table = tables.get(tableId);
       if (table == null) {
         table = new TableInfo();
-        table.minors = new Compacting();
+        table.setMinors(new Compacting());
         tables.put(tableId, table);
       }
       long recs = tablet.getNumEntries();
-      table.tablets++;
-      table.onlineTablets++;
-      table.recs += recs;
-      table.queryRate += tablet.queryRate();
-      table.queryByteRate += tablet.queryByteRate();
-      table.ingestRate += tablet.ingestRate();
-      table.ingestByteRate += tablet.ingestByteRate();
-      table.scanRate += tablet.scanRate();
+      table.setTablets(table.getTablets() + 1);
+      table.setOnlineTablets(table.getOnlineTablets() + 1);
+      table.setRecs(table.getRecs() + recs);
+      table.setQueryRate(table.getQueryRate() + tablet.queryRate());
+      table.setQueryByteRate(table.getQueryByteRate() + tablet.queryByteRate());
+      table.setIngestRate(table.getIngestRate() + tablet.ingestRate());
+      table.setIngestByteRate(table.getIngestByteRate() + tablet.ingestByteRate());
+      table.setScanRate(table.getScanRate() + tablet.scanRate());
       long recsInMemory = tablet.getNumEntriesInMemory();
-      table.recsInMemory += recsInMemory;
+      table.setRecsInMemory(table.getRecsInMemory() + recsInMemory);
       if (tablet.isMinorCompactionRunning()) {
-        table.minors.running++;
+        table.getMinors().setRunning(table.getMinors().getRunning() + 1);
       }
       if (tablet.isMinorCompactionQueued()) {
-        table.minors.queued++;
+        table.getMinors().setQueued(table.getMinors().getQueued() + 1);
       }
     });
 
@@ -814,21 +820,17 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         tables.put(tableId.canonical(), table);
       }
 
-      if (table.scans == null) {
-        table.scans = new Compacting();
+      if (table.getScans() == null) {
+        table.setScans(new Compacting());
       }
 
-      table.scans.queued += mapCounter.getInt(ScanRunState.QUEUED);
-      table.scans.running += mapCounter.getInt(ScanRunState.RUNNING);
+      table.getScans()
+          .setQueued(table.getScans().getQueued() + mapCounter.getInt(ScanRunState.QUEUED));
+      table.getScans()
+          .setRunning(table.getScans().getRunning() + mapCounter.getInt(ScanRunState.RUNNING));
     });
 
-    ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
-    synchronized (this.unopenedTablets) {
-      synchronized (this.openingTablets) {
-        offlineTabletsCopy.addAll(this.unopenedTablets);
-        offlineTabletsCopy.addAll(this.openingTablets);
-      }
-    }
+    List<KeyExtent> offlineTabletsCopy = assignmentTracker.getUnopenedAndOpening();
 
     for (KeyExtent extent : offlineTabletsCopy) {
       String tableId = extent.tableId().canonical();
@@ -837,24 +839,24 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         table = new TableInfo();
         tables.put(tableId, table);
       }
-      table.tablets++;
+      table.setTablets(table.getTablets() + 1);
     }
 
-    result.lastContact = RelativeTime.currentTimeMillis();
-    result.tableMap = tables;
-    result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-    result.name = String.valueOf(getAdvertiseAddress());
-    result.holdTime = resourceManager.holdTime();
-    result.lookups = seekCount.sum();
-    result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
-    result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
-    result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();
-    result.dataCacheRequest = resourceManager.getDataCache().getStats().requestCount();
-    result.logSorts = logSorter.getLogSorts();
-    result.flushs = flushCounter.get();
-    result.syncs = syncCounter.get();
-    result.version = getVersion();
-    result.responseTime = System.currentTimeMillis() - start;
+    result.setLastContact(RelativeTime.currentTimeMillis());
+    result.setTableMap(tables);
+    result.setOsLoad(ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage());
+    result.setName(String.valueOf(getAdvertiseAddress()));
+    result.setHoldTime(resourceManager.holdTime());
+    result.setLookups(seekCount.sum());
+    result.setIndexCacheHits(resourceManager.getIndexCache().getStats().hitCount());
+    result.setIndexCacheRequest(resourceManager.getIndexCache().getStats().requestCount());
+    result.setDataCacheHits(resourceManager.getDataCache().getStats().hitCount());
+    result.setDataCacheRequest(resourceManager.getDataCache().getStats().requestCount());
+    result.setLogSorts(logSorter.getLogSorts());
+    result.setFlushs(flushCounter.get());
+    result.setSyncs(syncCounter.get());
+    result.setVersion(getVersion());
+    result.setResponseTime(System.currentTimeMillis() - start);
     return result;
   }
 
@@ -915,12 +917,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {
-    return onlineTablets.snapshot();
+    return assignmentTracker.getOnline();
   }
 
   @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
-    Tablet t = onlineTablets.snapshot().get(extent);
+    Tablet t = assignmentTracker.getOnline().get(extent);
     if (t != null) {
       t.setLastAccessTime();
     }
@@ -942,11 +944,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public int getOpeningCount() {
-    return openingTablets.size();
+    return assignmentTracker.getOpeningCount();
   }
 
   public int getUnopenedCount() {
-    return unopenedTablets.size();
+    return assignmentTracker.getUnopenedCount();
   }
 
   public long getTotalMinorCompactions() {
@@ -1040,7 +1042,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         closedLogs.add(currentLog);
         clSize = closedLogs.size();
       }
-      log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
+      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getPath(), clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
@@ -1058,8 +1060,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       }
     } else {
-      log.info(
-          "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
+      log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
       walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
     }
   }
@@ -1075,7 +1076,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private boolean isTabletInUse(KeyExtent extent) {
     // Don't call getOnlineTablet as that will update the last access time
-    final Tablet t = onlineTablets.snapshot().get(extent);
+    final Tablet t = assignmentTracker.getOnline().get(extent);
     if (t == null) {
       return false;
     }

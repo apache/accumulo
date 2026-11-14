@@ -48,7 +48,7 @@ public class PrimaryManagerThriftServiceWrapper {
    * Returns all thrift methods on a processor along w/ an indication if they are oneway or not.
    */
   static <I> Map<String,Boolean> getThriftMethods(TBaseProcessor<I> tbProcessor) {
-    Map<String,ProcessFunction<I,?>> pmv = tbProcessor.getProcessMapView();
+    Map<String,ProcessFunction<I,?,?>> pmv = tbProcessor.getProcessMapView();
 
     Method method;
     try {

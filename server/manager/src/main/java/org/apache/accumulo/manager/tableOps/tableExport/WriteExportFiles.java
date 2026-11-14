@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.tableExport;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
@@ -297,5 +298,10 @@ class WriteExportFiles extends AbstractFateOperation {
     }
 
     osw.flush();
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
   }
 }

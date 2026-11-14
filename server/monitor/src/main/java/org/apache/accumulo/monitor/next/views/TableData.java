@@ -35,7 +35,7 @@ import java.util.Map;
  * </pre>
  *
  */
-public record TableData(List<Column> columns, List<Map<String,Object>> data, long timestamp) {
+public record TableData(List<Column> columns, List<Map<String,Object>> data) {
 
   /**
    * Definition of a column to be rendered in the UI

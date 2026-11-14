@@ -418,7 +418,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
         Map<ResourceGroupId,Set<TServerInstance>> serverGroups) {
       this.tserversInfo = null;
       this.tservers = Set.copyOf(currentServers);
-      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>(serverGroups.size(), 1.0f);
       serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
       this.tserverGroups = Collections.unmodifiableMap(copy);
     }
@@ -427,7 +427,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
         Map<ResourceGroupId,Set<TServerInstance>> serverGroups) {
       this.tserversInfo = Map.copyOf(currentServers);
       this.tservers = this.tserversInfo.keySet();
-      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>(serverGroups.size(), 1.0f);
       serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
       this.tserverGroups = Collections.unmodifiableMap(copy);
     }
@@ -443,7 +443,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   public synchronized LiveTServersSnapshot getSnapshot() {
     if (tServersSnapshot == null) {
-      HashMap<TServerInstance,TServerInfo> tServerInstances = new HashMap<>();
+      HashMap<TServerInstance,TServerInfo> tServerInstances =
+          new HashMap<>(current.values().size());
       Map<ResourceGroupId,Set<TServerInstance>> tserversGroups = new HashMap<>();
       current.values().forEach(tServerInfo -> {
         tServerInstances.put(tServerInfo.instance, tServerInfo);

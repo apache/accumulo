@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.junit.jupiter.api.Test;
 
 public class UsersIT extends AccumuloClusterHarness {

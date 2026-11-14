@@ -254,6 +254,9 @@ public class ZooCache {
           zkClientTracker.get());
       return true;
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new RuntimeException("Error setting up persistent recursive watcher", e);
     }
 
@@ -290,44 +293,44 @@ public class ZooCache {
 
       int sleepTime = 100;
 
-      while (true) {
+      try {
+        while (true) {
 
-        try {
-          T result = run();
-          if (handleZKConnectionChange()) {
-            continue;
+          try {
+            T result = run();
+            if (handleZKConnectionChange()) {
+              continue;
+            }
+            return result;
+          } catch (KeeperException | ZcException e) {
+            KeeperException ke;
+            if (e instanceof ZcException) {
+              ke = ((ZcException) e).getZKException();
+            } else {
+              ke = ((KeeperException) e);
+            }
+            final Code code = ke.code();
+            if (code == Code.NONODE) {
+              log.error("Looked up non-existent node in cache " + ke.getPath(), e);
+            } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
+                || code == Code.SESSIONEXPIRED) {
+              log.warn(
+                  "Saw (possibly) transient exception communicating with ZooKeeper, will retry", e);
+            } else {
+              log.warn("Zookeeper error, will retry", e);
+            }
+          } catch (ZcInterruptedException e) {
+            throw (InterruptedException) e.getCause();
           }
-          return result;
-        } catch (KeeperException | ZcException e) {
-          KeeperException ke;
-          if (e instanceof ZcException) {
-            ke = ((ZcException) e).getZKException();
-          } else {
-            ke = ((KeeperException) e);
-          }
-          final Code code = ke.code();
-          if (code == Code.NONODE) {
-            log.error("Looked up non-existent node in cache " + ke.getPath(), e);
-          } else if (code == Code.CONNECTIONLOSS || code == Code.OPERATIONTIMEOUT
-              || code == Code.SESSIONEXPIRED) {
-            log.warn("Saw (possibly) transient exception communicating with ZooKeeper, will retry",
-                e);
-          } else {
-            log.warn("Zookeeper error, will retry", e);
-          }
-        } catch (InterruptedException | ZcInterruptedException e) {
-          log.info("Zookeeper error, will retry", e);
-        }
 
-        try {
-          // do not hold lock while sleeping
           Thread.sleep(sleepTime);
-        } catch (InterruptedException e) {
-          log.debug("Wait in retry() was interrupted.", e);
+          if (sleepTime < 10_000) {
+            sleepTime = (int) (sleepTime + sleepTime * RANDOM.get().nextDouble());
+          }
         }
-        if (sleepTime < 10_000) {
-          sleepTime = (int) (sleepTime + sleepTime * RANDOM.get().nextDouble());
-        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("ZooCache thread interrupted.", e);
       }
     }
 
@@ -389,6 +392,7 @@ public class ZooCache {
           } catch (KeeperException e) {
             throw new ZcException(e);
           } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new ZcInterruptedException(e);
           }
         });
@@ -454,6 +458,7 @@ public class ZooCache {
               log.trace("{} zookeeper did not contain {}", cacheId, zPath);
               return ZcNode.NON_EXISTENT;
             } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
               throw new ZcInterruptedException(e);
             }
             if (log.isTraceEnabled()) {

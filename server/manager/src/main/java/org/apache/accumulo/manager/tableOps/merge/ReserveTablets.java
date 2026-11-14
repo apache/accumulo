@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -136,5 +137,10 @@ public class ReserveTablets extends AbstractFateOperation {
       case SYSTEM_MERGE -> new VerifyMergeability(data);
       case MERGE, DELETE -> new CountFiles(data);
     };
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(data);
   }
 }

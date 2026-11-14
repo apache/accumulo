@@ -53,8 +53,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
 import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.util.Wait;
@@ -106,7 +106,6 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
-
       cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
       cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY,
           TestStatsDRegistryFactory.class.getName());

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;

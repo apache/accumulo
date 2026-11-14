@@ -26,13 +26,6 @@ const runningQueueHtmlTable = '#queue_running';
 var tableRunning;
 var queueRunning;
 
-function getStoredArray(storageKey) {
-  if (!sessionStorage[storageKey]) {
-    return [];
-  }
-  return JSON.parse(sessionStorage[storageKey]);
-}
-
 function refresh() {
   $.when(getRunningCompactionsByTable(), getRunningCompactionsByGroup(), getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
@@ -56,10 +49,6 @@ function refresh() {
     refreshTable(queuesHtmlTable, COORDINATOR_QUEUE_PROCESS_VIEW);
     ajaxReloadTable(tableRunning);
     ajaxReloadTable(queueRunning);
-    $(coordinatorHtmlTable).hide();
-    $(queuesHtmlTable).hide();
-    $(runningTableHtmlTable).hide();
-    $(runningQueueHtmlTable).hide();
   });
 }
 
@@ -78,7 +67,7 @@ $(function () {
   sessionStorage[RUNNING_COMPACTIONS_BY_GROUP] = JSON.stringify([]);
 
   // Create a table for scans list
-  tableRunning = $(runningTableHtmlTable).DataTable({
+  tableRunning = new DataTable(runningTableHtmlTable, {
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(RUNNING_COMPACTIONS_BY_TABLE)
@@ -88,13 +77,13 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
         targets: '_all',
-        defaultContent: '-'
+        defaultContent: '&mdash;'
       },
       {
         "targets": 0,
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = '<a href="tables/' + row.tableId + '">' + row.tableName + '</a>';
+            data = '<a class="link-body-emphasis" href="tables/' + row.tableId + '">' + row.tableName + '</a>';
           }
           return data;
         }
@@ -109,7 +98,7 @@ $(function () {
     ]
   });
 
-  queueRunning = $(runningQueueHtmlTable).DataTable({
+  queueRunning = new DataTable(runningQueueHtmlTable, {
     "ajax": function (data, callback) {
       callback({
         data: getStoredArray(RUNNING_COMPACTIONS_BY_GROUP)
@@ -119,7 +108,7 @@ $(function () {
     "colReorder": true,
     "columnDefs": [{
       targets: '_all',
-      defaultContent: '-'
+      defaultContent: '&mdash;'
     }],
     "columns": [{
         "data": "groupId"

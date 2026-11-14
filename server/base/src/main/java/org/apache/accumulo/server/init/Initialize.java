@@ -246,6 +246,9 @@ public class Initialize implements KeywordExecutable {
     try {
       return zoo.exists("/");
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       return false;
     }
   }
@@ -459,7 +462,40 @@ public class Initialize implements KeywordExecutable {
           ResourceGroupPropKey.of(rgid).createZNode(zrw);
           log.info("Added resource group {}", trimmed);
         } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
           log.error("Error creating resource group: " + trimmed, e);
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private static boolean removeResourceGroups(InitialConfiguration initConfig,
+      String resourceGroupsArg) {
+
+    try (ServerContext context = new ServerContext(initConfig.getSiteConf())) {
+      if (resourceGroupsArg == null) {
+        return true;
+      }
+      final ZooSession zs = context.getZooSession();
+      final String[] rgs = resourceGroupsArg.split(",");
+      for (String rg : rgs) {
+        String trimmed = rg.trim();
+        final var rgid = ResourceGroupId.of(trimmed);
+        if (rgid == ResourceGroupId.DEFAULT) {
+          continue;
+        }
+        try {
+          ResourceGroupPropKey.of(rgid).removeZNode(zs);
+          log.info("Removed resource group {}", trimmed);
+        } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          if (e instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+          }
+          log.error("Error removing resource group: " + trimmed, e);
           return false;
         }
       }
@@ -511,6 +547,9 @@ public class Initialize implements KeywordExecutable {
     @Parameter(names = "--add-resource-groups",
         description = "Add resource groups (comma separated list of names)")
     String resourceGroups = null;
+    @Parameter(names = "--remove-resource-groups",
+        description = "Remove resource groups (comma separated list of names)")
+    String removeResourceGroups = null;
     @Parameter(names = "--add-volumes",
         description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;
@@ -562,7 +601,7 @@ public class Initialize implements KeywordExecutable {
   public void execute(final String[] args) {
     boolean success = true;
     Opts opts = new Opts();
-    opts.parseArgs("accumulo init", args);
+    opts.parseArgs("init", args);
     var siteConfig = SiteConfiguration.auto();
     SecurityUtil.serverLogin(siteConfig);
     Configuration hadoopConfig = new Configuration();
@@ -579,7 +618,11 @@ public class Initialize implements KeywordExecutable {
       if (success && opts.resourceGroups != null) {
         success = addResourceGroups(initConfig, opts.resourceGroups);
       }
-      if (!opts.resetSecurity && !opts.addVolumes && opts.resourceGroups == null) {
+      if (success && opts.removeResourceGroups != null) {
+        success = removeResourceGroups(initConfig, opts.removeResourceGroups);
+      }
+      if (!opts.resetSecurity && !opts.addVolumes && opts.resourceGroups == null
+          && opts.removeResourceGroups == null) {
         try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
           success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
         }
@@ -588,6 +631,7 @@ public class Initialize implements KeywordExecutable {
       log.error("Problem trying to get Volume configuration", e);
       success = false;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("Thread was interrupted when trying to get Volume configuration", e);
       success = false;
     } catch (KeeperException e) {

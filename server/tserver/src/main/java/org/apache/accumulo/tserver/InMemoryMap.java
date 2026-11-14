@@ -134,7 +134,7 @@ public class InMemoryMap {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
-    this.memDumpDir = config.get(Property.TSERV_MEMDUMP_DIR);
+    this.memDumpDir = config.getPath(Property.TSERV_MEMDUMP_DIR);
     this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;
@@ -534,7 +534,7 @@ public class InMemoryMap {
 
   class MemoryDataSource implements DataSource {
 
-    private boolean switched = false;
+    private volatile boolean switched = false;
     private InterruptibleIterator iter;
     private FileSKVIterator reader;
     private final MemoryDataSource parent;

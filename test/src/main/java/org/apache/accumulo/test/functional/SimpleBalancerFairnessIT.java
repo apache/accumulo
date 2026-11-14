@@ -22,27 +22,24 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.manager.thrift.TableInfo;
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.BalanceIT;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -79,16 +76,15 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       params.rows = 5000;
       TestIngest.ingest(c, params);
       c.tableOperations().flush(ingestTable, null, null, false);
-      Credentials creds = new Credentials("root", new PasswordToken(ROOT_PASSWORD));
-
-      ClientContext context = (ClientContext) c;
 
       // wait for tablet assignment
       Wait.waitFor(() -> {
-        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
-        int unassignedTablets = stats.getUnassignedTablets();
+        Map<String,Integer> ingestTableLocations = BalanceIT.countLocations(c, ingestTable);
+        Map<String,Integer> unusedTableLocations = BalanceIT.countLocations(c, unusedTable);
+        long unassignedTablets = Stream
+            .concat(ingestTableLocations.entrySet().stream(),
+                unusedTableLocations.entrySet().stream())
+            .filter(e -> e.getKey().equals("none")).count();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
               unassignedTablets);
@@ -100,28 +96,30 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
       // wait for tablets to be balanced
       Wait.waitFor(() -> {
-        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
+        Map<String,Integer> ingestTableLocations = BalanceIT.countLocations(c, ingestTable);
+        Map<String,Integer> unusedTableLocations = BalanceIT.countLocations(c, unusedTable);
+        HashMap<String,Integer> serversWithTablets = Stream
+            .concat(ingestTableLocations.entrySet().stream(),
+                unusedTableLocations.entrySet().stream())
+            .filter(e -> !e.getKey().equals("none")).filter(e -> e.getValue() > 0)
+            .collect(HashMap<String,Integer>::new, (m, e) -> m.put(e.getKey(), e.getValue()),
+                (m1, m2) -> {
+                  for (Entry<String,Integer> e2 : m2.entrySet()) {
+                    m1.merge(e2.getKey(), e2.getValue(), (left, right) -> left + right);
+                  }
+                });
+        assertTrue(serversWithTablets.size() >= 2,
+            "Expected at least 2 tservers to have tablets, but found " + serversWithTablets.size());
 
-        List<Integer> counts = new ArrayList<>();
-        for (TabletServerStatus server : stats.tServerInfo) {
-          int count = 0;
-          for (TableInfo table : server.tableMap.values()) {
-            count += table.onlineTablets;
-          }
-          counts.add(count);
-        }
-        assertTrue(counts.size() >= 2,
-            "Expected at least 2 tservers to have tablets, but found " + counts);
-
-        for (int i = 1; i < counts.size(); i++) {
-          int diff = Math.abs(counts.get(0) - counts.get(i));
-          log.info(" Counts: {}", counts);
+        List<Integer> values = new ArrayList<>();
+        values.addAll(serversWithTablets.values());
+        for (int i = 1; i < values.size(); i++) {
+          int diff = Math.abs(values.get(0) - values.get(i));
+          log.info(" Counts: {}", values);
           if (diff > tservers.size()) {
             log.info(
                 "Difference in tablets between tservers is greater than expected. Counts: {} tsevers:{}",
-                counts, tservers.size());
+                values, tservers.size());
             return false;
           }
         }

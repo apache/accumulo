@@ -189,6 +189,7 @@ public class FateManager {
         assignmentThread.join();
       }
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
     // Try to set every assistant manager to an empty set of partitions. This will cause them all to
@@ -215,27 +216,33 @@ public class FateManager {
     }
 
     if (!timer.isExpired()) {
-      FateStore<FateEnv> store = switch (fateType) {
+      try (FateStore<FateEnv> store = switch (fateType) {
         case USER -> new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
         case META -> {
           try {
             yield new MetaFateStore<>(context.getZooSession(), null, null);
           } catch (KeeperException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+              Thread.currentThread().interrupt();
+            }
             throw new IllegalStateException(e);
           }
         }
-      };
-      var reserved = store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
-      while (!reserved.isEmpty() && !timer.isExpired()) {
-        if (log.isTraceEnabled()) {
-          reserved.forEach((fateId, reservation) -> {
-            log.trace("In stop(), waiting on {} {} ", fateId, reservation);
-          });
-        }
-        try {
-          Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
-        } catch (InterruptedException e) {
-          throw new IllegalStateException(e);
+      }) {
+        var reserved =
+            store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
+        while (!reserved.isEmpty() && !timer.isExpired()) {
+          if (log.isTraceEnabled()) {
+            reserved.forEach((fateId, reservation) -> {
+              log.trace("In stop(), waiting on {} {} ", fateId, reservation);
+            });
+          }
+          try {
+            Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(e);
+          }
         }
       }
     }
@@ -395,9 +402,10 @@ public class FateManager {
       try {
 
         var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());
-        var partitions =
-            tparitions.partitions.stream().map(FatePartition::from).collect(Collectors.toSet());
-        currentAssignments.put(address, new CurrentPartitions(tparitions.updateId, partitions));
+        var partitions = tparitions.getPartitions().stream().map(FatePartition::from)
+            .collect(Collectors.toSet());
+        currentAssignments.put(address,
+            new CurrentPartitions(tparitions.getUpdateId(), partitions));
       } finally {
         ThriftUtil.returnClient(client, context);
       }

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.ArrayList;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -104,5 +106,10 @@ public class AllocateDirsAndEnsureOnline extends AbstractFateOperation {
       });
       return new UpdateTablets(splitInfo, dirs);
     }
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(splitInfo);
   }
 }

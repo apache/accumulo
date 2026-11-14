@@ -30,8 +30,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.MultipleStoresITBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,7 +50,7 @@ public class UserMultipleStoresIT_SimpleSuite extends MultipleStoresITBase {
   public void beforeEachSetup() throws Exception {
     tableName = getUniqueNames(1)[0];
     client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
-    createFateTable(client, tableName);
+    createFateTable(client, getCluster().getServerContext(), tableName);
   }
 
   @AfterAll

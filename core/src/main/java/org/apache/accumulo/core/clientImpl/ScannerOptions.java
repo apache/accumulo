@@ -35,6 +35,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -46,6 +48,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
+@NotThreadSafe
 public class ScannerOptions implements ScannerBase {
 
   protected List<IterInfo> serverSideIteratorList = Collections.emptyList();
@@ -81,7 +84,7 @@ public class ScannerOptions implements ScannerBase {
     }
 
     for (IterInfo ii : serverSideIteratorList) {
-      if (ii.iterName.equals(si.getName())) {
+      if (ii.getIterName().equals(si.getName())) {
         throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
       }
       if (ii.getPriority() == si.getPriority()) {
@@ -108,7 +111,7 @@ public class ScannerOptions implements ScannerBase {
     }
 
     for (IterInfo ii : serverSideIteratorList) {
-      if (ii.iterName.equals(iteratorName)) {
+      if (ii.getIterName().equals(iteratorName)) {
         serverSideIteratorList.remove(ii);
         break;
       }

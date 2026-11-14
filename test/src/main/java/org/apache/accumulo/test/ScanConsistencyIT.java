@@ -59,8 +59,8 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -206,7 +206,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
             }
           }
         } catch (InterruptedException e) {
-          // ignore
+          Thread.currentThread().interrupt();
         } catch (Exception e) {
           log.warn("Failed to scan metadata table", e);
         }
@@ -344,6 +344,7 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
         try {
           wait(50);
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           throw new RuntimeException(e);
         }
       }

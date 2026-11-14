@@ -27,7 +27,7 @@
          */
         $(function () {
 
-          tableList = $('#tableList').DataTable({
+          tableList = new DataTable('#tableList', {
             "ajax": {
               "url": '${rootContext}rest-v2/tables',
               "dataSrc": function (json) {
@@ -64,7 +64,7 @@
                 "type": "html",
                 "render": function (data, type, row, meta) {
                   if (type === 'display') {
-                    data = '<a href="tables/' + row.tableId + '">' + row.tableName + '</a>';
+                    data = '<a class="link-body-emphasis" href="tables/' + row.tableId + '">' + row.tableName + '</a>';
                   }
                   return data;
                 }

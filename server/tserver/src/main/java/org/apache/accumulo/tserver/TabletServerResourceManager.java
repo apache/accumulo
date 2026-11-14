@@ -433,7 +433,7 @@ public class TabletServerResourceManager {
   public static class AssignmentWatcher implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(AssignmentWatcher.class);
 
-    private static long longAssignments = 0;
+    private static volatile long longAssignments = 0;
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
     private final ServerContext context;
@@ -544,6 +544,7 @@ public class TabletServerResourceManager {
           }
 
         } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
           log.warn("Interrupted processing tablet memory statistics", e);
         }
       }
@@ -651,7 +652,9 @@ public class TabletServerResourceManager {
               throw new HoldTimeoutException("Commits are held");
             }
             commitHold.wait(1000);
-          } catch (InterruptedException e) {}
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
         }
       }
     }

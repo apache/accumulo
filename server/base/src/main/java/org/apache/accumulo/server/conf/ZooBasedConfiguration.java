@@ -82,23 +82,13 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
    */
   @Override
   public long getUpdateCount() {
-    long count = 0;
-    long dataVersion = 0;
-    for (AccumuloConfiguration p = this; p != null; p = p.getParent()) {
-      if (p instanceof ZooBasedConfiguration) {
-        dataVersion = ((ZooBasedConfiguration) p).getDataVersion();
-      } else {
-        dataVersion = p.getUpdateCount();
-      }
-      count += dataVersion;
-    }
+    long count = getDataVersion() + getParent().getUpdateCount();
 
     log.trace("update count result for: {} - data version: {} update: {}", propStoreKey,
-        dataVersion, count);
+        getDataVersion(), count);
     return count;
   }
 
-  @Override
   public AccumuloConfiguration getParent() {
     return parent;
   }

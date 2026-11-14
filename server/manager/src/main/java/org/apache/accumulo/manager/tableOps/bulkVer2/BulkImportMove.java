@@ -32,7 +32,10 @@ import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
@@ -53,6 +56,8 @@ class BulkImportMove extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
+  private static final Logger log = LoggerFactory.getLogger(BulkImportMove.class);
+
   public BulkImportMove(BulkInfo bulkInfo) {
     super(bulkInfo);
   }
@@ -63,6 +68,12 @@ class BulkImportMove extends AbstractBulkFateOperation {
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
     VolumeManager fs = env.getVolumeManager();
+
+    if (log.isTraceEnabled()) {
+      FileStatus[] files = fs.listStatus(sourceDir);
+      log.trace("{} bulk import move starting. source:{} dest:{} files to move:{}", fateId,
+          sourceDir, bulkDir, files == null ? 0 : files.length);
+    }
 
     try {
       Map<String,String> oldToNewNameMap =
@@ -84,7 +95,7 @@ class BulkImportMove extends AbstractBulkFateOperation {
       final VolumeManager fs, Map<String,String> renames) throws Exception {
     env.getContext().getAmple().addBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), fateId);
-    Map<Path,Path> oldToNewMap = new HashMap<>();
+    Map<Path,Path> oldToNewMap = new HashMap<>(renames.size(), 1.0f);
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
       final Path originalPath = new Path(sourceDir, renameEntry.getKey());

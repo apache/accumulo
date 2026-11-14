@@ -270,55 +270,57 @@ public class CompactionJobQueuesTest {
         Stream.of("G1", "G2", "G3").map(ResourceGroupId::of).toArray(ResourceGroupId[]::new);
 
     var executor = Executors.newFixedThreadPool(groups.length);
+    try {
 
-    List<Future<Integer>> futures = new ArrayList<>();
+      List<Future<Integer>> futures = new ArrayList<>();
 
-    AtomicBoolean stop = new AtomicBoolean(false);
+      AtomicBoolean stop = new AtomicBoolean(false);
 
-    // create a background thread per a group that polls jobs for the group
-    for (var group : groups) {
-      var future = executor.submit(() -> {
-        int seen = 0;
-        while (!stop.get()) {
-          var job = jobQueues.poll(group);
-          if (job != null) {
+      // create a background thread per a group that polls jobs for the group
+      for (var group : groups) {
+        var future = executor.submit(() -> {
+          int seen = 0;
+          while (!stop.get()) {
+            var job = jobQueues.poll(group);
+            if (job != null) {
+              seen++;
+            }
+          }
+
+          // After stop was set, nothing should be added to queues anymore. Drain anything that is
+          // present and then exit.
+          while (jobQueues.poll(group) != null) {
             seen++;
           }
-        }
 
-        // After stop was set, nothing should be added to queues anymore. Drain anything that is
-        // present and then exit.
-        while (jobQueues.poll(group) != null) {
-          seen++;
-        }
+          return seen;
+        });
+        futures.add(future);
+      }
 
-        return seen;
-      });
-      futures.add(future);
+      // Add jobs to queues spread across the groups. While these are being added the background
+      // threads should concurrently empty queues causing them to be deleted.
+      for (int i = 0; i < numToAdd; i++) {
+        // Create unique exents because re-adding the same extent will clobber any jobs already in
+        // the queue for that extent which could throw off the counts
+        KeyExtent extent = new KeyExtent(TableId.of("1"), new Text(i + "z"), new Text(i + "a"));
+        jobQueues.add(extent, List.of(newJob((short) (i % 31), i, groups[i % groups.length])));
+      }
+
+      // Cause the background threads to exit after polling all data
+      stop.set(true);
+
+      // Count the total jobs seen by background threads
+      int totalSeen = 0;
+      for (var future : futures) {
+        totalSeen += future.get();
+      }
+
+      // The background threads should have seen every job that was added
+      assertEquals(numToAdd, totalSeen);
+    } finally {
+      executor.shutdown();
     }
-
-    // Add jobs to queues spread across the groups. While these are being added the background
-    // threads should concurrently empty queues causing them to be deleted.
-    for (int i = 0; i < numToAdd; i++) {
-      // Create unique exents because re-adding the same extent will clobber any jobs already in the
-      // queue for that extent which could throw off the counts
-      KeyExtent extent = new KeyExtent(TableId.of("1"), new Text(i + "z"), new Text(i + "a"));
-      jobQueues.add(extent, List.of(newJob((short) (i % 31), i, groups[i % groups.length])));
-    }
-
-    // Cause the background threads to exit after polling all data
-    stop.set(true);
-
-    // Count the total jobs seen by background threads
-    int totalSeen = 0;
-    for (var future : futures) {
-      totalSeen += future.get();
-    }
-
-    executor.shutdown();
-
-    // The background threads should have seen every job that was added
-    assertEquals(numToAdd, totalSeen);
   }
 
   @Test

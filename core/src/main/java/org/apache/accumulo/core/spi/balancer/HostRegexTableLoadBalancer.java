@@ -333,8 +333,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
     tablesRegExCache =
         Caches.getInstance().createNewBuilder(CacheName.HOST_REGEX_BALANCER_TABLE_REGEX, true)
-            .expireAfterAccess(1, HOURS).build(key -> balancerEnvironment.getConfiguration(key)
-                .getDerived(HostRegexTableLoadBalancer::getRegexes));
+            .expireAfterAccess(Duration.ofHours(1)).build(key -> balancerEnvironment
+                .getConfiguration(key).getDerived(HostRegexTableLoadBalancer::getRegexes));
 
     LOG.info("{}", this);
   }
@@ -421,6 +421,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
             if (tid == null) {
               LOG.warn("Unable to check for out of bounds tablets for table {},"
                   + " it may have been deleted or renamed.", table);
+              continue;
+            }
+            // If current information in the Manager indicates that the tserver
+            // is not hosting tablets for the table, then move on to the next
+            // tserver
+            if (e.getValue().getTableMap() != null
+                && !e.getValue().getTableMap().containsKey(tid.canonical())) {
+              LOG.debug("TServer {} is not hosting any tablets for table {}", e.getKey(), table);
               continue;
             }
             try {

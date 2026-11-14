@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.manager.state.TabletManagement.Management
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_RECOVERY;
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_SPLITTING;
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_VOLUME_REPLACEMENT;
-import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -98,12 +98,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
+import org.apache.accumulo.test.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -114,6 +115,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -671,8 +673,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     KeyExtent extent = new KeyExtent(tableIdToModify, new Text("some split"), null);
     Mutation m = new Mutation(extent.toMetaRow());
-    String fileName = "file:/accumulo/wal/localhost+9997/" + UUID.randomUUID().toString();
-    LogEntry logEntry = LogEntry.fromPath(fileName);
+    LogEntry logEntry = LogEntry.forServer(((MiniAccumuloClusterImpl) getCluster()).getConfig()
+        .getAccumuloDir().toPath().toUri().toString(), HostAndPort.fromParts("localhost", 9997));
     logEntry.addToMutation(m);
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);

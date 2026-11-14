@@ -188,8 +188,8 @@ public class IteratorConfigUtil {
       List<IteratorSetting> iterators, IteratorEnvironment env)
       throws IOException, ReflectiveOperationException {
 
-    List<IterInfo> ssiList = new ArrayList<>();
-    Map<String,Map<String,String>> ssio = new HashMap<>();
+    List<IterInfo> ssiList = new ArrayList<>(iterators.size());
+    Map<String,Map<String,String>> ssio = new HashMap<>(iterators.size());
 
     for (IteratorSetting is : iterators) {
       ssiList.add(new IterInfo(is.getPriority(), is.getIteratorClass(), is.getName()));
@@ -215,13 +215,13 @@ public class IteratorConfigUtil {
       for (IterInfo iterInfo : iteratorBuilder.iters) {
 
         Class<SortedKeyValueIterator<Key,Value>> clazz = null;
-        log.trace("Attempting to load iterator class {}", iterInfo.className);
+        log.trace("Attempting to load iterator class {}", iterInfo.getClassName());
         if (iteratorBuilder.useClassCache) {
-          clazz = classCache.get(iterInfo.className);
+          clazz = classCache.get(iterInfo.getClassName());
 
           if (clazz == null) {
             clazz = loadClass(useClassLoader, iteratorBuilder.context, iterInfo);
-            classCache.put(iterInfo.className, clazz);
+            classCache.put(iterInfo.getClassName(), clazz);
           }
         } else {
           clazz = loadClass(useClassLoader, iteratorBuilder.context, iterInfo);
@@ -229,7 +229,7 @@ public class IteratorConfigUtil {
 
         SortedKeyValueIterator<Key,Value> skvi = clazz.getDeclaredConstructor().newInstance();
 
-        Map<String,String> options = iteratorBuilder.iterOpts.get(iterInfo.iterName);
+        Map<String,String> options = iteratorBuilder.iterOpts.get(iterInfo.getIterName());
 
         if (options == null) {
           options = Collections.emptyMap();
@@ -252,15 +252,15 @@ public class IteratorConfigUtil {
     if (useAccumuloClassLoader) {
       @SuppressWarnings("unchecked")
       var clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
-          iterInfo.className, SortedKeyValueIterator.class);
-      log.trace("Iterator class {} loaded from context {}, classloader: {}", iterInfo.className,
-          context, clazz.getClassLoader());
+          iterInfo.getClassName(), SortedKeyValueIterator.class);
+      log.trace("Iterator class {} loaded from context {}, classloader: {}",
+          iterInfo.getClassName(), context, clazz.getClassLoader());
       return clazz;
     }
     @SuppressWarnings("unchecked")
-    var clazz = (Class<SortedKeyValueIterator<Key,Value>>) Class.forName(iterInfo.className)
+    var clazz = (Class<SortedKeyValueIterator<Key,Value>>) Class.forName(iterInfo.getClassName())
         .asSubclass(SortedKeyValueIterator.class);
-    log.trace("Iterator class {} loaded from classpath", iterInfo.className);
+    log.trace("Iterator class {} loaded from classpath", iterInfo.getClassName());
     return clazz;
   }
 

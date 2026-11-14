@@ -56,7 +56,7 @@ public class ByteBufferUtil {
     if (bytesList == null) {
       return null;
     }
-    ArrayList<ByteBuffer> result = new ArrayList<>();
+    ArrayList<ByteBuffer> result = new ArrayList<>(bytesList.size());
     for (byte[] bytes : bytesList) {
       result.add(ByteBuffer.wrap(bytes));
     }

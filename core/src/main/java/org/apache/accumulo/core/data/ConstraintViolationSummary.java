@@ -55,8 +55,8 @@ public class ConstraintViolationSummary implements Serializable {
    * @param tcvs Thrift summary
    */
   public ConstraintViolationSummary(TConstraintViolationSummary tcvs) {
-    this(tcvs.constrainClass, tcvs.violationCode, tcvs.violationDescription,
-        tcvs.numberOfViolatingMutations);
+    this(tcvs.getConstrainClass(), tcvs.getViolationCode(), tcvs.getViolationDescription(),
+        tcvs.getNumberOfViolatingMutations());
   }
 
   public String getConstrainClass() {

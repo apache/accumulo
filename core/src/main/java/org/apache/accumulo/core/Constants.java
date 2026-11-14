@@ -74,7 +74,6 @@ public class Constants {
   public static final String ZCOMPACTORS = "/compactors";
 
   public static final String ZDEAD = "/dead";
-  public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
 
   public static final String ZSHUTTING_DOWN_TSERVERS = "/shutting-down-tservers";
 

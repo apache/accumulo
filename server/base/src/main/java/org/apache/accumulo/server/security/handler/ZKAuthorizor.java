@@ -79,6 +79,9 @@ public class ZKAuthorizor implements Authorizor {
       zoo.putPersistentData(Constants.ZUSERS + "/" + rootuser + ZKUserAuths,
           ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
+      if (e instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -93,6 +96,7 @@ public class ZKAuthorizor implements Authorizor {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }
@@ -105,6 +109,7 @@ public class ZKAuthorizor implements Authorizor {
           .recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
       context.getZooCache().clear((path) -> path.startsWith(Constants.ZUSERS + "/" + user));
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     } catch (KeeperException e) {
@@ -129,6 +134,7 @@ public class ZKAuthorizor implements Authorizor {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
     }

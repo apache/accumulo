@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 /**
  * This class was copied from Guava and modified. If this class was not final in Guava it could have
  * been extended. Guava has issue 590 open about this.
@@ -26,6 +28,7 @@ import java.util.Objects;
  *
  * @author Chris Nokleberg
  */
+@NotThreadSafe
 public final class CountingInputStream extends FilterInputStream {
 
   private long count;

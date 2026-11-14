@@ -305,10 +305,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       createAndVerifyTable(client, tableName, alpha_rows, false);
       // should only go to v2 as per configuration in configure()
       var walMgr = new WalStateManager(getServerContext());
-      Map<Path,WalStateManager.WalState> allLogs = walMgr.getAllState();
+      var allLogs = walMgr.getAllState();
       assertFalse(allLogs.isEmpty());
       String volume = v2.toString();
-      allLogs.keySet().stream().map(Path::toString).forEach(path -> {
+      allLogs.stream().map(wal -> wal.path().toString()).forEach(path -> {
         assertTrue(path.startsWith(volume), () -> path + " did not contain " + volume);
       });
     }

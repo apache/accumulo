@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -66,4 +68,8 @@ class SetupPermissions extends AbstractFateOperation {
         tableInfo.getTableId(), tableInfo.getNamespaceId());
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(tableInfo);
+  }
 }

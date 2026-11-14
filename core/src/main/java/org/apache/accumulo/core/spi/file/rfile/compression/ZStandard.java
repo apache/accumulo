@@ -20,6 +20,8 @@ package org.apache.accumulo.core.spi.file.rfile.compression;
 
 public class ZStandard implements CompressionAlgorithmConfiguration {
 
+  public static final String CODEC_ZSTANDARD = "io.compression.codec.zstd.class";
+
   @Override
   public String getName() {
     return "zstd";
@@ -32,7 +34,7 @@ public class ZStandard implements CompressionAlgorithmConfiguration {
 
   @Override
   public String getCodecClassNameProperty() {
-    return "io.compression.codec.zstd.class";
+    return CODEC_ZSTANDARD;
   }
 
   @Override

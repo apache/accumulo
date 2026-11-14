@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util.compaction;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
@@ -30,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -114,6 +117,23 @@ public class ExternalCompactionUtil {
               .add(HostAndPort.fromString(slp.getServer()));
         });
     return groupsAndAddresses;
+  }
+
+  /**
+   * Get addresses for compactors in the specified group
+   *
+   * @param context client
+   * @param group resource group
+   * @return set of addresses
+   */
+  public static Set<HostAndPort> getCompactorAddrs(ClientContext context, ResourceGroupId group) {
+    Set<HostAndPort> addrs = new HashSet<>();
+    context.getServerPaths()
+        .getCompactor(ResourceGroupPredicate.exact(group), AddressSelector.all(), true)
+        .forEach(slp -> {
+          addrs.add(HostAndPort.fromString(slp.getServer()));
+        });
+    return addrs;
   }
 
   /**
@@ -215,11 +235,12 @@ public class ExternalCompactionUtil {
       ExecutorService executor, Consumer<TExternalCompaction> consumer)
       throws InterruptedException {
 
-    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>();
     final List<ServerId> failures = new ArrayList<>();
+    final Set<ServerId> compactors =
+        context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>(compactors.size());
 
     try {
-      Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
       compactors.forEach(s -> {
         final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
         Future<TExternalCompaction> future =
@@ -250,6 +271,7 @@ public class ExternalCompactionUtil {
       }
       return failures;
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       // If this thread is interrupted, cancel all remaining tasks
       var futureIter = rcFutures.iterator();
       while (futureIter.hasNext()) {
@@ -265,16 +287,17 @@ public class ExternalCompactionUtil {
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
-    List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(slp -> {
-          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-          futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
-        });
+    Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    List<Future<ExternalCompactionId>> futures = new ArrayList<>(compactors.size());
+    compactors.forEach(slp -> {
+      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+      futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
+    });
     executor.shutdown();
 
-    HashSet<ExternalCompactionId> runningIds = new HashSet<>();
+    HashSet<ExternalCompactionId> runningIds = new HashSet<>(compactors.size() / 4);
 
     futures.forEach(future -> {
       try {
@@ -283,6 +306,9 @@ public class ExternalCompactionUtil {
           runningIds.add(ceid);
         }
       } catch (InterruptedException | ExecutionException e) {
+        if (e instanceof InterruptedException) {
+          Thread.currentThread().interrupt();
+        }
         throw new IllegalStateException(e);
       }
     });
@@ -292,8 +318,7 @@ public class ExternalCompactionUtil {
 
   public static int countCompactors(ResourceGroupId group, ClientContext context) {
     var start = Timer.startNew();
-    int count = context.getServerPaths()
-        .getCompactor(ResourceGroupPredicate.exact(group), AddressSelector.all(), true).size();
+    int count = getCompactorAddrs(context, group).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, group);
@@ -338,5 +363,38 @@ public class ExternalCompactionUtil {
     } catch (Exception e) {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     }
+  }
+
+  public static void wakeCompactors(ClientContext context, List<HostAndPort> compactors,
+      int threads) {
+    final ExecutorService executor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(COMPACTION_COORDINATOR_COMPACTOR_WAKE_POOL).numCoreThreads(threads).build();
+    List<Future<?>> futures = new ArrayList<>(compactors.size());
+    compactors.forEach(c -> {
+      futures.add(executor.submit(() -> {
+        CompactorService.Client client = null;
+        try {
+          client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, c, context);
+          client.wake(TraceUtil.traceInfo(), context.rpcCreds());
+        } catch (TException e) {
+          LOG.debug("Failed to wake compactor {}", c, e);
+        } finally {
+          ThriftUtil.returnClient(client, context);
+        }
+      }));
+    });
+    executor.shutdown();
+    AtomicLong success = new AtomicLong();
+    AtomicLong failure = new AtomicLong();
+    futures.forEach(f -> {
+      try {
+        f.get();
+        success.incrementAndGet();
+      } catch (InterruptedException | ExecutionException | CancellationException e) {
+        failure.incrementAndGet();
+      }
+    });
+    LOG.info("Attempted to wake {} compactors, succeeded: {}, failed: {}", compactors.size(),
+        success.get(), failure.get());
   }
 }

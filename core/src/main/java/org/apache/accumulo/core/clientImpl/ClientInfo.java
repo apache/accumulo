@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
@@ -100,10 +99,4 @@ public interface ClientInfo {
     return new ClientInfoImpl(properties, Optional.of(token));
   }
 
-  /**
-   * @return ClientInfo given path to client config file
-   */
-  static ClientInfo from(Path propertiesFile) {
-    return new ClientInfoImpl(ClientInfoImpl.toProperties(propertiesFile), Optional.empty());
-  }
 }

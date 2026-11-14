@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -68,4 +70,8 @@ class PopulateZookeeperWithNamespace extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), namespaceInfo.namespaceId, fateId, LockType.WRITE);
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(namespaceInfo);
+  }
 }

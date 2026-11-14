@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,13 +36,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -58,14 +59,16 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonObject;
 
 public abstract class FateITBase extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
@@ -122,6 +125,13 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     @Override
     public String getReturn() {
       return data + "_ret";
+    }
+
+    @Override
+    public String getDetails() {
+      JsonObject details = new JsonObject();
+      details.addProperty("data", data);
+      return GSON.get().toJson(details);
     }
   }
 
@@ -184,6 +194,14 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     public String getReturn() {
       return "none";
     }
+
+    @Override
+    public String getDetails() {
+      JsonObject details = new JsonObject();
+      details.addProperty("opName", opName);
+      details.addProperty("opNum", opNum);
+      return GSON.get().toJson(details);
+    }
   }
 
   /**
@@ -230,6 +248,13 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     @Override
     public String getReturn() {
       return data + "_ret";
+    }
+
+    @Override
+    public String getDetails() {
+      JsonObject details = new JsonObject();
+      details.addProperty("data", data);
+      return GSON.get().toJson(details);
     }
   }
 
@@ -288,7 +313,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
         return false;
       }, SECONDS.toMillis(30), 10);
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
   }
 
@@ -322,7 +347,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       fate.delete(fateId);
       assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
   }
 
@@ -357,7 +382,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       fate.delete(fateId);
       assertEquals(UNKNOWN, getTxStatus(sctx, fateId));
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
   }
 
@@ -389,7 +414,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       assertFalse(fate.cancel(fateId));
       finishCall.countDown();
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
 
   }
@@ -461,7 +486,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       });
 
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
   }
 
@@ -518,7 +543,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       assertEquals(FAILED, fate.waitForCompletion(fateId));
       assertTrue(fate.getException(fateId).getMessage().contains("isReady() failed"));
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
   }
 
@@ -606,7 +631,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
 
       // shutdown fate
-      fate.shutdown(0, SECONDS);
+      fate.shutdown(Duration.ZERO);
 
       // tell the op to exit the method
       Wait.waitFor(() -> interruptedException.get() != null);
@@ -634,7 +659,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       }
       assertNull(interruptedException.get());
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
 
   }
@@ -665,6 +690,11 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     @Override
     public String getName() {
       return "none";
+    }
+
+    @Override
+    public String getDetails() {
+      return null;
     }
   }
 
@@ -753,7 +783,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
         }
       }
     } finally {
-      fate.shutdown(10, TimeUnit.MINUTES);
+      fate.shutdown(Duration.ofMinutes(10));
     }
   }
 
@@ -772,6 +802,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       // wait for the signal to exit the method
       finishCall.await();
     } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
       LOG.debug("InterruptedException occurred inCall.");
       interruptedException.set(e);
       throw e;

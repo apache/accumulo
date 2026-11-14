@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -68,4 +70,8 @@ public class CloneTable extends AbstractFateOperation {
         LockType.READ);
   }
 
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(cloneInfo);
+  }
 }

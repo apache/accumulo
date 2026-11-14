@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
@@ -67,6 +69,7 @@ import com.google.common.base.Preconditions;
 
 import io.opentelemetry.api.trace.Span;
 
+@NotThreadSafe
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
@@ -216,8 +219,7 @@ class ScanDataSource implements DataSource {
     }
 
     var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
-        .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)
-        .withTableId(tablet.getExtent().tableId())
+        .withScope(IteratorScope.scan).withTableId(tablet.getExtent().tableId())
         .withAuthorizations(scanParams.getAuthorizations());
     if (samplerConfig != null) {
       builder.withSamplingEnabled();

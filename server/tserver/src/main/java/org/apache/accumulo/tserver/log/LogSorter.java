@@ -19,9 +19,9 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_AVG_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_IN_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_LONGEST_RUNTIME;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_AVG_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_LONGEST_RUNTIME;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
@@ -56,6 +56,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
@@ -97,11 +98,23 @@ public class LogSorter implements MetricsProducer {
 
     @Override
     public void process(String child, byte[] data) {
-      String work = new String(data, UTF_8);
-      String[] parts = work.split("\\|");
-      String src = parts[0];
-      String dest = parts[1];
-      String sortId = new Path(src).getName();
+      LogSortInformation work;
+      try {
+        work = LogSortInformation.deserialize(new String(data, UTF_8));
+      } catch (IllegalArgumentException e) {
+        log.error("Discarding malformed log sort work item {}", child, e);
+        return;
+      }
+
+      if (!child.equals(work.sortId().toString())) {
+        log.error("Discarding log sort work item {} with mismatched payload sortId {}", child,
+            work.sortId());
+        return;
+      }
+
+      String src = work.source();
+      String dest = work.destination();
+      String sortId = work.sortId().toString();
       log.debug("Sorting {} to {} using sortId {}", src, dest, sortId);
 
       synchronized (currentWork) {
@@ -180,10 +193,12 @@ public class LogSorter implements MetricsProducer {
         return;
       }
 
-      final long bufferSize = sortedLogConf.getAsBytes(Property.TSERV_WAL_SORT_BUFFER_SIZE);
+      @SuppressWarnings("deprecation")
+      final long bufferSize = sortedLogConf.getAsBytes(sortedLogConf.resolve(
+          Property.GENERAL_SERVER_WAL_SORT_BUFFER_SIZE, Property.TSERV_WAL_SORT_BUFFER_SIZE));
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
-        final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
+        final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>(512);
         try {
           long start = input.getPos();
           while (input.getPos() - start < bufferSize) {
@@ -290,7 +305,8 @@ public class LogSorter implements MetricsProducer {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
       Key k = logFileKey.toKey();
-      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>()).addAll(logFileValue.getMutations());
+      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>(logFileValue.getMutations().size()))
+          .addAll(logFileValue.getMutations());
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
@@ -332,19 +348,19 @@ public class LogSorter implements MetricsProducer {
   }
 
   public List<RecoveryStatus> getLogSorts() {
-    List<RecoveryStatus> result = new ArrayList<>();
     synchronized (currentWork) {
+      List<RecoveryStatus> result = new ArrayList<>(currentWork.size());
       for (Entry<String,LogProcessor> entries : currentWork.entrySet()) {
         RecoveryStatus status = new RecoveryStatus();
-        status.name = entries.getKey();
+        status.setName(entries.getKey());
         try {
           double progress = entries.getValue().getBytesCopied() / walBlockSize;
           // to be sure progress does not exceed 100%
-          status.progress = Math.min(progress, 99.9);
+          status.setProgress(Math.min(progress, 99.9));
         } catch (IOException ex) {
           log.warn("Error getting bytes read");
         }
-        status.runtime = (int) entries.getValue().getSortTime();
+        status.setRuntime((int) entries.getValue().getSortTime());
         result.add(status);
       }
       return result;
@@ -380,11 +396,11 @@ public class LogSorter implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(RECOVERIES_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
-        .description(RECOVERIES_IN_PROGRESS.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
-        .description(RECOVERIES_LONGEST_RUNTIME.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
-        .description(RECOVERIES_AVG_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_SORTS_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
+        .description(RECOVERIES_SORTS_IN_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_SORTS_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
+        .description(RECOVERIES_SORTS_LONGEST_RUNTIME.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_SORTS_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
+        .description(RECOVERIES_SORTS_AVG_PROGRESS.getDescription()).register(registry);
   }
 }

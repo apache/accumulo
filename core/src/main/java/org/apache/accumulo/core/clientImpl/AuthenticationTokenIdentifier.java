@@ -115,7 +115,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   private void populateFields(TAuthenticationTokenIdentifier tAuthTokenId) {
-    impl.principal = tAuthTokenId.getPrincipal();
+    impl.setPrincipal(tAuthTokenId.getPrincipal());
     setExpirationDate(tAuthTokenId.getExpirationDate());
     setIssueDate(tAuthTokenId.getIssueDate());
     if (tAuthTokenId.getInstanceId() != null) {

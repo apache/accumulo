@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -75,5 +77,10 @@ class ClonePermissions extends AbstractFateOperation {
   public void undo(FateId fateId, FateEnv environment) throws Exception {
     environment.getContext().getSecurityOperation().deleteTable(environment.getContext().rpcCreds(),
         cloneInfo.getTableId(), cloneInfo.getNamespaceId());
+  }
+
+  @Override
+  public String getDetails() {
+    return GSON.get().toJson(cloneInfo);
   }
 }

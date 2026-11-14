@@ -92,7 +92,7 @@ public class GetSplitsCommand extends Command {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(next.getKey())) {
             KeyExtent extent = KeyExtent.fromMetaPrevRow(next);
             final String obscured = extent.obscured();
-            if (matches.size() == 0 || matches.contains(obscured)) {
+            if (matches.isEmpty() || matches.contains(obscured)) {
               final String pr = encode(encode, extent.prevEndRow());
               final String er = encode(encode, extent.endRow());
               final String line =
@@ -141,8 +141,8 @@ public class GetSplitsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
 
-    maxSplitsOpt =
-        new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
+    maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return that are"
+        + " selected from the existing splits; see TableOperations.listSplits");
     maxSplitsOpt.setArgName("num");
 
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");

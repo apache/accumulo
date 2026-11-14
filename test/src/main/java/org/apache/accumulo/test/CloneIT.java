@@ -44,8 +44,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;

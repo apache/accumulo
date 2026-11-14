@@ -87,7 +87,7 @@ public class TableLocksCheckRunner implements CheckRunner {
       if (locksExist) {
         final var fateStatus =
             admin.getStatus(Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs), zk,
-                zTableLocksPath, null, null, null);
+                zTableLocksPath, null, null, null, false);
         if (!fateStatus.getDanglingHeldLocks().isEmpty()
             || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
           status &= false;

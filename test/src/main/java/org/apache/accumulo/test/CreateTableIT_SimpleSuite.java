@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
