@@ -365,7 +365,7 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
-  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
       "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
           + " is dependent on metrics being enabled to function correctly.",
       "2.1.0"),
