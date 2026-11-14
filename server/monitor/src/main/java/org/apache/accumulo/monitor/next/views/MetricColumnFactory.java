@@ -59,7 +59,8 @@ public class MetricColumnFactory implements ColumnFactory {
       case COUNTER, FUNCTION_COUNTER -> sv -> sv.equals(StatType.COUNT);
       case TIMER, DISTRIBUTION_SUMMARY -> sv -> sv.equals(StatType.AVERAGE);
       case LONG_TASK_TIMER -> sv -> sv.equals(StatType.MAX);
-      case CACHE -> StatType.COUNT_OR_VALUE; // TODO this class does not really support this type
+      case CACHE ->
+        throw new IllegalArgumentException("Cache metrics not supported : " + metric.getName());
     };
   }
 
