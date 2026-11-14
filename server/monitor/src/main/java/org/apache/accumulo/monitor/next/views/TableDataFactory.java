@@ -322,6 +322,7 @@ public class TableDataFactory {
         Metric.BLOCKCACHE_DATA_REQUESTCOUNT));
     cols.add(new MetricColumnFactory(Metric.SCAN_OPEN_FILES));
     cols.add(new MetricColumnFactory(Metric.SCAN_YIELDS));
+    cols.add(new MetricColumnFactory(Metric.SCAN_ZOMBIE_THREADS));
   }
 
   private static void scanServerColumns(List<ColumnFactory> cols) {
