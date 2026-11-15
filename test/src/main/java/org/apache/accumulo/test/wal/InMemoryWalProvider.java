@@ -25,8 +25,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -39,18 +37,20 @@ import org.apache.accumulo.core.spi.wal.WalProvider;
  * held by an {@link InMemoryWalStore} running in the test process and accessed over loopback TCP,
  * allowing the cluster's separate server processes to share them. Start the store before starting
  * the cluster and pass {@link InMemoryWalStore#getProviderOptions()} as this provider's options.
- * References use a local filesystem URI with the standard WAL path layout so Accumulo can place
- * sorted recovery logs in the corresponding recovery directory; the WAL bytes themselves remain in
- * the in-memory store. Writes are buffered in the provider process and sent to the store on
- * {@code sync} or {@code close}; therefore synced bytes remain available for recovery after a
- * TabletServer process exits, while unsynced bytes may be lost with that process.
+ * References use an opaque, non-hierarchical URI to verify that Accumulo does not interpret
+ * provider references as Hadoop paths. The WAL bytes themselves remain in the in-memory store.
+ * Writes are buffered in the provider process and sent to the store on {@code sync} or
+ * {@code close}; therefore synced bytes remain available for recovery after a TabletServer process
+ * exits, while unsynced bytes may be lost with that process.
  */
 public class InMemoryWalProvider implements WalProvider {
 
   public static final String PROVIDER_ID = "mem";
   public static final String HOST_OPTION = "host";
   public static final String PORT_OPTION = "port";
-  private static final String SCHEME = "file";
+  private static final String SCHEME = "memwal";
+  private static final String REFERENCE_PREFIX = "memwal:wal?uuid=";
+  private static final String OPAQUE_SUFFIX = "&opaque=a%2Fb%2Cc%7Cd";
 
   private String host;
   private int port = -1;
@@ -93,12 +93,7 @@ public class InMemoryWalProvider implements WalProvider {
   @Override
   public Writer create(UUID id) throws IOException {
     requireInitialized();
-    String reference;
-    try {
-      reference = new URI(SCHEME, null, referenceRoot() + id, null, null).toString();
-    } catch (URISyntaxException e) {
-      throw new IOException("Invalid WAL UUID for reference: " + id, e);
-    }
+    String reference = REFERENCE_PREFIX + id + "&store=" + port + OPAQUE_SUFFIX;
     validateReference(reference);
     try (var socket = InMemoryWalStore.connect(host, port);
         var output = new DataOutputStream(socket.getOutputStream());
@@ -167,27 +162,26 @@ public class InMemoryWalProvider implements WalProvider {
 
   private void validateReference(String reference) throws IOException {
     try {
-      URI uri = new URI(reference);
-      if (!SCHEME.equals(uri.getScheme()) || uri.getAuthority() != null || uri.getQuery() != null
-          || uri.getFragment() != null) {
+      if (!reference.startsWith(REFERENCE_PREFIX)) {
         throw new IOException("Invalid in-memory WAL reference: " + reference);
       }
-      String path = uri.getPath();
-      if (path == null || !path.startsWith(referenceRoot())) {
+      int uuidEnd = reference.indexOf("&store=", REFERENCE_PREFIX.length());
+      if (uuidEnd < 0) {
         throw new IOException("Invalid in-memory WAL reference: " + reference);
       }
-      String[] parts = path.substring(referenceRoot().length()).split("/", -1);
-      if (parts.length != 1 || parts[0].isBlank()) {
+      String uuidText = reference.substring(REFERENCE_PREFIX.length(), uuidEnd);
+      UUID id = UUID.fromString(uuidText);
+      String expectedReference = REFERENCE_PREFIX + id + "&store=" + port + OPAQUE_SUFFIX;
+      if (!id.toString().equals(uuidText) || !expectedReference.equals(reference)) {
         throw new IOException("Invalid in-memory WAL reference: " + reference);
       }
-      UUID.fromString(parts[0]);
-    } catch (URISyntaxException | IllegalArgumentException e) {
+      java.net.URI uri = new java.net.URI(reference);
+      if (!SCHEME.equals(uri.getScheme()) || !uri.isOpaque()) {
+        throw new IOException("Invalid in-memory WAL reference: " + reference);
+      }
+    } catch (IllegalArgumentException | java.net.URISyntaxException e) {
       throw new IOException("Invalid in-memory WAL reference: " + reference, e);
     }
-  }
-
-  private String referenceRoot() {
-    return "/tmp/accumulo-inmemory-wal-" + port + "/wal/";
   }
 
   private final class MemoryWriter implements Writer {

@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.tabletserver.log;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.util.Base64;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
@@ -41,16 +44,19 @@ public final class LogEntry {
   private static final String LOG_PATH =
       "%s" + Path.SEPARATOR + Constants.WAL_DIR + Path.SEPARATOR + "%s";
   private static final String ADDRESS_QUALIFIER_PREFIX = "@";
+  private static final String METADATA_VERSION = "v2";
 
-  private final Path path;
+  private final String reference;
+  private final @Nullable Path legacyPath;
   private final String providerId;
   private final @Nullable HostAndPort tserverAddress;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
-  private LogEntry(Path path, String providerId, @Nullable HostAndPort tserverAddress,
-      UUID uniqueId, Text columnQualifier) {
-    this.path = path;
+  private LogEntry(String reference, @Nullable Path legacyPath, String providerId,
+      @Nullable HostAndPort tserverAddress, UUID uniqueId, Text columnQualifier) {
+    this.reference = reference;
+    this.legacyPath = legacyPath;
     this.providerId = providerId;
     this.tserverAddress = tserverAddress;
     this.uniqueId = uniqueId;
@@ -58,8 +64,14 @@ public final class LogEntry {
   }
 
   public static LogEntry withSwitchedVolume(LogEntry entry, Path newPath) {
-    return new LogEntry(validatePath(newPath), entry.getProviderId(), entry.getTServerAddress(),
-        entry.getUniqueID(), entry.columnQualifier);
+    if (entry.legacyPath != null) {
+      Path switchedPath = validatePath(newPath);
+      return new LogEntry(switchedPath.toString(), switchedPath, entry.providerId,
+          entry.getTServerAddress(), entry.uniqueId, entry.columnQualifier);
+    }
+    HostAndPort address = entry.getTServerAddress();
+    return address == null ? fromReference(entry.providerId, newPath.toString(), entry.uniqueId)
+        : fromReference(entry.providerId, newPath.toString(), entry.uniqueId, address);
   }
 
   public static LogEntry forServer(String providerId, String volume, HostAndPort address) {
@@ -69,10 +81,24 @@ public final class LogEntry {
   }
 
   /**
-   * Creates a new LogEntry object after validating the path. The path must be an absolute
-   * filesystem URI whose final component is a UUID. When possible, the TabletServer address is
-   * inferred from the penultimate component of legacy WAL paths; new references do not need to
-   * contain it.
+   * Creates a log entry for a provider-owned reference. The reference is opaque to Accumulo, but
+   * must contain the UUID supplied to {@link org.apache.accumulo.core.spi.wal.WalProvider#create}.
+   */
+  public static LogEntry fromReference(String providerId, String reference, UUID uniqueId,
+      HostAndPort tserverAddress) {
+    return validatedReference(reference, providerId, validateTserverAddress(tserverAddress),
+        uniqueId, null);
+  }
+
+  /** Creates a log entry for a provider-owned reference when the creator address is not known. */
+  public static LogEntry fromReference(String providerId, String reference, UUID uniqueId) {
+    return validatedReference(reference, providerId, null, uniqueId, null);
+  }
+
+  /**
+   * Creates a legacy path-based LogEntry. The path must be an absolute filesystem URI whose final
+   * component is a UUID. When possible, the TabletServer address is inferred from the penultimate
+   * component of legacy WAL paths.
    *
    * @param providerId provider that owns this WAL
    * @param path path to validate
@@ -87,7 +113,7 @@ public final class LogEntry {
    * Creates a LogEntry using an explicitly known TabletServer address.
    *
    * @param providerId provider that owns this WAL
-   * @param path fully qualified reference returned by the provider
+   * @param path legacy fully qualified path-based WAL reference
    * @param tserverAddress TabletServer address that created this WAL
    */
   public static LogEntry fromPath(String providerId, String path, HostAndPort tserverAddress) {
@@ -96,9 +122,7 @@ public final class LogEntry {
 
   private static LogEntry validatedLogEntry(String path, String providerId,
       @Nullable HostAndPort tserverAddress, Text columnQualifier) {
-    Preconditions.checkArgument(
-        providerId != null && providerId.matches(WalProvider.PROVIDER_ID_REGEX),
-        "Invalid WAL provider ID: %s", providerId);
+    validateProviderId(providerId);
     Path logPath = validatePath(new Path(path));
     String uuidPart = logPath.getName();
     String badUuidMsg = "Expected valid UUID as the final path component. Found '" + uuidPart + "'";
@@ -111,7 +135,25 @@ public final class LogEntry {
     if (!uuid.toString().equals(uuidPart)) {
       throw new IllegalArgumentException(badUuidMsg);
     }
-    return new LogEntry(logPath, providerId, tserverAddress, uuid, columnQualifier);
+    return new LogEntry(logPath.toString(), logPath, providerId, tserverAddress, uuid,
+        columnQualifier);
+  }
+
+  private static LogEntry validatedReference(String reference, String providerId,
+      @Nullable HostAndPort tserverAddress, UUID uniqueId, Text columnQualifier) {
+    validateProviderId(providerId);
+    Preconditions.checkArgument(reference != null && !reference.isBlank(),
+        "WAL reference must not be blank");
+    Objects.requireNonNull(uniqueId, "WAL UUID must not be null");
+    Preconditions.checkArgument(reference.contains(uniqueId.toString()),
+        "WAL reference must contain the requested UUID %s", uniqueId);
+    return new LogEntry(reference, null, providerId, tserverAddress, uniqueId, columnQualifier);
+  }
+
+  private static void validateProviderId(String providerId) {
+    Preconditions.checkArgument(
+        providerId != null && providerId.matches(WalProvider.PROVIDER_ID_REGEX),
+        "Invalid WAL provider ID: %s", providerId);
   }
 
   private static HostAndPort validateTserverAddress(HostAndPort address) {
@@ -177,8 +219,36 @@ public final class LogEntry {
       throw new IllegalArgumentException(
           "Malformed WAL TabletServer address in qualifier " + qualifier, e);
     }
-    String path = rest.substring(addressSeparator + 1);
-    return validatedLogEntry(path, providerId, address, qualifier);
+    String encodedReference = rest.substring(addressSeparator + 1);
+    if (encodedReference.startsWith(METADATA_VERSION + "/")) {
+      String[] fields = encodedReference.split("/", 4);
+      Preconditions.checkArgument(fields.length == 4, "Malformed versioned WAL qualifier: %s",
+          qualifier);
+      UUID uuid;
+      try {
+        uuid = UUID.fromString(fields[2]);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Malformed WAL UUID in qualifier " + qualifier, e);
+      }
+      Preconditions.checkArgument(uuid.toString().equals(fields[2]),
+          "Malformed WAL UUID in qualifier %s", qualifier);
+      String reference;
+      try {
+        reference = new String(Base64.getUrlDecoder().decode(fields[3]), UTF_8);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Malformed WAL reference in qualifier " + qualifier, e);
+      }
+      if (fields[1].equals("legacy")) {
+        LogEntry legacy = validatedLogEntry(reference, providerId, address, qualifier);
+        Preconditions.checkArgument(legacy.getUniqueID().equals(uuid),
+            "WAL UUID in qualifier does not match legacy reference: %s", qualifier);
+        return legacy;
+      }
+      Preconditions.checkArgument(fields[1].equals("opaque"),
+          "Unknown WAL qualifier reference type %s", fields[1]);
+      return validatedReference(reference, providerId, address, uuid, qualifier);
+    }
+    return validatedLogEntry(encodedReference, providerId, address, qualifier);
   }
 
   @Nullable
@@ -188,7 +258,21 @@ public final class LogEntry {
 
   @NonNull
   public Path getPath() {
-    return path;
+    if (legacyPath == null) {
+      throw new IllegalStateException(
+          "WAL reference is opaque and is not necessarily a Hadoop path");
+    }
+    return legacyPath;
+  }
+
+  /** Returns the raw provider-owned WAL reference. */
+  public String getReference() {
+    return reference;
+  }
+
+  /** Returns whether this entry was read from the legacy path-based reference format. */
+  public boolean isLegacyPathReference() {
+    return legacyPath != null;
   }
 
   public String getProviderId() {
@@ -202,7 +286,7 @@ public final class LogEntry {
 
   @Override
   public String toString() {
-    return path.toString();
+    return reference;
   }
 
   @Override
@@ -211,15 +295,16 @@ public final class LogEntry {
       return true;
     }
     if (other instanceof LogEntry) {
-      return path.equals(((LogEntry) other).path)
-          && providerId.equals(((LogEntry) other).providerId);
+      LogEntry that = (LogEntry) other;
+      return reference.equals(that.reference) && providerId.equals(that.providerId)
+          && uniqueId.equals(that.uniqueId);
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(providerId, path);
+    return Objects.hash(providerId, reference, uniqueId);
   }
 
   /**
@@ -232,7 +317,11 @@ public final class LogEntry {
   private Text newCQ() {
     HostAndPort address = Objects.requireNonNull(tserverAddress,
         "TabletServer address is required to write a WAL metadata qualifier");
-    return new Text(providerId + "/" + ADDRESS_QUALIFIER_PREFIX + address + "/" + getPath());
+    String encodedReference =
+        Base64.getUrlEncoder().withoutPadding().encodeToString(reference.getBytes(UTF_8));
+    String referenceType = legacyPath == null ? "opaque" : "legacy";
+    return new Text(providerId + "/" + ADDRESS_QUALIFIER_PREFIX + address + "/" + METADATA_VERSION
+        + "/" + referenceType + "/" + uniqueId + "/" + encodedReference);
   }
 
   /**

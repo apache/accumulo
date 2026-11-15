@@ -111,7 +111,7 @@ public class InMemoryWalProviderIT extends ConfigurableMacBase {
           .containsAll(Set.of(DfsWalProvider.PROVIDER_ID, InMemoryWalProvider.PROVIDER_ID)));
       Set<String> walReferences = walStates.stream()
           .filter(state -> state.providerId().equals(InMemoryWalProvider.PROVIDER_ID))
-          .map(state -> state.path().toString()).collect(Collectors.toSet());
+          .map(WalStatePath::reference).collect(Collectors.toSet());
       assertFalse(walReferences.isEmpty(), "SPI-created WALs should be present");
       for (String reference : walReferences) {
         assertTrue(provider.exists(reference), "SPI-created WAL should exist: " + reference);

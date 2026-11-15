@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.log;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.SortedSet;
@@ -34,9 +35,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
- * Write ahead logs have two paths in DFS. There is the path of the original unsorted walog and the
- * path of the sorted walog. The purpose of this class is to convert the unsorted wal path to a
- * sorted wal path and validate the sorted dir exists and is finished.
+ * A write-ahead log has a provider-owned reference and a separate sorted-recovery directory. This
+ * class resolves that directory and validates that the sorted output exists and is finished.
  */
 public class ResolvedSortedLog {
 
@@ -79,15 +79,21 @@ public class ResolvedSortedLog {
   }
 
   /**
-   * For a given path of an unsorted walog check to see if the corresponding sorted log dir exists
-   * and is finished. If it is return an immutable object containing information about the sorted
-   * walogs.
+   * For a legacy path-based WAL, check that the corresponding sorted recovery directory exists and
+   * is finished.
    */
   public static ResolvedSortedLog resolve(LogEntry logEntry, VolumeManager fs) throws IOException {
+    return resolve(logEntry, fs, null);
+  }
 
-    // convert the path of an unsorted log to the expected path for the corresponding sorted log
-    // dir
-    Path sortedLogPath = RecoveryPath.getRecoveryPath(logEntry);
+  /**
+   * Resolves a WAL using the configured recovery directories for rendezvous-based placement.
+   */
+  public static ResolvedSortedLog resolve(LogEntry logEntry, VolumeManager fs,
+      Collection<String> recoveryDirectories) throws IOException {
+
+    Path sortedLogPath = logEntry.isLegacyPathReference() ? RecoveryPath.getRecoveryPath(logEntry)
+        : RecoveryPath.getRecoveryPath(logEntry, recoveryDirectories);
 
     boolean foundFinish = false;
     // Path::getName compares the last component of each Path value. In this case, the last
@@ -113,7 +119,7 @@ public class ResolvedSortedLog {
     }
     if (!foundFinish) {
       throw new IOException("Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in "
-          + sortedLogPath + " for walog " + logEntry.getPath());
+          + sortedLogPath + " for walog " + logEntry.getReference());
     }
 
     return new ResolvedSortedLog(logEntry, sortedLogPath, logFiles);

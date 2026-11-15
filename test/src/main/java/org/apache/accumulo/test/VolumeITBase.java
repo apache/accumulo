@@ -209,11 +209,11 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
         try {
           outer: for (var wal : wals.getAllState()) {
             for (Path path : paths) {
-              if (wal.path().toString().startsWith(path.toString())) {
+              if (wal.reference().startsWith(path.toString())) {
                 continue outer;
               }
             }
-            log.warn("Unexpected volume " + wal.path() + " (" + wal.state() + ")");
+            log.warn("Unexpected volume " + wal.reference() + " (" + wal.state() + ")");
             UtilWaitThread.sleep(100);
             continue retry;
           }

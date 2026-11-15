@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
@@ -34,19 +35,20 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
 class WalStateManagerTest {
 
   @Test
   void parseDefaultProviderWalState() {
+    String id = "11111111-1111-1111-1111-111111111111";
+    String reference = "hdfs://nn/accumulo/wal/host+1234/" + id;
     var parsed = WalStateManager
-        .parse(("CLOSED," + DfsWalProvider.PROVIDER_ID + ",hdfs://nn/accumulo/wal/host+1234/id")
-            .getBytes(UTF_8));
+        .parse(("CLOSED," + DfsWalProvider.PROVIDER_ID + "," + reference).getBytes(UTF_8));
     assertEquals(WalStateManager.WalState.CLOSED, parsed.state());
     assertEquals(DfsWalProvider.PROVIDER_ID, parsed.providerId());
-    assertEquals(new Path("hdfs://nn/accumulo/wal/host+1234/id"), parsed.path());
+    assertEquals(reference, parsed.reference());
+    assertEquals("11111111-1111-1111-1111-111111111111", parsed.uniqueId().toString());
   }
 
   @Test
@@ -57,11 +59,12 @@ class WalStateManagerTest {
 
   @Test
   void parseProviderWalState() {
-    var parsed = WalStateManager
-        .parse("UNREFERENCED,example,hdfs://nn/accumulo/wal/host+1234/id".getBytes(UTF_8));
+    String id = "11111111-1111-1111-1111-111111111111";
+    String reference = "hdfs://nn/accumulo/wal/host+1234/" + id;
+    var parsed = WalStateManager.parse(("UNREFERENCED,example," + reference).getBytes(UTF_8));
     assertEquals(WalStateManager.WalState.UNREFERENCED, parsed.state());
     assertEquals("example", parsed.providerId());
-    assertEquals(new Path("hdfs://nn/accumulo/wal/host+1234/id"), parsed.path());
+    assertEquals(reference, parsed.reference());
   }
 
   @Test
@@ -88,5 +91,32 @@ class WalStateManagerTest {
     assertEquals(LogEntry.fromPath("custom", reference, server.getHostAndPort()), wal);
     assertEquals(server.getHostAndPort(), wal.getTServerAddress());
     verify(context, session, zoo);
+  }
+
+  @Test
+  void parseVersionedWalStateWithOpaqueReference() {
+    String id = "11111111-1111-1111-1111-111111111111";
+    String reference = "custom://wal/log?id=" + id + "&part=one,two";
+    String encoded =
+        java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(reference.getBytes(UTF_8));
+    var parsed =
+        WalStateManager.parse(("v2,CLOSED,custom," + id + ",opaque," + encoded).getBytes(UTF_8));
+    assertEquals(WalStateManager.WalState.CLOSED, parsed.state());
+    assertEquals("custom", parsed.providerId());
+    assertEquals(reference, parsed.reference());
+    assertEquals(id, parsed.uniqueId().toString());
+  }
+
+  @Test
+  void parseVersionedWalStateWithLegacyPathReference() {
+    String id = "11111111-1111-1111-1111-111111111111";
+    String reference = "hdfs://nn/accumulo/wal/host+1234/" + id;
+    String encoded =
+        java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(reference.getBytes(UTF_8));
+    var parsed =
+        WalStateManager.parse(("v2,CLOSED,dfs," + id + ",legacy," + encoded).getBytes(UTF_8));
+    assertEquals(reference, parsed.reference());
+    assertEquals(id, parsed.uniqueId().toString());
+    assertTrue(parsed.legacyPathReference());
   }
 }

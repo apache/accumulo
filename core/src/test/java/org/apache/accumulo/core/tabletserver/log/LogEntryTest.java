@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.Base64;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -52,8 +53,10 @@ public class LogEntryTest {
   @Test
   public void testFromPath() {
     var logEntry = LogEntry.fromPath(PROVIDER_ID, validPath);
-    verifyLogEntry(logEntry,
-        new Text(PROVIDER_ID + "/@" + validHost.replace('+', ':') + "/" + validPath));
+    String encodedPath = Base64.getUrlEncoder().withoutPadding()
+        .encodeToString(validPath.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    verifyLogEntry(logEntry, new Text(PROVIDER_ID + "/@" + validHost.replace('+', ':') + "/v2/"
+        + "legacy/" + validUUID + "/" + encodedPath));
   }
 
   @Test
@@ -75,6 +78,28 @@ public class LogEntryTest {
     assertEquals(new Path(validPath), restored.getPath());
     assertEquals(entry, restored);
     assertEquals(PROVIDER_ID, LogEntry.fromPath(PROVIDER_ID, validPath).getProviderId());
+  }
+
+  @Test
+  public void testOpaqueReferenceRoundTrip() {
+    String reference = "memory://wal/log?uuid=" + validUUID + "&part=a/b,c|d";
+    LogEntry entry = LogEntry.fromReference(PROVIDER_ID, reference, validUUID,
+        HostAndPort.fromString("localhost:9997"));
+    var restored = LogEntry.fromMetaWalEntry(new SimpleImmutableEntry<>(
+        new Key("1<", LogColumnFamily.STR_NAME, entry.getColumnQualifier().toString()),
+        new Value()));
+
+    assertEquals(reference, restored.getReference());
+    assertEquals(validUUID, restored.getUniqueID());
+    assertEquals(PROVIDER_ID, restored.getProviderId());
+    assertEquals(entry, restored);
+    assertThrows(IllegalStateException.class, restored::getPath);
+  }
+
+  @Test
+  public void testOpaqueReferenceMustContainUuid() {
+    assertThrows(IllegalArgumentException.class,
+        () -> LogEntry.fromReference(PROVIDER_ID, "memory://wal/log", validUUID));
   }
 
   @Test

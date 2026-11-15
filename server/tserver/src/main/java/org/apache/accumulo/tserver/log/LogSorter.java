@@ -135,7 +135,7 @@ public class LogSorter implements MetricsProducer {
 
       String formerThreadName = Thread.currentThread().getName();
       try {
-        sort(fs, sortId, new Path(src), dest, providerId);
+        sort(fs, sortId, src, dest, providerId);
       } catch (Exception t) {
         try {
           // parent dir may not exist
@@ -159,7 +159,7 @@ public class LogSorter implements MetricsProducer {
       }
     }
 
-    public void sort(VolumeManager fs, String name, Path srcPath, String destPath,
+    public void sort(VolumeManager fs, String name, String sourceReference, String destPath,
         String providerId) throws IOException {
       int part = 0;
 
@@ -169,18 +169,19 @@ public class LogSorter implements MetricsProducer {
         return;
       }
 
-      log.info("Copying {} to {}", srcPath, destPath);
+      log.info("Copying {} to {}", sourceReference, destPath);
       // the following call does not throw an exception if the file/dir does not exist
       fs.deleteRecursively(new Path(destPath));
 
-      InputStream source = providerId.equals(DfsWalProvider.PROVIDER_ID) ? fs.open(srcPath)
-          : context.getWalProviderRegistry().get(providerId).open(srcPath.toString());
+      InputStream source =
+          providerId.equals(DfsWalProvider.PROVIDER_ID) ? fs.open(new Path(sourceReference))
+              : context.getWalProviderRegistry().get(providerId).open(sourceReference);
       input = new CountingInputStream(source);
 
       try {
         decryptingInput = DfsLogger.getDecryptingStream(input, cryptoService);
       } catch (LogHeaderIncompleteException e) {
-        log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
+        log.warn("Could not read header from write-ahead log {}. Not sorting.", sourceReference);
         // Creating a 'finished' marker will cause recovery to proceed normally and the
         // empty file will be correctly ignored downstream.
         fs.mkdirs(new Path(destPath));

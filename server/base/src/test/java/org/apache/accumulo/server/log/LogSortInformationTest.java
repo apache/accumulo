@@ -31,9 +31,19 @@ class LogSortInformationTest {
   void roundTrip() {
     UUID sortId = UUID.randomUUID();
     LogSortInformation work = new LogSortInformation(sortId, DfsWalProvider.PROVIDER_ID,
-        "hdfs://nn/wal/" + sortId, "hdfs://nn/recovery/sorted");
+        "memory://wal/log?id=" + sortId + "&pipe=one|two",
+        "hdfs://nn/recovery/sorted?note=one|two");
 
     assertEquals(work, LogSortInformation.deserialize(work.serialize()));
+  }
+
+  @Test
+  void readsLegacyPayload() {
+    UUID sortId = UUID.randomUUID();
+    LogSortInformation expected = new LogSortInformation(sortId, DfsWalProvider.PROVIDER_ID,
+        "hdfs://nn/wal/" + sortId, "hdfs://nn/recovery/" + sortId);
+    assertEquals(expected, LogSortInformation
+        .deserialize(sortId + "|dfs|hdfs://nn/wal/" + sortId + "|hdfs://nn/recovery/" + sortId));
   }
 
   @Test
@@ -43,8 +53,6 @@ class LogSortInformationTest {
         id + "|dfs||dest", id + "|dfs|source| "}) {
       assertThrows(IllegalArgumentException.class, () -> LogSortInformation.deserialize(payload));
     }
-    assertThrows(IllegalArgumentException.class,
-        () -> new LogSortInformation(UUID.randomUUID(), "dfs", "source|extra", "dest"));
     assertThrows(IllegalArgumentException.class,
         () -> LogSortInformation.deserialize("source|dest"));
     assertThrows(IllegalArgumentException.class,

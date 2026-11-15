@@ -514,7 +514,8 @@ public class TabletServerLogger {
     for (var logEntry : walogs) {
       var sortedLog = sortedLogCache.get(logEntry, le1 -> {
         try {
-          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager(),
+              tserver.getContext().getRecoveryDirs());
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

@@ -75,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -102,6 +103,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class Upgrader11to12Test extends WithTestNames {
 
@@ -223,7 +226,9 @@ public class Upgrader11to12Test extends WithTestNames {
     assertEquals(2, updates.size());
     var added = updates.stream().filter(update -> !update.isDeleted()).findFirst().orElseThrow();
     var deleted = updates.stream().filter(ColumnUpdate::isDeleted).findFirst().orElseThrow();
-    String newQualifier = DfsWalProvider.PROVIDER_ID + "/@host:1234/" + path;
+    String newQualifier =
+        LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, path, HostAndPort.fromString("host:1234"))
+            .getColumnQualifier().toString();
     assertEquals(newQualifier, new Text(added.getColumnQualifier()).toString());
     assertEquals("-/" + path, new Text(deleted.getColumnQualifier()).toString());
 
@@ -305,7 +310,8 @@ public class Upgrader11to12Test extends WithTestNames {
             .qualifier(oldQualifier).build();
         scanData.put(walKey, new Value("wal-value"));
         oldQualifiers.add(oldQualifier);
-        expectedQualifiers.add(DfsWalProvider.PROVIDER_ID + "/@localhost:9997/" + existingWal);
+        expectedQualifiers.add(LogEntry.fromPath(DfsWalProvider.PROVIDER_ID, existingWal.toString(),
+            HostAndPort.fromString("localhost:9997")).getColumnQualifier().toString());
       }
 
       ArrayList<Mutation> mutations = new ArrayList<>();
@@ -903,8 +909,10 @@ public class Upgrader11to12Test extends WithTestNames {
     String path = Constants.ZRECOVERY + "/" + id;
     expect(zrw.getChildren(Constants.ZRECOVERY)).andReturn(List.of(id));
     expect(zrw.getData(path)).andReturn("source|destination".getBytes(UTF_8));
-    expect(zrw.overwritePersistentData(eq(path),
-        aryEq((id + "|dfs|source|destination").getBytes(UTF_8)), eq(-1))).andReturn(false);
+    String upgradedPayload = new LogSortInformation(UUID.fromString(id), DfsWalProvider.PROVIDER_ID,
+        "source", "destination").serialize();
+    expect(zrw.overwritePersistentData(eq(path), aryEq(upgradedPayload.getBytes(UTF_8)), eq(-1)))
+        .andReturn(false);
     replay(zrw);
     assertThrows(IllegalStateException.class, () -> new Upgrader11to12().upgradeRecoveryWork(zrw));
     verify(zrw);
@@ -947,7 +955,11 @@ public class Upgrader11to12Test extends WithTestNames {
     upgrader.updateRootTabletFileReferences(context);
     var entries = new RootTabletMetadata(new String(persisted.getValue(), UTF_8)).toKeyValues();
     assertEquals(1, entries.size());
-    assertEquals("dfs/@host:1234/" + reference, entries.firstKey().getColumnQualifier().toString());
+    String uuid = reference.substring(reference.lastIndexOf('/') + 1);
+    String encodedReference =
+        java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(reference.getBytes(UTF_8));
+    assertEquals("dfs/@host:1234/v2/legacy/" + uuid + "/" + encodedReference,
+        entries.firstKey().getColumnQualifier().toString());
     verify(context, volumes, session, zoo);
   }
 

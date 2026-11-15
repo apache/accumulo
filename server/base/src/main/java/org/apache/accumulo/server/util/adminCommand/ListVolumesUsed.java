@@ -29,6 +29,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
@@ -88,7 +89,11 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
   }
 
   private void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
-    volumes.add(getLogURI(logEntry.getPath()));
+    if (logEntry.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
+      volumes.add(getLogURI(new Path(logEntry.getReference())));
+    } else {
+      volumes.add("WAL provider: " + logEntry.getProviderId());
+    }
   }
 
   private void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
@@ -126,7 +131,11 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
 
     WalStateManager wals = new WalStateManager(context);
     for (var wal : wals.getAllState()) {
-      volumes.add(getLogURI(wal.path()));
+      if (wal.providerId().equals(DfsWalProvider.PROVIDER_ID)) {
+        volumes.add(getLogURI(new Path(wal.reference())));
+      } else {
+        volumes.add("WAL provider: " + wal.providerId());
+      }
     }
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);

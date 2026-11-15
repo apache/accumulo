@@ -40,10 +40,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
  * that may be needed by existing tablet metadata or WAL markers must be configured as available.
  *
  * <p>
- * To keep Accumulo's existing recovery pipeline, log references must be fully qualified Hadoop
- * paths ending in the WAL UUID. Providers may use a custom Hadoop filesystem URI, but the path must
- * remain under the standard {@code wal} directory so Accumulo can locate the corresponding recovery
- * directory.
+ * WAL references are opaque provider-owned strings. A reference must be stable for the lifetime of
+ * the WAL and contain the UUID passed to {@link #create(UUID)}. Accumulo stores the reference and
+ * passes it back to this provider; Accumulo does not interpret it as a path.
  *
  * @since 4.0.0
  */
@@ -94,9 +93,9 @@ public interface WalProvider {
   long prepareForRecovery(String reference) throws IOException;
 
   /**
-   * Creates a new exclusive WAL for the given UUID. The returned reference must be unique, fully
-   * qualified, and end with the supplied UUID as its final path component. The writer must preserve
-   * every byte written to its output stream in order.
+   * Creates a new exclusive WAL for the given UUID. The returned reference must be unique and
+   * contain the supplied UUID. The writer must preserve every byte written to its output stream in
+   * order.
    *
    * @param id globally unique identifier for the WAL
    * @return a new writer whose reference can later be passed to {@link #open(String)} and
@@ -138,9 +137,10 @@ public interface WalProvider {
   interface Writer extends AutoCloseable {
 
     /**
-     * Returns the stable, fully qualified reference for this WAL. It is persisted in tablet
-     * metadata and WAL markers and must remain usable by {@link WalProvider#open(String)} and
-     * {@link WalProvider#delete(String)}.
+     * Returns the stable, provider-owned reference for this WAL. It is persisted in tablet metadata
+     * and WAL markers and must remain usable by {@link WalProvider#open(String)},
+     * {@link WalProvider#exists(String)}, {@link WalProvider#prepareForRecovery(String)}, and
+     * {@link WalProvider#delete(String)}. Accumulo treats the reference as opaque.
      */
     String getReference();
 

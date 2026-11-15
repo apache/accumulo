@@ -354,7 +354,7 @@ public class Upgrader11to12 implements Upgrader {
 
     // This item may already have been converted if an earlier upgrade attempt failed partway
     // through. Validate it and leave it unchanged so the operation is safe to retry.
-    if (parts.length == 4) {
+    if (parts.length == 4 || (parts.length == 5 && parts[0].equals("v2"))) {
       LogSortInformation work = LogSortInformation.deserialize(serialized);
       if (!work.sortId().equals(sortId)) {
         throw new IllegalStateException("Recovery work ID does not match child " + child);

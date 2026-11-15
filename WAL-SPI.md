@@ -134,27 +134,34 @@ writer must also coordinate concurrent appends and sync requests. `FLUSH` must s
 TabletServer process failure, `SYNC` must provide the synchronization guarantee expected of synced
 WAL writes, and `LOG` does not invoke `Writer.sync()`. Closing a writer must be idempotent.
 
-The reference returned by `Writer.getReference()` is persisted and must stay usable by that
-provider's `open()` and `delete()`. It must be a fully qualified Hadoop path ending in the UUID
-passed to `create()`. The built-in provider uses `<volume>/wal/<uuid>`; legacy WALs may still use
-`<volume>/wal/<host+port>/<uuid>`. The [recovery path conversion][rpath] accepts both layouts and
-maps them to `<volume>/recovery/<uuid>`. A custom provider can use a custom Hadoop filesystem URI,
-but the WAL directory and corresponding recovery destination must be accessible through
-`VolumeManager`.
+The reference returned by `Writer.getReference()` is a provider-owned opaque string. It is
+persisted and must remain usable by that provider's `prepareForRecovery()`, `open()`, `exists()`, and
+`delete()` methods. It must contain the UUID passed to `create()`, but Accumulo does not parse it as
+a URI or filesystem path. The built-in `dfs` provider continues to use `<volume>/wal/<uuid>`; old
+references may use `<volume>/wal/<host+port>/<uuid>`.
+
+Accumulo stores the UUID separately and chooses the sorted-recovery destination independently of
+the raw WAL reference. New recovery destinations are `<volume>/recovery/<uuid>`, where the recovery
+volume is selected using rendezvous hashing over the UUID and configured recovery directories. This
+selection is deterministic across processes and distributes recovery logs across volumes. Legacy
+path-based WAL references retain their existing path conversion. Recovery output must remain
+accessible through `VolumeManager`; raw WAL storage does not need to use a Hadoop-compatible
+filesystem.
 
 ## Writing and tracking a WAL
 
 1. [`TabletServerLogger`][tslog] obtains `getCurrent()` from the registry when creating a
    log. Despite its name, [`DfsLogger`][dfs-logger] uses the selected provider's `create()` and
    `Writer`, so the WAL need not be stored by `DfsWalProvider`.
-2. `DfsLogger` validates the returned reference as a [`LogEntry`][log-entry], writes the versioned
+2. `DfsLogger` validates that the returned reference contains the requested UUID and records it as a
+   [`LogEntry`][log-entry], writes the versioned
    header and crypto parameters, wraps the provider output stream for encryption, writes an `OPEN`
    entry, and syncs it before using the log. Subsequent tablet definitions, mutations, and
    compaction events use the existing WAL serialization. A background sync task batches durability
    requests and calls `Writer.sync(FLUSH)` or `Writer.sync(SYNC)`; after slow syncs it calls
    `getDiagnostics()` and `isHealthy()`.
-3. `LogEntry` associates the provider ID, creator address, and path. Tablet metadata stores them
-   as a log-column qualifier of the form `<providerId>/@<host:port>/<reference>`.
+3. `LogEntry` associates the provider ID, creator address, UUID, and opaque reference. Tablet
+   metadata stores them in a versioned log-column qualifier.
    [`WalStateManager`][wal-state] records the WAL state (`OPEN`, `CLOSED`, or `UNREFERENCED`),
    provider ID, and path in ZooKeeper WAL markers; the marker's parent node identifies the
    TabletServer. This lets recovery and GC identify which provider created a given log,
@@ -171,16 +178,18 @@ unavailable pipeline.
 
 ## Recovery and garbage collection
 
-The [Manager's `RecoveryManager`][rm] obtains the provider ID from the `LogEntry`,
-derives the sibling `recovery/<uuid>` directory using `RecoveryPath`, and calls that provider's
-`prepareForRecovery(reference)`. The Manager schedules requested retries and queues sorting only
-when preparation returns zero. `DfsWalProvider` delegates preparation to its configured log closer.
-The queued work is serialized as `sortId|providerId|source|destination`.
+The [Manager's `RecoveryManager`][rm] obtains the provider ID, UUID, and opaque reference from the
+`LogEntry`. It derives the recovery destination using rendezvous hashing for new WALs (or the
+legacy path conversion for old WALs), then calls that provider's `prepareForRecovery(reference)`.
+The Manager schedules requested retries and queues sorting only when preparation returns zero.
+`DfsWalProvider` delegates preparation to its configured log closer. The queued work contains the
+sort ID, provider ID, opaque source reference, and destination in a versioned, delimiter-safe
+encoding.
 
-[`LogSorter`][sorter] opens the raw source through `VolumeManager` for `dfs` or through the
-registered provider's `open(reference)` for another ID. It decrypts and decodes Accumulo's WAL
-records, sorts them into RFiles in the recovery directory via `VolumeManager`, and writes a finished
-marker. The sorted recovery files are **not** read through `WalProvider.open()`:
+[`LogSorter`][sorter] opens `dfs` raw WALs through `VolumeManager` and other raw WALs through the
+registered provider's `open(reference)`. It decrypts and decodes Accumulo's WAL records, sorts them
+into RFiles in the recovery directory via `VolumeManager`, and writes a finished marker. The sorted
+recovery files are **not** read through `WalProvider.open()`:
 [`ResolvedSortedLog`][resolved-log] validates that directory and marker,
 [`RecoveryLogsIterator`][rli] opens the RFiles using the filesystem selected by
 `VolumeManager`, and [`SortedLogRecovery`][slr] replays the tablet's applicable
@@ -189,8 +198,8 @@ mutations.
 Thus the SPI permits alternative storage for the **raw WAL**, but it does not replace the existing
 filesystem-based sorted-log recovery pipeline. HDFS itself is not a requirement of
 `SortedLogRecovery`: its [unit test][slr-test] uses a local `file://` filesystem. The recovery
-destination must nevertheless be accessible through `VolumeManager`, and the reference must satisfy
-the path layout above.
+destination must nevertheless be accessible through `VolumeManager`; the raw WAL reference need not
+be a filesystem path.
 
 After WALs are no longer referenced, [`GarbageCollectWriteAheadLogs`][wal-gc] deletes raw `dfs`
 logs through `VolumeManager` and other raw logs through their registered provider's

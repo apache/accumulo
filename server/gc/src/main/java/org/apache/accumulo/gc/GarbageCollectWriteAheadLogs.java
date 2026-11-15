@@ -265,35 +265,36 @@ public class GarbageCollectWriteAheadLogs {
 
     final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
-    final Map<Path,Future<?>> futures = new HashMap<>(collection.size());
+    final Map<String,Future<?>> futures = new HashMap<>(collection.size());
     final AtomicLong counter = new AtomicLong();
 
     try {
       for (WalStatePath stateFile : collection) {
-        Path path = stateFile.path();
+        String reference = stateFile.reference();
         if (stateFile.providerId().equals(DfsWalProvider.PROVIDER_ID)) {
-          futures.put(path, removeFile(deleteThreadPool, path, counter,
-              "Removing " + stateFile.state() + " WAL " + path));
+          Path path = new Path(reference);
+          futures.put(reference, removeFile(deleteThreadPool, path, counter,
+              "Removing " + stateFile.state() + " WAL " + reference));
         } else {
-          futures.put(path, deleteThreadPool.submit(() -> {
+          futures.put(reference, deleteThreadPool.submit(() -> {
             try {
-              log.debug("Removing {} WAL {} using provider {}", stateFile.state(), path,
+              log.debug("Removing {} WAL {} using provider {}", stateFile.state(), reference,
                   stateFile.providerId());
-              context.getWalProviderRegistry().get(stateFile.providerId()).delete(path.toString());
+              context.getWalProviderRegistry().get(stateFile.providerId()).delete(reference);
               counter.incrementAndGet();
             } catch (FileNotFoundException e) {
               // ignored
             } catch (IOException e) {
-              log.error("Unable to delete {} WAL {}", stateFile.providerId(), path, e);
+              log.error("Unable to delete {} WAL {}", stateFile.providerId(), reference, e);
             }
           }));
         }
       }
 
       while (!futures.isEmpty()) {
-        Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+        Iterator<Entry<String,Future<?>>> iter = futures.entrySet().iterator();
         while (iter.hasNext()) {
-          Entry<Path,Future<?>> f = iter.next();
+          Entry<String,Future<?>> f = iter.next();
           if (f.getValue().isDone()) {
             try {
               iter.remove();

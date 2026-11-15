@@ -1211,8 +1211,8 @@ public class Tablet extends TabletBase {
         .collect(Collectors.toUnmodifiableSet());
 
     if (TabletLogger.isWalRefLoggingEnabled() && !prev.equals(referencedLogs)) {
-      TabletLogger.walRefsChanged(extent,
-          referencedLogs.stream().map(DfsLogger::getPath).map(Path::getName).collect(toList()));
+      TabletLogger.walRefsChanged(extent, referencedLogs.stream()
+          .map(logger -> logger.getLogEntry().getUniqueID().toString()).collect(toList()));
     }
 
   }

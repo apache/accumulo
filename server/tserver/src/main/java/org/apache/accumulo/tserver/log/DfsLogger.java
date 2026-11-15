@@ -65,6 +65,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -295,11 +296,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     WalProvider.Writer writer = provider.create(id);
     DfsLogger dfsLogger = null;
     try {
-      LogEntry log = LogEntry.fromPath(provider.getId(), writer.getReference(), address);
-      if (!id.equals(log.getUniqueID())) {
-        throw new IllegalArgumentException("WAL reference " + writer.getReference()
-            + " does not end with the requested UUID " + id);
-      }
+      LogEntry log = LogEntry.fromReference(provider.getId(), writer.getReference(), id, address);
       dfsLogger = new DfsLogger(log);
       long slowFlushMillis =
           context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
@@ -461,7 +458,15 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   }
 
   public Path getPath() {
-    return logEntry.getPath();
+    if (!logEntry.isLegacyPathReference()
+        && !logEntry.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
+      throw new IllegalStateException("WAL reference is opaque and is not a Hadoop path");
+    }
+    return new Path(logEntry.getReference());
+  }
+
+  public String getReference() {
+    return logEntry.getReference();
   }
 
   public void close() throws IOException {
@@ -626,7 +631,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   @Override
   public int compareTo(DfsLogger o) {
-    return logEntry.getPath().compareTo(o.logEntry.getPath());
+    return logEntry.getReference().compareTo(o.logEntry.getReference());
   }
 
 }

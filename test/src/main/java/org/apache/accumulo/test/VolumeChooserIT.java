@@ -308,7 +308,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       var allLogs = walMgr.getAllState();
       assertFalse(allLogs.isEmpty());
       String volume = v2.toString();
-      allLogs.stream().map(wal -> wal.path().toString()).forEach(path -> {
+      allLogs.stream().map(wal -> wal.reference()).forEach(path -> {
         assertTrue(path.startsWith(volume), () -> path + " did not contain " + volume);
       });
     }

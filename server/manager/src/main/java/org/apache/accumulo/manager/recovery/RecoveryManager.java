@@ -98,7 +98,7 @@ public class RecoveryManager {
       try {
         WalProvider provider =
             manager.getContext().getWalProviderRegistry().get(logEntry.getProviderId());
-        String source = logEntry.getPath().toString();
+        String source = logEntry.getReference();
         long time = provider.prepareForRecovery(source);
         if (time < 0) {
           throw new IllegalArgumentException(
@@ -113,9 +113,9 @@ public class RecoveryManager {
           initiateSort(logEntry);
         }
       } catch (FileNotFoundException e) {
-        log.debug("Unable to initiate log sort for {}: {}", logEntry.getPath(), e);
+        log.debug("Unable to initiate log sort for {}: {}", logEntry.getReference(), e);
       } catch (Exception e) {
-        log.warn("Failed to initiate log sort {}", logEntry.getPath(), e);
+        log.warn("Failed to initiate log sort {}", logEntry.getReference(), e);
       } finally {
         if (!rescheduled) {
           synchronized (RecoveryManager.this) {
@@ -129,9 +129,10 @@ public class RecoveryManager {
 
   private void initiateSort(LogEntry logEntry) throws KeeperException, InterruptedException {
     String sortId = logEntry.getUniqueID().toString();
-    String destination = RecoveryPath.getRecoveryPath(logEntry).toString();
+    String destination =
+        RecoveryPath.getRecoveryPath(logEntry, manager.getContext().getRecoveryDirs()).toString();
     String work = new LogSortInformation(logEntry.getUniqueID(), logEntry.getProviderId(),
-        logEntry.getPath().toString(), destination).serialize();
+        logEntry.getReference(), destination).serialize();
     new DistributedWorkQueue(Constants.ZRECOVERY, manager.getConfiguration(), manager)
         .addWork(sortId, work.getBytes(UTF_8));
 
@@ -196,8 +197,9 @@ public class RecoveryManager {
 
     UUID sortId = walog.getUniqueID();
     String sortIdString = sortId.toString();
-    String filename = walog.getPath().toString();
-    String dest = RecoveryPath.getRecoveryPath(walog).toString();
+    String filename = walog.getReference();
+    String dest =
+        RecoveryPath.getRecoveryPath(walog, manager.getContext().getRecoveryDirs()).toString();
 
     boolean sortQueued;
     synchronized (this) {

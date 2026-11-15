@@ -1019,7 +1019,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       TServerInstance session = this.getTabletSession();
       for (DfsLogger candidate : eligible) {
-        log.info("Marking " + candidate.getPath() + " as unreferenced");
+        log.info("Marking " + candidate.getReference() + " as unreferenced");
         walMarker.walUnreferenced(session, candidate.getLogEntry());
       }
       synchronized (closedLogs) {
@@ -1031,7 +1031,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public void addNewLogMarker(DfsLogger copy) throws WalMarkerException {
-    log.info("Writing log marker for " + copy.getPath());
+    log.info("Writing log marker for " + copy.getReference());
     walMarker.addNewWalMarker(getTabletSession(), copy.getLogEntry());
   }
 
@@ -1043,7 +1043,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         closedLogs.add(currentLog);
         clSize = closedLogs.size();
       }
-      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getPath(), clSize);
+      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getReference(), clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getLogEntry());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
@@ -1061,7 +1061,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       }
     } else {
-      log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
+      log.info("Marking {} as unreferenced (skipping closed writes == 0)",
+          currentLog.getReference());
       walMarker.walUnreferenced(getTabletSession(), currentLog.getLogEntry());
     }
   }

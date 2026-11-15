@@ -81,7 +81,10 @@ public class VolumeUtil {
   }
 
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
-    Path switchedPath = switchVolume(le.getPath(), FileType.WAL, replacements);
+    if (!le.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
+      return null;
+    }
+    Path switchedPath = switchVolume(new Path(le.getReference()), FileType.WAL, replacements);
     return switchedPath == null ? null : LogEntry.withSwitchedVolume(le, switchedPath);
   }
 
@@ -139,8 +142,8 @@ public class VolumeUtil {
       if (switchedLogEntry != null) {
         logsToRemove.accept(logEntry);
         logsToAdd.accept(switchedLogEntry);
-        log.trace("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getPath(),
-            switchedLogEntry.getPath());
+        log.trace("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getReference(),
+            switchedLogEntry.getReference());
       }
     }
 

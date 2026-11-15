@@ -46,10 +46,9 @@ class InMemoryWalProviderTest {
       WalProvider.Writer writer = writerProvider.create(id);
       String reference = writer.getReference();
 
-      assertEquals(
-          "file:/tmp/accumulo-inmemory-wal-"
-              + store.getProviderOptions().get(InMemoryWalProvider.PORT_OPTION) + "/wal/" + id,
-          reference);
+      assertEquals("memwal:wal?uuid=" + id + "&store="
+          + store.getProviderOptions().get(InMemoryWalProvider.PORT_OPTION)
+          + "&opaque=a%2Fb%2Cc%7Cd", reference);
       assertTrue(readerProvider.exists(reference));
 
       writer.getOutputStream().write("header-and-synced-data".getBytes(UTF_8));
@@ -83,7 +82,7 @@ class InMemoryWalProviderTest {
 
     try (var store = InMemoryWalStore.start()) {
       WalProvider provider = newProvider(store.getProviderOptions());
-      assertThrows(IOException.class, () -> provider.exists("file:///tmp/not-a-wal"));
+      assertThrows(IOException.class, () -> provider.exists("opaque:not-a-wal"));
     }
   }
 

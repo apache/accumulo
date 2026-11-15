@@ -117,7 +117,7 @@ public class WalProviderSwitchIT extends ConfigurableMacBase {
       Set<WalStatePath> initialWals = new WalStateManager(getServerContext()).getAllState();
       Set<String> dfsReferences =
           initialWals.stream().filter(wal -> wal.providerId().equals(DfsWalProvider.PROVIDER_ID))
-              .map(wal -> wal.path().toString()).collect(Collectors.toSet());
+              .map(WalStatePath::reference).collect(Collectors.toSet());
       assertFalse(dfsReferences.isEmpty(), "Initial WALs should use the DFS provider");
 
       Set<ProcessReference> tabletServers =
@@ -151,7 +151,7 @@ public class WalProviderSwitchIT extends ConfigurableMacBase {
       Set<String> memoryReferences = walsAfterSwitch.stream()
           .filter(wal -> wal.state() == WalState.OPEN
               && wal.providerId().equals(InMemoryWalProvider.PROVIDER_ID))
-          .map(wal -> wal.path().toString()).collect(Collectors.toSet());
+          .map(WalStatePath::reference).collect(Collectors.toSet());
       assertFalse(memoryReferences.isEmpty(), "New WALs should use the in-memory provider");
       for (String reference : memoryReferences) {
         assertTrue(memoryProvider.exists(reference), "In-memory WAL should exist: " + reference);
