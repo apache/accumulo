@@ -527,7 +527,7 @@ public class MetadataSchema {
     public static GcCandidate decode(Map.Entry<Key,Value> entry) {
       var path = entry.getKey().getRowData().toString().split(",", 2)[1];
       var type = DeletesSection.decodeType(entry.getValue().toString());
-      return new GcCandidate(path, entry.getKey().getTimestamp(), type);
+      return GcCandidate.forType(path, entry.getKey().getTimestamp(), type);
     }
 
     public static Mutation delete(TableId tableId, GcCandidate candidate) {

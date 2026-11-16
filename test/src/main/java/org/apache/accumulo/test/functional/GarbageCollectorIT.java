@@ -350,11 +350,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     }
 
     // Create multiple candidate entries
-    List<GcCandidate> candidates = List.of(
-        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L,
-            GcCandidate.Type.TABLET_FILE),
-        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L,
-            GcCandidate.Type.TABLET_FILE));
+    List<GcCandidate> candidates =
+        List.of(GcCandidate.forTabletFile("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L),
+            GcCandidate.forTabletFile("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
 
     List<StoredTabletFile> stfs = candidates.stream()
         .map(temp -> StoredTabletFile.of(new Path(temp.getPath()))).collect(Collectors.toList());
@@ -470,8 +468,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
         var path = URI.create(String.format("file:/%020d/%s", i, longpath));
-        Mutation delFlag = ample
-            .createDeleteMutation(new GcCandidate(path.toString(), GcCandidate.Type.TABLET_FILE));
+        Mutation delFlag =
+            ample.createDeleteMutation(GcCandidate.forTabletFile(path.toString(), 100));
         bw.addMutation(delFlag);
       }
     }

@@ -34,24 +34,36 @@ public class GcCandidate implements Comparable<GcCandidate> {
     TABLET_FILE, TABLET_DIR, TABLE_DIR, BULK_DIR;
   }
 
-  public GcCandidate(String path, long uid, Type type) {
+  private GcCandidate(String path, long uid, Type type) {
     this.path = path;
     this.uid = uid;
     this.type = type;
   }
 
-  public GcCandidate(String path, Type type) {
+  private GcCandidate(String path, Type type) {
     this.path = path;
     this.uid = null;
     this.type = type;
+  }
+
+  public static GcCandidate forType(String path, long uid, Type type) {
+    return new GcCandidate(path, uid, type);
   }
 
   public static GcCandidate forTabletFile(StoredTabletFile file) {
     return new GcCandidate(file.getMetadataPath(), Type.TABLET_FILE);
   }
 
+  public static GcCandidate forTabletFile(String path, long uid) {
+    return new GcCandidate(path, uid, Type.TABLET_FILE);
+  }
+
   public static GcCandidate forTabletDir(TableId tableId, String dir) {
     return new GcCandidate("/" + tableId + "/" + dir, Type.TABLET_DIR);
+  }
+
+  public static GcCandidate forTabletDir(String path, long uid) {
+    return new GcCandidate(path, uid, Type.TABLET_DIR);
   }
 
   public static GcCandidate forBulkDir(String bulkDir) {

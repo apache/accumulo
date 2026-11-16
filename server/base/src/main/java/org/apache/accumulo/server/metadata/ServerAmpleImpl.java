@@ -257,7 +257,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       return scanner.stream().<GcCandidate>mapMulti((entry, consumer) -> {
         try {
           var candidate =
-              new GcCandidate(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
+              GcCandidate.forType(DeletesSection.decodeRow(entry.getKey().getRow().toString()),
                   entry.getKey().getTimestamp(),
                   DeletesSection.decodeType(entry.getValue().toString()));
           consumer.accept(candidate);

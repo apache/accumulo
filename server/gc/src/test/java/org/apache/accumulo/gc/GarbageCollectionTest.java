@@ -72,8 +72,8 @@ public class GarbageCollectionTest {
     }
 
     public GcCandidate addCandidate(String s) {
-      var candidate = new GcCandidate(s, timestamp,
-          s.endsWith(".rf") ? GcCandidate.Type.TABLET_FILE : GcCandidate.Type.TABLET_DIR);
+      var candidate = s.endsWith(".rf") ? GcCandidate.forTabletFile(s, timestamp)
+          : GcCandidate.forTabletDir(s, timestamp);
       this.candidates.add(candidate);
       this.timestamp = timestamp + 1;
       return candidate;
@@ -495,20 +495,16 @@ public class GarbageCollectionTest {
     // absolute
     gca.collect(gce);
     assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/4/B-0"),
-        new GcCandidate("hdfs://foo.com:6000/accumulo/tables/4/B-0/F002.rf", 0L,
-            GcCandidate.Type.TABLET_FILE),
-        new GcCandidate("hdfs://foo.com:6000/accumulo/tables/4/B-0/F001.rf", 1L,
-            GcCandidate.Type.TABLET_FILE));
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/B-0/F002.rf", 0L),
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/B-0/F001.rf", 1L));
 
     gce.blips.remove("/5/b-1");
 
     // Same as above, we should lose relative and absolute for a relative or absolute blip
     gca.collect(gce);
     assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/5/b-1"),
-        new GcCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-1/F002.rf", 2L,
-            GcCandidate.Type.TABLET_FILE),
-        new GcCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-1/F001.rf", 3L,
-            GcCandidate.Type.TABLET_FILE));
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/5/b-1/F002.rf", 2L),
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/5/b-1/F001.rf", 3L));
 
     gca.collect(gce);
     assertFileDeleted(gce);
@@ -561,23 +557,23 @@ public class GarbageCollectionTest {
 
     // A directory reference does not preclude a candidate file beneath that directory from deletion
     gca.collect(gce);
-    assertFileDeleted(gce, new GcCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-4/F002.rf", 1L,
-        GcCandidate.Type.TABLET_FILE));
+    assertFileDeleted(gce,
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/t-4/F002.rf", 1L));
 
     // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
     gca.collect(gce);
-    assertFileDeleted(gce, new GcCandidate("/5/t-5", 2L, GcCandidate.Type.TABLET_DIR));
+    assertFileDeleted(gce, GcCandidate.forTabletDir("/5/t-5", 2L));
 
     gce.removeDirReference("4", null);
     gca.collect(gce);
-    assertFileDeleted(gce, new GcCandidate("/4/t-4", 0L, GcCandidate.Type.TABLET_DIR));
+    assertFileDeleted(gce, GcCandidate.forTabletDir("/4/t-4", 0L));
 
     gce.removeDirReference("6", null);
     gce.removeDirReference("7", null);
     gca.collect(gce);
-    assertFileDeleted(gce, new GcCandidate("/6/t-6", 3L, GcCandidate.Type.TABLET_DIR),
-        new GcCandidate("/7/t-7/", 4L, GcCandidate.Type.TABLET_DIR));
+    assertFileDeleted(gce, GcCandidate.forTabletDir("/6/t-6", 3L),
+        GcCandidate.forTabletDir("/7/t-7/", 4L));
 
     gce.removeFileReference("8", "m", "hdfs://foo:6000/accumulo/tables/8/t-8/F00.rf");
     gce.removeFileReference("9", "m", "hdfs://foo:6000/accumulo/tables/9/t-9/F00.rf");
@@ -586,12 +582,10 @@ public class GarbageCollectionTest {
     gce.removeFileReference("e", "m", "hdfs://foo:6000/accumulo/tables/c/t-c/F00.rf");
     gce.removeFileReference("f", "m", "hdfs://foo:6000/accumulo/tables/d/t-d/F00.rf");
     gca.collect(gce);
-    assertFileDeleted(gce, new GcCandidate("/8/t-8", 5L, GcCandidate.Type.TABLET_DIR),
-        new GcCandidate("/9/t-9", 6L, GcCandidate.Type.TABLET_DIR),
-        new GcCandidate("/a/t-a", 7L, GcCandidate.Type.TABLET_DIR),
-        new GcCandidate("/b/t-b", 8L, GcCandidate.Type.TABLET_DIR),
-        new GcCandidate("/c/t-c", 9L, GcCandidate.Type.TABLET_DIR),
-        new GcCandidate("/d/t-d", 10L, GcCandidate.Type.TABLET_DIR));
+    assertFileDeleted(gce, GcCandidate.forTabletDir("/8/t-8", 5L),
+        GcCandidate.forTabletDir("/9/t-9", 6L), GcCandidate.forTabletDir("/a/t-a", 7L),
+        GcCandidate.forTabletDir("/b/t-b", 8L), GcCandidate.forTabletDir("/c/t-c", 9L),
+        GcCandidate.forTabletDir("/d/t-d", 10L));
 
     gca.collect(gce);
     assertFileDeleted(gce);
@@ -970,7 +964,7 @@ public class GarbageCollectionTest {
     assertEquals(0, gce.candidates.size());
 
     // Add deletion candidate for a directory.
-    var candidate = new GcCandidate("6/t-0/", 10L, GcCandidate.Type.TABLET_DIR);
+    var candidate = GcCandidate.forTabletDir("6/t-0/", 10L);
     gce.candidates.add(candidate);
 
     // Then create an InUse candidate for a file in that directory.
