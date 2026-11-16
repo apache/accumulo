@@ -62,6 +62,7 @@ public class SystemConfigurationTest {
   private PropStore propStore;
 
   private SystemConfiguration sysConfig;
+  private ConfigurationCopy defaultConfig;
 
   @BeforeEach
   public void initMocks() {
@@ -86,7 +87,7 @@ public class SystemConfigurationTest {
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     replay(propStore);
 
-    ConfigurationCopy defaultConfig =
+    defaultConfig =
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
@@ -181,8 +182,7 @@ public class SystemConfigurationTest {
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
 
-    SystemConfiguration testSysConfig =
-        new SystemConfiguration(context, sysPropKey, sysConfig.getParent());
+    SystemConfiguration testSysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
     ResourceGroupConfiguration rgConfig =
         new ResourceGroupConfiguration(context, testRGPropKey, testSysConfig);
 
