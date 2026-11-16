@@ -35,18 +35,17 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
  * The following schema is supported for configuration options.
  *
  * <p>
- * {@code table.compaction.dispatcher.opts.service[.user[.<user type>]|selector|system|chop]=
+ * {@code table.compaction.dispatcher.opts.service[.user[.<user type>]|system]=
  * <service>}
  *
  * <p>
  * The following configuration will make a table use compaction service cs9 for user compactions,
- * service cs4 for chop compactions, and service cs7 for everything else.
+ * and service cs4 for system compactions.
  *
  * <p>
  * {@code
- *   table.compaction.dispatcher.opts.service=cs7
  *   table.compaction.dispatcher.opts.service.user=cs9
- *   table.compaction.dispatcher.opts.service.chop=cs4
+ *   table.compaction.dispatcher.opts.service.system=cs4
  * }
  *
  * <p>
