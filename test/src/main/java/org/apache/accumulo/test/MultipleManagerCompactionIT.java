@@ -114,7 +114,7 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
         getCluster().getClusterControl().killProcess(ServerType.MANAGER, proc);
       }
 
-      // wait for two coordinator locations to show up in zookeeper
+      // wait for one coordinator location to show up in zookeeper
       Wait.waitFor(
           () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 1,
           120_000);
