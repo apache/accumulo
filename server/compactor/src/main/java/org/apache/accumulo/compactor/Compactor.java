@@ -623,7 +623,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         // each coordinator will only have connections for #compactors/#coordinators. If compactors
         // randomly choose a coordinator, then each coordinator would have a lot more connections.
         // Hashing also sends the same compactor to the same coordinator, which is good because the
-        // coordinator disallows multiple concurrent reservation request from the same compactor.
+        // coordinator disallows multiple concurrent reservation requests from the same compactor.
         yield hosts.get(hashedClientAddr % hosts.size());
       }
     };
