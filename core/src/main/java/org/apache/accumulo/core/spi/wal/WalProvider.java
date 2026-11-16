@@ -167,12 +167,15 @@ public interface WalProvider {
     long getLength() throws IOException;
 
     /**
-     * Returns whether or not the writer is healthy
+     * Returns whether or not the writer is healthy. This method is called by the server process
+     * when a slow sync is detected.
      */
     boolean isHealthy() throws IOException;
 
     /**
-     * Returns a String containing implementation relevant information
+     * Returns a String containing implementation relevant information about its state that might be
+     * useful to the user. This method is called with {@code isHealthy()} returns `false` and the
+     * method result is printed to the log.
      */
     String getDiagnostics() throws IOException;
 
