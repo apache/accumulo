@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -80,7 +81,10 @@ public class VolumeUtil {
   }
 
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
-    Path switchedPath = switchVolume(le.getPath(), FileType.WAL, replacements);
+    if (!le.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
+      return null;
+    }
+    Path switchedPath = switchVolume(new Path(le.getReference()), FileType.WAL, replacements);
     return switchedPath == null ? null : LogEntry.withSwitchedVolume(le, switchedPath);
   }
 
@@ -130,13 +134,16 @@ public class VolumeUtil {
 
     log.trace("Using volume replacements: {}", replacements);
     for (LogEntry logEntry : tm.getLogs()) {
+      if (!logEntry.getProviderId().equals(DfsWalProvider.PROVIDER_ID)) {
+        continue;
+      }
       log.trace("Evaluating walog {} for replacement.", logEntry);
       LogEntry switchedLogEntry = switchVolume(logEntry, replacements);
       if (switchedLogEntry != null) {
         logsToRemove.accept(logEntry);
         logsToAdd.accept(switchedLogEntry);
-        log.trace("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getPath(),
-            switchedLogEntry.getPath());
+        log.trace("Replacing volume {} : {} -> {}", tm.getExtent(), logEntry.getReference(),
+            switchedLogEntry.getReference());
       }
     }
 

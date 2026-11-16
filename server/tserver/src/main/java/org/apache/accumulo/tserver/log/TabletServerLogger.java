@@ -278,7 +278,8 @@ public class TabletServerLogger {
 
         try {
           alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
-              tserver.getAdvertiseAddress());
+              tserver.getAdvertiseAddress(),
+              tserver.getContext().getWalProviderRegistry().getCurrent());
         } catch (IOException | RuntimeException e) {
           log.error("Failed to open WAL", e);
           try {
@@ -513,7 +514,8 @@ public class TabletServerLogger {
     for (var logEntry : walogs) {
       var sortedLog = sortedLogCache.get(logEntry, le1 -> {
         try {
-          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager(),
+              tserver.getContext().getRecoveryDirs());
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

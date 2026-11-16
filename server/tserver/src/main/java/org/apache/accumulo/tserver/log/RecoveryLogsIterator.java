@@ -101,13 +101,13 @@ public class RecoveryLogsIterator
         Iterator<Entry<Key,Value>> scanIter = new IteratorAdapter(fileIter);
 
         if (scanIter.hasNext()) {
-          LOG.debug("Write ahead log {} has data in range {} {}", log.getPath().getName(), start,
-              end);
+          LOG.debug("Write ahead log {} has data in range {} {}", logDir.getOrigin().getReference(),
+              start, end);
           iterators.add(scanIter);
           fileIters.add(fileIter);
         } else {
-          LOG.debug("Write ahead log {} has no data in range {} {}", log.getPath().getName(), start,
-              end);
+          LOG.debug("Write ahead log {} has no data in range {} {}",
+              logDir.getOrigin().getReference(), start, end);
           fileIter.close();
         }
       }

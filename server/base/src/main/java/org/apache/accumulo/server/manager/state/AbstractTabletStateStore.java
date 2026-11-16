@@ -36,7 +36,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,13 +113,13 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
 
   @Override
   public void unassign(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers) throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, null);
   }
 
   @Override
   public void suspend(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     unassign(tablets, logsForDeadServers, suspensionTimestamp);
   }
@@ -129,7 +128,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       TabletMetadata tm, SteadyTime suspensionTimestamp);
 
   private void unassign(Collection<TabletMetadata> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
+      Map<TServerInstance,List<LogEntry>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     try (var tabletsMutator = ample.conditionallyMutateTablets()) {
       for (TabletMetadata tm : tablets) {
@@ -145,11 +144,10 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
           updateLastLocation(tabletMutator, tm.getLocation().getServerInstance(), tm.getLast());
           tabletMutator.deleteLocation(tm.getLocation());
           if (logsForDeadServers != null) {
-            List<Path> logs = logsForDeadServers.get(tm.getLocation().getServerInstance());
+            List<LogEntry> logs = logsForDeadServers.get(tm.getLocation().getServerInstance());
             if (logs != null) {
-              for (Path log : logs) {
-                LogEntry entry = LogEntry.fromPath(log.toString());
-                tabletMutator.putWal(entry);
+              for (LogEntry log : logs) {
+                tabletMutator.putWal(log);
               }
             }
           }

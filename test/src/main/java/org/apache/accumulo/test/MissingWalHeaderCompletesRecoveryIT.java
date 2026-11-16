@@ -39,6 +39,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.hadoop.conf.Configuration;
@@ -113,9 +114,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
-      LogEntry logEntry =
-          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
-              HostAndPort.fromParts("127.0.0.1", 12345));
+      LogEntry logEntry = LogEntry.forServer(DfsWalProvider.PROVIDER_ID,
+          cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
+          HostAndPort.fromParts("127.0.0.1", 12345));
 
       log.info("Created empty WAL at {}", logEntry.getPath().toUri());
 
@@ -163,9 +164,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
-      LogEntry logEntry =
-          LogEntry.forServer(cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
-              HostAndPort.fromParts("127.0.0.1", 12345));
+      LogEntry logEntry = LogEntry.forServer(DfsWalProvider.PROVIDER_ID,
+          cluster.getConfig().getAccumuloDir().toPath().toUri().toString(),
+          HostAndPort.fromParts("127.0.0.1", 12345));
       log.info("Created WAL with malformed header at {}", logEntry.getPath().toUri());
 
       // Write half of the header
