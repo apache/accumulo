@@ -99,7 +99,6 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
     // that will be configured to push all metrics to the sink we started.
     cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_USER_TAGS, "tag1=value1,tag2=value2");
-    cfg.setProperty(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
     cfg.setProperty("general.custom.metrics.opts.logging.step", "10s");
     String clazzList = LoggingMeterRegistryFactory.class.getName() + ","

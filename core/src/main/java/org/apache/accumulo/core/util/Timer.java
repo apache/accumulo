@@ -96,7 +96,7 @@ public final class Timer {
     return (startNanos - otherTimer.startNanos) > 0;
   }
 
-  private static long toNanos(Duration duration) {
+  static long toNanos(Duration duration) {
     try {
       // This can overflow when very large, such as when the
       // duration is created using Long.MAX_VALUE millis

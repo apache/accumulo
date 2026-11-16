@@ -56,7 +56,8 @@ public class GarbageCollectionAlgorithm {
    * Normalizes a candidate, directory, or blip path to a table-relative GC key. Absolute file paths
    * retain their full URI identity in {@link #fileCandidateKey(String)}.
    */
-  private String makeRelative(String path, int expectedLen) {
+  @VisibleForTesting
+  String makeRelative(String path, int expectedLen) {
     String relative = tryMakeRelative(path, expectedLen);
     if (relative == null) {
       throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);

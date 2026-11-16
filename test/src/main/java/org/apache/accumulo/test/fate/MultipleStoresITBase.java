@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -283,8 +282,8 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
         assertTrue(Collections.disjoint(testEnv1.executedOps, testEnv2.executedOps));
         assertEquals(allIds, Sets.union(testEnv1.executedOps, testEnv2.executedOps));
       } finally {
-        fate1.shutdown(1, TimeUnit.MINUTES);
-        fate2.shutdown(1, TimeUnit.MINUTES);
+        fate1.shutdown(Duration.ofMinutes(1));
+        fate2.shutdown(Duration.ofMinutes(1));
       }
     }
   }
@@ -387,10 +386,10 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
         testEnv1.workersLatch.countDown();
         testEnv2.workersLatch.countDown();
         if (fate1 != null) {
-          fate1.shutdown(1, TimeUnit.MINUTES);
+          fate1.shutdown(Duration.ofMinutes(1));
         }
         if (fate2 != null) {
-          fate2.shutdown(1, TimeUnit.MINUTES);
+          fate2.shutdown(Duration.ofMinutes(1));
         }
       }
     }

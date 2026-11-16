@@ -60,7 +60,6 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
-    cfg.setProperty(Property.MANAGER_TABLE_DELETE_OPTIMIZATION, "true");
     super.configure(cfg, hadoopCoreSite);
   }
 
@@ -91,7 +90,7 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void optimizedTableDeleteGcExternalFileAfterLastReference() throws Exception {
+  public void deleteGcExternalFileAfterLastReference() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       FileSystem fs = getCluster().getMiniDfs().getFileSystem();
       String[] tables = getUniqueNames(2);
@@ -110,7 +109,7 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
 
       assertTrue(fs.exists(externalFile), "Deleting one table must preserve the shared file");
       assertTrue(hasGcCandidate(externalFile),
-          "Optimized deletion must enqueue an external-file GC candidate");
+          "Table deletion must enqueue an external-file GC candidate");
 
       getCluster().getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
       Wait.waitFor(() -> !hasGcCandidate(externalFile), GC_WAIT.toMillis(), GC_POLL_MS,

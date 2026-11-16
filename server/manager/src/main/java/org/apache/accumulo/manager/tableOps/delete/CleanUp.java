@@ -20,34 +20,16 @@ package org.apache.accumulo.manager.tableOps.delete;
 
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.Map.Entry;
-
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,40 +51,6 @@ class CleanUp extends AbstractFateOperation {
 
   @Override
   public Repo<FateEnv> call(FateId fateId, FateEnv env) {
-    int refCount = 0;
-
-    if (!env.getContext().getConfiguration()
-        .getBoolean(Property.MANAGER_TABLE_DELETE_OPTIMIZATION)) {
-      // Skip scanning the metadata table for each table delete and always allow the GC to handle
-      // file deletion.
-      refCount = -1;
-    } else {
-      // look for other tables that references this table's files
-      try (BatchScanner bs = env.getContext().createBatchScanner(SystemTables.METADATA.tableName(),
-          Authorizations.EMPTY, 8)) {
-        Range allTables = TabletsSection.getRange();
-        Range tableRange = TabletsSection.getRange(tableId);
-        Range beforeTable =
-            new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
-        Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
-        bs.setRanges(Arrays.asList(beforeTable, afterTable));
-        bs.fetchColumnFamily(DataFileColumnFamily.NAME);
-        IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
-        GrepIterator.setTerm(cfg, "/" + tableId + "/");
-        bs.addScanIterator(cfg);
-
-        for (Entry<Key,Value> entry : bs) {
-          if (entry.getKey().getColumnQualifier().toString().contains("/" + tableId + "/")) {
-            refCount = 1;
-            break;
-          }
-        }
-      } catch (Exception e) {
-        refCount = -1;
-        log.error("Failed to scan {} looking for references to deleted table {}",
-            SystemTables.METADATA.tableName(), tableId, e);
-      }
-    }
 
     // remove metadata table entries
     try {
@@ -111,28 +59,9 @@ class CleanUp extends AbstractFateOperation {
       // If the manager lock passed to deleteTable, it is possible that the delete mutations will be
       // dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, env.getContext(), null);
+      MetadataTableUtil.deleteTable(tableId, true, env.getContext(), null);
     } catch (Exception e) {
       log.error("error deleting {} from metadata table", tableId, e);
-    }
-
-    if (refCount == 0) {
-      // delete the data files
-      try {
-        VolumeManager fs = env.getVolumeManager();
-        for (String dir : env.getContext().getTablesDirs()) {
-          fs.deleteRecursively(new Path(dir, tableId.canonical()));
-        }
-      } catch (IOException e) {
-        log.error("Unable to remove deleted table directory", e);
-      } catch (IllegalArgumentException exception) {
-        if (exception.getCause() instanceof UnknownHostException) {
-          /* Thrown if HDFS encounters a DNS problem in some edge cases */
-          log.error("Unable to remove deleted table directory", exception);
-        } else {
-          throw exception;
-        }
-      }
     }
 
     // remove table from zookeeper

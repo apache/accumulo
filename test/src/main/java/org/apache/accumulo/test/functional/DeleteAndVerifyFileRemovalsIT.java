@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.conf.Property.MANAGER_TABLE_DELETE_OPTIMIZATION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -74,49 +73,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
   }
 
   /**
-   * Verify that a table's HDFS directory and all of its RFiles are eventually removed after a
-   * delete operation.
-   */
-  @Test
-  public void testManagerRemovesFilesOnTableDelete() throws Exception {
-    // Stop the GC so gcCandidates persist if created.
-    getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
-
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      final String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName,
-          new NewTableConfiguration().withSplits(new TreeSet<>(List.of(new Text("row000099")))));
-      writeAndFlush(client, tableName, 200);
-
-      final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-
-      final FileSystem fs = getCluster().getFileSystem();
-      final Path tableDir = returnTableHdfsDir(tableId);
-
-      // Verify that no GC deletion markers currently exist
-      assertTrue(countGcCandidates(tableId, 0), "GcCandidates should not exist");
-
-      assertTrue(fs.exists(tableDir),
-          "Table HDFS directory must exist before deleting: " + tableDir);
-      assertTrue(hasRFiles(fs, tableDir, 2), "Two files must exist before deleting: " + tableDir);
-
-      client.tableOperations().delete(tableName);
-
-      // Verify that no GC deletion markers were created
-      assertTrue(countGcCandidates(tableId, 0), "GcCandidates should not exist");
-
-      Wait.waitFor(() -> !fs.exists(tableDir), GC_MAX_WAIT, POLLING_WAIT,
-          "Table HDFS directory must be removed after delete: " + tableDir);
-
-      assertFalse(fs.exists(tableDir),
-          "Table HDFS directory still exists after Manager deleted volumes for " + tableDir);
-    }
-  }
-
-  /**
-   * Verify that when {@link Property#MANAGER_TABLE_DELETE_OPTIMIZATION} is set to {@code false},
-   * the manager skips the metadata table scan and writes gcCandidates. The GC is then responsible
-   * for file deletion.
+   * Verify the manager writes gcCandidates. The GC is then responsible for file deletion.
    */
   @Test
   public void testManagerCreatesGcCandidatesOnTableDelete() throws Exception {
@@ -124,7 +81,6 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      client.instanceOperations().setProperty(MANAGER_TABLE_DELETE_OPTIMIZATION.getKey(), "false");
 
       final String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName,
