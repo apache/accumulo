@@ -336,7 +336,11 @@ public class TabletManagementIterator extends WholeRowIterator {
       } catch (NullPointerException e) {
         LOG.info(
             "Unable to determine if tablet {} should split or compact, maybe table was deleted?",
-            tm.getExtent());
+            tm.getExtent(), e);
+      } catch (CompactionJobGenerator.CompactionConfigurationException e) {
+        // Logging was already done for this so no additional logging is needed here. Return tablet
+        // as needs compacting so the manager will see the same error and log it.
+        reasonsToReturnThisTablet.add(ManagementAction.NEEDS_COMPACTING);
       }
     }
   }

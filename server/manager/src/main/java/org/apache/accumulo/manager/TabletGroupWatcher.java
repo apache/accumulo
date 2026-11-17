@@ -98,6 +98,7 @@ import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.compaction.CompactionJobGenerator.CompactionConfigurationException;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -153,8 +154,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       this.level = level;
     }
 
-    public void incrementTabletGroupWatcherError() {
-      errorsGauge.incrementAndGet();
+    public void setTabletGroupWatcherErrors(long errors) {
+      errorsGauge.set(errors);
     }
 
     public void setTabletGroupWatcherRecovery(long recoveries) {
@@ -573,7 +574,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         LOG.warn(
             "Error on TabletServer trying to get Tablet management information for metadata tablet. Error message: {}",
             mtiError);
-        this.metrics.incrementTabletGroupWatcherError();
         tableMgmtStats.tabletsWithErrors++;
         continue;
       }
@@ -704,7 +704,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final boolean needsSplit = actions.contains(ManagementAction.NEEDS_SPLITTING);
       if (!currentlyUpgrading && needsSplit) {
-        LOG.debug("{} may need splitting.", tm.getExtent());
+        LOG.trace("{} may need splitting.", tm.getExtent());
         manager.getSplitter().initiateSplit(tm.getExtent());
       }
 
@@ -713,10 +713,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // Check if tablet needs splitting, priority should be giving to splits over
         // compactions because it's best to compact after a split
         if (!needsSplit) {
-          var jobs = compactionGenerator.generateJobs(tm,
-              TabletManagementIterator.determineCompactionKinds(actions));
-          LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
-          compactionJobClient.addJobs(tm, jobs);
+          try {
+            var jobs = compactionGenerator.generateJobs(tm,
+                TabletManagementIterator.determineCompactionKinds(actions));
+            LOG.trace("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
+            compactionJobClient.addJobs(tm, jobs);
+          } catch (CompactionJobGenerator.CompactionConfigurationException e) {
+            // Logging was already done, no more logging is needed
+            tableMgmtStats.tabletsWithErrors++;
+          }
         } else {
           LOG.trace("skipping compaction job generation because {} may need splitting.",
               tm.getExtent());
@@ -792,12 +797,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
     }
 
-    this.metrics.setTabletGroupWatcherRecovery(tabletsNeedingRecovery);
-
     flushChanges(tLists);
 
     if (isFullScan) {
       this.filteredServersToShutdown = Set.copyOf(filteredServersToShutdown);
+      this.metrics.setTabletGroupWatcherRecovery(tabletsNeedingRecovery);
+      this.metrics.setTabletGroupWatcherErrors(tableMgmtStats.tabletsWithErrors);
     }
 
     return tableMgmtStats;
