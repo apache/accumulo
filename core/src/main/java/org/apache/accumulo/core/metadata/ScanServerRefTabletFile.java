@@ -18,12 +18,15 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -35,21 +38,23 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
   private final Text uuid;
 
   public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
-    super(new Path(URI.create(file)));
-    this.serverAddress = new Text(serverAddress);
-    uuid = new Text(serverLockUUID.toString());
+    this(new Path(URI.create(file)), new Text(serverAddress),
+        new Text(requireNonNull(serverLockUUID).toString()));
   }
 
   public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
-    super(new Path(URI.create(file)));
-    this.serverAddress = new Text(serverAddress);
-    this.uuid = new Text(serverLockUUID.toString());
+    this(new Path(URI.create(file)), new Text(serverAddress),
+        new Text(requireNonNull(serverLockUUID).toString()));
   }
 
   public ScanServerRefTabletFile(Key k) {
-    super(new Path(URI.create(k.getColumnQualifier().toString())));
-    serverAddress = k.getColumnFamily();
-    uuid = k.getRow();
+    this(new Path(URI.create(k.getColumnQualifier().toString())), k.getColumnFamily(), k.getRow());
+  }
+
+  private ScanServerRefTabletFile(Path path, Text serverAddress, Text uuid) {
+    super(path, new Range(), !ReferencedTabletFile.isVolumePath(path));
+    this.serverAddress = serverAddress;
+    this.uuid = uuid;
   }
 
   public Mutation putMutation() {

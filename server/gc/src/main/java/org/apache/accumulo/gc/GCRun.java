@@ -57,6 +57,7 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -308,10 +309,17 @@ public class GCRun implements GarbageCollectionEnvironment {
                 + (delete.getPath().startsWith("/") ? "" : "/") + delete.getPath();
             paths = () -> fs.getVolumes().stream().map(vol -> vol.prefixChild(relPath)).iterator();
           } else {
+            Path deletePath = new Path(delete.getDecodedPath());
             Path fullPath;
-            Path switchedDelete = VolumeUtil.switchVolume(new Path(delete.getPath()),
-                VolumeManager.FileType.TABLE, replacements);
-            if (switchedDelete != null) {
+            Path switchedDelete = delete.isExternal() ? null
+                : VolumeUtil.switchVolume(deletePath, VolumeManager.FileType.TABLE, replacements);
+            if (delete.isExternal()) {
+              if (delete.getType() != GcCandidate.Type.TABLET_FILE) {
+                throw new IllegalStateException(
+                    "External GC candidate is not a tablet file: " + delete);
+              }
+              fullPath = ValidationUtil.validate(deletePath);
+            } else if (switchedDelete != null) {
               // actually replacing the volumes in the metadata table would be tricky because the
               // entries would be different rows. So it could not be
               // atomically in one mutation and extreme care would need to be taken that delete
@@ -323,7 +331,7 @@ public class GCRun implements GarbageCollectionEnvironment {
               log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
               fullPath = ValidationUtil.validate(switchedDelete);
             } else {
-              fullPath = new Path(ValidationUtil.validate(delete.getPath()));
+              fullPath = ValidationUtil.validate(deletePath);
             }
             paths = () -> Iterators.singletonIterator(fullPath);
           }
@@ -346,10 +354,19 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors.increment();
-              String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
-              if (parts.length > 2) {
-                TableId tableId = TableId.of(parts[1]);
-                String tabletDir = parts[2];
+              if (!delete.isExternal() && (ReferencedTabletFile.isVolumePath(pathToDel)
+                  || ReferencedTabletFile.isTabletDirPath(pathToDel))) {
+                // Internal tablet paths can be mapped back to their owner for useful diagnostics.
+                TableId tableId;
+                String tabletDir;
+                if (ReferencedTabletFile.isTabletDirPath(pathToDel)) {
+                  tableId = TableId.of(pathToDel.getParent().getName());
+                  tabletDir = pathToDel.getName();
+                } else {
+                  var parts = ReferencedTabletFile.parsePath(pathToDel);
+                  tableId = parts.getTableId();
+                  tabletDir = parts.getTabletDir();
+                }
                 TableState tableState = context.getTableManager().getTableState(tableId);
                 if (tableState != TableState.UNKNOWN && tableState != TableState.DELETING) {
                   // clone directories don't always exist
@@ -358,8 +375,7 @@ public class GCRun implements GarbageCollectionEnvironment {
                   }
                 }
               } else {
-                log.warn("{} Delete failed due to invalid file path format: {}", fileActionPrefix,
-                    delete.getPath());
+                log.debug("{} File does not exist: {}", fileActionPrefix, pathToDel);
               }
             }
           }

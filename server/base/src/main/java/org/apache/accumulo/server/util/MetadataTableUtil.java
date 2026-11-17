@@ -110,37 +110,39 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      // Insert tmp delete markers before deleting data from metadata... this makes the code
-      // idempotent. TmpDeletes avoids race conditions with GC deleting in use candidates. The
-      // actual deletes markers must be inserted after the tables metadata is deleted. If the actual
-      // delete markers are inserted before deleting the tablet metadata, then the GC may see them
-      // as in use and delete them. Buffering delete markers in memory may not fit and would not be
-      // idempotent, so write them to a temp area.
+      // Stage delete candidates before deleting data from metadata. TmpDeletes avoids GC races
+      // while the tablet references are still present. External files must always have file
+      // candidates because deleting the table directory cannot remove them, even when table
+      // deletion optimization skips the usual GC candidates.
+      ms.fetchColumnFamily(DataFileColumnFamily.NAME);
       if (insertDeletes) {
-
-        ms.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
+      }
 
-        for (Entry<Key,Value> cell : ms) {
-          Key key = cell.getKey();
+      for (Entry<Key,Value> cell : ms) {
+        Key key = cell.getKey();
 
-          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+        if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+          StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
+          if (insertDeletes || stf.isExternal()) {
             bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTabletFile(stf)));
-          }
-
-          if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            bw.addMutation(TmpDeletesSection.insert(tableId,
-                GcCandidate.forTabletDir(tableId, cell.getValue().toString())));
           }
         }
 
-        bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTableDir(tableId)));
+        if (insertDeletes && ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
+          bw.addMutation(TmpDeletesSection.insert(tableId,
+              GcCandidate.forTabletDir(tableId, cell.getValue().toString())));
+        }
 
-        bw.flush();
-
-        ms.clearColumns();
       }
+
+      if (insertDeletes) {
+        bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTableDir(tableId)));
+      }
+
+      bw.flush();
+
+      ms.clearColumns();
 
       for (Entry<Key,Value> cell : ms) {
         Key key = cell.getKey();

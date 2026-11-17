@@ -18,9 +18,13 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.data.Range;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
 public class StoredTabletFileTest {
@@ -36,5 +40,48 @@ public class StoredTabletFileTest {
     assertTrue(StoredTabletFile.fileNeedsConversion(s21));
     assertFalse(StoredTabletFile.fileNeedsConversion(s31));
     assertFalse(StoredTabletFile.fileNeedsConversion(s31_untrimmed));
+  }
+
+  @Test
+  public void externalFileRoundTrip() {
+    Path path = new Path("hdfs://external-nn/imports/F0001.rf");
+    StoredTabletFile stored = StoredTabletFile.ofExternal(path);
+
+    assertTrue(stored.isExternal());
+    assertTrue(stored.getTabletFile() instanceof ExternalTabletFile);
+    assertEquals(path, stored.getPath());
+    assertTrue(stored.getMetadata().contains("\"type\":\"EXTERNAL\""));
+
+    StoredTabletFile roundTripped = StoredTabletFile.of(stored.getMetadata());
+    assertTrue(roundTripped.isExternal());
+    assertEquals(stored.getMetadata(), roundTripped.getMetadata());
+    assertEquals(stored.getPath(), roundTripped.getPath());
+    assertEquals(stored.getRange(), roundTripped.getRange());
+    assertThrows(IllegalStateException.class, roundTripped::getTableId);
+  }
+
+  @Test
+  public void insertingExternalFilePreservesMarker() {
+    ExternalTabletFile external =
+        ExternalTabletFile.of(new Path("file:///external/files/F0002.rf"));
+
+    StoredTabletFile stored = external.insert();
+
+    assertTrue(stored.isExternal());
+    assertTrue(StoredTabletFile.of(stored.getMetadata()).isExternal());
+  }
+
+  @Test
+  public void changingRangePreservesExternalMarker() {
+    Path path = new Path("hdfs://external-nn/imports/F0003.rf");
+    StoredTabletFile external = StoredTabletFile.ofExternal(path);
+    Range range = new Range("m", false, "z", true);
+
+    StoredTabletFile ranged = external.withRange(range);
+
+    assertTrue(ranged.isExternal());
+    assertEquals(path, ranged.getPath());
+    assertEquals(range, ranged.getRange());
+    assertTrue(StoredTabletFile.of(ranged.getMetadata()).isExternal());
   }
 }

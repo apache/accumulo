@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.RowRangeUtil.requireKeyExtentDataRange;
 
 import java.io.ByteArrayOutputStream;
@@ -76,10 +77,12 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   private StoredTabletFile(String metadataEntry, TabletFileCq fileCq) {
-    super(Objects.requireNonNull(fileCq).path, fileCq.range);
-    this.metadataEntry = Objects.requireNonNull(metadataEntry);
+    super(requireNonNull(fileCq).path, fileCq.range);
+    this.metadataEntry = requireNonNull(metadataEntry);
     this.metadataEntryPath = fileCq.path.toString();
-    this.referencedTabletFile = ReferencedTabletFile.of(getPath(), fileCq.range);
+    this.referencedTabletFile =
+        fileCq.type == TabletFileType.EXTERNAL ? ExternalTabletFile.of(getPath(), fileCq.range)
+            : ReferencedTabletFile.of(getPath(), fileCq.range);
   }
 
   /**
@@ -111,6 +114,10 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
 
   public TableId getTableId() {
     return referencedTabletFile.getTableId();
+  }
+
+  public boolean isExternal() {
+    return referencedTabletFile.isExternal();
   }
 
   @Override
@@ -154,7 +161,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static StoredTabletFile of(final Text metadataEntry) {
-    return new StoredTabletFile(Objects.requireNonNull(metadataEntry).toString());
+    return new StoredTabletFile(requireNonNull(metadataEntry).toString());
   }
 
   public static StoredTabletFile of(final String metadataEntry) {
@@ -162,11 +169,33 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static StoredTabletFile of(final URI path, Range range) {
-    return of(new Path(Objects.requireNonNull(path)), range);
+    return of(new Path(requireNonNull(path)), range);
   }
 
   public static StoredTabletFile of(final Path path, Range range) {
-    return new StoredTabletFile(new TabletFileCq(Objects.requireNonNull(path), range));
+    return new StoredTabletFile(new TabletFileCq(requireNonNull(path), range));
+  }
+
+  /**
+   * Create a stored file reference whose path does not use Accumulo's conventional table layout.
+   */
+  public static StoredTabletFile ofExternal(final Path path) {
+    return ofExternal(path, new Range());
+  }
+
+  /**
+   * Create a stored file reference whose path does not use Accumulo's conventional table layout.
+   */
+  public static StoredTabletFile ofExternal(final Path path, Range range) {
+    return new StoredTabletFile(
+        new TabletFileCq(requireNonNull(path), range, TabletFileType.EXTERNAL));
+  }
+
+  /**
+   * Create a new stored reference with the given range, preserving whether this file is external.
+   */
+  public StoredTabletFile withRange(Range range) {
+    return isExternal() ? ofExternal(getPath(), range) : of(getPath(), range);
   }
 
   public static StoredTabletFile of(final URI path) {
@@ -181,14 +210,13 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
 
   private static TabletFileCq deserialize(String json) {
     final TabletFileCqMetadataGson metadata =
-        gson.fromJson(Objects.requireNonNull(json), TabletFileCqMetadataGson.class);
+        gson.fromJson(requireNonNull(json), TabletFileCqMetadataGson.class);
 
     // Check each field and provide better error messages if null as all fields should be set
-    Objects.requireNonNull(metadata.path, "Serialized StoredTabletFile path must not be null");
-    Objects.requireNonNull(metadata.startRow,
+    requireNonNull(metadata.path, "Serialized StoredTabletFile path must not be null");
+    requireNonNull(metadata.startRow,
         "Serialized StoredTabletFile range startRow must not be null");
-    Objects.requireNonNull(metadata.endRow,
-        "Serialized StoredTabletFile range endRow must not be null");
+    requireNonNull(metadata.endRow, "Serialized StoredTabletFile range endRow must not be null");
 
     // Recreate the exact Range that was originally stored in Metadata. Stored ranges are originally
     // constructed with inclusive/exclusive for the start and end key inclusivity settings.
@@ -203,7 +231,8 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     // start row and false for end row regardless of what the startRowInclusive and endRowInclusive
     // flags are set to.
     return new TabletFileCq(new Path(URI.create(metadata.path)),
-        new Range(decodeRow(metadata.startRow), true, decodeRow(metadata.endRow), false));
+        new Range(decodeRow(metadata.startRow), true, decodeRow(metadata.endRow), false),
+        metadata.type == null ? TabletFileType.STANDARD : metadata.type);
   }
 
   public static String serialize(String path) {
@@ -211,17 +240,25 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static String serialize(String path, Range range) {
+    return serialize(path, range, TabletFileType.STANDARD);
+  }
+
+  private static String serialize(String path, Range range, TabletFileType type) {
     requireKeyExtentDataRange(range);
     final TabletFileCqMetadataGson metadata = new TabletFileCqMetadataGson();
-    metadata.path = Objects.requireNonNull(path);
+    metadata.path = requireNonNull(path);
     metadata.startRow = encodeRow(range.getStartKey());
     metadata.endRow = encodeRow(range.getEndKey());
+    if (type != TabletFileType.STANDARD) {
+      metadata.type = type;
+    }
 
     return gson.toJson(metadata);
   }
 
   private static String serialize(TabletFileCq tabletFileCq) {
-    return serialize(Objects.requireNonNull(tabletFileCq).path.toString(), tabletFileCq.range);
+    requireNonNull(tabletFileCq);
+    return serialize(tabletFileCq.path.toString(), tabletFileCq.range, tabletFileCq.type);
   }
 
   /**
@@ -277,16 +314,27 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private static class TabletFileCq {
     public final Path path;
     public final Range range;
+    public final TabletFileType type;
 
     public TabletFileCq(Path path, Range range) {
-      this.path = Objects.requireNonNull(path);
-      this.range = Objects.requireNonNull(range);
+      this(path, range, TabletFileType.STANDARD);
     }
+
+    public TabletFileCq(Path path, Range range, TabletFileType type) {
+      this.path = requireNonNull(path);
+      this.range = requireNonNull(range);
+      this.type = requireNonNull(type);
+    }
+  }
+
+  private enum TabletFileType {
+    STANDARD, EXTERNAL
   }
 
   private static class TabletFileCqMetadataGson {
     private String path;
     private byte[] startRow;
     private byte[] endRow;
+    private TabletFileType type;
   }
 }

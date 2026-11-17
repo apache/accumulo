@@ -77,15 +77,21 @@ public class RootGcCandidates {
   }
 
   public void add(Stream<StoredTabletFile> refs) {
-    refs.forEach(ref -> data.candidates
-        .computeIfAbsent(ref.getPath().getParent().toString(), k -> new TreeSet<>())
-        .add(ref.getFileName()));
+    refs.forEach(ref -> {
+      String fileName = ref.getFileName();
+      if (ref.isExternal()) {
+        fileName = GcCandidate.encodeExternalPath(fileName);
+      }
+      data.candidates.computeIfAbsent(ref.getPath().getParent().toString(), k -> new TreeSet<>())
+          .add(fileName);
+    });
   }
 
   public void remove(Stream<GcCandidate> refs) {
-    refs.map(GcCandidate::getPath).map(Path::new).forEach(path -> {
+    refs.map(GcCandidate::getDecodedPath).map(Path::new).forEach(path -> {
       data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
         values.remove(path.getName());
+        values.remove(GcCandidate.encodeExternalPath(path.getName()));
         return values.isEmpty() ? null : values;
       });
     });
@@ -96,8 +102,15 @@ public class RootGcCandidates {
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
-      return names.stream().map(
-          name -> GcCandidate.forTabletFile(parent + Path.SEPARATOR + name, uidGen.nextLong()));
+      return names.stream().map(name -> {
+        boolean external = GcCandidate.isExternalPath(name);
+        String fileName = GcCandidate.decodeExternalPath(name);
+        String candidatePath = parent + Path.SEPARATOR + fileName;
+        if (external) {
+          candidatePath = GcCandidate.encodeExternalPath(candidatePath);
+        }
+        return GcCandidate.forTabletFile(candidatePath, uidGen.nextLong());
+      });
     }).sorted();
   }
 

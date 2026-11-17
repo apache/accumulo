@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.Constants.HDFS_TABLES_DIR;
 
 import java.net.URI;
@@ -154,6 +155,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   }
 
   private final FileParts parts;
+  private final boolean external;
 
   private static final Logger log = LoggerFactory.getLogger(ReferencedTabletFile.class);
   private static final String HDFS_TABLES_DIR_NAME = HDFS_TABLES_DIR.substring(1);
@@ -171,26 +173,48 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    * qualify an absolute path or create a new file.
    */
   public ReferencedTabletFile(Path metaPath, Range range) {
-    super(Objects.requireNonNull(metaPath), range);
-    log.trace("Parsing TabletFile from {}", metaPath);
-    parts = parsePath(metaPath);
+    this(metaPath, range, false);
+  }
+
+  protected ReferencedTabletFile(Path metaPath, Range range, boolean external) {
+    super(requireNonNull(metaPath), range);
+    this.external = external;
+    if (external) {
+      Preconditions.checkArgument(metaPath.toUri().getScheme() != null,
+          constructErrorMsg(metaPath));
+      ValidationUtil.validateFileName(metaPath.getName());
+      Preconditions.checkArgument(!isVolumePath(metaPath),
+          "External tablet file path must not use the Accumulo table layout: %s", metaPath);
+      parts = null;
+    } else {
+      log.trace("Parsing TabletFile from {}", metaPath);
+      parts = parsePath(metaPath);
+    }
   }
 
   public String getVolume() {
+    Preconditions.checkState(!external, "External tablet files do not have an Accumulo volume");
     return parts.getVolume();
   }
 
   public TableId getTableId() {
+    Preconditions.checkState(!external,
+        "External tablet files do not have a path-derived table ID");
     return parts.getTableId();
   }
 
   public String getTabletDir() {
+    Preconditions.checkState(!external, "External tablet files do not have a tablet directory");
     return parts.getTabletDir();
   }
 
   @Override
   public String getFileName() {
-    return parts.getFileName();
+    return external ? path.getName() : parts.getFileName();
+  }
+
+  public boolean isExternal() {
+    return external;
   }
 
   /**
@@ -198,14 +222,15 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
    * metadata.
    */
   public String getNormalizedPathStr() {
-    return parts.getNormalizedPath();
+    return external ? path.toString() : parts.getNormalizedPath();
   }
 
   /**
    * New file was written to metadata so return a StoredTabletFile
    */
   public StoredTabletFile insert() {
-    return StoredTabletFile.of(getPath(), getRange());
+    return external ? StoredTabletFile.ofExternal(getPath(), getRange())
+        : StoredTabletFile.of(getPath(), getRange());
   }
 
   @Override
@@ -216,7 +241,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof ReferencedTabletFile that) {
-      return parts.getNormalizedPath().equals(that.parts.getNormalizedPath())
+      return getNormalizedPathStr().equals(that.getNormalizedPathStr()) && external == that.external
           && range.equals(that.range);
     }
     return false;
@@ -224,12 +249,48 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
 
   @Override
   public int hashCode() {
-    return Objects.hash(parts.getNormalizedPath(), range);
+    return Objects.hash(getNormalizedPathStr(), external, range);
   }
 
   @Override
   public String toString() {
-    return parts.getNormalizedPath();
+    return getNormalizedPathStr();
+  }
+
+  /**
+   * Determines whether a path uses Accumulo's conventional
+   * {@code tables/<tableId>/<tabletDir>/<fileName>} layout.
+   */
+  public static boolean isVolumePath(Path path) {
+    try {
+      parsePath(path);
+      return true;
+    } catch (RuntimeException e) {
+      return false;
+    }
+  }
+
+  /**
+   * Determines whether a path is a conventional Accumulo tablet directory.
+   */
+  public static boolean isTabletDirPath(Path path) {
+    if (path == null || path.toUri().getScheme() == null) {
+      return false;
+    }
+    Path tableIdPath = path.getParent();
+    if (tableIdPath == null) {
+      return false;
+    }
+    Path tablesPath = tableIdPath.getParent();
+    if (tablesPath == null || !HDFS_TABLES_DIR_NAME.equals(tablesPath.getName())) {
+      return false;
+    }
+    try {
+      TableId.of(tableIdPath.getName());
+      return true;
+    } catch (RuntimeException e) {
+      return false;
+    }
   }
 
   public static ReferencedTabletFile of(final Path path) {

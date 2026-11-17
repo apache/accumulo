@@ -26,6 +26,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 
 public class GcCandidate implements Comparable<GcCandidate> {
+  private static final String EXTERNAL_CANDIDATE_PREFIX = "@external@";
+
   private final Long uid;
   private final String path;
   private final Type type;
@@ -51,11 +53,27 @@ public class GcCandidate implements Comparable<GcCandidate> {
   }
 
   public static GcCandidate forTabletFile(StoredTabletFile file) {
-    return new GcCandidate(file.getMetadataPath(), Type.TABLET_FILE);
+    String path = file.getMetadataPath();
+    if (file.isExternal()) {
+      path = encodeExternalPath(path);
+    }
+    return new GcCandidate(path, Type.TABLET_FILE);
   }
 
   public static GcCandidate forTabletFile(String path, long uid) {
     return new GcCandidate(path, uid, Type.TABLET_FILE);
+  }
+
+  public static String encodeExternalPath(String path) {
+    return EXTERNAL_CANDIDATE_PREFIX + path;
+  }
+
+  public static boolean isExternalPath(String path) {
+    return path.startsWith(EXTERNAL_CANDIDATE_PREFIX);
+  }
+
+  public static String decodeExternalPath(String path) {
+    return isExternalPath(path) ? path.substring(EXTERNAL_CANDIDATE_PREFIX.length()) : path;
   }
 
   public static GcCandidate forTabletDir(TableId tableId, String dir) {
@@ -80,6 +98,14 @@ public class GcCandidate implements Comparable<GcCandidate> {
 
   public String getPath() {
     return path;
+  }
+
+  public String getDecodedPath() {
+    return decodeExternalPath(path);
+  }
+
+  public boolean isExternal() {
+    return isExternalPath(path);
   }
 
   public long getUid() {

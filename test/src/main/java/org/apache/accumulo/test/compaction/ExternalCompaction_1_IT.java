@@ -98,13 +98,17 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ExternalTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
@@ -118,7 +122,9 @@ import org.apache.accumulo.test.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -524,6 +530,99 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     }
 
+  }
+
+  @Test
+  public void testExternalCompactionWithMissingExternalInput() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+      createTable(client, tableName, "cs1");
+      writeData(client, tableName);
+
+      TableId tableId = getCluster().getServerContext().getTableId(tableName);
+      TabletMetadata tablet;
+      try (TabletsMetadata tablets = getCluster().getServerContext().getAmple().readTablets()
+          .forTable(tableId).fetch(ColumnType.FILES).build()) {
+        tablet = tablets.iterator().next();
+      }
+
+      var fileEntry = tablet.getFilesMap().entrySet().iterator().next();
+      StoredTabletFile original = fileEntry.getKey();
+      DataFileValue fileValue = fileEntry.getValue();
+      FileSystem fs = getCluster().getFileSystem();
+      Path externalDir = new Path(new Path(fs.getHomeDirectory(), "external-compaction-inputs"),
+          getUniqueNames(1)[0]);
+      assertTrue(fs.mkdirs(externalDir) || fs.exists(externalDir));
+      Path externalPath = new Path(externalDir, "input.rf");
+      IOUtils.copyBytes(fs.open(original.getPath()), fs.create(externalPath),
+          getCluster().getServerContext().getHadoopConf(), true);
+
+      ExternalTabletFile externalFile = ExternalTabletFile.of(externalPath, original.getRange());
+      StoredTabletFile storedExternal = externalFile.insert();
+      getCluster().getServerContext().getAmple().mutateTablet(tablet.getExtent())
+          .deleteFile(original).putFile(externalFile, fileValue).mutate();
+
+      // The external file disappears after the tablet metadata has recorded the reference.
+      assertTrue(fs.delete(externalPath, false));
+
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR, null, 1,
+          ExternalDoNothingCompactor.class);
+      boolean compactionSubmitted = false;
+      try {
+        compact(client, tableName, 2, GROUP1, false);
+        compactionSubmitted = true;
+        Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
+            .waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tableId);
+        assertFalse(ecids.isEmpty());
+
+        boolean externalInputFound = false;
+        try (TabletsMetadata tablets = getCluster().getServerContext().getAmple().readTablets()
+            .forTable(tableId).fetch(ColumnType.ECOMP).build()) {
+          for (TabletMetadata currentTablet : tablets) {
+            for (CompactionMetadata metadata : currentTablet.getExternalCompactions().values()) {
+              if (metadata.getJobFiles().contains(storedExternal)) {
+                externalInputFound = true;
+              }
+            }
+          }
+        }
+        assertTrue(externalInputFound,
+            "External compaction metadata should retain its missing external input reference");
+
+        assertThrows(RuntimeException.class, () -> {
+          try (Scanner scanner = client.createScanner(tableName)) {
+            scanner.iterator().hasNext();
+          }
+        }, "A scan should fail when the external compaction input is missing");
+
+        client.tableOperations().cancelCompaction(tableName);
+        compactionSubmitted = false;
+        ExternalCompactionTestUtils
+            .confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
+        Wait.waitFor(() -> {
+          try (TabletsMetadata tablets = getCluster().getServerContext().getAmple().readTablets()
+              .forTable(tableId).fetch(ColumnType.ECOMP).build()) {
+            for (TabletMetadata currentTablet : tablets) {
+              if (!currentTablet.getExternalCompactions().isEmpty()) {
+                return false;
+              }
+            }
+            return true;
+          }
+        });
+      } finally {
+        try {
+          if (compactionSubmitted) {
+            client.tableOperations().cancelCompaction(tableName);
+          }
+        } finally {
+          getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+          getCluster().getClusterControl().start(ServerType.COMPACTOR);
+        }
+      }
+    }
   }
 
   @Test

@@ -49,6 +49,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -151,7 +152,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       Preconditions.checkState(
           candidates.stream().allMatch(gcc -> gcc.getType() == GcCandidate.Type.TABLET_FILE));
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
-          .map(candidate -> StoredTabletFile.of(URI.create(candidate.getPath())))));
+          .map(candidate -> candidate.isExternal()
+              ? StoredTabletFile.ofExternal(new Path(candidate.getDecodedPath()))
+              : StoredTabletFile.of(URI.create(candidate.getPath())))));
       return;
     }
 

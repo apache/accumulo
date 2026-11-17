@@ -20,7 +20,6 @@ package org.apache.accumulo.gc;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.util.AbstractCollection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,6 +29,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +43,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   private static final Logger log = LoggerFactory.getLogger(GcCandidates.class);
 
   private final SortedMap<String,GcCandidate> fileCandidates = new TreeMap<>();
+  private final HashMap<String,GcCandidate> externalFileCandidates = new HashMap<>();
   private final HashMap<String,GcCandidate> tabletDirCandidates = new HashMap<>();
   private final HashMap<String,GcCandidate> bulkDirCandidates = new HashMap<>();
   private final HashMap<String,GcCandidate> tableDirCandidates = new HashMap<>();
@@ -56,7 +57,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
 
   private LastThree lastThree(String strPath, boolean expectScheme, int minPathLength,
       int maxPathLength) {
-    URI uri = null;
+    URI uri;
     try {
       uri = new URI(strPath);
     } catch (URISyntaxException e) {
@@ -68,7 +69,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
     }
 
     // TODO what about other parts of the URI?
-    var path = Path.of(uri.getPath());
+    var path = java.nio.file.Path.of(uri.getPath());
 
     int count = path.getNameCount();
     if (count < minPathLength) {
@@ -92,13 +93,21 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
     }
   }
 
+  private static String externalPathKey(String path) {
+    return new Path(path).toUri().normalize().toString();
+  }
+
   public GcCandidates(Iterable<GcCandidate> candidates) {
     candidates.forEach(candidate -> {
       try {
         switch (candidate.getType()) {
           case TABLET_FILE -> {
-            var lastThree = lastThree(candidate.getPath(), 2);
-            fileCandidates.put("/" + lastThree.dir + "/" + lastThree.name, candidate);
+            if (candidate.isExternal()) {
+              externalFileCandidates.put(externalPathKey(candidate.getDecodedPath()), candidate);
+            } else {
+              var lastThree = lastThree(candidate.getPath(), 2);
+              fileCandidates.put("/" + lastThree.dir + "/" + lastThree.name, candidate);
+            }
           }
           case TABLET_DIR -> {
             var lastThree = lastThree(candidate.getPath(), false, 2, 2);
@@ -122,8 +131,8 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   @Override
   public Iterator<GcCandidate> iterator() {
     return Iterators.unmodifiableIterator(Iterators.concat(fileCandidates.values().iterator(),
-        tabletDirCandidates.values().iterator(), bulkDirCandidates.values().iterator(),
-        tableDirCandidates.values().iterator()));
+        externalFileCandidates.values().iterator(), tabletDirCandidates.values().iterator(),
+        bulkDirCandidates.values().iterator(), tableDirCandidates.values().iterator()));
   }
 
   public int removeBlip(String blip) {
@@ -155,7 +164,10 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
       }
     };
 
-    if (reference.isDirectory()) {
+    if (reference.isExternal()) {
+      nonNullConsumer
+          .accept(externalFileCandidates.remove(externalPathKey(reference.getMetadataPath())));
+    } else if (reference.isDirectory()) {
       var lastThree = lastThree(reference.getMetadataPath(), false, 1, 1);
       nonNullConsumer
           .accept(tabletDirCandidates.remove("/" + reference.getTableId() + "/" + lastThree.name));
@@ -174,7 +186,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
 
   @Override
   public int size() {
-    return tabletDirCandidates.size() + fileCandidates.size() + bulkDirCandidates.size()
-        + tableDirCandidates.size();
+    return externalFileCandidates.size() + tabletDirCandidates.size() + fileCandidates.size()
+        + bulkDirCandidates.size() + tableDirCandidates.size();
   }
 }

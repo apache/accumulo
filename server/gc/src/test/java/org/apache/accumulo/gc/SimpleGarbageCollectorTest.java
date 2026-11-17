@@ -43,12 +43,8 @@ import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SimpleGarbageCollectorTest {
-  private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollectorTest.class);
-
   private VolumeManager volMgr;
   private ServerContext context;
   private Credentials credentials;
