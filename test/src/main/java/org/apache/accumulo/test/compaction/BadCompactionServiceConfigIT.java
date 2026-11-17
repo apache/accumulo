@@ -106,6 +106,10 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, clazzList);
     Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
         TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
+    // The bad compaction config will cause a long delay in assigning compaction coordination unless
+    // the following are set to less time.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MIN, "100ms");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MAX, "1s");
     cfg.setSystemProperties(sysProps);
   }
 
@@ -199,8 +203,6 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
         }
       });
 
-      Wait.waitFor(() -> serviceMisconfigured.get() == false);
-
       List<IteratorSetting> iterators =
           Collections.singletonList(new IteratorSetting(100, EverythingFilter.class));
       client.tableOperations().compact(table,
@@ -211,6 +213,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
         assertEquals(0, scanner.stream().count());
       }
 
+      Wait.waitFor(() -> serviceMisconfigured.get() == false);
       fixerFuture.get();
 
       // misconfigure the service, test how going from good config to bad config works. The test
@@ -235,10 +238,11 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           throw new RuntimeException(e);
         }
       });
-      Wait.waitFor(() -> serviceMisconfigured.get() == false);
 
       client.tableOperations().compact(table,
           new CompactionConfig().setIterators(iterators).setWait(true));
+
+      Wait.waitFor(() -> serviceMisconfigured.get() == false);
 
       // Verify compaction ran.
       try (var scanner = client.createScanner(table)) {
@@ -335,9 +339,6 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
         }
       });
 
-      Wait.waitFor(() -> fixerFuture.isDone());
-      fixerFuture.get();
-
       List<IteratorSetting> iterators =
           Collections.singletonList(new IteratorSetting(100, EverythingFilter.class));
       client.tableOperations().compact(table,
@@ -347,6 +348,8 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       try (var scanner = client.createScanner(table)) {
         assertEquals(0, scanner.stream().count());
       }
+
+      fixerFuture.get();
 
     } finally {
       shutdownTailer.set(true);
