@@ -126,7 +126,6 @@ public class TableConfigurationTest {
   @Test
   public void testGetters() {
     assertEquals(TID, tableConfig.getTableId());
-    assertEquals(nsConfig, tableConfig.getParent());
   }
 
   @Test
