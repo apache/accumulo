@@ -45,11 +45,11 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +136,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     try (BatchWriter writer = context.createBatchWriter(getMetaTable(DataLevel.of(tableId)))) {
       for (StoredTabletFile file : candidates) {
-        writer.addMutation(createDeleteMutation(GcCandidate.forTabletFile(file)));
+        writer.addMutation(
+            MetadataSchema.DeletesSection.createDeleteMutation(GcCandidate.forTabletFile(file)));
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -157,7 +158,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
     try (BatchWriter writer = context.createBatchWriter(getMetaTable(DataLevel.of(tableId)))) {
       for (var fileOrDir : candidates) {
-        writer.addMutation(createDeleteMutation(fileOrDir));
+        writer.addMutation(MetadataSchema.DeletesSection.createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -268,13 +269,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     } else {
       throw new IllegalArgumentException();
     }
-  }
-
-  @Override
-  public Mutation createDeleteMutation(GcCandidate candidate) {
-    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(candidate.getPath())));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.encodeType(candidate.getType()));
-    return delFlag;
   }
 
   @Override
