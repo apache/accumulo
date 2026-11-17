@@ -38,6 +38,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ManagerClient;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.CountDownTimer;
@@ -291,8 +292,16 @@ public class FateManager {
       desiredAssignments.put(hp, new HashSet<>());
     });
 
+    var primaryManager = ManagerClient.getPrimaryManagerLocation(context);
+    if (primaryManager == null) {
+      // This code is running in the primary manager, so should find ourselves.
+      throw new IllegalStateException("No primary manager found");
+    }
+    var primaryManagerHP = HostAndPort.fromString(primaryManager);
+
     desiredParititions.forEach((fateType, desiredForType) -> {
-      var assignments = ManagerAssignment.computeAssignments(currentAssignments, desiredForType);
+      var assignments = ManagerAssignment.computeAssignments(primaryManagerHP, currentAssignments,
+          desiredForType);
       assignments.forEach((hp, parts) -> desiredAssignments.get(hp).addAll(parts));
     });
 
