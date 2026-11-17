@@ -131,7 +131,7 @@ $(function () {
 
     var scan = row.data();
     var details = $('<div>');
-    details.append($('<div>').text('Tablet extent: ' + (scan.extent || '—')));
+    details.append($('<div>').text('Tablet extent: ' + (scan.extent || '')));
     addDetailsList(details, 'Requested columns', scan.columns);
     addDetailsList(details, 'Server-side iterators', scan.iterators);
 
