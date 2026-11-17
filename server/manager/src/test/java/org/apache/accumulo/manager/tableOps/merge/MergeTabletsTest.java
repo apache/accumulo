@@ -69,7 +69,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
@@ -91,7 +91,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.hadoop.io.Text;
@@ -508,9 +507,9 @@ public class MergeTabletsTest {
     EasyMock.expectLastCall().anyTimes();
 
     // Setup GC candidate write
-    List<ReferenceFile> dirs = new ArrayList<>();
-    dirs.add(new AllVolumesDirectory(tableId, "td1"));
-    dirs.add(new AllVolumesDirectory(tableId, "td2"));
+    List<GcCandidate> dirs = new ArrayList<>();
+    dirs.add(GcCandidate.forTabletDir(tableId, "td1"));
+    dirs.add(GcCandidate.forTabletDir(tableId, "td2"));
     ample.putGcFileAndDirCandidates(tableId, dirs);
     EasyMock.expectLastCall().once();
 

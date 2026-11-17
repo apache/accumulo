@@ -213,7 +213,7 @@ public interface Ample {
   /**
    * Unlike {@link #putGcCandidates(TableId, Collection)} this takes file and dir GC candidates.
    */
-  default void putGcFileAndDirCandidates(TableId tableId, Collection<ReferenceFile> candidates) {
+  default void putGcFileAndDirCandidates(TableId tableId, Collection<GcCandidate> candidates) {
     throw new UnsupportedOperationException();
   }
 
@@ -235,10 +235,10 @@ public interface Ample {
    * directory for Tablet File. Otherwise, a {@link ReferencedTabletFile} object could be used. The
    * tabletFilePathToRemove is validated and normalized before creating the mutation.
    *
-   * @param tabletFilePathToRemove String full path of the TabletFile
+   * @param candidate String full path of the TabletFile
    * @return Mutation with encoded delete marker
    */
-  default Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
+  default Mutation createDeleteMutation(GcCandidate candidate) {
     throw new UnsupportedOperationException();
   }
 
