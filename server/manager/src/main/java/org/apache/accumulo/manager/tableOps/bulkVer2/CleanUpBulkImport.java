@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
-import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -64,7 +64,7 @@ public class CleanUpBulkImport extends AbstractBulkFateOperation {
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     ample.putGcFileAndDirCandidates(bulkInfo.tableId,
-        Collections.singleton(ReferenceFile.forFile(bulkInfo.tableId, bulkDir)));
+        Collections.singleton(GcCandidate.forBulkDir(bulkInfo.bulkDir)));
 
     Text firstSplit = bulkInfo.firstSplit == null ? null : new Text(bulkInfo.firstSplit);
     Text lastSplit = bulkInfo.lastSplit == null ? null : new Text(bulkInfo.lastSplit);

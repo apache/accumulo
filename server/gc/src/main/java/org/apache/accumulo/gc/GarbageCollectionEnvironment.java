@@ -18,13 +18,11 @@
  */
 package org.apache.accumulo.gc;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -96,10 +94,9 @@ public interface GarbageCollectionEnvironment {
    * Delete the given files from the provided {@link Map} of relative path to absolute path for each
    * file that should be deleted. The candidates should already be confirmed for deletion.
    *
-   * @param candidateMap A Map from relative path to absolute path for files to be deleted.
+   * @param candidates A Map from relative path to absolute path for files to be deleted.
    */
-  void deleteConfirmedCandidates(SortedMap<String,GcCandidate> candidateMap)
-      throws TableNotFoundException;
+  void deleteConfirmedCandidates(Collection<GcCandidate> candidates) throws TableNotFoundException;
 
   /**
    * Delete in-use reference candidates
@@ -107,13 +104,6 @@ public interface GarbageCollectionEnvironment {
    * @param GcCandidates Collection of deletion reference candidates to remove.
    */
   void deleteGcCandidates(Collection<GcCandidate> GcCandidates, GcCandidateType type);
-
-  /**
-   * Delete a table's directory if it is empty.
-   *
-   * @param tableID The id of the table whose directory we are to operate on
-   */
-  void deleteTableDirIfEmpty(TableId tableID) throws IOException;
 
   /**
    * Increment the number of candidates for deletion for the current garbage collection run

@@ -55,7 +55,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -67,6 +67,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TmpDeletesSection;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -75,7 +76,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +110,12 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      // insert deletes before deleting data from metadata... this makes the code fault-tolerant
+      // Insert tmp delete markers before deleting data from metadata... this makes the code
+      // idempotent. TmpDeletes avoids race conditions with GC deleting in use candidates. The
+      // actual deletes markers must be inserted after the tables metadata is deleted. If the actual
+      // delete markers are inserted before deleting the tablet metadata, then the GC may see them
+      // as in use and delete them. Buffering delete markers in memory may not fit and would not be
+      // idempotent, so write them to a temp area.
       if (insertDeletes) {
 
         ms.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -121,14 +126,16 @@ public class MetadataTableUtil {
 
           if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-            bw.addMutation(ample.createDeleteMutation(ReferenceFile.forFile(tableId, stf)));
+            bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTabletFile(stf)));
           }
 
           if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
-            bw.addMutation(ample.createDeleteMutation(uri));
+            bw.addMutation(TmpDeletesSection.insert(tableId,
+                GcCandidate.forTabletDir(tableId, cell.getValue().toString())));
           }
         }
+
+        bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTableDir(tableId)));
 
         bw.flush();
 
@@ -158,6 +165,26 @@ public class MetadataTableUtil {
       if (m != null) {
         bw.addMutation(m);
       }
+
+      // must flush tablet metadata deletes before inserting GC candidates to avoid race conditions
+      // with GC in use candidate deletion.
+      bw.flush();
+
+      ms.setRange(TmpDeletesSection.getRange(tableId));
+      for (Entry<Key,Value> cell : ms) {
+        GcCandidate candidate = TmpDeletesSection.decode(cell);
+        bw.addMutation(ample.createDeleteMutation(candidate));
+      }
+      // flush deletion candidates before deleting tmp candidates to make this code idempotent.
+      bw.flush();
+
+      // cleanup the tmp deletion candidates
+      for (Entry<Key,Value> cell : ms) {
+        GcCandidate candidate = TmpDeletesSection.decode(cell);
+        bw.addMutation(TmpDeletesSection.delete(tableId, candidate));
+      }
+      bw.flush();
+
     }
   }
 
