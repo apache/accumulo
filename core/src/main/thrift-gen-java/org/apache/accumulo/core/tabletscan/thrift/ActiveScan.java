@@ -42,6 +42,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)13);
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanId", org.apache.thrift.protocol.TType.I64, (short)14);
   private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)15);
+  private static final org.apache.thrift.protocol.TField EVENTUAL_FIELD_DESC = new org.apache.thrift.protocol.TField("eventual", org.apache.thrift.protocol.TType.BOOL, (short)16);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveScanStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveScanTupleSchemeFactory();
@@ -60,6 +61,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   private @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
   private long scanId; // optional
   private @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
+  private boolean eventual; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -84,7 +86,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     SSIO((short)12, "ssio"),
     AUTHORIZATIONS((short)13, "authorizations"),
     SCAN_ID((short)14, "scanId"),
-    CLASS_LOADER_CONTEXT((short)15, "classLoaderContext");
+    CLASS_LOADER_CONTEXT((short)15, "classLoaderContext"),
+    EVENTUAL((short)16, "eventual");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -128,6 +131,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
           return SCAN_ID;
         case 15: // CLASS_LOADER_CONTEXT
           return CLASS_LOADER_CONTEXT;
+        case 16: // EVENTUAL
+          return EVENTUAL;
         default:
           return null;
       }
@@ -174,8 +179,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
   private static final int __AGE_ISSET_ID = 0;
   private static final int __IDLETIME_ISSET_ID = 1;
   private static final int __SCANID_ISSET_ID = 2;
+  private static final int __EVENTUAL_ISSET_ID = 3;
   private byte __isset_bitfield = 0;
-  private static final _Fields[] optionals = {_Fields.SCAN_ID};
+  private static final _Fields[] optionals = {_Fields.SCAN_ID,_Fields.EVENTUAL};
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -214,6 +220,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.CLASS_LOADER_CONTEXT, new org.apache.thrift.meta_data.FieldMetaData("classLoaderContext", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.EVENTUAL, new org.apache.thrift.meta_data.FieldMetaData("eventual", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveScan.class, metaDataMap);
   }
@@ -316,6 +324,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     if (other.isSetClassLoaderContext()) {
       this.classLoaderContext = other.classLoaderContext;
     }
+    this.eventual = other.eventual;
   }
 
   @Override
@@ -342,6 +351,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     setScanIdIsSet(false);
     this.scanId = 0;
     this.classLoaderContext = null;
+    setEventualIsSet(false);
+    this.eventual = false;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -763,6 +774,29 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     }
   }
 
+  public boolean isEventual() {
+    return this.eventual;
+  }
+
+  public ActiveScan setEventual(boolean eventual) {
+    this.eventual = eventual;
+    setEventualIsSet(true);
+    return this;
+  }
+
+  public void unsetEventual() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __EVENTUAL_ISSET_ID);
+  }
+
+  /** Returns true if field eventual is set (has been assigned a value) and false otherwise */
+  public boolean isSetEventual() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __EVENTUAL_ISSET_ID);
+  }
+
+  public void setEventualIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __EVENTUAL_ISSET_ID, value);
+  }
+
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -878,6 +912,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       }
       break;
 
+    case EVENTUAL:
+      if (value == null) {
+        unsetEventual();
+      } else {
+        setEventual((java.lang.Boolean)value);
+      }
+      break;
+
     }
   }
 
@@ -927,6 +969,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     case CLASS_LOADER_CONTEXT:
       return getClassLoaderContext();
 
+    case EVENTUAL:
+      return isEventual();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -967,6 +1012,8 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       return isSetScanId();
     case CLASS_LOADER_CONTEXT:
       return isSetClassLoaderContext();
+    case EVENTUAL:
+      return isSetEventual();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -1110,6 +1157,15 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         return false;
     }
 
+    boolean this_present_eventual = true && this.isSetEventual();
+    boolean that_present_eventual = true && that.isSetEventual();
+    if (this_present_eventual || that_present_eventual) {
+      if (!(this_present_eventual && that_present_eventual))
+        return false;
+      if (this.eventual != that.eventual)
+        return false;
+    }
+
     return true;
   }
 
@@ -1168,6 +1224,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
     hashCode = hashCode * 8191 + ((isSetClassLoaderContext()) ? 131071 : 524287);
     if (isSetClassLoaderContext())
       hashCode = hashCode * 8191 + classLoaderContext.hashCode();
+
+    hashCode = hashCode * 8191 + ((isSetEventual()) ? 131071 : 524287);
+    if (isSetEventual())
+      hashCode = hashCode * 8191 + ((eventual) ? 131071 : 524287);
 
     return hashCode;
   }
@@ -1320,6 +1380,16 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.compare(isSetEventual(), other.isSetEventual());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetEventual()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.eventual, other.eventual);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1445,6 +1515,12 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       sb.append(this.classLoaderContext);
     }
     first = false;
+    if (isSetEventual()) {
+      if (!first) sb.append(", ");
+      sb.append("eventual:");
+      sb.append(this.eventual);
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -1666,6 +1742,14 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 16: // EVENTUAL
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.eventual = iprot.readBool();
+                struct.setEventualIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -1788,6 +1872,11 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         oprot.writeString(struct.classLoaderContext);
         oprot.writeFieldEnd();
       }
+      if (struct.isSetEventual()) {
+        oprot.writeFieldBegin(EVENTUAL_FIELD_DESC);
+        oprot.writeBool(struct.eventual);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1849,7 +1938,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetClassLoaderContext()) {
         optionals.set(13);
       }
-      oprot.writeBitSet(optionals, 14);
+      if (struct.isSetEventual()) {
+        optionals.set(14);
+      }
+      oprot.writeBitSet(optionals, 15);
       if (struct.isSetClient()) {
         oprot.writeString(struct.client);
       }
@@ -1924,6 +2016,9 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       if (struct.isSetClassLoaderContext()) {
         oprot.writeString(struct.classLoaderContext);
       }
+      if (struct.isSetEventual()) {
+        oprot.writeBool(struct.eventual);
+      }
     }
 
     @Override
@@ -1931,7 +2026,7 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
       prot.incrementRecursionDepth();
       try {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(14);
+        java.util.BitSet incoming = iprot.readBitSet(15);
         if (incoming.get(0)) {
           struct.client = iprot.readString();
           struct.setClientIsSet(true);
@@ -2039,6 +2134,10 @@ public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveSca
         if (incoming.get(13)) {
           struct.classLoaderContext = iprot.readString();
           struct.setClassLoaderContextIsSet(true);
+        }
+        if (incoming.get(14)) {
+          struct.eventual = iprot.readBool();
+          struct.setEventualIsSet(true);
         }
       } finally {
         prot.decrementRecursionDepth();

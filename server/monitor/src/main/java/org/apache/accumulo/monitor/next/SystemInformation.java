@@ -623,7 +623,8 @@ public class SystemInformation {
 
   public record Scan(String server, String type, String resourceGroup, String tableId,
       long sessionId, String client, String user, String state, String scanType, long age,
-      long idleTime) {
+      long idleTime, String consistency, String extent, List<String> columns,
+      List<String> iterators) {
   }
 
   public record FetchCycleTimes(long durationMs, long finishTime) {
@@ -1185,9 +1186,25 @@ public class SystemInformation {
 
   public void processActiveScans(ServerId server, List<ActiveScan> scans) {
     scans.forEach(s -> {
+      String consistency =
+          !s.isSetEventual() ? "UNKNOWN" : s.isEventual() ? "EVENTUAL" : "IMMEDIATE";
+      String extent = KeyExtent.fromThrift(s.getExtent()).toString();
+      List<String> columns = s.getColumns().stream().map(c -> {
+        var column = new org.apache.accumulo.core.data.Column(c);
+        byte[] family = column.getColumnFamily();
+        byte[] qualifier = column.getColumnQualifier();
+        return new String(family == null ? new byte[0] : family,
+            java.nio.charset.StandardCharsets.UTF_8) + ":"
+            + new String(qualifier == null ? new byte[0] : qualifier,
+                java.nio.charset.StandardCharsets.UTF_8);
+      }).toList();
+      List<String> iterators = s.getSsiList().stream()
+          .map(i -> i.getIterName() + " (" + i.getClassName() + ")").toList();
+
       activeScans.add(new Scan(server.toHostPortString(), server.getType().name(),
           server.getResourceGroup().canonical(), s.getTableId(), s.getScanId(), s.getClient(),
-          s.getUser(), s.getState().name(), s.getType().name(), s.getAge(), s.getIdleTime()));
+          s.getUser(), s.getState().name(), s.getType().name(), s.getAge(), s.getIdleTime(),
+          consistency, extent, columns, iterators));
       instanceOverview.getScansTotalInProgress().incrementAndGet();
     });
   }

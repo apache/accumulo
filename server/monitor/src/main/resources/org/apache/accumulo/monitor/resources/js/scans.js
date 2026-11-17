@@ -102,17 +102,62 @@ $(function () {
         "data": "scanType"
       },
       {
+        "data": "consistency"
+      },
+      {
         "data": "age"
       },
       {
         "data": "idleTime"
+      },
+      {
+        "class": "details-control",
+        "orderable": false,
+        "data": null,
+        "defaultContent": ""
       }
     ]
+  });
+
+ $('#scansList tbody').on('click', 'tr td.details-control', function () {
+    var tr = $(this).closest('tr');
+    var row = scansList.row(tr);
+
+    if (row.child.isShown()) {
+      tr.removeClass('details');
+      row.child.hide();
+      return;
+    }
+
+    var scan = row.data();
+    var details = $('<div>');
+    details.append($('<div>').text('Tablet extent: ' + (scan.extent || '—')));
+    addDetailsList(details, 'Requested columns', scan.columns);
+    addDetailsList(details, 'Server-side iterators', scan.iterators);
+
+    tr.addClass('details');
+    row.child(details).show();
   });
 
   refresh();
 });
 
+
+function addDetailsList(container, label, values) {
+  var section = $('<div>').append($('<strong>').text(label + ': '));
+
+  if (!values || values.length === 0) {
+    section.append(document.createTextNode('None'));
+  } else {
+    var list = $('<ul>');
+    values.forEach(function (value) {
+      list.append($('<li>').text(value));
+    });
+    section.append(list);
+  }
+
+  container.append(section);
+}
 
 /**
  * Used to redraw the page

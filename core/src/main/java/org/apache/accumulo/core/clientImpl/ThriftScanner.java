@@ -147,7 +147,7 @@ public final class ThriftScanner {
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold, null, scanState.batchTimeOut, classLoaderContext,
-            scanState.executionHints, 0L);
+            scanState.executionHints, 0L, false);
         if (waitForWrites) {
           serversWaitedForWrites.get(ttype).add(server);
         }
@@ -892,7 +892,8 @@ public final class ThriftScanner {
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
             scanState.readaheadThreshold,
             SamplerConfigurationImpl.toThrift(scanState.samplerConfig), scanState.batchTimeOut,
-            scanState.classLoaderContext, scanState.executionHints, busyTimeout);
+            scanState.classLoaderContext, scanState.executionHints, busyTimeout,
+            scanState.runOnScanServer);
         if (waitForWrites) {
           serversWaitedForWrites.get(ttype).add(addr.serverAddress);
         }

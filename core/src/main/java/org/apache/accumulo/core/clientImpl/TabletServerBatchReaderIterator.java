@@ -941,7 +941,8 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
             options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-            options.batchTimeout, options.classLoaderContext, execHints, busyTimeout);
+            options.batchTimeout, options.classLoaderContext, execHints, busyTimeout,
+            options.getConsistencyLevel() == ConsistencyLevel.EVENTUAL);
         scanIdToClose = imsr.getScanID();
         if (waitForWrites) {
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
