@@ -265,7 +265,7 @@ public class GarbageCollectionTest {
   public void externalFilesAreMatchedByFullUri() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/a/shared.rf");
+    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/b/shared.rf");
     var referencedCandidate = gce.addCandidate("hdfs://nn2/external/b/shared.rf");
     gce.addFileReference("4", null, referencedCandidate.getPath());
 
@@ -794,8 +794,8 @@ public class GarbageCollectionTest {
 
   @Test
   public void testBadFileRef2() {
-<<<<<<< HEAD
-    assertThrows(IllegalArgumentException.class, () -> badRefTest("../F00.rf"));
+    var e = assertThrows(IllegalArgumentException.class, () -> badRefTest("../F00.rf"));
+    assertTrue(e.getMessage().contains("scheme"));
   }
 
   @Test
@@ -806,10 +806,18 @@ public class GarbageCollectionTest {
   @Test
   public void testExternalFileReferenceCanHaveArbitraryPath() {
     assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
-=======
-    var e = assertThrows(IllegalArgumentException.class, () -> badRefTest("../F00.rf"));
-    assertTrue(e.getMessage().contains("scheme"));
->>>>>>> main
+  }
+
+  @Test
+  public void rootLevelExternalFileIsMatchedByFullUri() throws Exception {
+    TestGCE gce = new TestGCE();
+    var candidate = gce.addCandidate("hdfs://nn/F00.rf");
+    gce.addFileReference("4", null, candidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
   }
 
   @Test
@@ -836,13 +844,18 @@ public class GarbageCollectionTest {
     gce.addCandidate("//");
     gce.addCandidate("///");
     gce.addCandidate("////");
+    gce.addCandidate("/1/2/3/4");
     gce.addCandidate("/a");
+    gce.addCandidate("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf");
     gce.addCandidate("hdfs://foo.com:6000/");
+    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/");
+    gce.addCandidate("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf");
 
     gca.collect(gce);
     System.out.println(gce.fileDeletions);
-    assertFileDeleted(gce, new GcCandidate("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf", 8L),
-        new GcCandidate("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf", 11L));
+    assertFileDeleted(gce,
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf", 8L),
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/user/foo/tables/a/t-0/t-1/F00.rf", 11L));
   }
 
   @Test

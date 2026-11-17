@@ -76,11 +76,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-<<<<<<< HEAD
-import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.hadoop.fs.Path;
-=======
->>>>>>> main
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,19 +111,9 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-<<<<<<< HEAD
-      // Insert delete markers before deleting data from metadata. When table deletion is
-      // optimized, files outside the table directories in configured volumes still need explicit
-      // candidates because deleting those directories cannot remove them.
+      // Temporary candidates avoid a race with GC while tablet metadata is being deleted. Also
+      // retain candidates for external files when directory deletion is optimized.
       ms.fetchColumnFamily(DataFileColumnFamily.NAME);
-=======
-      // Insert tmp delete markers before deleting data from metadata... this makes the code
-      // idempotent. TmpDeletes avoids race conditions with GC deleting in use candidates. The
-      // actual deletes markers must be inserted after the tables metadata is deleted. If the actual
-      // delete markers are inserted before deleting the tablet metadata, then the GC may see them
-      // as in use and delete them. Buffering delete markers in memory may not fit and would not be
-      // idempotent, so write them to a temp area.
->>>>>>> main
       if (insertDeletes) {
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(ms);
       }
@@ -135,40 +121,26 @@ public class MetadataTableUtil {
       for (Entry<Key,Value> cell : ms) {
         Key key = cell.getKey();
 
-<<<<<<< HEAD
         if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
           StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
           if (insertDeletes || !isInTableDirectories(context, tableId, stf.getPath())) {
-            bw.addMutation(ample.createDeleteMutation(ReferenceFile.forFile(tableId, stf)));
+            bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTabletFile(stf)));
           }
         }
 
         if (insertDeletes && ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-          var uri = new AllVolumesDirectory(tableId, cell.getValue().toString());
-          bw.addMutation(ample.createDeleteMutation(uri));
+          bw.addMutation(TmpDeletesSection.insert(tableId,
+              GcCandidate.forTabletDir(tableId, cell.getValue().toString())));
         }
-=======
-          if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-            StoredTabletFile stf = new StoredTabletFile(key.getColumnQualifierData().toString());
-            bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTabletFile(stf)));
-          }
-
-          if (ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-            bw.addMutation(TmpDeletesSection.insert(tableId,
-                GcCandidate.forTabletDir(tableId, cell.getValue().toString())));
-          }
-        }
-
+      }
+      if (insertDeletes) {
         bw.addMutation(TmpDeletesSection.insert(tableId, GcCandidate.forTableDir(tableId)));
-
-        bw.flush();
-
-        ms.clearColumns();
->>>>>>> main
       }
 
+      // Flush and clear the selected columns even when insertDeletes is false. In that case the
+      // external-file candidates above are still needed, but the subsequent scan must see every
+      // metadata column in order to delete the whole table.
       bw.flush();
-
       ms.clearColumns();
 
       for (Entry<Key,Value> cell : ms) {

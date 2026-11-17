@@ -412,50 +412,6 @@ public class GCRun implements GarbageCollectionEnvironment {
     inUse.add(i);
   }
 
-<<<<<<< HEAD
-  @VisibleForTesting
-  static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
-      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
-      Duration loggingInterval) {
-    Set<Path> deleteDirs = new HashSet<>();
-    for (Map.Entry<String,GcCandidate> entry : confirmedDeletes.entrySet()) {
-      if (GarbageCollectionAlgorithm.isDir(entry.getKey())) {
-        Path dirPath = new Path(entry.getValue().getPath());
-        deleteDirs.addAll(GcVolumeUtil.expandAllVolumesUri(fs, dirPath));
-      }
-    }
-
-    // When a directory and its files are all being deleted, deleting the directory is sufficient.
-    Iterator<Map.Entry<String,GcCandidate>> cdIter = confirmedDeletes.entrySet().iterator();
-    Timer progressTimer = Timer.startNew();
-    int progressCount = 0;
-    int totalDeletes = confirmedDeletes.size();
-    while (cdIter.hasNext()) {
-      progressCount++;
-      Map.Entry<String,GcCandidate> entry = cdIter.next();
-      if (!GarbageCollectionAlgorithm.isDir(entry.getKey())) {
-        Path filePath = new Path(entry.getValue().getPath());
-        Path parent = filePath.getParent();
-        while (parent != null) {
-          if (deleteDirs.contains(parent)) {
-            logger.info("{} Ignoring {} because {} exist", fileActionPrefix,
-                entry.getValue().getPath(), parent);
-            processedDeletes.add(entry.getValue());
-            cdIter.remove();
-            break;
-          }
-          parent = parent.getParent();
-        }
-      }
-      if (progressTimer.hasElapsed(loggingInterval)) {
-        logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
-        progressTimer.restart();
-      }
-    }
-  }
-
-=======
->>>>>>> main
   /**
    * Checks if safemode is set - files will not be deleted.
    *
