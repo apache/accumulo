@@ -39,8 +39,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // the exact path from the file reference string that is stored in the metadata
   protected final String metadataPath;
 
-  private ReferenceFile(TableId tableId, String metadataPath, boolean isScan,
-      boolean isDirectory) {
+  private ReferenceFile(TableId tableId, String metadataPath, boolean isScan, boolean isDirectory) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataPath = Objects.requireNonNull(metadataPath);
     this.isScan = isScan;
