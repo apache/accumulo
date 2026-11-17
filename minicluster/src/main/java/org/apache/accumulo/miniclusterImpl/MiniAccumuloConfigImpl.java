@@ -196,10 +196,17 @@ public class MiniAccumuloConfigImpl {
         updateConfigForCredentialProvider();
       }
 
-      if (zooKeeperPort == 0) {
-        zooKeeperPort = PortUtils.getRandomFreePort();
+      String zkHost;
+      if (useExistingZooKeepers()) {
+        zkHost = existingZooKeepers;
+      } else {
+        // zookeeper port should be set explicitly in this class, not just on the site config
+        if (zooKeeperPort == 0) {
+          zooKeeperPort = PortUtils.getRandomFreePort();
+        }
+        zkHost = DEFAULT_ZOOKEEPER_HOST + ":" + zooKeeperPort;
       }
-      siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), "localhost:" + zooKeeperPort);
+      siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), zkHost);
       initialized = true;
     }
     return this;
