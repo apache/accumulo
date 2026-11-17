@@ -16,18 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.manager.upgrade;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.server.AccumuloDataVersion;
+import org.apache.accumulo.server.ServerContext;
 
-public class GcCandidateFilter extends Filter {
+/**
+ * Checks persistent data to see if upgrade is complete and remembers if it is.
+ */
+public class UpgradeCheck {
 
-  @Override
-  public boolean accept(Key k, Value v) {
-    return v.equals(SkewedKeyValue.NAME);
+  private final ServerContext context;
+
+  private boolean upgradeComplete = false;
+
+  public UpgradeCheck(ServerContext context) {
+    this.context = context;
   }
 
+  // Checks in persistent storage if upgrade is complete. Once it sees its complete remembers this
+  // and stops checking.
+  public synchronized boolean isUpgradeComplete() {
+    if (!upgradeComplete) {
+      upgradeComplete = AccumuloDataVersion.getCurrentVersion(context) >= AccumuloDataVersion.get();
+    }
+
+    return upgradeComplete;
+  }
 }

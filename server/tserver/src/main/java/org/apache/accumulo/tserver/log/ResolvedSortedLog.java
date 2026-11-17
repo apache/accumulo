@@ -66,7 +66,7 @@ public class ResolvedSortedLog {
   }
 
   /**
-   * @return When an unsorted walog is sorted the sorted data is stored in one os more rfiles, this
+   * @return When an unsorted walog is sorted the sorted data is stored in one or more rfiles, this
    *         returns the paths of those rfiles.
    */
   public SortedSet<UnreferencedTabletFile> getChildren() {
@@ -85,9 +85,9 @@ public class ResolvedSortedLog {
    */
   public static ResolvedSortedLog resolve(LogEntry logEntry, VolumeManager fs) throws IOException {
 
-    // convert the path of on unsorted logs to the expected path for the corresponding sorted log
+    // convert the path of an unsorted log to the expected path for the corresponding sorted log
     // dir
-    Path sortedLogPath = RecoveryPath.getRecoveryPath(new Path(logEntry.getPath()));
+    Path sortedLogPath = RecoveryPath.getRecoveryPath(logEntry.getPath());
 
     boolean foundFinish = false;
     // Path::getName compares the last component of each Path value. In this case, the last

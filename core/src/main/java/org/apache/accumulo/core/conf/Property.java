@@ -365,11 +365,6 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
-  GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN,
-      "Enables Caffeine Cache metrics functionality using Micrometer. Requires "
-          + " property 'general.micrometer.enabled' to be set to 'true' to take effect.",
-      "4.0.0"),
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
       "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
           + " is dependent on metrics being enabled to function correctly.",
@@ -462,14 +457,6 @@ public enum Property {
       "Time to wait between scanning tables to identify ranges of tablets that can be "
           + " auto-merged. Valid ranges will be have merge fate ops submitted.",
       "4.0.0"),
-  MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
-      PropertyType.BOOLEAN,
-      "When deleting a table the Manager will remove related table directories from "
-          + " the storage volumes if there are no other references to the files in the "
-          + " metadata table. When deleting a lot of tables this optimization can be costly. "
-          + " Setting this value to false will skip this optimization and the table directory "
-          + " cleanup will occur in the Garbage Collector instead.",
-      "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
@@ -599,8 +586,10 @@ public enum Property {
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT, """
       To find a tablets split points, all RFiles are opened and their indexes \
       are read. This setting determines how many RFiles can be opened at once. \
-      When there are more RFiles than this setting the tablet will be marked \
-      as un-splittable.
+      When a tablet has this many RFiles or more, it can not be examined for \
+      split points and will be marked as un-splittable until its RFile count \
+      drops below this setting (for example, after a compaction) or this \
+      setting is increased and the servers are restarted.
       """, "4.0.0"),
   // properties that are specific to scan server behavior
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
@@ -1040,7 +1029,7 @@ public enum Property {
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row.", "1.7.0"),
-  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "10m", PropertyType.TIMEDURATION,
+  TABLE_MINC_COMPACT_MAXAGE("table.compaction.minor.age", "180d", PropertyType.TIMEDURATION,
       """
           Key values written to a tablet are temporarily stored in a per tablet in memory map.  When \
           the age of the oldest key value in a tablets in memory map exceeds this configuration, then  \
@@ -1442,6 +1431,16 @@ public enum Property {
           + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
           + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
       "2.1.7"),
+  COMPACTION_COORDINATOR_ASSIGNMENT_MIN("compaction.coordinator.assignment.sleep.min", "100ms",
+      PropertyType.TIMEDURATION,
+      "When there are multiple managers compaction resource groups are assigned across manager. This is the "
+          + "minimum time between checks to see if assignments need to be adjusted.",
+      "4.0.0"),
+  COMPACTION_COORDINATOR_ASSIGNMENT_MAX("compaction.coordinator.assignment.sleep.max", "3m",
+      PropertyType.TIMEDURATION,
+      "When there are multiple managers compaction resource groups are assigned across manager. This is the "
+          + "maximum time between checks to see if assignments need to be adjusted.",
+      "4.0.0"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
       "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
@@ -1728,8 +1727,7 @@ public enum Property {
       GENERAL_IDLE_PROCESS_INTERVAL, GENERAL_MICROMETER_ENABLED,
       GENERAL_MICROMETER_JVM_METRICS_ENABLED, GENERAL_MICROMETER_LOG_METRICS,
       GENERAL_MICROMETER_FACTORY, GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL,
-      GENERAL_CACHE_MANAGER_IMPL, GENERAL_MICROMETER_CACHE_METRICS_ENABLED,
-      GENERAL_LOW_MEM_DETECTOR_INTERVAL,
+      GENERAL_CACHE_MANAGER_IMPL, GENERAL_LOW_MEM_DETECTOR_INTERVAL,
 
       // MANAGER options
       MANAGER_THREADCHECK, MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, MANAGER_METADATA_SUSPENDABLE,

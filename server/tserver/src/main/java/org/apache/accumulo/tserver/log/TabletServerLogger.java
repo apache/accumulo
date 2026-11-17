@@ -110,6 +110,7 @@ public class TabletServerLogger {
 
   private final RetryFactory writeRetryFactory;
 
+  // Cache for resolved sorted logs to avoid repeated expensive I/O operations
   private final Cache<LogEntry,ResolvedSortedLog> sortedLogCache;
 
   private abstract static class TestCallWithWriteLock {
@@ -165,7 +166,8 @@ public class TabletServerLogger {
     this.createRetry = null;
     this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
-    this.sortedLogCache = Caffeine.newBuilder().expireAfterWrite(3, TimeUnit.SECONDS).build();
+    this.sortedLogCache =
+        Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).maximumSize(10_000).build();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -276,7 +278,7 @@ public class TabletServerLogger {
 
         try {
           alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
-              tserver.getAdvertiseAddress().toString());
+              tserver.getAdvertiseAddress());
         } catch (IOException | RuntimeException e) {
           log.error("Failed to open WAL", e);
           try {

@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -80,6 +81,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -87,6 +89,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Encoding;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -101,6 +104,7 @@ import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileStatus;
@@ -226,7 +230,7 @@ public class Upgrader11to12 implements Upgrader {
 
   @VisibleForTesting
   static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
+      ExternalCompactionColumnFamily.NAME, LogColumnFamily.NAME, ScanFileColumnFamily.NAME);
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";
@@ -238,6 +242,8 @@ public class Upgrader11to12 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
+    LOG.info("Updating recovery work payloads");
+    updateRecoveryWork(context);
     LOG.info("Removing ZTracer node");
     removeZTracersNode(context);
     LOG.info("Updating file references in root tablet");
@@ -270,6 +276,54 @@ public class Upgrader11to12 implements Upgrader {
     addAssistantManager(context);
     LOG.info("Adding shutting down tservers node");
     addShuttingDownTservers(context);
+  }
+
+  private void updateRecoveryWork(ServerContext context) {
+    try {
+      upgradeRecoveryWork(context.getZooSession().asReaderWriter());
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted while updating recovery work payloads", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Could not update recovery work payloads", e);
+    }
+  }
+
+  @VisibleForTesting
+  void upgradeRecoveryWork(ZooReaderWriter zrw) throws KeeperException, InterruptedException {
+    for (String child : zrw.getChildren(Constants.ZRECOVERY)) {
+      if (child.equals("locks")) {
+        continue;
+      }
+
+      String childPath = Constants.ZRECOVERY + "/" + child;
+      String serialized = new String(zrw.getData(childPath), UTF_8);
+      String updated = convertRecoveryWork(child, serialized);
+      if (!serialized.equals(updated)
+          && !zrw.overwritePersistentData(childPath, updated.getBytes(UTF_8), -1)) {
+        throw new IllegalStateException("Could not update recovery work " + childPath);
+      }
+    }
+  }
+
+  static String convertRecoveryWork(String child, String serialized) {
+    var sortId = UUID.fromString(child);
+    String[] parts = serialized.split("\\|", -1);
+
+    // This item may already have been converted if an earlier upgrade attempt failed partway
+    // through. Validate it and leave it unchanged so the operation is safe to retry.
+    if (parts.length == 3) {
+      LogSortInformation work = LogSortInformation.deserialize(serialized);
+      if (!work.sortId().equals(sortId)) {
+        throw new IllegalStateException("Recovery work ID does not match child " + child);
+      }
+      return work.serialize();
+    }
+
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("Malformed legacy recovery work for " + child);
+    }
+    return new LogSortInformation(sortId, parts[0], parts[1]).serialize();
   }
 
   @Override
@@ -821,8 +875,74 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  private static void upgradeWalEntry(Entry<Key,Value> entry, Value value, Mutation mutation,
+      Collection<Volume> volumes) throws IOException {
+    try {
+      LogEntry.fromMetaWalEntry(entry);
+      return;
+    } catch (IllegalArgumentException e) {
+      if (e.getMessage().startsWith("Invalid path format. The path must be an absolute URI: ")) {
+        // The wal entry passed all of the other checks, except that it's not an absolute
+        // URI.
+        Text qualifier = entry.getKey().getColumnQualifier();
+        String qualifierString = qualifier.toString();
+        int separator = qualifierString.indexOf('/');
+        if (separator < 0) {
+          throw new IllegalArgumentException("Malformed write-ahead log " + qualifierString);
+        }
+
+        String oldPath = qualifierString.substring(separator + 1);
+        Path qualifiedPath = qualifyWalPath(new Path(oldPath), volumes);
+        // Validate the expected WAL path structure before writing an upgraded reference.
+        LogEntry.fromPath(qualifiedPath.toString());
+
+        Text newQualifier = new Text(qualifierString.substring(0, separator + 1) + qualifiedPath);
+        mutation.at().family(LogColumnFamily.NAME).qualifier(newQualifier).put(value);
+        mutation.at().family(LogColumnFamily.NAME).qualifier(qualifier).delete();
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  private static Path qualifyWalPath(Path walPath, Collection<Volume> volumes) throws IOException {
+    String path = walPath.toUri().getPath();
+    String[] parts = path.split("/");
+    if (parts.length < 2) {
+      throw new IllegalArgumentException(
+          "WAL path must end with tablet server and UUID: " + walPath);
+    }
+
+    String tserver = parts[parts.length - 2];
+    String uuid = parts[parts.length - 1];
+    Set<Path> matchingPaths = new HashSet<>();
+
+    for (Volume volume : volumes) {
+      Path candidate;
+      if (walPath.isAbsolute()) {
+        // An absolute path without a scheme can be qualified by each configured volume's FS.
+        candidate = volume.getFileSystem().makeQualified(new Path(path));
+      } else {
+        // Relative references may contain an obsolete prefix. WALs are stored under
+        // <volume>/wal/<tserver>/<uuid>, so use the identifying suffix to construct the candidate.
+        candidate = volume
+            .prefixChild(Constants.WAL_DIR + Path.SEPARATOR + tserver + Path.SEPARATOR + uuid);
+      }
+
+      if (volume.containsPath(candidate) && volume.getFileSystem().exists(candidate)) {
+        matchingPaths.add(candidate);
+      }
+    }
+
+    if (matchingPaths.size() != 1) {
+      throw new IllegalArgumentException("Expected WAL " + walPath
+          + " to exist on exactly one configured volume, but found " + matchingPaths);
+    }
+    return matchingPaths.iterator().next();
+  }
+
   void processReferences(MutationWriter batchWriter, Iterable<Map.Entry<Key,Value>> scanner,
-      String tableName) {
+      String tableName, Collection<Volume> volumes) {
     try {
       Mutation update = null;
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -847,6 +967,13 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
+        } else if (family.equals(LogColumnFamily.NAME)) {
+          try {
+            upgradeWalEntry(entry, value, update, volumes);
+          } catch (IllegalArgumentException | IOException e) {
+            throw new IllegalStateException("Invalid WAL reference in " + tableName + " tablet "
+                + key.getRow() + ": " + key.getColumnQualifier(), e);
+          }
         } else if (family.equals(ScanFileColumnFamily.NAME)) {
           LOG.debug("Deleting scan reference from:{}. Ref: {}", tableName, key.getRow());
           update.at().family(ScanFileColumnFamily.NAME).qualifier(key.getColumnQualifier())
@@ -895,7 +1022,8 @@ public class Upgrader11to12 implements Upgrader {
           .forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
       ArrayList<Mutation> mutations = new ArrayList<>();
 
-      processReferences(mutations::add, entries.entrySet(), "root_table_metadata");
+      processReferences(mutations::add, entries.entrySet(), "root_table_metadata",
+          context.getVolumeManager().getVolumes());
 
       Preconditions.checkState(mutations.size() <= 1);
 
@@ -949,7 +1077,8 @@ public class Upgrader11to12 implements Upgrader {
         new IsolatedScanner(context.createScanner(metaName, Authorizations.EMPTY))) {
       UPGRADE_FAMILIES.forEach(scanner::fetchColumnFamily);
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
-      processReferences(batchWriter::addMutation, scanner, metaName);
+      processReferences(batchWriter::addMutation, scanner, metaName,
+          context.getVolumeManager().getVolumes());
     } catch (TableNotFoundException ex) {
       throw new IllegalStateException("Failed to find table " + metaName, ex);
     } catch (MutationsRejectedException mex) {

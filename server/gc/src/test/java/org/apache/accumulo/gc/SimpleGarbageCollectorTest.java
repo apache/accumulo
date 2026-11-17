@@ -18,10 +18,8 @@
  */
 package org.apache.accumulo.gc;
 
-import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.getCurrentArguments;
 import static org.easymock.EasyMock.partialMockBuilder;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -31,27 +29,21 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.gc.GcCandidate;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+<<<<<<< HEAD
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
+=======
+>>>>>>> main
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,6 +132,7 @@ public class SimpleGarbageCollectorTest {
     assertFalse(SimpleGarbageCollector.isDir(""));
     assertFalse(SimpleGarbageCollector.isDir(null));
   }
+<<<<<<< HEAD
 
   @Test
   public void testMinimizeDeletes() {
@@ -219,4 +212,6 @@ public class SimpleGarbageCollectorTest {
     assertEquals(1, candidates.size());
     assertEquals(candidatePath, candidates.get("external:" + path).getPath());
   }
+=======
+>>>>>>> main
 }

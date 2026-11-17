@@ -21,10 +21,10 @@ package org.apache.accumulo.manager;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -93,7 +93,7 @@ public class EventQueueTest {
       assertTrue(events.stream()
           .anyMatch(e -> e.getScope() == EventScope.DATA_LEVEL && e.getLevel() == DataLevel.USER));
 
-      assertEquals(0, eventQueue.poll(1, TimeUnit.MILLISECONDS).size());
+      assertEquals(0, eventQueue.poll(Duration.ofMillis(1)).size());
     }
 
   }

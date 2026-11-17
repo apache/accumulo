@@ -104,6 +104,7 @@ import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -1245,17 +1246,17 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
     }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1, TreeMap::new));
   }
 
-  private static void bulkImport(AccumuloClient client, String table,
+  public static void bulkImport(AccumuloClient client, String table, FileSystem fs, Path tmpPath,
       List<SortedMap<Key,Value>> data) throws Exception {
-    String tmp = getCluster().getTemporaryPath().toString();
+    String tmp = tmpPath.toString();
     Path dir = new Path(tmp, "comp_bulk_" + UUID.randomUUID());
 
-    getCluster().getFileSystem().mkdirs(dir);
+    fs.mkdirs(dir);
 
     try {
       int count = 0;
       for (var keyValues : data) {
-        try (var output = getCluster().getFileSystem().create(new Path(dir, "f" + count + ".rf"));
+        try (var output = fs.create(new Path(dir, "f" + count + ".rf"));
             var writer = RFile.newWriter().to(output).build()) {
           writer.startDefaultLocalityGroup();
           for (Map.Entry<Key,Value> entry : keyValues.entrySet()) {
@@ -1267,8 +1268,13 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
 
       client.tableOperations().importDirectory(dir.toString()).to(table).load();
     } finally {
-      getCluster().getFileSystem().delete(dir, true);
+      fs.delete(dir, true);
     }
+  }
+
+  private static void bulkImport(AccumuloClient client, String table,
+      List<SortedMap<Key,Value>> data) throws Exception {
+    bulkImport(client, table, getCluster().getFileSystem(), getCluster().getTemporaryPath(), data);
   }
 
   static class TestRecord {

@@ -1145,18 +1145,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    * Stops the processes in parallel. The given timeout is the total wait for all given processes.
    */
   public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
-      final long timeout, final TimeUnit unit) {
+      final Duration timeout) {
 
     // signal all first so they stop in parallel
     procs.forEach(Process::destroy);
 
-    final CountDownTimer timer = CountDownTimer.startNew(timeout, unit);
+    final CountDownTimer timer = CountDownTimer.startNew(timeout);
     try {
       for (Process proc : procs) {
         boolean stopped = proc.waitFor(timer.timeLeft(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
         if (!stopped) {
           log.warn("{} (pid {}) did not fully stop after {} seconds", type, proc.pid(),
-              unit.toSeconds(timeout));
+              timeout.toSeconds());
         }
       }
     } catch (InterruptedException e) {

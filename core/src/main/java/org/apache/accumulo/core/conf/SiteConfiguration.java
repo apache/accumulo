@@ -252,15 +252,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    String value = config.get(property.getKey());
-    if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null) {
-        log.error("Using default value for {} due to improperly formatted {}: {}",
-            property.getKey(), property.getType(), value);
-      }
-      value = parent.get(property);
-    }
-    return value;
+    final String value = config.get(property.getKey());
+    return value != null ? value : parent.get(property);
   }
 
   @Override

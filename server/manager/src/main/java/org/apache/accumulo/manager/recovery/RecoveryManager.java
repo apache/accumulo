@@ -23,12 +23,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +43,7 @@ import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.HadoopLogCloser;
 import org.apache.accumulo.server.manager.recovery.LogCloser;
@@ -68,8 +71,8 @@ public class RecoveryManager {
     this.manager = manager;
     existenceCache = this.manager.getContext().getCaches()
         .createNewBuilder(CacheName.RECOVERY_MANAGER_PATH_CACHE, true)
-        .expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-        .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
+        .expireAfterWrite(Duration.ofMillis(timeToCacheExistsInMillis)).maximumWeight(10_000_000)
+        .weigher((path, exist) -> path.toString().length()).build();
 
     executor =
         ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "Walog sort starter");
@@ -86,10 +89,10 @@ public class RecoveryManager {
   private class LogSortTask implements Runnable {
     private final String source;
     private final String destination;
-    private final String sortId;
+    private final UUID sortId;
     private final LogCloser closer;
 
-    public LogSortTask(LogCloser closer, String source, String destination, String sortId) {
+    public LogSortTask(LogCloser closer, String source, String destination, UUID sortId) {
       this.closer = closer;
       this.source = source;
       this.destination = destination;
@@ -117,7 +120,7 @@ public class RecoveryManager {
       } finally {
         if (!rescheduled) {
           synchronized (RecoveryManager.this) {
-            closeTasksQueued.remove(sortId);
+            closeTasksQueued.remove(sortId.toString());
           }
         }
       }
@@ -125,14 +128,14 @@ public class RecoveryManager {
 
   }
 
-  private void initiateSort(String sortId, String source, final String destination)
+  private void initiateSort(UUID sortId, String source, final String destination)
       throws KeeperException, InterruptedException {
-    String work = source + "|" + destination;
+    String work = new LogSortInformation(sortId, source, destination).serialize();
     new DistributedWorkQueue(Constants.ZRECOVERY, manager.getConfiguration(), manager)
-        .addWork(sortId, work.getBytes(UTF_8));
+        .addWork(sortId.toString(), work.getBytes(UTF_8));
 
     synchronized (this) {
-      sortsQueued.add(sortId);
+      sortsQueued.add(sortId.toString());
     }
 
     log.info("Created zookeeper entry {} with data {}", Constants.ZRECOVERY + "/" + sortId, work);
@@ -190,28 +193,29 @@ public class RecoveryManager {
       walog = switchedWalog;
     }
 
-    String sortId = walog.getUniqueID().toString();
-    String filename = walog.getPath();
+    UUID sortId = walog.getUniqueID();
+    String sortIdString = sortId.toString();
+    String filename = walog.getPath().toString();
     String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
 
     boolean sortQueued;
     synchronized (this) {
-      sortQueued = sortsQueued.contains(sortId);
+      sortQueued = sortsQueued.contains(sortIdString);
     }
 
     if (sortQueued
-        && this.manager.getContext().getZooCache().get(Constants.ZRECOVERY + "/" + sortId)
+        && this.manager.getContext().getZooCache().get(Constants.ZRECOVERY + "/" + sortIdString)
             == null) {
       synchronized (this) {
-        sortsQueued.remove(sortId);
+        sortsQueued.remove(sortIdString);
       }
     }
 
     if (exists(SortedLogState.getFinishedMarkerPath(dest))) {
       synchronized (this) {
-        closeTasksQueued.remove(sortId);
-        recoveryDelay.remove(sortId);
-        sortsQueued.remove(sortId);
+        closeTasksQueued.remove(sortIdString);
+        recoveryDelay.remove(sortIdString);
+        sortsQueued.remove(sortIdString);
       }
       return false;
       // was continue;
@@ -219,11 +223,11 @@ public class RecoveryManager {
 
     recoveryNeeded = true;
     synchronized (this) {
-      if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
+      if (!closeTasksQueued.contains(sortIdString) && !sortsQueued.contains(sortIdString)) {
         AccumuloConfiguration aconf = manager.getConfiguration();
         LogCloser closer = Property.createInstanceFromPropertyName(aconf,
             Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, new HadoopLogCloser());
-        Long delay = recoveryDelay.get(sortId);
+        Long delay = recoveryDelay.get(sortIdString);
         if (delay == null) {
           delay = aconf.getTimeInMillis(Property.MANAGER_RECOVERY_DELAY);
         } else {
@@ -235,8 +239,8 @@ public class RecoveryManager {
         ScheduledFuture<?> future = executor.schedule(
             new LogSortTask(closer, filename, dest, sortId), delay, TimeUnit.MILLISECONDS);
         ThreadPools.watchNonCriticalScheduledTask(future);
-        closeTasksQueued.add(sortId);
-        recoveryDelay.put(sortId, delay);
+        closeTasksQueued.add(sortIdString);
+        recoveryDelay.put(sortIdString, delay);
       }
     }
 

@@ -18,29 +18,20 @@
  */
 package org.apache.accumulo.gc;
 
-import static java.util.Arrays.stream;
-import static java.util.function.Predicate.not;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.fs.Path;
@@ -56,6 +47,7 @@ public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
+<<<<<<< HEAD
   /**
    * This method takes a file or directory path and returns a relative path in one of 2 forms:
    *
@@ -150,17 +142,21 @@ public class GarbageCollectionAlgorithm {
 
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
       SortedMap<String,GcCandidate> candidateMap) throws InterruptedException {
+=======
+  private void removeCandidatesInUse(GarbageCollectionEnvironment gce, GcCandidates candidates)
+      throws InterruptedException {
+>>>>>>> main
 
     List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
     Set<TableId> tableIdsSeen = new HashSet<>(tableIdsBefore.size());
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
-        tableIdsSeen.add(ref.getTableId());
-
         if (ref.isDirectory()) {
-          ServerColumnFamily.validateDirCol(ref.getMetadataPath());
+          tableIdsSeen.add(ref.getTableId());
+        }
 
+<<<<<<< HEAD
           String dir = "/" + ref.getTableId() + "/" + ref.getMetadataPath();
 
           dir = makeRelative(dir, 2);
@@ -193,12 +189,16 @@ public class GarbageCollectionAlgorithm {
           GcCandidate gcTemp = candidateMap.remove(relativePath);
           if (gcTemp != null) {
             log.debug("File Candidate was still in use: {}", relativePath);
+=======
+        candidates.remove(ref, candidate -> {
+          log.debug("{} candidate is still in use : {}", candidate.getType(), candidate.getPath());
+          if (candidate.getType() == GcCandidate.Type.TABLET_FILE && !ref.isScan()) {
+>>>>>>> main
             // Prevent deletion of candidates that are still in use by scans, because they won't be
             // recreated once the scan is finished.
-            if (!ref.isScan()) {
-              candidateEntriesToBeDeleted.add(gcTemp);
-            }
+            candidateEntriesToBeDeleted.add(candidate);
           }
+<<<<<<< HEAD
 
           if (!ref.isExternal()) {
             String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
@@ -210,6 +210,9 @@ public class GarbageCollectionAlgorithm {
             }
           }
         }
+=======
+        });
+>>>>>>> main
       });
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
@@ -218,41 +221,24 @@ public class GarbageCollectionAlgorithm {
     gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
   }
 
-  private long removeBlipCandidates(GarbageCollectionEnvironment gce,
-      SortedMap<String,GcCandidate> candidateMap) throws TableNotFoundException {
+  private long removeBlipCandidates(GarbageCollectionEnvironment gce, GcCandidates candidates)
+      throws TableNotFoundException {
     long blipCount = 0;
-    boolean checkForBulkProcessingFiles = candidateMap.keySet().stream().anyMatch(
-        relativePath -> relativePath.toLowerCase(Locale.ENGLISH).contains(Constants.BULK_PREFIX));
 
-    if (checkForBulkProcessingFiles) {
-      try (Stream<String> blipStream = gce.getBlipPaths()) {
-        Iterator<String> blipiter = blipStream.iterator();
+    try (Stream<String> blipStream = gce.getBlipPaths()) {
+      Iterator<String> blipiter = blipStream.iterator();
 
-        // WARNING: This block is IMPORTANT
-        // You MUST REMOVE candidates that are in the same folder as a bulk
-        // processing flag!
+      // WARNING: This block is IMPORTANT
+      // You MUST REMOVE candidates that are in the same folder as a bulk
+      // processing flag!
 
-        while (blipiter.hasNext()) {
-          blipCount++;
-          String blipPath = blipiter.next();
-          blipPath = makeRelative(blipPath, 2);
+      while (blipiter.hasNext()) {
+        blipCount++;
+        var blipPath = blipiter.next();
+        int count = candidates.removeBlip(blipPath);
 
-          Iterator<String> tailIter = candidateMap.tailMap(blipPath).keySet().iterator();
-
-          int count = 0;
-
-          while (tailIter.hasNext()) {
-            if (tailIter.next().startsWith(blipPath)) {
-              count++;
-              tailIter.remove();
-            } else {
-              break;
-            }
-          }
-
-          if (count > 0) {
-            log.debug("Folder has bulk processing flag: {}", blipPath);
-          }
+        if (count > 0) {
+          log.debug("Folder has bulk processing flag: {}", blipPath);
         }
       }
     }
@@ -300,33 +286,7 @@ public class GarbageCollectionAlgorithm {
     }
   }
 
-  private void cleanUpDeletedTableDirs(GarbageCollectionEnvironment gce,
-      SortedMap<String,GcCandidate> candidateMap) throws InterruptedException, IOException {
-    HashSet<TableId> tableIdsWithDeletes = new HashSet<>();
-
-    // find the table ids that had dirs deleted
-    for (String delete : candidateMap.keySet()) {
-      String[] tokens = delete.split("/");
-      if (tokens.length == 2) {
-        // its a directory
-        TableId tableId = TableId.of(delete.split("/")[0]);
-        tableIdsWithDeletes.add(tableId);
-      }
-    }
-
-    Set<TableId> tableIdsInZookeeper = gce.getTableIDs().keySet();
-
-    tableIdsWithDeletes.removeAll(tableIdsInZookeeper);
-
-    // tableIdsWithDeletes should now contain the set of deleted tables that had dirs deleted
-
-    for (TableId delTableId : tableIdsWithDeletes) {
-      gce.deleteTableDirIfEmpty(delTableId);
-    }
-  }
-
-  private long confirmDeletesTrace(GarbageCollectionEnvironment gce,
-      SortedMap<String,GcCandidate> candidateMap)
+  private long confirmDeletesTrace(GarbageCollectionEnvironment gce, GcCandidates candidateMap)
       throws InterruptedException, TableNotFoundException {
     long blips = 0;
     Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
@@ -342,20 +302,17 @@ public class GarbageCollectionAlgorithm {
     return blips;
   }
 
-  private void deleteConfirmedCandidates(GarbageCollectionEnvironment gce,
-      SortedMap<String,GcCandidate> candidateMap)
+  private void deleteConfirmedCandidates(GarbageCollectionEnvironment gce, GcCandidates candidates)
       throws InterruptedException, IOException, TableNotFoundException {
     Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteFiles");
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
-      gce.deleteConfirmedCandidates(candidateMap);
+      gce.deleteConfirmedCandidates(candidates);
     } catch (Exception e) {
       TraceUtil.setException(deleteSpan, e, true);
       throw e;
     } finally {
       deleteSpan.end();
     }
-
-    cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
   public long collect(GarbageCollectionEnvironment gce)
@@ -392,12 +349,12 @@ public class GarbageCollectionAlgorithm {
     gce.incrementCandidatesStat(origSize);
     log.info("Batch {} total deletion candidates: {}", batchCount, origSize);
 
-    SortedMap<String,GcCandidate> candidateMap = makeRelative(currentBatch);
+    GcCandidates candidates = new GcCandidates(currentBatch);
 
-    long blips = confirmDeletesTrace(gce, candidateMap);
-    gce.incrementInUseStat(origSize - candidateMap.size());
+    long blips = confirmDeletesTrace(gce, candidates);
+    gce.incrementInUseStat(origSize - candidates.size());
 
-    deleteConfirmedCandidates(gce, candidateMap);
+    deleteConfirmedCandidates(gce, candidates);
 
     return blips;
   }

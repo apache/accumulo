@@ -104,6 +104,7 @@ public class RootGcCandidates {
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
+<<<<<<< HEAD
       return names.stream().map(name -> {
         String candidatePath;
         if (name.startsWith(GcVolumeUtil.EXTERNAL_CANDIDATE_PREFIX)) {
@@ -115,6 +116,10 @@ public class RootGcCandidates {
         }
         return new GcCandidate(candidatePath, uidGen.nextLong());
       });
+=======
+      return names.stream().map(
+          name -> GcCandidate.forTabletFile(parent + Path.SEPARATOR + name, uidGen.nextLong()));
+>>>>>>> main
     }).sorted();
   }
 

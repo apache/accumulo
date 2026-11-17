@@ -91,12 +91,14 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.EventCoordinator.Event;
 import org.apache.accumulo.manager.EventCoordinator.EventScope;
+import org.apache.accumulo.manager.compaction.CompactionJobClient;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
+import org.apache.accumulo.server.compaction.CompactionJobGenerator.CompactionConfigurationException;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -128,6 +130,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
+  private static final Duration EVENT_POLL_TIMEOUT = Duration.ofMillis(100);
 
   private static final EscalatingLogger TABLET_UNLOAD_LOGGER =
       new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Logger::info);
@@ -151,8 +154,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       this.level = level;
     }
 
-    public void incrementTabletGroupWatcherError() {
-      errorsGauge.incrementAndGet();
+    public void setTabletGroupWatcherErrors(long errors) {
+      errorsGauge.set(errors);
     }
 
     public void setTabletGroupWatcherRecovery(long recoveries) {
@@ -314,7 +317,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       public void run() {
         try {
           while (manager.stillManager()) {
-            var events = eventQueue.poll(100, TimeUnit.MILLISECONDS);
+            var events = eventQueue.poll(EVENT_POLL_TIMEOUT);
 
             if (events.isEmpty()) {
               // check to see if still the manager
@@ -398,9 +401,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       return false;
     }
 
-    try (var iter = store.iterator(ranges, tabletMgmtParams)) {
+    try (var iter = store.iterator(ranges, tabletMgmtParams); var compactionJobClient =
+        new CompactionJobClient(manager.getContext(), store.getLevel(), false)) {
       long t1 = System.currentTimeMillis();
-      manageTablets(iter, tabletMgmtParams, currentTservers, false);
+      manageTablets(iter, tabletMgmtParams, currentTservers, false, compactionJobClient);
       long t2 = System.currentTimeMillis();
       Manager.log.debug(String.format("[%s]: partial scan time %.2f seconds for %,d ranges",
           store.name(), (t2 - t1) / 1000., ranges.size()));
@@ -507,7 +511,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private TableMgmtStats manageTablets(Iterator<TabletManagement> iter,
       TabletManagementParameters tableMgmtParams,
-      SortedMap<TServerInstance,TabletServerStatus> currentTServers, boolean isFullScan)
+      SortedMap<TServerInstance,TabletServerStatus> currentTServers, boolean isFullScan,
+      CompactionJobClient compactionJobClient)
       throws TException, DistributedStoreException, WalMarkerException, IOException {
 
     // When upgrading the Manager needs the TabletGroupWatcher
@@ -569,7 +574,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         LOG.warn(
             "Error on TabletServer trying to get Tablet management information for metadata tablet. Error message: {}",
             mtiError);
-        this.metrics.incrementTabletGroupWatcherError();
         tableMgmtStats.tabletsWithErrors++;
         continue;
       }
@@ -700,7 +704,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final boolean needsSplit = actions.contains(ManagementAction.NEEDS_SPLITTING);
       if (!currentlyUpgrading && needsSplit) {
-        LOG.debug("{} may need splitting.", tm.getExtent());
+        LOG.trace("{} may need splitting.", tm.getExtent());
         manager.getSplitter().initiateSplit(tm.getExtent());
       }
 
@@ -709,10 +713,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         // Check if tablet needs splitting, priority should be giving to splits over
         // compactions because it's best to compact after a split
         if (!needsSplit) {
-          var jobs = compactionGenerator.generateJobs(tm,
-              TabletManagementIterator.determineCompactionKinds(actions));
-          LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
-          manager.getCompactionCoordinator().addJobs(tm, jobs);
+          try {
+            var jobs = compactionGenerator.generateJobs(tm,
+                TabletManagementIterator.determineCompactionKinds(actions));
+            LOG.trace("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
+            compactionJobClient.addJobs(tm, jobs);
+          } catch (CompactionJobGenerator.CompactionConfigurationException e) {
+            // Logging was already done, no more logging is needed
+            tableMgmtStats.tabletsWithErrors++;
+          }
         } else {
           LOG.trace("skipping compaction job generation because {} may need splitting.",
               tm.getExtent());
@@ -788,12 +797,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
     }
 
-    this.metrics.setTabletGroupWatcherRecovery(tabletsNeedingRecovery);
-
     flushChanges(tLists);
 
     if (isFullScan) {
       this.filteredServersToShutdown = Set.copyOf(filteredServersToShutdown);
+      this.metrics.setTabletGroupWatcherRecovery(tabletsNeedingRecovery);
+      this.metrics.setTabletGroupWatcherErrors(tableMgmtStats.tabletsWithErrors);
     }
 
     return tableMgmtStats;
@@ -848,9 +857,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         eventHandler.clearNeedsFullScan();
 
         iter = store.iterator(tableMgmtParams);
-        manager.getCompactionCoordinator().getJobQueues().beginFullScan(store.getLevel());
-        var tabletMgmtStats = manageTablets(iter, tableMgmtParams, currentTServers, true);
-        manager.getCompactionCoordinator().getJobQueues().endFullScan(store.getLevel());
+        TableMgmtStats tabletMgmtStats;
+        try (var compactionJobClient =
+            new CompactionJobClient(manager.getContext(), store.getLevel(), true)) {
+          tabletMgmtStats =
+              manageTablets(iter, tableMgmtParams, currentTServers, true, compactionJobClient);
+        }
 
         // If currently looking for volume replacements, determine if the next round needs to look.
         if (lookForTabletsNeedingVolReplacement) {
