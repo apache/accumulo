@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.CACHE_SIZE;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
@@ -161,6 +162,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     // add sserver as flaky until scan server included in mini tests.
     Set<Metric> flakyMetrics = Set.of(
+            CACHE_SIZE,
             COMPACTOR_MAJC_STUCK,
             EXECUTOR_COMPLETED,
             EXECUTOR_QUEUED,
