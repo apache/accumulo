@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
@@ -43,12 +42,11 @@ public class RootGcCandidatesTest {
     RootGcCandidates reloaded = new RootGcCandidates(candidates.toJson());
     Set<String> paths = reloaded.sortedStream().map(GcCandidate::getPath)
         .collect(java.util.stream.Collectors.toSet());
-    assertEquals(Set.of(GcVolumeUtil.encodeExternalCandidatePath(external.getPath().toString()),
+    assertEquals(Set.of(GcCandidate.encodeExternalPath(external.getPath().toString()),
         standard.getPath().toString()), paths);
 
-    String externalCandidate =
-        GcVolumeUtil.encodeExternalCandidatePath(external.getPath().toString());
-    reloaded.remove(Stream.of(new GcCandidate(externalCandidate, 1)));
+    String externalCandidate = GcCandidate.encodeExternalPath(external.getPath().toString());
+    reloaded.remove(Stream.of(GcCandidate.forTabletFile(externalCandidate, 1)));
     assertEquals(Set.of(standard.getPath().toString()), reloaded.sortedStream()
         .map(GcCandidate::getPath).collect(java.util.stream.Collectors.toSet()));
   }

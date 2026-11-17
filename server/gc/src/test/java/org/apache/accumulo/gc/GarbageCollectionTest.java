@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
@@ -81,17 +80,16 @@ public class GarbageCollectionTest {
       return candidate;
     }
 
-<<<<<<< HEAD
     public GcCandidate addExternalCandidate(String path) {
-      return addCandidate(GcVolumeUtil.encodeExternalCandidatePath(path));
+      return addCandidate(GcCandidate.encodeExternalPath(path));
     }
 
     public Long getTimestamp() {
       return timestamp;
-=======
+    }
+
     public void addCandidate(GcCandidate candidate) {
       this.candidates.add(candidate);
->>>>>>> main
     }
 
     @Override
@@ -290,6 +288,7 @@ public class GarbageCollectionTest {
     TestGCE gce = new TestGCE();
     String path = "hdfs://external-nn/imports/F0001.rf";
     var candidate = gce.addExternalCandidate(path);
+    gce.addDirReference("4", null, "t-0001");
     gce.addExternalFileReference("4", null, path);
     gce.addExternalScanReference("4", null, path);
 
@@ -309,6 +308,21 @@ public class GarbageCollectionTest {
 
     gce.removeScanReference("4", null, path);
     gca.collect(gce);
+
+    assertFileDeleted(gce, candidate);
+    assertNoCandidatesRemoved(gce);
+  }
+
+  @Test
+  public void externalFileReferencesDoNotAliasOnBasename() throws Exception {
+    TestGCE gce = new TestGCE();
+    String candidatePath = "hdfs://external-nn-a/imports/shared/F0001.rf";
+    String referencePath = "hdfs://external-nn-b/imports/shared/F0001.rf";
+    var candidate = gce.addExternalCandidate(candidatePath);
+    gce.addDirReference("4", null, "t-0001");
+    gce.addExternalFileReference("4", null, referencePath);
+
+    new GarbageCollectionAlgorithm().collect(gce);
 
     assertFileDeleted(gce, candidate);
     assertNoCandidatesRemoved(gce);

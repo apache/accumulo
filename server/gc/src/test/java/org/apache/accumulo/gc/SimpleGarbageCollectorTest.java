@@ -39,21 +39,12 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-<<<<<<< HEAD
-import org.apache.accumulo.server.gc.AllVolumesDirectory;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
-=======
->>>>>>> main
 import org.apache.accumulo.server.security.SystemCredentials;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SimpleGarbageCollectorTest {
-  private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollectorTest.class);
-
   private VolumeManager volMgr;
   private ServerContext context;
   private Credentials credentials;
@@ -132,86 +123,4 @@ public class SimpleGarbageCollectorTest {
     assertFalse(SimpleGarbageCollector.isDir(""));
     assertFalse(SimpleGarbageCollector.isDir(null));
   }
-<<<<<<< HEAD
-
-  @Test
-  public void testMinimizeDeletes() {
-    Volume vol1 = createMock(Volume.class);
-    expect(vol1.containsPath(anyObject()))
-        .andAnswer(() -> getCurrentArguments()[0].toString().startsWith("hdfs://nn1/accumulo"))
-        .anyTimes();
-
-    Volume vol2 = createMock(Volume.class);
-    expect(vol2.containsPath(anyObject()))
-        .andAnswer(() -> getCurrentArguments()[0].toString().startsWith("hdfs://nn2/accumulo"))
-        .anyTimes();
-
-    Collection<Volume> vols = Arrays.asList(vol1, vol2);
-
-    VolumeManager volMgr2 = createMock(VolumeManager.class);
-    expect(volMgr2.getVolumes()).andReturn(vols).anyTimes();
-
-    replay(vol1, vol2, volMgr2);
-
-    TreeMap<String,GcCandidate> confirmed = new TreeMap<>();
-    confirmed.put("5a/t-0001", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
-    confirmed.put("5a/t-0001/F0001.rf",
-        new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf", 1L));
-    confirmed.put("5a/t-0001/F0002.rf",
-        new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf", 2L));
-    confirmed.put("5a/t-0002/F0001.rf",
-        new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf", 3L));
-    var allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    confirmed.put("5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
-    confirmed.put("5b/t-0003/F0001.rf",
-        new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf", 5L));
-    confirmed.put("5b/t-0003/F0002.rf",
-        new GcCandidate("hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf", 6L));
-    confirmed.put("5b/t-0003/F0003.rf",
-        new GcCandidate("hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf", 7L));
-    allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    confirmed.put("5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
-    confirmed.put("5b/t-0004/F0001.rf",
-        new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L));
-
-    List<GcCandidate> processedDeletes = new ArrayList<>();
-
-    GCRun.minimizeDeletes(confirmed, processedDeletes, volMgr2, log, Duration.ofMinutes(1));
-
-    TreeMap<String,GcCandidate> expected = new TreeMap<>();
-    expected.put("5a/t-0001", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
-    expected.put("5a/t-0002/F0001.rf",
-        new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0002/F0001.rf", 3L));
-    allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0003");
-    expected.put("5b/t-0003", new GcCandidate(allVolumesDirectory.getMetadataPath(), 4L));
-    expected.put("5b/t-0003/F0003.rf",
-        new GcCandidate("hdfs://nn3/accumulo/tables/5b/t-0003/F0003.rf", 7L));
-    allVolumesDirectory = new AllVolumesDirectory(TableId.of("5b"), "t-0004");
-    expected.put("5b/t-0004", new GcCandidate(allVolumesDirectory.getMetadataPath(), 8L));
-
-    assertEquals(expected, confirmed);
-    assertEquals(
-        Arrays.asList(new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0001.rf", 1L),
-            new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001/F0002.rf", 2L),
-            new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0003/F0001.rf", 5L),
-            new GcCandidate("hdfs://nn2/accumulo/tables/5b/t-0003/F0002.rf", 6L),
-            new GcCandidate("hdfs://nn1/accumulo/tables/5b/t-0004/F0001.rf", 9L)),
-        processedDeletes);
-  }
-
-  @Test
-  public void testMinimizeDeletesExternalCandidate() {
-    String path = "hdfs://external-nn/imports/F0001.rf";
-    String candidatePath = GcVolumeUtil.encodeExternalCandidatePath(path);
-    TreeMap<String,GcCandidate> candidates = new TreeMap<>();
-    candidates.put("external:" + path, new GcCandidate(candidatePath, 1L));
-
-    GCRun.minimizeDeletes(candidates, new ArrayList<>(), createMock(VolumeManager.class), log,
-        Duration.ofMinutes(1));
-
-    assertEquals(1, candidates.size());
-    assertEquals(candidatePath, candidates.get("external:" + path).getPath());
-  }
-=======
->>>>>>> main
 }

@@ -49,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -153,13 +152,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       Preconditions.checkState(
           candidates.stream().allMatch(gcc -> gcc.getType() == GcCandidate.Type.TABLET_FILE));
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()
-<<<<<<< HEAD
-          .map(reference -> reference.isExternal()
-              ? StoredTabletFile.ofExternal(new Path(reference.getMetadataPath()))
-              : StoredTabletFile.of(URI.create(reference.getMetadataPath())))));
-=======
-          .map(candidate -> StoredTabletFile.of(URI.create(candidate.getPath())))));
->>>>>>> main
+          .map(candidate -> candidate.isExternal()
+              ? StoredTabletFile.ofExternal(new Path(candidate.getDecodedPath()))
+              : StoredTabletFile.of(URI.create(candidate.getPath())))));
       return;
     }
 
@@ -279,31 +274,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-<<<<<<< HEAD
-  public Mutation createDeleteMutation(ReferenceFile tabletFilePathToRemove) {
-    String path = ValidationUtil.validate(tabletFilePathToRemove).getMetadataPath();
-    if (tabletFilePathToRemove.isExternal()) {
-      path = GcVolumeUtil.encodeExternalCandidatePath(path);
-    }
-    return createDelMutation(path);
-  }
-
-  public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
-    String path = pathToRemove.getMetadataPath();
-    if (pathToRemove.isExternal()) {
-      path = GcVolumeUtil.encodeExternalCandidatePath(path);
-    }
-    return createDelMutation(path);
-  }
-
-  private Mutation createDelMutation(String path) {
-    Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
-    delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
-=======
   public Mutation createDeleteMutation(GcCandidate candidate) {
     Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(candidate.getPath())));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.encodeType(candidate.getType()));
->>>>>>> main
     return delFlag;
   }
 

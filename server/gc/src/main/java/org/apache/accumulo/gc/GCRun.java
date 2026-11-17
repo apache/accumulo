@@ -302,30 +302,6 @@ public class GCRun implements GarbageCollectionEnvironment {
         boolean removeFlag = false;
 
         try {
-<<<<<<< HEAD
-          Path fullPath;
-          boolean externalCandidate = GcVolumeUtil.isExternalCandidatePath(delete.getPath());
-          Path deletePath = new Path(GcVolumeUtil.decodeExternalCandidatePath(delete.getPath()));
-          Path switchedDelete =
-              (!externalCandidate && (ReferencedTabletFile.isVolumePath(deletePath)
-                  || ReferencedTabletFile.isTabletDirPath(deletePath)))
-                      ? VolumeUtil.switchVolume(deletePath, VolumeManager.FileType.TABLE,
-                          replacements)
-                      : null;
-          if (switchedDelete != null) {
-            // actually replacing the volumes in the metadata table would be tricky because the
-            // entries would be different rows. So it could not be
-            // atomically in one mutation and extreme care would need to be taken that delete
-            // entry was not lost. Instead of doing that, just deal with
-            // volume switching when something needs to be deleted. Since the rest of the code
-            // uses suffixes to compare delete entries, there is no danger
-            // of deleting something that should not be deleted. Must not change value of delete
-            // variable because that's what's stored in metadata table.
-            log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
-            fullPath = ValidationUtil.validate(switchedDelete);
-          } else {
-            fullPath = ValidationUtil.validate(deletePath);
-=======
           Iterable<Path> paths;
           if (delete.getType() == GcCandidate.Type.TABLET_DIR
               || delete.getType() == GcCandidate.Type.TABLE_DIR) {
@@ -333,10 +309,17 @@ public class GCRun implements GarbageCollectionEnvironment {
                 + (delete.getPath().startsWith("/") ? "" : "/") + delete.getPath();
             paths = () -> fs.getVolumes().stream().map(vol -> vol.prefixChild(relPath)).iterator();
           } else {
+            Path deletePath = new Path(delete.getDecodedPath());
             Path fullPath;
-            Path switchedDelete = VolumeUtil.switchVolume(new Path(delete.getPath()),
-                VolumeManager.FileType.TABLE, replacements);
-            if (switchedDelete != null) {
+            Path switchedDelete = delete.isExternal() ? null
+                : VolumeUtil.switchVolume(deletePath, VolumeManager.FileType.TABLE, replacements);
+            if (delete.isExternal()) {
+              if (delete.getType() != GcCandidate.Type.TABLET_FILE) {
+                throw new IllegalStateException(
+                    "External GC candidate is not a tablet file: " + delete);
+              }
+              fullPath = ValidationUtil.validate(deletePath);
+            } else if (switchedDelete != null) {
               // actually replacing the volumes in the metadata table would be tricky because the
               // entries would be different rows. So it could not be
               // atomically in one mutation and extreme care would need to be taken that delete
@@ -348,10 +331,9 @@ public class GCRun implements GarbageCollectionEnvironment {
               log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
               fullPath = ValidationUtil.validate(switchedDelete);
             } else {
-              fullPath = new Path(ValidationUtil.validate(delete.getPath()));
+              fullPath = ValidationUtil.validate(deletePath);
             }
             paths = () -> Iterators.singletonIterator(fullPath);
->>>>>>> main
           }
 
           for (Path pathToDel : paths) {
@@ -372,8 +354,9 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors.increment();
-              if (ReferencedTabletFile.isVolumePath(pathToDel)
-                  || ReferencedTabletFile.isTabletDirPath(pathToDel)) {
+              if (!delete.isExternal() && (ReferencedTabletFile.isVolumePath(pathToDel)
+                  || ReferencedTabletFile.isTabletDirPath(pathToDel))) {
+                // Internal tablet paths can be mapped back to their owner for useful diagnostics.
                 TableId tableId;
                 String tabletDir;
                 if (ReferencedTabletFile.isTabletDirPath(pathToDel)) {
@@ -391,9 +374,6 @@ public class GCRun implements GarbageCollectionEnvironment {
                     log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
                   }
                 }
-              } else if (!deletePath.equals(pathToDel)) {
-                log.warn("{} Delete failed due to invalid file path format: {}", fileActionPrefix,
-                    delete.getPath());
               } else {
                 log.debug("{} File does not exist: {}", fileActionPrefix, pathToDel);
               }
@@ -462,78 +442,6 @@ public class GCRun implements GarbageCollectionEnvironment {
     inUse.add(i);
   }
 
-<<<<<<< HEAD
-  @VisibleForTesting
-  static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
-      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
-      Duration loggingInterval) {
-    Set<Path> seenVolumes = new HashSet<>();
-
-    // when deleting a dir and all files in that dir, only need to delete the dir.
-    // The dir will sort right before the files... so remove the files in this case
-    // to minimize namenode ops
-    Iterator<Map.Entry<String,GcCandidate>> cdIter = confirmedDeletes.entrySet().iterator();
-
-    String lastDirRel = null;
-    Path lastDirAbs = null;
-    Timer progressTimer = Timer.startNew();
-    int progressCount = 0;
-    int totalDeletes = confirmedDeletes.size();
-    while (cdIter.hasNext()) {
-      progressCount++;
-      Map.Entry<String,GcCandidate> entry = cdIter.next();
-      String relPath = entry.getKey();
-      if (GcVolumeUtil.isExternalCandidatePath(entry.getValue().getPath())) {
-        lastDirRel = null;
-        lastDirAbs = null;
-        continue;
-      }
-      Path absPath = new Path(entry.getValue().getPath());
-
-      if (SimpleGarbageCollector.isDir(relPath)) {
-        lastDirRel = relPath;
-        lastDirAbs = absPath;
-      } else if (lastDirRel != null) {
-        if (relPath.startsWith(lastDirRel)) {
-          Path vol = VolumeManager.FileType.TABLE.getVolume(absPath);
-
-          boolean sameVol = false;
-
-          if (GcVolumeUtil.isAllVolumesUri(lastDirAbs)) {
-            if (seenVolumes.contains(vol)) {
-              sameVol = true;
-            } else {
-              for (Volume cvol : fs.getVolumes()) {
-                if (cvol.containsPath(vol)) {
-                  seenVolumes.add(vol);
-                  sameVol = true;
-                }
-              }
-            }
-          } else {
-            sameVol = Objects.equals(VolumeManager.FileType.TABLE.getVolume(lastDirAbs), vol);
-          }
-
-          if (sameVol) {
-            logger.info("{} Ignoring {} because {} exist", fileActionPrefix,
-                entry.getValue().getPath(), lastDirAbs);
-            processedDeletes.add(entry.getValue());
-            cdIter.remove();
-          }
-        } else {
-          lastDirRel = null;
-          lastDirAbs = null;
-        }
-      }
-      if (progressTimer.hasElapsed(loggingInterval)) {
-        logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
-        progressTimer.restart();
-      }
-    }
-  }
-
-=======
->>>>>>> main
   /**
    * Checks if safemode is set - files will not be deleted.
    *

@@ -72,13 +72,9 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
-<<<<<<< HEAD
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-=======
->>>>>>> main
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -88,11 +84,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-<<<<<<< HEAD
-import org.apache.accumulo.server.gc.GcVolumeUtil;
-=======
 import org.apache.accumulo.test.ComprehensiveIT;
->>>>>>> main
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -110,6 +102,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
@@ -244,8 +237,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       try {
         DataLevel level = DataLevel.of(tableId);
-        String externalCandidatePath =
-            GcVolumeUtil.encodeExternalCandidatePath(externalPath.toString());
+        String externalCandidatePath = GcCandidate.encodeExternalPath(externalPath.toString());
 
         ample.putGcCandidates(tableId, List.of(storedExternal));
         Wait.waitFor(() -> !hasGcCandidate(ample, level, externalCandidatePath), 30000, 250,
@@ -297,7 +289,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       ample.mutateTablet(tablet.getExtent()).deleteFile(original)
           .putFile(storedExternal, tablet.getFilesMap().get(original)).mutate();
 
-      String candidatePath = GcVolumeUtil.encodeExternalCandidatePath(externalPath.toString());
+      String candidatePath = GcCandidate.encodeExternalPath(externalPath.toString());
       client.tableOperations().delete(table);
 
       DataLevel level = DataLevel.of(tableId);
@@ -362,8 +354,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       ProcessInfo gc = cluster.exec(SimpleGarbageCollector.class);
       try {
         DataLevel level = DataLevel.of(tableId);
-        String missingCandidatePath =
-            GcVolumeUtil.encodeExternalCandidatePath(missingPath.toString());
+        String missingCandidatePath = GcCandidate.encodeExternalPath(missingPath.toString());
         ample.putGcCandidates(tableId, List.of(storedMissing));
         Wait.waitFor(() -> !hasGcCandidate(ample, level, missingCandidatePath), 30000, 250,
             "GC did not process a missing external file that is still referenced");
@@ -396,8 +387,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         }
 
         ample.mutateTablet(tablet.getExtent()).deleteFile(storedUnreadable).mutate();
-        String unreadableCandidatePath =
-            GcVolumeUtil.encodeExternalCandidatePath(unreadablePath.toString());
+        String unreadableCandidatePath = GcCandidate.encodeExternalPath(unreadablePath.toString());
         FsPermission originalDirectoryPermission = fs.getFileStatus(externalDir).getPermission();
         try {
           // Removing write permission after the metadata reference was recorded prevents GC from

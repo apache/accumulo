@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.fs.Path;
 
 public class RootGcCandidates {
@@ -81,7 +80,7 @@ public class RootGcCandidates {
     refs.forEach(ref -> {
       String fileName = ref.getFileName();
       if (ref.isExternal()) {
-        fileName = GcVolumeUtil.EXTERNAL_CANDIDATE_PREFIX + fileName;
+        fileName = GcCandidate.encodeExternalPath(fileName);
       }
       data.candidates.computeIfAbsent(ref.getPath().getParent().toString(), k -> new TreeSet<>())
           .add(fileName);
@@ -89,14 +88,13 @@ public class RootGcCandidates {
   }
 
   public void remove(Stream<GcCandidate> refs) {
-    refs.map(GcCandidate::getPath).map(GcVolumeUtil::decodeExternalCandidatePath).map(Path::new)
-        .forEach(path -> {
-          data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
-            values.remove(path.getName());
-            values.remove(GcVolumeUtil.EXTERNAL_CANDIDATE_PREFIX + path.getName());
-            return values.isEmpty() ? null : values;
-          });
-        });
+    refs.map(GcCandidate::getDecodedPath).map(Path::new).forEach(path -> {
+      data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
+        values.remove(path.getName());
+        values.remove(GcCandidate.encodeExternalPath(path.getName()));
+        return values.isEmpty() ? null : values;
+      });
+    });
   }
 
   public Stream<GcCandidate> sortedStream() {
@@ -104,22 +102,15 @@ public class RootGcCandidates {
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
-<<<<<<< HEAD
       return names.stream().map(name -> {
-        String candidatePath;
-        if (name.startsWith(GcVolumeUtil.EXTERNAL_CANDIDATE_PREFIX)) {
-          String actualPath = parent + Path.SEPARATOR
-              + name.substring(GcVolumeUtil.EXTERNAL_CANDIDATE_PREFIX.length());
-          candidatePath = GcVolumeUtil.encodeExternalCandidatePath(actualPath);
-        } else {
-          candidatePath = parent + Path.SEPARATOR + name;
+        boolean external = GcCandidate.isExternalPath(name);
+        String fileName = GcCandidate.decodeExternalPath(name);
+        String candidatePath = parent + Path.SEPARATOR + fileName;
+        if (external) {
+          candidatePath = GcCandidate.encodeExternalPath(candidatePath);
         }
-        return new GcCandidate(candidatePath, uidGen.nextLong());
+        return GcCandidate.forTabletFile(candidatePath, uidGen.nextLong());
       });
-=======
-      return names.stream().map(
-          name -> GcCandidate.forTabletFile(parent + Path.SEPARATOR + name, uidGen.nextLong()));
->>>>>>> main
     }).sorted();
   }
 

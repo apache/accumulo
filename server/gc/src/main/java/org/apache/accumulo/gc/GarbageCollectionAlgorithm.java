@@ -33,8 +33,6 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,105 +45,8 @@ public class GarbageCollectionAlgorithm {
 
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectionAlgorithm.class);
 
-<<<<<<< HEAD
-  /**
-   * This method takes a file or directory path and returns a relative path in one of 2 forms:
-   *
-   * <pre>
-   *      1- For files: table-id/tablet-directory/filename.rf
-   *      2- For directories: table-id/tablet-directory
-   * </pre>
-   *
-   * For example, for full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf it will
-   * return 4/t0/F000.rf. For a directory that already is relative, like 4/t0, it will just return
-   * the original path. This method will also remove prefixed relative paths like ../4/t0/F000.rf
-   * and return 4/t0/F000.rf. It also strips out empty tokens from paths like
-   * hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf returning 4/t0/F001.rf.
-   */
-  private String makeRelative(String path, int expectedLen) {
-    String relPath = path;
-
-    // remove prefixed old relative path
-    if (relPath.startsWith("../")) {
-      relPath = relPath.substring(3);
-    }
-
-    // remove trailing slash
-    while (relPath.endsWith("/")) {
-      relPath = relPath.substring(0, relPath.length() - 1);
-    }
-
-    // remove beginning slash
-    while (relPath.startsWith("/")) {
-      relPath = relPath.substring(1);
-    }
-
-    // Handle paths like a//b///c by dropping the empty tokens.
-    String[] tokens = stream(relPath.split("/")).filter(not(""::equals)).toArray(String[]::new);
-
-    if (tokens.length > 3 && path.contains(":")) {
-      // full file path like hdfs://foo:6000/accumulo/tables/4/t0/F000.rf
-      if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
-          && (expectedLen == 0 || expectedLen == 3)) {
-        // return the last 3 tokens after tables, like 4/t0/F000.rf
-        relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
-            + tokens[tokens.length - 1];
-      } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
-          && (expectedLen == 0 || expectedLen == 2)) {
-        // return the last 2 tokens after tables, like 4/t0
-        relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
-      } else {
-        throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
-      }
-    } else if (tokens.length == 3 && (expectedLen == 0 || expectedLen == 3)
-        && !path.contains(":")) {
-      // we already have a relative path so return it, like 4/t0/F000.rf
-      relPath = tokens[0] + "/" + tokens[1] + "/" + tokens[2];
-    } else if (tokens.length == 2 && (expectedLen == 0 || expectedLen == 2)
-        && !path.contains(":")) {
-      // return the last 2 tokens of the relative path, like 4/t0
-      relPath = tokens[0] + "/" + tokens[1];
-    } else {
-      throw new IllegalArgumentException("Failed to make path relative. Bad reference: " + path);
-    }
-
-    log.trace("{} -> {} expectedLen = {}", path, relPath, expectedLen);
-    return relPath;
-  }
-
-  private SortedMap<String,GcCandidate> makeRelative(Collection<GcCandidate> candidates) {
-    SortedMap<String,GcCandidate> ret = new TreeMap<>();
-
-    for (GcCandidate candidate : candidates) {
-      String relPath;
-      String path = candidate.getPath();
-      if (GcVolumeUtil.isExternalCandidatePath(path)) {
-        relPath = makeExternalRelative(GcVolumeUtil.decodeExternalCandidatePath(path));
-      } else {
-        try {
-          relPath = makeRelative(path, 0);
-        } catch (IllegalArgumentException iae) {
-          log.warn("Ignoring invalid deletion candidate {}", candidate);
-          continue;
-        }
-      }
-      ret.put(relPath, candidate);
-    }
-
-    return ret;
-  }
-
-  private String makeExternalRelative(String path) {
-    String normalized = new Path(path).toUri().normalize().toString();
-    return "external:" + normalized;
-  }
-
-  private void removeCandidatesInUse(GarbageCollectionEnvironment gce,
-      SortedMap<String,GcCandidate> candidateMap) throws InterruptedException {
-=======
   private void removeCandidatesInUse(GarbageCollectionEnvironment gce, GcCandidates candidates)
       throws InterruptedException {
->>>>>>> main
 
     List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
@@ -156,63 +57,14 @@ public class GarbageCollectionAlgorithm {
           tableIdsSeen.add(ref.getTableId());
         }
 
-<<<<<<< HEAD
-          String dir = "/" + ref.getTableId() + "/" + ref.getMetadataPath();
-
-          dir = makeRelative(dir, 2);
-
-          GcCandidate gcTemp = candidateMap.remove(dir);
-          if (gcTemp != null) {
-            log.debug("Directory Candidate was still in use by dir ref: {}", dir);
-            // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
-            // once.
-          }
-        } else {
-          String reference = ref.getMetadataPath();
-          String relativePath;
-          if (ref.isExternal()) {
-            relativePath = makeExternalRelative(reference);
-          } else {
-            if (reference.startsWith("/")) {
-              log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
-                  ref.getTableId());
-              reference = "/" + ref.getTableId() + ref.getMetadataPath();
-            } else if (!reference.contains(":") && !reference.startsWith("../")) {
-              throw new RuntimeException("Bad file reference " + reference);
-            }
-
-            relativePath = makeRelative(reference, 3);
-          }
-
-          // WARNING: This line is EXTREMELY IMPORTANT.
-          // You MUST REMOVE candidates that are still in use
-          GcCandidate gcTemp = candidateMap.remove(relativePath);
-          if (gcTemp != null) {
-            log.debug("File Candidate was still in use: {}", relativePath);
-=======
         candidates.remove(ref, candidate -> {
           log.debug("{} candidate is still in use : {}", candidate.getType(), candidate.getPath());
           if (candidate.getType() == GcCandidate.Type.TABLET_FILE && !ref.isScan()) {
->>>>>>> main
             // Prevent deletion of candidates that are still in use by scans, because they won't be
             // recreated once the scan is finished.
             candidateEntriesToBeDeleted.add(candidate);
           }
-<<<<<<< HEAD
-
-          if (!ref.isExternal()) {
-            String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-            GcCandidate gcT = candidateMap.remove(dir);
-            if (gcT != null) {
-              log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
-              // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
-              // once.
-            }
-          }
-        }
-=======
         });
->>>>>>> main
       });
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
