@@ -120,7 +120,6 @@ public class SeekableByteArrayInputStream extends InputStream {
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = 0;
     this.max = maxOffset;
   }
 
