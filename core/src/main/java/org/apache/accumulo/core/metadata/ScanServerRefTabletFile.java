@@ -20,12 +20,10 @@ package org.apache.accumulo.core.metadata;
 
 import java.net.URI;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -39,7 +37,7 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
   public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
     super(new Path(URI.create(file)));
     this.serverAddress = new Text(serverAddress);
-    uuid = new Text(serverLockUUID.toString());
+    this.uuid = new Text(serverLockUUID.toString());
   }
 
   public ScanServerRefTabletFile(Key k) {
@@ -70,11 +68,6 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
   public Value getValue() {
     return NULL_VALUE;
-  }
-
-  public Set<TableId> getTableIds() {
-    throw new UnsupportedOperationException(
-        "getTableIds not supported for ScanServerRefTabletFile");
   }
 
   public Text getServerAddress() {

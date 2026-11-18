@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -592,7 +593,6 @@ public class ScanServer extends AbstractServer
 
   static class ReservedFile {
     final Set<Long> activeReservations = new ConcurrentSkipListSet<>();
-    final Set<TableId> tableIds = ConcurrentHashMap.newKeySet();
     final AtomicLong lastUseTime = new AtomicLong(0);
 
     boolean shouldDelete(long expireTimeMs) {
@@ -695,12 +695,10 @@ public class ScanServer extends AbstractServer
       }
     }
 
-    Map<StoredTabletFile,Set<KeyExtent>> allFiles = new HashMap<>(extents.size());
+    Map<StoredTabletFile,KeyExtent> allFiles = new HashMap<>(extents.size());
 
     tabletsMetadata.forEach((extent, tm) -> {
-      for (StoredTabletFile file : tm.getFiles()) {
-        allFiles.computeIfAbsent(file, ignored -> new HashSet<>()).add(extent);
-      }
+      tm.getFiles().forEach(file -> allFiles.put(file, extent));
     });
 
     // The read lock prevents anything from being removed from reservedFiles while adding
@@ -708,25 +706,8 @@ public class ScanServer extends AbstractServer
     // wait on each other their files are already reserved.
     reservationsReadLock.lock();
     try {
-      boolean allFilesAndTableIdsReserved = reservedFiles.keySet().containsAll(allFiles.keySet());
-      if (allFilesAndTableIdsReserved) {
-        for (Map.Entry<StoredTabletFile,Set<KeyExtent>> entry : allFiles.entrySet()) {
-          ReservedFile reservedFile = reservedFiles.get(entry.getKey());
-          for (KeyExtent extent : entry.getValue()) {
-            if (!reservedFile.tableIds.contains(extent.tableId())) {
-              allFilesAndTableIdsReserved = false;
-              break;
-            }
-          }
-          if (!allFilesAndTableIdsReserved) {
-            break;
-          }
-        }
-      }
-
-      if (allFilesAndTableIdsReserved) {
-        // all files and table references already have reservations in metadata, so we can add
-        // ourself without updating the stored reference values.
+      if (reservedFiles.keySet().containsAll(allFiles.keySet())) {
+        // all files already have reservations in the metadata table, so we can add ourself
         for (StoredTabletFile file : allFiles.keySet()) {
           if (!reservedFiles.get(file).activeReservations.add(myReservationId)) {
             throw new IllegalStateException("reservation id unexpectedly already in set");
@@ -762,53 +743,25 @@ public class ScanServer extends AbstractServer
 
     try {
       Set<StoredTabletFile> filesToReserve = new HashSet<>();
-      Set<String> pathsWithReservedRefs = new HashSet<>();
-      for (StoredTabletFile reservedFile : reservedFiles.keySet()) {
-        pathsWithReservedRefs.add(reservedFile.getNormalizedPathStr());
-      }
-      Set<String> newRefPaths = new HashSet<>();
       List<ScanServerRefTabletFile> refs = new ArrayList<>();
       Set<KeyExtent> tabletsToCheck = new HashSet<>();
 
       String serverAddress = getAdvertiseAddress().toString();
 
-      for (Map.Entry<StoredTabletFile,Set<KeyExtent>> entry : allFiles.entrySet()) {
-        StoredTabletFile file = entry.getKey();
-        Set<TableId> tableIds = new HashSet<>();
-        for (KeyExtent extent : entry.getValue()) {
-          tableIds.add(extent.tableId());
-        }
-
-        ReservedFile reservedFile = reservedFiles.get(file);
-        if (reservedFile == null) {
+      for (StoredTabletFile file : allFiles.keySet()) {
+        if (!reservedFiles.containsKey(file)) {
+          refs.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
+              serverLockUUID));
           filesToReserve.add(file);
-          tabletsToCheck.addAll(entry.getValue());
+          tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
+          LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);
         }
-
-        if (reservedFile == null || !reservedFile.tableIds.containsAll(tableIds)) {
-          Set<TableId> idsForRef = new HashSet<>(tableIds);
-          if (reservedFile != null) {
-            idsForRef.addAll(reservedFile.tableIds);
-          }
-          String filePath = file.getNormalizedPathStr();
-          if (!pathsWithReservedRefs.contains(filePath)) {
-            newRefPaths.add(filePath);
-            pathsWithReservedRefs.add(filePath);
-          }
-          LOG.trace("RFFS {} need to add scan ref for file {} and tables {}", myReservationId, file,
-              idsForRef);
-        }
-      }
-
-      if (!newRefPaths.isEmpty()) {
-        newRefPaths.forEach(file -> {
-          refs.add(new ScanServerRefTabletFile(file, serverAddress, serverLockUUID));
-        });
-        scanServerMetrics.recordWriteOutReservationTime(
-            () -> getContext().getAmple().scanServerRefs().put(refs));
       }
 
       if (!filesToReserve.isEmpty()) {
+        scanServerMetrics.recordWriteOutReservationTime(
+            () -> getContext().getAmple().scanServerRefs().put(refs));
+
         // After we insert the scan server refs we need to check and see if the tablet is still
         // using the file. As long as the tablet is still using the files then the Accumulo GC
         // should not have deleted the files. This assumes the Accumulo GC reads scan server refs
@@ -840,15 +793,7 @@ public class ScanServer extends AbstractServer
         if (!filesToReserve.isEmpty()) {
           LOG.info("RFFS {} tablet files changed while attempting to reference files {}",
               myReservationId, filesToReserve);
-          List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>(newRefPaths.size());
-          for (ScanServerRefTabletFile ref : refs) {
-            if (newRefPaths.contains(ref.getNormalizedPathStr())) {
-              refsToDelete.add(ref);
-            }
-          }
-          if (!refsToDelete.isEmpty()) {
-            getContext().getAmple().scanServerRefs().delete(refsToDelete);
-          }
+          getContext().getAmple().scanServerRefs().delete(refs);
           scanServerMetrics.incrementReservationConflictCount();
           return null;
         }
@@ -856,17 +801,13 @@ public class ScanServer extends AbstractServer
 
       // we do not hold a lock but the files we are adding are in influxFiles so its ok to add to
       // reservedFiles
-      for (Map.Entry<StoredTabletFile,Set<KeyExtent>> entry : allFiles.entrySet()) {
-        ReservedFile reservedFile =
-            reservedFiles.computeIfAbsent(entry.getKey(), k -> new ReservedFile());
-        for (KeyExtent extent : entry.getValue()) {
-          reservedFile.tableIds.add(extent.tableId());
-        }
-        if (!reservedFile.activeReservations.add(myReservationId)) {
+      for (StoredTabletFile file : allFiles.keySet()) {
+        if (!reservedFiles.computeIfAbsent(file, k -> new ReservedFile()).activeReservations
+            .add(myReservationId)) {
           throw new IllegalStateException("reservation id unexpectedly already in set");
         }
 
-        LOG.trace("RFFS {} reserved reference for startScan {}", myReservationId, entry.getKey());
+        LOG.trace("RFFS {} reserved reference for startScan {}", myReservationId, file);
       }
 
       return tabletsMetadata;

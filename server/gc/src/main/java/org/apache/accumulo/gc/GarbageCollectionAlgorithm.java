@@ -53,10 +53,10 @@ public class GarbageCollectionAlgorithm {
     Set<TableId> tableIdsSeen = new HashSet<>(tableIdsBefore.size());
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
-        try {
-          tableIdsSeen.add(ref.getTableId());
-        } catch (UnsupportedOperationException uoe) {
-          // ScanServer references do not identify a table.
+        log.trace("Removing candidates for live reference {}", ref);
+        TableId tid = ref.getTableId();
+        if (tid != null) {
+          tableIdsSeen.add(tid);
         }
 
         candidates.remove(ref, candidate -> {

@@ -258,10 +258,10 @@ function timeDuration(time) {
 
   if (Math.round(time) === 0) {
     var microsecs = Math.round(time * 1000)
-    if(microsecs == 0){
+    if (microsecs == 0) {
       return '0μs';
-    }else{
-      return microsecs+'μs';
+    } else {
+      return microsecs + 'μs';
     }
   }
 

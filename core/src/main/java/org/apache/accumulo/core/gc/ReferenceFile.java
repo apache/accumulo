@@ -129,7 +129,8 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public String toString() {
-    return "Reference [id=" + tableId + ", ref=" + metadataPath + "]";
+    return "Reference [id=" + tableId + ", ref=" + metadataPath + ", isDir=" + isDirectory
+        + ", isScan=" + isScan + "]";
   }
 
 }

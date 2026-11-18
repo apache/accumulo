@@ -61,8 +61,7 @@ public class CleanUpBulkImport extends AbstractBulkFateOperation {
     log.debug("{} removing the bulkDir processing flag file in {}", fateId, bulkInfo.bulkDir);
     Ample ample = env.getContext().getAmple();
     Path bulkDir = new Path(bulkInfo.bulkDir);
-    ample.removeBulkLoadInProgressFlag(
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+    ample.removeBulkLoadInProgressFlag(bulkDir);
     ample.putGcFileAndDirCandidates(bulkInfo.tableId,
         Collections.singleton(GcCandidate.forBulkDir(bulkInfo.bulkDir)));
 

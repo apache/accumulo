@@ -49,6 +49,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -165,11 +166,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void addBulkLoadInProgressFlag(String path, FateId fateId) {
+  public void addBulkLoadInProgressFlag(Path bulkLoadDir, FateId fateId) {
 
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
-    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + bulkLoadDir.toString());
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(fateId.canonical()));
 
     try (BatchWriter bw = context.createBatchWriter(SystemTables.METADATA.tableName())) {
@@ -180,11 +181,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void removeBulkLoadInProgressFlag(String path) {
+  public void removeBulkLoadInProgressFlag(Path bulkLoadDir) {
 
     // Bulk Import operations are not supported on the metadata table, so no entries will ever be
     // required on the root table.
-    Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
+    Mutation m = new Mutation(BlipSection.getRowPrefix() + bulkLoadDir.toString());
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
     try (BatchWriter bw = context.createBatchWriter(SystemTables.METADATA.tableName())) {

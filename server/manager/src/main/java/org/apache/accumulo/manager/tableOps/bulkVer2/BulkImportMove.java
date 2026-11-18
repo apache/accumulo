@@ -93,8 +93,7 @@ class BulkImportMove extends AbstractBulkFateOperation {
    */
   private void moveFiles(FateId fateId, Path sourceDir, Path bulkDir, FateEnv env,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
-    env.getContext().getAmple().addBulkLoadInProgressFlag(
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), fateId);
+    env.getContext().getAmple().addBulkLoadInProgressFlag(bulkDir, fateId);
     Map<Path,Path> oldToNewMap = new HashMap<>(renames.size(), 1.0f);
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {

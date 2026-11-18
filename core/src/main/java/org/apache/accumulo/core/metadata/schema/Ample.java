@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
-import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -651,19 +651,19 @@ public interface Ample {
   /**
    * Create a Bulk Load In Progress flag in the metadata table
    *
-   * @param path The bulk directory filepath
+   * @param bulkLoadDir The bulk directory filepath
    * @param fateId The FateId of the Bulk Import Fate operation.
    */
-  default void addBulkLoadInProgressFlag(String path, FateId fateId) {
+  default void addBulkLoadInProgressFlag(Path bulkLoadDir, FateId fateId) {
     throw new UnsupportedOperationException();
   }
 
   /**
    * Remove a Bulk Load In Progress flag from the metadata table.
    *
-   * @param path The bulk directory filepath
+   * @param bulkLoadDir The bulk directory filepath
    */
-  default void removeBulkLoadInProgressFlag(String path) {
+  default void removeBulkLoadInProgressFlag(Path bulkLoadDir) {
     throw new UnsupportedOperationException();
   }
 

@@ -66,6 +66,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
   private static Path validatePath(Path metaPath) {
     Path path = ValidationUtil.validate(Objects.requireNonNull(metaPath));
     Preconditions.checkArgument(!path.getName().isEmpty(), "Path must identify a file: %s", path);
+    Preconditions.checkArgument(path.getParent() != null, "File must be in a directory: %s", path);
     return path;
   }
 
