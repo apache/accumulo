@@ -53,10 +53,7 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public int read(byte[] b, int offset, int length) {
-    if (b == null) {
-      throw new NullPointerException();
-    }
-
+    requireNonNull(b);
     Objects.checkFromIndexSize(offset, length, b.length);
 
     if (length == 0) {
