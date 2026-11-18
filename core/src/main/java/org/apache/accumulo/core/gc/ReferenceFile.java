@@ -61,7 +61,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     return new ReferenceFile(tableId, metadataPathPath.toString(), false, false);
   }
 
-  public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
+  public static ReferenceFile forScan(ScanServerRefTabletFile tabletFile) {
     return new ReferenceFile(tabletFile.getNormalizedPathStr(), true, false);
   }
 
