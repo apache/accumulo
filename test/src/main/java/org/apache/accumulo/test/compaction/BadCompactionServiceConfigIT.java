@@ -20,6 +20,7 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTION_USER_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -31,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -144,6 +146,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           if (shutdownTailer.get()) {
             break;
           }
+
           if (s.startsWith(COMPACTION_USER_SVC_ERRORS.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
             Integer value = Integer.parseInt(m.getValue());
@@ -261,6 +264,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
     final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
     final AtomicBoolean serviceMisconfigured = new AtomicBoolean(false);
+    final AtomicLong tabletErrors = new AtomicLong(0);
     final Thread thread = Threads.createNonCriticalThread("metric-tailer", () -> {
       while (!shutdownTailer.get()) {
         List<String> statsDMetrics = sink.getLines();
@@ -268,6 +272,12 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
           if (shutdownTailer.get()) {
             break;
           }
+
+          if (s.startsWith(MANAGER_USER_TGW_ERRORS.getName())) {
+            Metric m = TestStatsDSink.parseStatsDMetric(s);
+            tabletErrors.set(Long.parseLong(m.getValue()));
+          }
+
           if (s.startsWith(COMPACTION_USER_SVC_ERRORS.getName())) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
             Integer value = Integer.parseInt(m.getValue());
@@ -300,6 +310,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       client.instanceOperations().setProperty(CSP + "cs1.planner.opts.groups", value);
 
       Wait.waitFor(() -> serviceMisconfigured.get() == false);
+      Wait.waitFor(() -> tabletErrors.get() > 0);
 
       // Add splits so that the tserver logs can manually be inspected to ensure they are not
       // spammed. Not sure how to check this automatically.
@@ -350,6 +361,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
       }
 
       fixerFuture.get();
+      Wait.waitFor(() -> tabletErrors.get() == 0);
 
     } finally {
       shutdownTailer.set(true);
