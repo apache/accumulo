@@ -30,7 +30,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -226,19 +225,6 @@ public interface Ample {
   }
 
   default Iterator<GcCandidate> getGcCandidates(DataLevel level) {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A
-   * ReferenceFile is used for the parameter because the Garbage Collector is optimized to store a
-   * directory for Tablet File. Otherwise, a {@link ReferencedTabletFile} object could be used. The
-   * tabletFilePathToRemove is validated and normalized before creating the mutation.
-   *
-   * @param candidate String full path of the TabletFile
-   * @return Mutation with encoded delete marker
-   */
-  default Mutation createDeleteMutation(GcCandidate candidate) {
     throw new UnsupportedOperationException();
   }
 

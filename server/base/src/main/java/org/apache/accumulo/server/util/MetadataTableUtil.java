@@ -61,6 +61,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -173,7 +174,7 @@ public class MetadataTableUtil {
       ms.setRange(TmpDeletesSection.getRange(tableId));
       for (Entry<Key,Value> cell : ms) {
         GcCandidate candidate = TmpDeletesSection.decode(cell);
-        bw.addMutation(ample.createDeleteMutation(candidate));
+        bw.addMutation(MetadataSchema.DeletesSection.createDeleteMutation(candidate));
       }
       // flush deletion candidates before deleting tmp candidates to make this code idempotent.
       bw.flush();
