@@ -402,6 +402,8 @@ service ClientService {
     4:security.TCredentials credentials
     2:string className
     3:string interfaceMatch
+  ) throws (
+    1:ThriftSecurityException sec
   )
 
   bool checkTableClass(

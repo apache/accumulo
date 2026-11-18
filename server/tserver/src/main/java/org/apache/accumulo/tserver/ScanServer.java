@@ -117,7 +117,6 @@ import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.zookeeper.KeeperException;
@@ -1069,7 +1068,7 @@ public class ScanServer extends AbstractServer
       boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig,
       long batchTimeOut, String classLoaderContext, Map<String,String> executionHints,
       long busyTimeout) throws ThriftSecurityException, NotServingTabletException,
-      TooManyFilesException, TSampleNotPresentException, TException {
+      TooManyFilesException, TSampleNotPresentException, ScanServerBusyException {
 
     if (isShutdownRequested()) {
       // Prevent scans from starting if shutting down
@@ -1079,7 +1078,7 @@ public class ScanServer extends AbstractServer
     KeyExtent extent = getKeyExtent(textent);
 
     if (!isAllowed(credentials, extent.tableId())) {
-      throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+      throw new IllegalArgumentException(
           "Scan of table " + extent.tableId() + " disallowed by property: "
               + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
     }
@@ -1111,7 +1110,7 @@ public class ScanServer extends AbstractServer
   @Override
   public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout)
       throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException,
-      TSampleNotPresentException, TException {
+      TSampleNotPresentException, ScanServerBusyException {
     LOG.trace("continue scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
@@ -1124,7 +1123,7 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public void closeScan(TInfo tinfo, long scanID) throws TException {
+  public void closeScan(TInfo tinfo, long scanID) {
     LOG.trace("close scan: {}", scanID);
     delegate.closeScan(tinfo, scanID);
   }
@@ -1135,7 +1134,7 @@ public class ScanServer extends AbstractServer
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
       Map<String,String> executionHints, long busyTimeout)
-      throws ThriftSecurityException, TSampleNotPresentException, TException {
+      throws ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException {
 
     if (isShutdownRequested()) {
       // Prevent scans from starting if shutting down
@@ -1143,7 +1142,7 @@ public class ScanServer extends AbstractServer
     }
 
     if (tbatch.size() == 0) {
-      throw new TException("Scan Server batch must include at least one extent");
+      throw new IllegalArgumentException("Scan Server batch must include at least one extent");
     }
 
     final Map<KeyExtent,List<TRange>> batch = new HashMap<>();
@@ -1152,7 +1151,7 @@ public class ScanServer extends AbstractServer
       KeyExtent extent = getKeyExtent(entry.getKey());
 
       if (!isAllowed(credentials, extent.tableId())) {
-        throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+        throw new IllegalArgumentException(
             "Scan of table " + extent.tableId() + " disallowed by property: "
                 + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
       }
@@ -1191,7 +1190,7 @@ public class ScanServer extends AbstractServer
 
   @Override
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout)
-      throws NoSuchScanIDException, TSampleNotPresentException, TException {
+      throws NoSuchScanIDException, TSampleNotPresentException, ScanServerBusyException {
     LOG.trace("continue multi scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
@@ -1204,14 +1203,14 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
+  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
     LOG.trace("close multi scan: {}", scanID);
     delegate.closeMultiScan(tinfo, scanID);
   }
 
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
     return delegate.getActiveScans(tinfo, credentials);
   }
 

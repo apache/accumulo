@@ -44,7 +44,7 @@ public class SplitReportMessage implements ManagerMessage {
   }
 
   @Override
-  public void send(TCredentials credentials, String serverName, ManagerClientService.Iface client)
+  public void send(TCredentials credentials, String serverName, ManagerClientService.Client client)
       throws TException, ThriftSecurityException {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();

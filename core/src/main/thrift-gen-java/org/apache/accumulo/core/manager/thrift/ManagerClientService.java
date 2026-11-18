@@ -37,13 +37,13 @@ public class ManagerClientService {
 
     public void modifyTableProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties vProperties) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.thrift.TException;
 
-    public void removeTableProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void removeTableProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException;
 
     public void setNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property, java.lang.String value) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException;
 
     public void modifyNamespaceProperties(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties vProperties) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, org.apache.thrift.TException;
 
-    public void removeNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void removeNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException;
 
     public void setManagerGoalState(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ManagerGoalState state) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
@@ -293,7 +293,7 @@ public class ManagerClientService {
     }
 
     @Override
-    public void removeTableProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void removeTableProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException
     {
       send_removeTableProperty(tinfo, credentials, tableName, property);
       recv_removeTableProperty();
@@ -309,7 +309,7 @@ public class ManagerClientService {
       sendBase("removeTableProperty", args);
     }
 
-    public void recv_removeTableProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_removeTableProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException
     {
       removeTableProperty_result result = new removeTableProperty_result();
       receiveBase(result, "removeTableProperty");
@@ -321,6 +321,9 @@ public class ManagerClientService {
       }
       if (result.tnase != null) {
         throw result.tnase;
+      }
+      if (result.tpe != null) {
+        throw result.tpe;
       }
       return;
     }
@@ -399,7 +402,7 @@ public class ManagerClientService {
     }
 
     @Override
-    public void removeNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void removeNamespaceProperty(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException
     {
       send_removeNamespaceProperty(tinfo, credentials, ns, property);
       recv_removeNamespaceProperty();
@@ -415,7 +418,7 @@ public class ManagerClientService {
       sendBase("removeNamespaceProperty", args);
     }
 
-    public void recv_removeNamespaceProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_removeNamespaceProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException
     {
       removeNamespaceProperty_result result = new removeNamespaceProperty_result();
       receiveBase(result, "removeNamespaceProperty");
@@ -427,6 +430,9 @@ public class ManagerClientService {
       }
       if (result.tnase != null) {
         throw result.tnase;
+      }
+      if (result.tpe != null) {
+        throw result.tpe;
       }
       return;
     }
@@ -1067,7 +1073,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -1205,7 +1211,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2049,6 +2055,8 @@ public class ManagerClientService {
           result.tope = tope;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
           result.tnase = tnase;
+        } catch (ThriftPropertyException tpe) {
+          result.tpe = tpe;
         }
         return result;
       }
@@ -2176,6 +2184,8 @@ public class ManagerClientService {
           result.tope = tope;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
           result.tnase = tnase;
+        } catch (ThriftPropertyException tpe) {
+          result.tpe = tpe;
         }
         return result;
       }
@@ -3149,6 +3159,10 @@ public class ManagerClientService {
               result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
               result.setTnaseIsSet(true);
               msg = result;
+            } else if (e instanceof ThriftPropertyException) {
+              result.tpe = (ThriftPropertyException) e;
+              result.setTpeIsSet(true);
+              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -3405,6 +3419,10 @@ public class ManagerClientService {
             } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
               result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
               result.setTnaseIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftPropertyException) {
+              result.tpe = (ThriftPropertyException) e;
+              result.setTpeIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -11237,6 +11255,7 @@ public class ManagerClientService {
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField TPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tpe", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeTableProperty_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeTableProperty_resultTupleSchemeFactory();
@@ -11244,12 +11263,14 @@ public class ManagerClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException tope; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
+    public @org.apache.thrift.annotation.Nullable ThriftPropertyException tpe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       TOPE((short)2, "tope"),
-      TNASE((short)3, "tnase");
+      TNASE((short)3, "tnase"),
+      TPE((short)4, "tpe");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -11271,6 +11292,8 @@ public class ManagerClientService {
             return TOPE;
           case 3: // TNASE
             return TNASE;
+          case 4: // TPE
+            return TPE;
           default:
             return null;
         }
@@ -11323,6 +11346,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException.class)));
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
+      tmpMap.put(_Fields.TPE, new org.apache.thrift.meta_data.FieldMetaData("tpe", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftPropertyException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeTableProperty_result.class, metaDataMap);
     }
@@ -11333,12 +11358,14 @@ public class ManagerClientService {
     public removeTableProperty_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException tope,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase,
+      ThriftPropertyException tpe)
     {
       this();
       this.sec = sec;
       this.tope = tope;
       this.tnase = tnase;
+      this.tpe = tpe;
     }
 
     /**
@@ -11354,6 +11381,9 @@ public class ManagerClientService {
       if (other.isSetTnase()) {
         this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
+      if (other.isSetTpe()) {
+        this.tpe = new ThriftPropertyException(other.tpe);
+      }
     }
 
     @Override
@@ -11366,6 +11396,7 @@ public class ManagerClientService {
       this.sec = null;
       this.tope = null;
       this.tnase = null;
+      this.tpe = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -11443,6 +11474,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftPropertyException getTpe() {
+      return this.tpe;
+    }
+
+    public removeTableProperty_result setTpe(@org.apache.thrift.annotation.Nullable ThriftPropertyException tpe) {
+      this.tpe = tpe;
+      return this;
+    }
+
+    public void unsetTpe() {
+      this.tpe = null;
+    }
+
+    /** Returns true if field tpe is set (has been assigned a value) and false otherwise */
+    public boolean isSetTpe() {
+      return this.tpe != null;
+    }
+
+    public void setTpeIsSet(boolean value) {
+      if (!value) {
+        this.tpe = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -11470,6 +11526,14 @@ public class ManagerClientService {
         }
         break;
 
+      case TPE:
+        if (value == null) {
+          unsetTpe();
+        } else {
+          setTpe((ThriftPropertyException)value);
+        }
+        break;
+
       }
     }
 
@@ -11485,6 +11549,9 @@ public class ManagerClientService {
 
       case TNASE:
         return getTnase();
+
+      case TPE:
+        return getTpe();
 
       }
       throw new java.lang.IllegalStateException();
@@ -11504,6 +11571,8 @@ public class ManagerClientService {
         return isSetTope();
       case TNASE:
         return isSetTnase();
+      case TPE:
+        return isSetTpe();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -11548,6 +11617,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_tpe = true && this.isSetTpe();
+      boolean that_present_tpe = true && that.isSetTpe();
+      if (this_present_tpe || that_present_tpe) {
+        if (!(this_present_tpe && that_present_tpe))
+          return false;
+        if (!this.tpe.equals(that.tpe))
+          return false;
+      }
+
       return true;
     }
 
@@ -11566,6 +11644,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
       if (isSetTnase())
         hashCode = hashCode * 8191 + tnase.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetTpe()) ? 131071 : 524287);
+      if (isSetTpe())
+        hashCode = hashCode * 8191 + tpe.hashCode();
 
       return hashCode;
     }
@@ -11604,6 +11686,16 @@ public class ManagerClientService {
       }
       if (isSetTnase()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetTpe(), other.isSetTpe());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTpe()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tpe, other.tpe);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11652,6 +11744,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tnase);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tpe:");
+      if (this.tpe == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tpe);
       }
       first = false;
       sb.append(")");
@@ -11728,6 +11828,15 @@ public class ManagerClientService {
                   org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
                 }
                 break;
+              case 4: // TPE
+                if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                  struct.tpe = new ThriftPropertyException();
+                  struct.tpe.read(iprot);
+                  struct.setTpeIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
               default:
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -11762,6 +11871,11 @@ public class ManagerClientService {
           struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.tpe != null) {
+          oprot.writeFieldBegin(TPE_FIELD_DESC);
+          struct.tpe.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -11790,7 +11904,10 @@ public class ManagerClientService {
         if (struct.isSetTnase()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTpe()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
@@ -11800,6 +11917,9 @@ public class ManagerClientService {
         if (struct.isSetTnase()) {
           struct.tnase.write(oprot);
         }
+        if (struct.isSetTpe()) {
+          struct.tpe.write(oprot);
+        }
       }
 
       @Override
@@ -11807,7 +11927,7 @@ public class ManagerClientService {
         prot.incrementRecursionDepth();
         try {
           org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-          java.util.BitSet incoming = iprot.readBitSet(3);
+          java.util.BitSet incoming = iprot.readBitSet(4);
           if (incoming.get(0)) {
             struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
             struct.sec.read(iprot);
@@ -11822,6 +11942,11 @@ public class ManagerClientService {
             struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
             struct.tnase.read(iprot);
             struct.setTnaseIsSet(true);
+          }
+          if (incoming.get(3)) {
+            struct.tpe = new ThriftPropertyException();
+            struct.tpe.read(iprot);
+            struct.setTpeIsSet(true);
           }
         } finally {
           prot.decrementRecursionDepth();
@@ -15515,6 +15640,7 @@ public class ManagerClientService {
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TOPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tope", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField TPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tpe", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeNamespaceProperty_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeNamespaceProperty_resultTupleSchemeFactory();
@@ -15522,12 +15648,14 @@ public class ManagerClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException tope; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
+    public @org.apache.thrift.annotation.Nullable ThriftPropertyException tpe; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       TOPE((short)2, "tope"),
-      TNASE((short)3, "tnase");
+      TNASE((short)3, "tnase"),
+      TPE((short)4, "tpe");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -15549,6 +15677,8 @@ public class ManagerClientService {
             return TOPE;
           case 3: // TNASE
             return TNASE;
+          case 4: // TPE
+            return TPE;
           default:
             return null;
         }
@@ -15601,6 +15731,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException.class)));
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
+      tmpMap.put(_Fields.TPE, new org.apache.thrift.meta_data.FieldMetaData("tpe", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftPropertyException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeNamespaceProperty_result.class, metaDataMap);
     }
@@ -15611,12 +15743,14 @@ public class ManagerClientService {
     public removeNamespaceProperty_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException tope,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase,
+      ThriftPropertyException tpe)
     {
       this();
       this.sec = sec;
       this.tope = tope;
       this.tnase = tnase;
+      this.tpe = tpe;
     }
 
     /**
@@ -15632,6 +15766,9 @@ public class ManagerClientService {
       if (other.isSetTnase()) {
         this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
+      if (other.isSetTpe()) {
+        this.tpe = new ThriftPropertyException(other.tpe);
+      }
     }
 
     @Override
@@ -15644,6 +15781,7 @@ public class ManagerClientService {
       this.sec = null;
       this.tope = null;
       this.tnase = null;
+      this.tpe = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -15721,6 +15859,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftPropertyException getTpe() {
+      return this.tpe;
+    }
+
+    public removeNamespaceProperty_result setTpe(@org.apache.thrift.annotation.Nullable ThriftPropertyException tpe) {
+      this.tpe = tpe;
+      return this;
+    }
+
+    public void unsetTpe() {
+      this.tpe = null;
+    }
+
+    /** Returns true if field tpe is set (has been assigned a value) and false otherwise */
+    public boolean isSetTpe() {
+      return this.tpe != null;
+    }
+
+    public void setTpeIsSet(boolean value) {
+      if (!value) {
+        this.tpe = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -15748,6 +15911,14 @@ public class ManagerClientService {
         }
         break;
 
+      case TPE:
+        if (value == null) {
+          unsetTpe();
+        } else {
+          setTpe((ThriftPropertyException)value);
+        }
+        break;
+
       }
     }
 
@@ -15763,6 +15934,9 @@ public class ManagerClientService {
 
       case TNASE:
         return getTnase();
+
+      case TPE:
+        return getTpe();
 
       }
       throw new java.lang.IllegalStateException();
@@ -15782,6 +15956,8 @@ public class ManagerClientService {
         return isSetTope();
       case TNASE:
         return isSetTnase();
+      case TPE:
+        return isSetTpe();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -15826,6 +16002,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_tpe = true && this.isSetTpe();
+      boolean that_present_tpe = true && that.isSetTpe();
+      if (this_present_tpe || that_present_tpe) {
+        if (!(this_present_tpe && that_present_tpe))
+          return false;
+        if (!this.tpe.equals(that.tpe))
+          return false;
+      }
+
       return true;
     }
 
@@ -15844,6 +16029,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
       if (isSetTnase())
         hashCode = hashCode * 8191 + tnase.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetTpe()) ? 131071 : 524287);
+      if (isSetTpe())
+        hashCode = hashCode * 8191 + tpe.hashCode();
 
       return hashCode;
     }
@@ -15882,6 +16071,16 @@ public class ManagerClientService {
       }
       if (isSetTnase()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetTpe(), other.isSetTpe());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTpe()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tpe, other.tpe);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -15930,6 +16129,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tnase);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("tpe:");
+      if (this.tpe == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tpe);
       }
       first = false;
       sb.append(")");
@@ -16006,6 +16213,15 @@ public class ManagerClientService {
                   org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
                 }
                 break;
+              case 4: // TPE
+                if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                  struct.tpe = new ThriftPropertyException();
+                  struct.tpe.read(iprot);
+                  struct.setTpeIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
               default:
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -16040,6 +16256,11 @@ public class ManagerClientService {
           struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.tpe != null) {
+          oprot.writeFieldBegin(TPE_FIELD_DESC);
+          struct.tpe.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -16068,7 +16289,10 @@ public class ManagerClientService {
         if (struct.isSetTnase()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTpe()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
@@ -16078,6 +16302,9 @@ public class ManagerClientService {
         if (struct.isSetTnase()) {
           struct.tnase.write(oprot);
         }
+        if (struct.isSetTpe()) {
+          struct.tpe.write(oprot);
+        }
       }
 
       @Override
@@ -16085,7 +16312,7 @@ public class ManagerClientService {
         prot.incrementRecursionDepth();
         try {
           org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-          java.util.BitSet incoming = iprot.readBitSet(3);
+          java.util.BitSet incoming = iprot.readBitSet(4);
           if (incoming.get(0)) {
             struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
             struct.sec.read(iprot);
@@ -16100,6 +16327,11 @@ public class ManagerClientService {
             struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
             struct.tnase.read(iprot);
             struct.setTnaseIsSet(true);
+          }
+          if (incoming.get(3)) {
+            struct.tpe = new ThriftPropertyException();
+            struct.tpe.read(iprot);
+            struct.setTpeIsSet(true);
           }
         } finally {
           prot.decrementRecursionDepth();

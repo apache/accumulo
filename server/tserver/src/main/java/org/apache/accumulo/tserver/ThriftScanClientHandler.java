@@ -85,7 +85,6 @@ import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -547,7 +546,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
+      throws ThriftSecurityException {
     TabletClientHandler.checkPermission(context, server, credentials, null, "getScans");
     return server.getSessionManager().getActiveScans();
   }

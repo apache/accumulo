@@ -393,6 +393,8 @@ service TabletClientService {
     4:string dir
     5:map<data.TKeyExtent, map<string, data.MapFileInfo>> files
     6:bool setTime
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 
   void splitTablet(
