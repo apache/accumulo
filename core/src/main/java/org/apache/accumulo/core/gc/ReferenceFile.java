@@ -39,9 +39,15 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // the exact path from the file reference string that is stored in the metadata
   protected final String metadataPath;
 
-  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan,
-      boolean isDirectory) {
+  private ReferenceFile(TableId tableId, String metadataPath, boolean isScan, boolean isDirectory) {
     this.tableId = Objects.requireNonNull(tableId);
+    this.metadataPath = Objects.requireNonNull(metadataPath);
+    this.isScan = isScan;
+    this.isDirectory = isDirectory;
+  }
+
+  private ReferenceFile(String metadataPath, boolean isScan, boolean isDirectory) {
+    this.tableId = null;
     this.metadataPath = Objects.requireNonNull(metadataPath);
     this.isScan = isScan;
     this.isDirectory = isDirectory;
@@ -56,7 +62,7 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false);
+    return new ReferenceFile(tabletFile.getNormalizedPathStr(), true, false);
   }
 
   public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {
@@ -83,7 +89,15 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   @Override
-  public TableId getTableId() {
+  public boolean hasTabletTableId() {
+    return tableId != null;
+  }
+
+  @Override
+  public TableId getTabletTableId() {
+    if (tableId == null) {
+      throw new UnsupportedOperationException("Reference was not derived from a tablet");
+    }
     return tableId;
   }
 
