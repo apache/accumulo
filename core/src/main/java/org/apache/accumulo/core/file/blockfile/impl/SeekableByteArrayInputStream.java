@@ -33,7 +33,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 public class SeekableByteArrayInputStream extends InputStream {
 
   private final byte[] buffer;
-  private volatile int cur;
+  private int cur;
   private final int max;
 
   @Override
@@ -114,7 +114,6 @@ public class SeekableByteArrayInputStream extends InputStream {
   public SeekableByteArrayInputStream(byte[] buf) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = 0;
     this.max = buf.length;
   }
 
