@@ -185,7 +185,6 @@ public class GCRun implements GarbageCollectionEnvironment {
           .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
     }
 
-    // there is a lot going on in this "one line" so see below for more info
     var tabletReferences = tabletStream.<Reference>mapMulti((tm, refConsumer) -> {
       var tableId = tm.getTableId();
 
