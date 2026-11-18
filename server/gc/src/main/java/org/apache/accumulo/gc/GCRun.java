@@ -58,7 +58,6 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -187,7 +186,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     }
 
     // there is a lot going on in this "one line" so see below for more info
-    var tabletReferences = tabletStream.flatMap(tm -> {
+    var tabletReferences = tabletStream.<Reference>mapMulti((tm, refConsumer) -> {
       var tableId = tm.getTableId();
 
       // verify that dir and prev row entries present for to check for complete row scan
@@ -199,24 +198,9 @@ public class GCRun implements GarbageCollectionEnvironment {
             + tm.sawPrevEndRow());
       }
 
-      // combine all the entries read from file and scan columns in the metadata table
-      Stream<StoredTabletFile> stfStream = tm.getFiles().stream();
-      // map the files to Reference objects
-      var fileStream = stfStream.map(f -> ReferenceFile.forFile(tableId, f));
-
-      // scans are normally empty, so only introduce a layer of indirection when needed
-      final var tmScans = tm.getScans();
-      if (!tmScans.isEmpty()) {
-        var scanStream = tmScans.stream().map(s -> ReferenceFile.forScan(tableId, s));
-        fileStream = Stream.concat(fileStream, scanStream);
-      }
-      // if dirName is populated, then we have a tablet directory aka srv:dir
-      if (tm.getDirName() != null) {
-        // add the tablet directory to the stream
-        var tabletDir = ReferenceFile.forDirectory(tableId, tm.getDirName());
-        fileStream = Stream.concat(fileStream, Stream.of(tabletDir));
-      }
-      return fileStream;
+      tm.getFiles().forEach(f -> refConsumer.accept(ReferenceFile.forFile(tableId, f)));
+      tm.getScans().forEach(s -> refConsumer.accept(ReferenceFile.forScan(tableId, s)));
+      refConsumer.accept(ReferenceFile.forDirectory(tableId, tm.getDirName()));
     });
 
     var scanServerRefs = context.getAmple().scanServerRefs().list()
