@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -47,13 +48,8 @@ public class SeekableByteArrayInputStream extends InputStream {
 
   @Override
   public int read(byte[] b, int offset, int length) {
-    if (b == null) {
-      throw new NullPointerException();
-    }
-
-    if (length < 0 || offset < 0 || length > b.length - offset) {
-      throw new IndexOutOfBoundsException();
-    }
+    requireNonNull(b);
+    Objects.checkFromIndexSize(offset, length, b.length);
 
     if (length == 0) {
       return 0;
@@ -112,13 +108,14 @@ public class SeekableByteArrayInputStream extends InputStream {
   public void close() throws IOException {}
 
   public SeekableByteArrayInputStream(byte[] buf) {
-    requireNonNull(buf, "bug argument was null");
+    requireNonNull(buf, "buf argument was null");
     this.buffer = buf;
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
-    requireNonNull(buf, "bug argument was null");
+    requireNonNull(buf, "buf argument was null");
+    Objects.checkFromIndexSize(0, maxOffset, buf.length);
     this.buffer = buf;
     this.max = maxOffset;
   }
