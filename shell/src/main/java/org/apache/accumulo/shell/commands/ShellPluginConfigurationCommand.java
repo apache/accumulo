@@ -83,13 +83,14 @@ public abstract class ShellPluginConfigurationCommand extends Command {
   }
 
   protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName,
-      final String className) throws AccumuloException, AccumuloSecurityException {
+      final String className)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getAccumuloClient().tableOperations().setProperty(tableName, tableProp.toString(),
         className);
   }
 
   protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getAccumuloClient().tableOperations().removeProperty(tableName,
         tableProp.toString());
   }
