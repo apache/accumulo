@@ -73,7 +73,7 @@ public interface ReadOnlyFateStore<T> {
   ReadOnlyFateTxStore<T> read(FateId fateId);
 
   /**
-   * Reads data from a transaction by FateId
+   * Preforms a one-time read of data from a single transaction
    *
    * @return a specified record of the transaction's data
    */
