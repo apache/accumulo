@@ -56,6 +56,7 @@ enum TableOperationExceptionType {
   INVALID_NAME
   OBSOLETE_BULK_BAD_LOAD_MAPPING
   BULK_CONCURRENT_MERGE
+  NAMESPACE_NOTEMPTY
 }
 
 enum ConfigurationType {

@@ -18,13 +18,17 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.delete;
 
+import static org.apache.accumulo.core.clientImpl.NamespaceMapping.deserializeMap;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -48,7 +52,16 @@ public class DeleteNamespace extends AbstractFateOperation {
   }
 
   @Override
-  public Repo<FateEnv> call(FateId fateId, FateEnv environment) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
+    // skip the cache to avoid a race when deleting a namespace
+    final String tableMapPath = TableMapping.getZTableMapPath(namespaceId);
+    final byte[] tableMapBytes =
+        environment.getContext().getZooSession().asReader().getData(tableMapPath);
+    if (!deserializeMap(tableMapBytes).isEmpty()) {
+      throw new AcceptableThriftTableOperationException(namespaceId.canonical(), null,
+          TableOperation.DELETE, TableOperationExceptionType.NAMESPACE_NOTEMPTY,
+          "Namespace is not empty");
+    }
     environment.getEventPublisher().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }
