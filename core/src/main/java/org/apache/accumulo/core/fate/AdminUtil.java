@@ -409,10 +409,12 @@ public class AdminUtil<T> {
             return;
           }
 
-          if (includeByStatus(txSnapshot.status(), statusFilter) && includeByFateId(fateId, fateIdFilter)
+          if (includeByStatus(txSnapshot.status(), statusFilter)
+              && includeByFateId(fateId, fateIdFilter)
               && includeByInstanceType(fateId.getType(), typesFilter)) {
-            statuses.add(new TransactionStatus(fateId, type, txSnapshot.status(), fateOp, hlocks, wlocks, top,
-                    txSnapshot.timeCreated(), lockRanges.getOrDefault(fateId, LockRange.infinite()), details));
+            statuses.add(new TransactionStatus(fateId, type, txSnapshot.status(), fateOp, hlocks,
+                wlocks, top, txSnapshot.timeCreated(),
+                lockRanges.getOrDefault(fateId, LockRange.infinite()), details));
           }
         });
       }

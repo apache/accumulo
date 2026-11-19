@@ -281,32 +281,52 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
-
   public TxSnapshot<T> readSnapshot(FateId fateId) {
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
       scanner.setRange(getRow(fateId));
 
-      // looking for if scanner does now find row
-      if (scanner.getRange() == null){
-        return new TxSnapshot<>(TStatus.UNKNOWN, null, null, 0);
-      }
-      else{
-        // fetch each column needed for the record
-        TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
-        TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
-        scanner.fetchColumnFamily(RepoColumnFamily.NAME);
-        TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
+      // fetch each column needed for the record
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(RepoColumnFamily.NAME);
+      TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
 
-        scanner.stream().map(e -> {
-          @SuppressWarnings("unchecked")
-          var repo = (Repo<T>) deserialize(e.getValue().get());
-          return repo;
-        }).findFirst().orElse(null);
+      return scanner.stream().forEach(e -> {
+        TStatus status = TStatus.UNKNOWN;
+        FateOperation op = null;
+        Repo<T> top = null;
+        long createdTime = 0;
+        SortedMap<Key,Value> rowMap;
 
-        return
-      }
-    }
-    catch (TableNotFoundException e) {
+        try {
+          rowMap = WholeRowIterator.decodeRow(e.getKey(), e.getValue());
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
+        }
+
+        for (Entry<Key,Value> entry : rowMap.entrySet()) {
+          Text colf = entry.getKey().getColumnFamily();
+          Text colq = entry.getKey().getColumnQualifier();
+          Value val = entry.getValue();
+          switch (colq.toString()) {
+            case TxAdminColumnFamily.STATUS:
+              status = TStatus.valueOf(val.toString());
+              break;
+            case TxAdminColumnFamily.FATE_OP:
+              op = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
+              break;
+            case RepoColumnFamily.STR_NAME:
+              top = (Repo<T>) deserialize(e.getValue().get());
+            case TxColumnFamily.CREATE_TIME:
+              createdTime = Long.parseLong(val.toString());
+              break;
+            default:
+              throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
+          }
+        }
+        return new TxSnapshot<>(status, op, top, createdTime);
+      });
+    } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
     }
   }
