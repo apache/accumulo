@@ -207,15 +207,6 @@ public class MetadataConstraints implements Constraint {
         case ServerColumnFamily.STR_NAME:
           validateServerFamily(violations, columnUpdate, context, bfcValidationData);
           break;
-        case CurrentLocationColumnFamily.STR_NAME:
-          // When a tablet is assigned, it re-writes the metadata. It should probably only update
-          // the location information, but it writes everything. We allow it to re-write the bulk
-          // information if it is setting the location.
-          // See ACCUMULO-1230.
-          if (bfcValidationData != null) {
-            bfcValidationData.setIsLocationMutation(true);
-          }
-          break;
         case SuspendLocationColumn.STR_NAME:
           validateSuspendLocationFamily(violations, columnUpdate);
           break;
@@ -481,7 +472,7 @@ public class MetadataConstraints implements Constraint {
         bfcValidationData.addTidSeen(new String(bulkFileColUpdate.getValue(), UTF_8));
       }
 
-      if (!bfcValidationData.getIsSplitMutation() && !bfcValidationData.getIsLocationMutation()) {
+      if (!bfcValidationData.getIsSplitMutation()) {
         for (String tidString : bfcValidationData.getTidsSeen()) {
           try {
             // attempt to parse value
