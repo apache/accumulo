@@ -34,6 +34,7 @@ import org.apache.accumulo.core.gc.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 
 /**
@@ -96,9 +97,11 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   public GcCandidates(Iterable<GcCandidate> candidates) {
     candidates.forEach(candidate -> {
       try {
-        String normalized = new org.apache.hadoop.fs.Path(candidate.getPath()).toString();
+        org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(candidate.getPath());
+        String normalized = path.toString();
         switch (candidate.getType()) {
           case TABLET_FILE -> {
+            Preconditions.checkArgument(path.toUri().getScheme() != null);
             fileCandidates.put(normalized, candidate);
           }
           case TABLET_DIR -> {
@@ -106,6 +109,8 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
             tabletDirCandidates.put("/" + lastThree.dir + "/" + lastThree.name, candidate);
           }
           case BULK_DIR -> {
+            Preconditions.checkArgument(path.toUri().getScheme() != null);
+            Preconditions.checkArgument(!normalized.endsWith("/"));
             bulkDirCandidates.put(normalized, candidate);
           }
           case TABLE_DIR -> {
@@ -127,17 +132,23 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   }
 
   public int removeBlip(String blip) {
+    Preconditions.checkArgument(!blip.endsWith("/"));
+
     log.trace("Removing candidates for bulk load in-progress marker: {}", blip);
+    org.apache.hadoop.fs.Path blipPath = new org.apache.hadoop.fs.Path(blip);
+    Preconditions.checkArgument(blipPath.toUri().getScheme() != null);
+
     var removed = bulkDirCandidates.remove(blip);
     if (removed != null) {
       log.trace("Removed {} from bulkDirCandidates", removed.getPath());
     }
 
     var tailIter = fileCandidates.tailMap(blip).keySet().iterator();
+    String blipDir = blip + "/";
     int removeCount = 0;
     while (tailIter.hasNext()) {
       String fileCandidate = tailIter.next();
-      if (fileCandidate.startsWith(blip + "/")) {
+      if (fileCandidate.startsWith(blipDir)) {
         tailIter.remove();
         log.trace("Removed {} from fileCandidates because it's in a bulk dir", fileCandidate);
         removeCount++;
@@ -163,7 +174,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
           .accept(tabletDirCandidates.remove("/" + reference.getTableId() + "/" + lastThree.name));
       nonNullConsumer.accept(tableDirCandidates.remove(reference.getTableId().toString()));
     } else {
-      String path = reference.getMetadataPath();
+      String path = new org.apache.hadoop.fs.Path(reference.getMetadataPath()).toString();
       try {
         var lastThree = lastThree(path, 2);
         if (lastThree.maybeATableId != null) {
@@ -177,8 +188,9 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
       log.trace("Removing file candidate that matches: {}", path);
       nonNullConsumer.accept(fileCandidates.remove(path));
       if (path.contains(Constants.BULK_PREFIX)) {
-        log.trace("Removing file candidate that matches bulk dir path: {}", path.lastIndexOf("/"));
-        nonNullConsumer.accept(bulkDirCandidates.remove(path.substring(0, path.lastIndexOf("/"))));
+        String dirPath = path.substring(0, path.lastIndexOf("/"));
+        log.trace("Removing file candidate that matches bulk dir path: {}", dirPath);
+        nonNullConsumer.accept(bulkDirCandidates.remove(dirPath));
       }
     }
   }
