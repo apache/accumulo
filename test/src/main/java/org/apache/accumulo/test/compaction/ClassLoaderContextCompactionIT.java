@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.test.URLContextClassLoaderFactory;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -101,6 +102,8 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_RESET, "10m");
     cfg.setProperty(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD, "3");
+    cfg.setProperty(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY,
+        URLContextClassLoaderFactory.class.getName());
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(2);
     cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP1, 1);
     // Tell the server processes to use a StatsDMeterRegistry and the simple logging registry
