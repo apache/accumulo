@@ -28,13 +28,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 
 /**
@@ -62,11 +60,11 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
     try {
       uri = new URI(strPath);
     } catch (URISyntaxException e) {
-      throw new IllegalStateException(e);
+      throw new IllegalArgumentException(e);
     }
 
     if (expectScheme && uri.getScheme() == null) {
-      throw new IllegalStateException("Missing scheme in URI " + strPath);
+      throw new IllegalArgumentException("Missing scheme in URI " + strPath);
     }
 
     // TODO what about other parts of the URI?
@@ -97,24 +95,21 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   public GcCandidates(Iterable<GcCandidate> candidates) {
     candidates.forEach(candidate -> {
       try {
-        org.apache.hadoop.fs.Path path = new org.apache.hadoop.fs.Path(candidate.getPath());
-        String normalized = path.toString();
         switch (candidate.getType()) {
           case TABLET_FILE -> {
-            Preconditions.checkArgument(path.toUri().getScheme() != null);
-            fileCandidates.put(normalized, candidate);
+            var lastThree = lastThree(candidate.getPath(), 2);
+            fileCandidates.put("/" + lastThree.dir + "/" + lastThree.name, candidate);
           }
           case TABLET_DIR -> {
-            var lastThree = lastThree(normalized, false, 2, 2);
+            var lastThree = lastThree(candidate.getPath(), false, 2, 2);
             tabletDirCandidates.put("/" + lastThree.dir + "/" + lastThree.name, candidate);
           }
           case BULK_DIR -> {
-            Preconditions.checkArgument(path.toUri().getScheme() != null);
-            Preconditions.checkArgument(!normalized.endsWith("/"));
-            bulkDirCandidates.put(normalized, candidate);
+            var lastThree = lastThree(candidate.getPath(), 1);
+            bulkDirCandidates.put(lastThree.name, candidate);
           }
           case TABLE_DIR -> {
-            var lastThree = lastThree(normalized, false, 1, 1);
+            var lastThree = lastThree(candidate.getPath(), false, 1, 1);
             tableDirCandidates.put(lastThree.name, candidate);
           }
         }
@@ -132,25 +127,17 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   }
 
   public int removeBlip(String blip) {
-    Preconditions.checkArgument(!blip.endsWith("/"));
+    var lastThree = lastThree(blip, false, 2, 2);
 
-    log.trace("Removing candidates for bulk load in-progress marker: {}", blip);
-    org.apache.hadoop.fs.Path blipPath = new org.apache.hadoop.fs.Path(blip);
-    Preconditions.checkArgument(blipPath.toUri().getScheme() != null);
+    String blipPrefix = "/" + lastThree.name;
 
-    var removed = bulkDirCandidates.remove(blip);
-    if (removed != null) {
-      log.trace("Removed {} from bulkDirCandidates", removed.getPath());
-    }
+    bulkDirCandidates.remove(lastThree.name);
 
-    var tailIter = fileCandidates.tailMap(blip).keySet().iterator();
-    String blipDir = blip + "/";
+    var tailIter = fileCandidates.tailMap(blipPrefix).keySet().iterator();
     int removeCount = 0;
     while (tailIter.hasNext()) {
-      String fileCandidate = tailIter.next();
-      if (fileCandidate.startsWith(blipDir)) {
+      if (tailIter.next().startsWith(blipPrefix)) {
         tailIter.remove();
-        log.trace("Removed {} from fileCandidates because it's in a bulk dir", fileCandidate);
         removeCount++;
       } else {
         break;
@@ -174,24 +161,14 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
           .accept(tabletDirCandidates.remove("/" + reference.getTableId() + "/" + lastThree.name));
       nonNullConsumer.accept(tableDirCandidates.remove(reference.getTableId().toString()));
     } else {
-      String path = new org.apache.hadoop.fs.Path(reference.getMetadataPath()).toString();
-      try {
-        var lastThree = lastThree(path, 2);
-        if (lastThree.maybeATableId != null) {
-          nonNullConsumer.accept(
-              tabletDirCandidates.remove("/" + lastThree.maybeATableId + "/" + lastThree.dir));
-          nonNullConsumer.accept(tableDirCandidates.remove(lastThree.maybeATableId));
-        }
-      } catch (IllegalArgumentException iae) {
-        log.debug("Unable to determine table and tablet dirs for path {}", path);
+      var lastThree = lastThree(reference.getMetadataPath(), 2);
+      if (lastThree.maybeATableId != null) {
+        nonNullConsumer.accept(
+            tabletDirCandidates.remove("/" + lastThree.maybeATableId + "/" + lastThree.dir));
+        nonNullConsumer.accept(tableDirCandidates.remove(lastThree.maybeATableId));
       }
-      log.trace("Removing file candidate that matches: {}", path);
-      nonNullConsumer.accept(fileCandidates.remove(path));
-      if (path.contains(Constants.BULK_PREFIX)) {
-        String dirPath = path.substring(0, path.lastIndexOf("/"));
-        log.trace("Removing file candidate that matches bulk dir path: {}", dirPath);
-        nonNullConsumer.accept(bulkDirCandidates.remove(dirPath));
-      }
+      nonNullConsumer.accept(bulkDirCandidates.remove(lastThree.dir));
+      nonNullConsumer.accept(fileCandidates.remove("/" + lastThree.dir + "/" + lastThree.name));
     }
   }
 
