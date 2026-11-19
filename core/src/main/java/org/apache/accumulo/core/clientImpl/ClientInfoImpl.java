@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.io.FileInputStream;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +31,9 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.hadoop.conf.Configuration;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -111,24 +116,25 @@ public class ClientInfoImpl implements ClientInfo {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided propertiesFile")
   public static Properties toProperties(Path propertiesFile) {
-    Properties properties = new Properties();
-    try (InputStream is = new FileInputStream(propertiesFile.toFile())) {
-      properties.load(is);
-    } catch (IOException e) {
+    try {
+      return toProperties(propertiesFile.toUri().toURL());
+    } catch (MalformedURLException e) {
       throw new IllegalArgumentException("Failed to load properties from " + propertiesFile, e);
     }
-    return properties;
   }
 
   @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
       justification = "code runs in same security context as user who provided propertiesURL")
   public static Properties toProperties(URL propertiesURL) {
-    Properties properties = new Properties();
-    try (InputStream is = propertiesURL.openStream()) {
-      properties.load(is);
-    } catch (IOException e) {
+    var config = new PropertiesConfiguration();
+    var fileHandler = new FileHandler(config);
+    try (var reader = new InputStreamReader(propertiesURL.openStream(), UTF_8)) {
+      fileHandler.load(reader);
+    } catch (ConfigurationException | IOException e) {
       throw new IllegalArgumentException("Failed to load properties from " + propertiesURL, e);
     }
+    Properties properties = new Properties();
+    config.getKeys().forEachRemaining(key -> properties.setProperty(key, config.getString(key)));
     return properties;
   }
 
