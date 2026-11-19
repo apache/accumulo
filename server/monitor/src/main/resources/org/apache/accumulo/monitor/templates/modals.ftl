@@ -18,49 +18,45 @@
     under the License.
 
 -->
-    <!-- Modal -->
-    <div id="aboutModal" data-target="#aboutModal" class="modal fade" role="dialog">
-      <div class="modal-dialog" role="document">
-        <!-- Modal content -->
+    <!-- About modal -->
+    <div id="aboutModal" class="modal fade" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
         <div class="modal-content">
-          <div>
-            <div class="modal-header justify-content-center">
-              <span class="modal-title">
-                <div class="text-center">
-                  <a href="https://accumulo.apache.org" target="_blank"><img alt="Apache Accumulo" src="resources/images/accumulo-logo.png" /></a>
-              </span>
-            </div>
+          <div class="modal-header justify-content-center position-relative">
+            <h5 class="modal-title" id="aboutModalLabel">
+              <a href="https://accumulo.apache.org" target="_blank" rel="noopener noreferrer">
+                <img alt="Apache Accumulo" src="resources/images/accumulo-logo.png" />
+              </a>
+            </h5>
+            <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <div class="container-fluid">
-              <div class="row justify-content-evenly">
-                <div class="col-sm-4 text-end">Software</div>
-                <div class="col-sm-8 text-start"><a href="https://accumulo.apache.org" target="_blank">Apache&nbsp;Accumulo</a></div>
+              <div class="row align-items-center">
+                <div class="col-sm-4 text-sm-end">Software</div>
+                <div class="col-sm-8"><a href="https://accumulo.apache.org" target="_blank" rel="noopener noreferrer">Apache&nbsp;Accumulo</a></div>
               </div>
-              <div class="row justify-content-evenly">
-                <div class="col-sm-4 text-end">Version</div>
-                <div class="col-sm-8 text-start"><span id="modal-version"></span></div>
+              <div class="row align-items-center">
+                <div class="col-sm-4 text-sm-end">Version</div>
+                <div class="col-sm-8"><span id="modal-version"></span></div>
               </div>
-              <div class="row justify-content-evenly">
-                <div class="col-sm-4 text-end">Instance&nbsp;Name</div>
-                <div class="col-sm-8 text-start"><span id="modal-instance-name"></span></div>
+              <div class="row align-items-center">
+                <div class="col-sm-4 text-sm-end">Instance&nbsp;Name</div>
+                <div class="col-sm-8"><span id="modal-instance-name"></span></div>
               </div>
-              <div class="row justify-content-evenly">
-                <div class="col-sm-4 text-end">Instance&nbsp;Id</div>
-                <div class="col-sm-8 text-start"><span id="modal-instance-id"></span></div>
+              <div class="row align-items-center">
+                <div class="col-sm-4 text-sm-end">Instance&nbsp;Id</div>
+                <div class="col-sm-8"><span id="modal-instance-id"></span></div>
               </div>
-              <div class="row justify-content-evenly">
-                <div class="col-sm-4 text-end">ZooKeeper&nbsp;Hosts</div>
-                <div class="col-sm-8 text-start"><span id="modal-zk-hosts"></span></div>
+              <div class="row align-items-center">
+                <div class="col-sm-4 text-sm-end">ZooKeeper&nbsp;Hosts</div>
+                <div class="col-sm-8"><span id="modal-zk-hosts"></span></div>
               </div>
-              <div class="row justify-content-evenly">
-                <div class="col-sm-4 text-end">Volumes</div>
-                <div class="col-sm-8 text-start"><span id="modal-volumes"></span></div>
+              <div class="row align-items-center">
+                <div class="col-sm-4 text-sm-end">Volumes</div>
+                <div class="col-sm-8"><span id="modal-volumes"></span></div>
               </div>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
         </div>
       </div>

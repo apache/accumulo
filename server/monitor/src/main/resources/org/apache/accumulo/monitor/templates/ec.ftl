@@ -19,64 +19,63 @@
 
 -->
       <div class="row">
-        <div class="col-xs-12">
-          <h3>${title}</h3>
+        <div class="col-12">
+          <h1 class="h3">${title}</h1>
         </div>
       </div>
       <div id="runningDiv">
         <div class="row">
-          <div class="col-xs-12">
-            <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
-              <caption>
-                <div class="accordion" id="filterAccordion">
-                  <div class="accordion-item">
-                    <h2 class="accordion-header" id="filterHeading">
-                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
-                        Filters
-                      </button>
-                    </h2>
-                    <div id="filterCollapse" class="accordion-collapse collapse" aria-labelledby="filterHeading" data-bs-parent="#filterAccordion">
-                      <div class="accordion-body">
-                        <!-- Hostname Filter -->
-                        <div class="mb-3">
-                          <label for="hostname-filter" class="form-label">Hostname Filter</label>
-                          <input type="text" id="hostname-filter" class="form-control" placeholder="Enter hostname regex">
-                          <small id="hostname-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                        </div>
-                        <!-- Queue Filter -->
-                        <div class="mb-3">
-                          <label for="queue-filter" class="form-label">Queue Filter</label>
-                          <input type="text" id="queue-filter" class="form-control" placeholder="Enter queue regex">
-                          <small id="queue-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                        </div>
-                        <!-- Table ID Filter -->
-                        <div class="mb-3">
-                          <label for="tableid-filter" class="form-label">Table ID Filter</label>
-                          <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
-                          <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                        </div>
-                        <!-- ECID Filter -->
-                        <div class="mb-3">
-                          <label for="ecid-filter" class="form-label">ECID Filter</label>
-                          <input type="text" id="ecid-filter" class="form-control" placeholder="Enter ECID regex">
-                          <small id="ecid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
-                        </div>
-                        <!-- Duration Filter -->
-                        <div class="mb-3">
-                          <label for="duration-filter" class="form-label">Duration Filter</label>
-                          <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)">
-                          <small id="duration-feedback" class="form-text text-danger" style="display:none;">Invalid duration format</small>
-                          <small class="form-text text-muted">Valid formats: &gt;10m, &lt;1h, &gt;=5s, &lt;=2d</small>
-                        </div>
-                        <!-- Clear Filters Button -->
-                        <div class="mb-3">
-                          <button id="clear-filters" class="btn btn-secondary">Clear Filters</button>
-                        </div>
-                      </div>
+          <div class="col-12">
+            <div class="accordion" id="filterAccordion">
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="filterHeading">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                    Filters
+                  </button>
+                </h2>
+                <div id="filterCollapse" class="accordion-collapse collapse" aria-labelledby="filterHeading" data-bs-parent="#filterAccordion">
+                  <div class="accordion-body">
+                    <!-- Hostname Filter -->
+                    <div class="mb-3">
+                      <label for="hostname-filter" class="form-label">Hostname Filter</label>
+                      <input type="text" id="hostname-filter" class="form-control" placeholder="Enter hostname regex" aria-describedby="hostname-feedback">
+                      <small id="hostname-feedback" class="form-text text-danger" style="display:none;" aria-live="polite">Invalid regex pattern</small>
+                    </div>
+                    <!-- Queue Filter -->
+                    <div class="mb-3">
+                      <label for="queue-filter" class="form-label">Queue Filter</label>
+                      <input type="text" id="queue-filter" class="form-control" placeholder="Enter queue regex" aria-describedby="queue-feedback">
+                      <small id="queue-feedback" class="form-text text-danger" style="display:none;" aria-live="polite">Invalid regex pattern</small>
+                    </div>
+                    <!-- Table ID Filter -->
+                    <div class="mb-3">
+                      <label for="tableid-filter" class="form-label">Table ID Filter</label>
+                      <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex" aria-describedby="tableid-feedback">
+                      <small id="tableid-feedback" class="form-text text-danger" style="display:none;" aria-live="polite">Invalid regex pattern</small>
+                    </div>
+                    <!-- ECID Filter -->
+                    <div class="mb-3">
+                      <label for="ecid-filter" class="form-label">ECID Filter</label>
+                      <input type="text" id="ecid-filter" class="form-control" placeholder="Enter ECID regex" aria-describedby="ecid-feedback">
+                      <small id="ecid-feedback" class="form-text text-danger" style="display:none;" aria-live="polite">Invalid regex pattern</small>
+                    </div>
+                    <!-- Duration Filter -->
+                    <div class="mb-3">
+                      <label for="duration-filter" class="form-label">Duration Filter</label>
+                      <input type="text" id="duration-filter" class="form-control" placeholder="Enter duration (e.g., &gt;10m, &lt;1h, &gt;=5s, &lt;=2d)" aria-describedby="duration-feedback duration-help">
+                      <small id="duration-feedback" class="form-text text-danger" style="display:none;" aria-live="polite">Invalid duration format</small>
+                      <small id="duration-help" class="form-text text-body-secondary">Valid formats: &gt;10m, &lt;1h, &gt;=5s, &lt;=2d</small>
+                    </div>
+                    <!-- Clear Filters Button -->
+                    <div class="mb-3">
+                      <button id="clear-filters" type="button" class="btn btn-secondary">Clear Filters</button>
                     </div>
                   </div>
                 </div>
-              </caption>
+              </div>
+            </div>
+            <table id="runningTable" class="table caption-top table-bordered table-striped table-sm">
+              <caption>Running External Compactions</caption>
               <thead>
                 <tr>
                   <th class="firstcell" title="The hostname the compactor is running on.">Server Hostname</th>

@@ -23,17 +23,17 @@
          * Creates participating Tservers initial table, passes the tableId from the template
          */
         $(function () {
-          initTableServerTable('${tableId}');
+          initTableServerTable('${tableId?js_string}');
         });
       </script>
       <div class="row">
-        <div class="col-xs-12">
-          <h3>Details for table ${table} <small>(ID: ${tableId})</small></h3>
+        <div class="col-12">
+          <h1 class="h3">Details for table ${table?html} <small>(ID: ${tableId?html})</small></h1>
         </div>
       </div>
       <div class="row">
-        <div class="col-xs-12">
-          <table id="participatingTServers" class="table caption-top table-bordered table-striped table-condensed">
+        <div class="col-12">
+          <table id="participatingTServers" class="table caption-top table-bordered table-striped table-sm">
             <caption><span class="table-caption">Table Summary</span></caption>
             <thead>
               <tr>
@@ -58,8 +58,8 @@
       </div>
       <br><br>
       <div class="row">
-        <div class="col-xs-12">
-          <table id="tabletServersList" class="table caption-top table-bordered table-striped table-condensed">
+        <div class="col-12">
+          <table id="tabletServersList" class="table caption-top table-bordered table-striped table-sm">
             <caption><span class="table-caption">Tablet Distribution Summary</span></caption>
             <thead>
               <tr>
@@ -78,8 +78,8 @@
       <br><br>
       <!-- Section for tablets details DataTable -->
       <div class="row">
-        <div class="col-xs-12">
-          <table id="tabletsList" class="table caption-top table-bordered table-striped table-condensed">
+        <div class="col-12">
+          <table id="tabletsList" class="table caption-top table-bordered table-striped table-sm">
             <caption><span class="table-caption">Tablet Details</span></caption>
             <thead>
               <tr>
