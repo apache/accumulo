@@ -250,10 +250,10 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         refs = references.collect(Collectors.toList());
       }
       assertTrue(refs.size() > fileCount * 2);
-      List<Reference> tableRefs =
-          refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())
-              .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
-              .collect(Collectors.toList());
+      List<Reference> tableRefs = refs.stream()
+          .filter(r -> r.getMetadataPath().contains("/" + tid + "/") && !r.isDirectory())
+          .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
+          .collect(Collectors.toList());
       log.info("Reference List:{}", tableRefs);
       // There should be 6 references here. 3 for the table file entries, and 3 for the scan
       // server references
