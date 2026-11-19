@@ -281,6 +281,36 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
+
+  public TxSnapshot<T> readSnapshot(FateId fateId) {
+    try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setRange(getRow(fateId));
+
+      // looking for if scanner does now find row
+      if (scanner.getRange() == null){
+        return new TxSnapshot<>(TStatus.UNKNOWN, null, null, 0);
+      }
+      else{
+        // fetch each column needed for the record
+        TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
+        TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
+        scanner.fetchColumnFamily(RepoColumnFamily.NAME);
+        TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
+
+        scanner.stream().map(e -> {
+          @SuppressWarnings("unchecked")
+          var repo = (Repo<T>) deserialize(e.getValue().get());
+          return repo;
+        }).findFirst().orElse(null);
+
+        return
+      }
+    }
+    catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
+    }
+  }
+
   @Override
   protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
     return getTransactions(FatePartition.all(FateInstanceType.USER), statuses);

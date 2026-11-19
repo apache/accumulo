@@ -600,11 +600,10 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   public TxSnapshot<T> readSnapshot(FateId fateId) {
     FateData<T> fateData = getFateData(fateId);
-    Stat stat = new Stat();
     long createdTime = 0;
 
     if (fateData.status != UNKNOWN) {
-      createdTime = stat.getCtime();
+      createdTime = new Stat().getCtime();
     }
 
     return new TxSnapshot<>(fateData.status, (FateOperation) fateData.txInfo.get(TxInfo.FATE_OP),
