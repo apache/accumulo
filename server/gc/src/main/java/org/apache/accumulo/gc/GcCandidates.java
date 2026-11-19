@@ -54,7 +54,7 @@ import com.google.common.collect.Iterators;
  * replacements. If absolute paths were used, then more complex normalization and volume
  * replacements would need to be considered. Considering both of these increases the surface area
  * for mismatch bugs that could lead to deleting referenced files.
- * </p>
+ *
  * <p>
  * Using relative paths is done with the following assumptions.
  * <ul>
@@ -69,14 +69,13 @@ import com.google.common.collect.Iterators;
  * <li>Bulk directories will have a {@code b-} prefix. If users are allowed to generate file names
  * for bulk import, it would be best for this code enforce another prefix like {@code be-}</li>
  * </ul>
- * </p>
+ *
  * <p>
  * Putting the above assumptions together leads to the conclusion that the last two parts of a file
  * path are globally unique. For the case of a tables default tablet, its directory name is not
  * unique but all the files in the directory are. For the case of a user named bulk import path, its
  * file names may not be unique but its directory is. So for file matching only the last two path
  * elements are needed.
- * </p>
  *
  * <p>
  * When matching tablet directory deletion candidates, this code uses relative paths of the form
@@ -84,13 +83,11 @@ import com.google.common.collect.Iterators;
  * directory name not being unique across tables. When the table id is added, it makes the relative
  * path globally unique. Files in tablet directories are only created by Accumulo, so do not need to
  * consider matching user generated bulk paths.
- * </p>
  *
  * <p>
  * When matching bulk directories, it is assumed that bulk directory names are globally unique. User
  * created bulk paths may not have table id. Therefore, only the bulk directory name is used for
  * matching bulk directory candidates.
- * </p>
  *
  * <p>
  * When matching table deletion candidates, bulk and tablet directories are considered. User
@@ -98,7 +95,6 @@ import com.google.common.collect.Iterators;
  * match that prevents deleting an empty table directory. As simple solution to this would be to
  * give user generated bulk directories a different prefix like {@code be-}, then those need not be
  * considered for matching.
- * </p>
  */
 public class GcCandidates extends AbstractCollection<GcCandidate> {
 
