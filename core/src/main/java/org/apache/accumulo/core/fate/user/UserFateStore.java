@@ -282,6 +282,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public TxSnapshot<T> readSnapshot(FateId fateId) {
     try (Scanner scanner =
