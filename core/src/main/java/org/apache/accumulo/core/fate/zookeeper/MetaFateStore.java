@@ -598,6 +598,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     return new FateTxStoreImpl(fateId);
   }
 
+  @Override
   public TxSnapshot<T> readSnapshot(FateId fateId) {
     FateData<T> fateData = getFateData(fateId);
     long createdTime = 0;

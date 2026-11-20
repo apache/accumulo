@@ -58,11 +58,6 @@ public interface ReadOnlyFateStore<T> {
 
   /**
    * Record to hold a fate transaction's data for use in AdminUtil
-   *
-   * @param status
-   * @param fateOp
-   * @param top
-   * @param timeCreated
    */
   record TxSnapshot<T>(TStatus status, Fate.FateOperation fateOp, Repo<T> top, long timeCreated) {
   };
