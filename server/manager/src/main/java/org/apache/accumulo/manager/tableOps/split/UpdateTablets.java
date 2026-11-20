@@ -137,6 +137,7 @@ public class UpdateTablets extends AbstractFateOperation {
       Function<StoredTabletFile,FileSKVIterator.FileRange> fileInfoProvider) {
 
     Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> tabletsFiles = new TreeMap<>();
+    Map<StoredTabletFile,Integer> fileTabletCount = new HashMap<>();
 
     newTablets.keySet().forEach(extent -> tabletsFiles.put(extent, new HashMap<>()));
 
@@ -180,6 +181,8 @@ public class UpdateTablets extends AbstractFateOperation {
       double numOverlapping =
           newTablets.keySet().stream().map(KeyExtent::toDataRange).filter(overlapPredicate).count();
 
+      fileTabletCount.put(file, (int) numOverlapping);
+
       if (numOverlapping == 0) {
         log.debug("{} File {} with range {} that does not overlap tablet {}", fateId, file,
             fileRange, tabletMetadata.getExtent());
@@ -191,8 +194,9 @@ public class UpdateTablets extends AbstractFateOperation {
         // add the file to the tablets it overlaps
         newTablets.keySet().forEach(newTablet -> {
           if (overlapPredicate.apply(newTablet.toDataRange())) {
+            boolean isShared = numOverlapping > 1;
             DataFileValue ndfv = new DataFileValue((long) sizePerTablet, (long) entriesPerTablet,
-                dataFileValue.getTime());
+                dataFileValue.getTime(), isShared);
             tabletsFiles.get(newTablet).put(file, ndfv);
           }
         });
