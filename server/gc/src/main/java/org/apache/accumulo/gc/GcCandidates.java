@@ -129,15 +129,14 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   public int removeBlip(String blip) {
     var lastThree = lastThree(blip, false, 2, 2);
 
-    String blipPrefix = "/" + lastThree.name;
+    String blipPrefix = "/" + lastThree.name + "/";
 
     bulkDirCandidates.remove(lastThree.name);
 
     var tailIter = fileCandidates.tailMap(blipPrefix).keySet().iterator();
-    String blipDir = blipPrefix + "/";
     int removeCount = 0;
     while (tailIter.hasNext()) {
-      if (tailIter.next().startsWith(blipDir)) {
+      if (tailIter.next().startsWith(blipPrefix)) {
         tailIter.remove();
         removeCount++;
       } else {

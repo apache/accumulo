@@ -82,7 +82,7 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
     } catch (IllegalArgumentException e) {
       // External file references need not contain the Accumulo tables directory. Include their
       // full URI so this command remains useful without inventing a volume root.
-      return "EXTERNAL: " + path;
+      return "EXTERNAL: " + path.getParent().getParent();
     }
   }
 
