@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
@@ -34,94 +33,46 @@ import org.junit.jupiter.api.Test;
 
 public class ReferencedTabletFileTest {
 
-  private ReferencedTabletFile test(String metadataFile, String volume, String tableId,
-      String tabletDir, String fileName) {
+  private ReferencedTabletFile test(String metadataFile, String fileName) {
     String metadataPath = StoredTabletFile.serialize(metadataFile);
     StoredTabletFile storedTabletFile = new StoredTabletFile(metadataPath);
     ReferencedTabletFile tabletFile = storedTabletFile.getTabletFile();
 
     // Make sure original file name wasn't changed when serialized
     assertTrue(metadataPath.contains(metadataFile));
-    assertEquals(volume, tabletFile.getVolume());
     assertEquals(metadataPath, storedTabletFile.getMetadata());
-    assertEquals(TableId.of(tableId), tabletFile.getTableId());
-    assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
     return tabletFile;
   }
 
   @Test
   public void testValidPaths() {
-    test("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf",
-        "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf");
-    test("hdfs://nn1:9000/accumulo/tables/5a/t-0005/C0009.rf", "hdfs://nn1:9000/accumulo", "5a",
-        "t-0005", "C0009.rf");
-    test(
-        "file:/home/dude/workspace/accumulo/test/target/mini-tests/org.apache.accumulo.test.VolumeIT_test/volumes/v1/tables/1/t-0000003/F0000006.rf",
-        "file:/home/dude/workspace/accumulo/test/target/mini-tests/org.apache.accumulo.test.VolumeIT_test/volumes/v1",
-        "1", "t-0000003", "F0000006.rf");
+    test("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf", "F0000070.rf");
+    test("hdfs://nn1:9000/unrelated/external/location/C0009.rf", "C0009.rf");
+    test("file:/home/dude/external-data/F0000006.rf", "F0000006.rf");
   }
 
   @Test
   public void testBadPaths() {
-    // 2a< srv:dir
-    final String message = "Failed to throw error on bad path";
-
     assertThrows(IllegalArgumentException.class,
-        () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"), message);
-    assertThrows(IllegalArgumentException.class, () -> test("dir", "", "2a", "", ""), message);
-
-    assertThrows(IllegalArgumentException.class,
-        () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
-            "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf"),
-        message);
-    assertThrows(IllegalArgumentException.class,
-        () -> test("hdfs://localhost:8020/accumulo/2a/default_tablet/F0000070.rf",
-            " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf"),
-        message);
-    assertThrows(IllegalArgumentException.class,
-        () -> test("/accumulo/tables/2a/default_tablet/F0000070.rf", "", "2a", "default_tablet",
-            "F0000070.rf"),
-        message);
-    assertThrows(IllegalArgumentException.class,
-        () -> test("hdfs://localhost:8020/accumulo/tables/2a/F0000070.rf",
-            "hdfs://localhost:8020/accumulo", "2a", "", "F0000070.rf"),
-        message);
-    assertThrows(IllegalArgumentException.class,
-        () -> test("hdfs://localhost:8020/accumulo/tables/F0000070.rf",
-            "hdfs://localhost:8020/accumulo", null, "", "F0000070.rf"),
-        message);
-
-  }
-
-  private final String id = "2a";
-  private final String dir = "t-0003";
-  private final String filename = "C0004.rf";
-
-  @Test
-  public void testFullPathWithVolume() {
-    String volume = "hdfs://1.2.3.4/accumulo";
-    String metadataEntry = volume + "/tables/" + id + "/" + dir + "/" + filename;
-    test(metadataEntry, volume, id, dir, filename);
+        () -> new ReferencedTabletFile(new Path("C0004.rf")));
+    assertThrows(IllegalArgumentException.class, () -> new ReferencedTabletFile(new Path("dir")));
   }
 
   @Test
   public void testNormalizePath() {
-    String uglyVolume = "hdfs://nn.somewhere.com:86753/accumulo/blah/.././/bad/bad2/../.././/////";
-    String metadataEntry = uglyVolume + "/tables/" + id + "/" + dir + "/" + filename;
-    ReferencedTabletFile uglyFile =
-        test(metadataEntry, "hdfs://nn.somewhere.com:86753/accumulo", id, dir, filename);
+    String uglyPath =
+        "hdfs://nn.somewhere.com:86753/external/blah/.././/bad/bad2/../.././/////file.rf";
+    ReferencedTabletFile uglyFile = test(uglyPath, "file.rf");
     ReferencedTabletFile niceFile = StoredTabletFile
-        .of(new Path(
-            "hdfs://nn.somewhere.com:86753/accumulo/tables/" + id + "/" + dir + "/" + filename))
-        .getTabletFile();
+        .of(new Path("hdfs://nn.somewhere.com:86753/external/file.rf")).getTabletFile();
     assertEquals(niceFile, uglyFile);
     assertEquals(niceFile.hashCode(), uglyFile.hashCode());
   }
 
   @Test
   public void testNonRowRange() {
-    Path testPath = new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf");
+    Path testPath = new Path("hdfs://localhost:8020/outside/F0000070.rf");
 
     // range where start key is not a row key
     Range r1 = new Range(new Key("r1", "f1"), true, null, false);

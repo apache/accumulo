@@ -315,14 +315,15 @@ public class MetadataConstraintsTest {
         new Value(fateId1.canonical()));
     assertViolation(mc, m, (short) 3100);
 
-    // Missing tables directory in path
+    // External files do not need to be in the tables directory
     m = new Mutation(new Text("0;foo"));
-    m.put(BulkFileColumnFamily.NAME,
+    Text externalFileMetadata =
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
-                "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
-        new Value(fateId1.canonical()));
-    assertViolation(mc, m, (short) 3100);
+                "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile"));
+    m.put(BulkFileColumnFamily.NAME, externalFileMetadata, new Value(fateId1.canonical()));
+    m.put(DataFileColumnFamily.NAME, externalFileMetadata, new DataFileValue(1, 1).encodeAsValue());
+    assertTrue(mc.check(createEnv(), m).isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     m.put(
@@ -477,14 +478,14 @@ public class MetadataConstraintsTest {
         value);
     assertViolation(mc, m, (short) 3100);
 
-    // Missing tables directory in path
+    // External files do not need to be in the tables directory
     m = new Mutation(new Text("0;foo"));
     m.put(columnFamily,
         new Text(StoredTabletFile.of(new Path("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile"))
             .getMetadata().replace("hdfs://1.2.3.4/accumulo/tables/2a/t-0003/someFile",
                 "hdfs://1.2.3.4/accumulo/2a/t-0003/someFile")),
         new DataFileValue(1, 1).encodeAsValue());
-    assertViolation(mc, m, (short) 3100);
+    assertTrue(mc.check(createEnv(), m).isEmpty());
 
     // Should pass validation (inf range)
     m = new Mutation(new Text("0;foo"));

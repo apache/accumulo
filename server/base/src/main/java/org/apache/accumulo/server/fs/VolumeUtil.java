@@ -65,11 +65,38 @@ public class VolumeUtil {
     Path replacement = null;
     if (!replacements.isEmpty()) {
       // removing trailing slash for exact match comparison on the volume itself
-      Path volume = removeTrailingSlash(ft.getVolume(requireNonNull(path)));
-      replacement = replacements.entrySet().stream()
-          .filter(entry -> removeTrailingSlash(entry.getKey()).equals(volume))
-          .map(entry -> new Path(entry.getValue(), requireNonNull(ft.removeVolume(path))))
-          .findFirst().orElse(null);
+      try {
+        Path volume = removeTrailingSlash(ft.getVolume(requireNonNull(path)));
+        replacement = replacements.entrySet().stream()
+            .filter(entry -> removeTrailingSlash(entry.getKey()).equals(volume))
+            .map(entry -> new Path(entry.getValue(), requireNonNull(ft.removeVolume(path))))
+            .findFirst().orElse(null);
+      } catch (IllegalArgumentException e) {
+        // ft.getVolume could not find the file type in the path
+        // which means this is an external file. Handle volume replacement
+        // differently
+        final String src = path.toString();
+        int matchingLength = 0;
+        Entry<Path,Path> matchingEntry = null;
+        for (Entry<Path,Path> entry : replacements.entrySet()) {
+          // Since the path is not in a volume, we need to use a
+          // trailing slash on the replacement volume to ensure
+          // an exact match.
+          String replacementKey = entry.getKey().toString().endsWith("/")
+              ? entry.getKey().toString() : entry.getKey().toString() + "/";
+          if (src.regionMatches(0, replacementKey, 0, replacementKey.length())) {
+            if (replacementKey.length() > matchingLength) {
+              matchingLength = replacementKey.length();
+              matchingEntry = entry;
+            }
+          }
+        }
+        if (matchingEntry != null) {
+          // subtract one from the matching length for the slash we added above
+          replacement =
+              new Path(matchingEntry.getValue().toString() + src.substring(matchingLength - 1));
+        }
+      }
     }
     if (replacement != null) {
       log.trace("Replacing {} with {} for {}", path, replacement, ft);
@@ -79,6 +106,24 @@ public class VolumeUtil {
     return null;
   }
 
+  /*
+   * public static Path switchVolume(Path path, FileType ft, Map<Path,Path> replacements) {
+   * requireNonNull(path); for (Entry<Path,Path> entry : replacements.entrySet()) { Path source =
+   * removeTrailingSlash(entry.getKey()); Path relative = getRelativePath(source, path); if
+   * (relative != null) { Path replacement = relative.toString().equals(".") ? entry.getValue() :
+   * new Path(entry.getValue(), relative); log.trace("Replacing {} with {} for {}", path,
+   * replacement, ft); return replacement; } } log.trace("No replacement available for {} at {}",
+   * ft, path); return null; }
+   *
+   * private static Path getRelativePath(Path parent, Path path) { ArrayList<String> names = new
+   * ArrayList<>(); Path current = path; while (current != null && !current.equals(parent)) {
+   * names.add(current.getName()); current = current.getParent(); } if (current == null) { return
+   * null; }
+   *
+   * Path relative = null; for (int i = names.size() - 1; i >= 0; i--) { relative = relative == null
+   * ? new Path(names.get(i)) : new Path(relative, names.get(i)); } return relative == null ? new
+   * Path(".") : relative; }
+   */
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
     Path switchedPath = switchVolume(le.getPath(), FileType.WAL, replacements);
     return switchedPath == null ? null : LogEntry.withSwitchedVolume(le, switchedPath);
