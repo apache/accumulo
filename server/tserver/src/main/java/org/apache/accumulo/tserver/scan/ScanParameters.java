@@ -40,6 +40,7 @@ public final class ScanParameters {
   private final Map<String,Map<String,String>> ssio;
   private final int maxEntries;
   private final boolean isolated;
+  private final boolean eventual;
   private final SamplerConfiguration samplerConfig;
   private final long batchTimeOut;
   private final String classLoaderContext;
@@ -49,6 +50,14 @@ public final class ScanParameters {
   public ScanParameters(int maxEntries, Authorizations authorizations, Set<Column> columnSet,
       List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, boolean isolated,
       SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext) {
+    this(maxEntries, authorizations, columnSet, ssiList, ssio, isolated, samplerConfig,
+        batchTimeOut, classLoaderContext, false);
+  }
+
+  public ScanParameters(int maxEntries, Authorizations authorizations, Set<Column> columnSet,
+      List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, boolean isolated,
+      SamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext,
+      boolean eventual) {
     this.maxEntries = maxEntries;
     this.authorizations = authorizations;
     this.columnSet = columnSet;
@@ -58,6 +67,7 @@ public final class ScanParameters {
     this.samplerConfig = samplerConfig;
     this.batchTimeOut = batchTimeOut;
     this.classLoaderContext = classLoaderContext;
+    this.eventual = eventual;
   }
 
   public Authorizations getAuthorizations() {
@@ -113,6 +123,10 @@ public final class ScanParameters {
 
   public Long getScanSessionId() {
     return scanSessionId;
+  }
+
+  public boolean isEventual() {
+    return eventual;
   }
 
   @Override

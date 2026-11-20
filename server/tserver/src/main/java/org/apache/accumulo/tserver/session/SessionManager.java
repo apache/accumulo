@@ -471,6 +471,7 @@ public class SessionManager {
     // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
     // ActiveScan constructor
     activeScan.setScanId(scanId);
+    activeScan.setEventual(params.isEventual());
     activeScans.add(activeScan);
   }
 }

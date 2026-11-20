@@ -1055,7 +1055,7 @@ public class ScanServer extends AbstractServer
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig,
       long batchTimeOut, String classLoaderContext, Map<String,String> executionHints,
-      long busyTimeout) throws ThriftSecurityException, NotServingTabletException,
+      long busyTimeout, boolean eventual) throws ThriftSecurityException, NotServingTabletException,
       TooManyFilesException, TSampleNotPresentException, TException {
 
     if (isShutdownRequested()) {
@@ -1083,7 +1083,7 @@ public class ScanServer extends AbstractServer
       InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
-          busyTimeout);
+          busyTimeout, eventual);
 
       LOG.trace("started scan: {}", is.getScanID());
       return is;
@@ -1122,7 +1122,7 @@ public class ScanServer extends AbstractServer
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
-      Map<String,String> executionHints, long busyTimeout)
+      Map<String,String> executionHints, long busyTimeout, boolean eventual)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
     if (isShutdownRequested()) {
@@ -1162,7 +1162,7 @@ public class ScanServer extends AbstractServer
 
       InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
-          executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
+          executionHints, getBatchScanTabletResolver(tablets), busyTimeout, eventual);
 
       LOG.trace("started multi scan: {}", ims.getScanID());
       return ims;
