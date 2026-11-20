@@ -132,6 +132,11 @@ public class FateLogger {
       }
 
       @Override
+      public TxSnapshot<T> readSnapshot(FateId fateId) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
       public Stream<FateIdStatus> list() {
         return store.list();
       }

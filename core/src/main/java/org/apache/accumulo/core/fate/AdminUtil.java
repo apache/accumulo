@@ -38,7 +38,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
@@ -378,11 +377,10 @@ public class AdminUtil<T> {
       try (Stream<FateId> fateIds = store.list().map(FateIdStatus::getFateId)) {
         fateIds.forEach(fateId -> {
 
-          ReadOnlyFateTxStore<T> txStore = store.read(fateId);
+          ReadOnlyFateStore.TxSnapshot<T> txSnapshot = store.readSnapshot(fateId);
 
           // fate op will not be set if the tx is not seeded with work (it is NEW)
-          Fate.FateOperation fateOp = txStore.getTransactionInfo(Fate.TxInfo.FATE_OP) == null ? null
-              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.FATE_OP));
+          Fate.FateOperation fateOp = txSnapshot.fateOp();
 
           List<String> hlocks = heldLocks.remove(fateId);
 
@@ -398,7 +396,7 @@ public class AdminUtil<T> {
 
           String top = null;
           String details = null;
-          ReadOnlyRepo<T> repo = txStore.top();
+          ReadOnlyRepo<T> repo = txSnapshot.top();
           if (repo != null) {
             top = repo.getName();
             if (includeDetails) {
@@ -406,18 +404,17 @@ public class AdminUtil<T> {
             }
           }
 
-          TStatus status = txStore.getStatus();
-          long timeCreated = txStore.timeCreated();
-
           // the transaction was deleted while its info was being read, skip it
-          if (status == TStatus.UNKNOWN || timeCreated == 0) {
+          if (txSnapshot.status() == TStatus.UNKNOWN) {
             return;
           }
 
-          if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
+          if (includeByStatus(txSnapshot.status(), statusFilter)
+              && includeByFateId(fateId, fateIdFilter)
               && includeByInstanceType(fateId.getType(), typesFilter)) {
-            statuses.add(new TransactionStatus(fateId, type, status, fateOp, hlocks, wlocks, top,
-                timeCreated, lockRanges.getOrDefault(fateId, LockRange.infinite()), details));
+            statuses.add(new TransactionStatus(fateId, type, txSnapshot.status(), fateOp, hlocks,
+                wlocks, top, txSnapshot.timeCreated(),
+                lockRanges.getOrDefault(fateId, LockRange.infinite()), details));
           }
         });
       }

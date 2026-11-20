@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -278,6 +279,47 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         // the dead transaction. If it was not written, the next cycle/call to
         // deleteDeadReservations() will try again.
       }
+    }
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public TxSnapshot<T> readSnapshot(FateId fateId) {
+    try (Scanner scanner =
+        new IsolatedScanner(context.createScanner(tableName, Authorizations.EMPTY))) {
+      scanner.setRange(getRow(fateId));
+
+      // fetch each column needed for the record
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(RepoColumnFamily.NAME);
+      TxColumnFamily.CREATE_TIME_COLUMN.fetch(scanner);
+
+      // fields for the TxSnapshot record
+      TStatus status = TStatus.UNKNOWN;
+      FateOperation op = null;
+      Repo<T> top = null;
+      long createdTime = 0;
+
+      // loop through scanner entries, build TxSnapshot record
+      for (Entry<Key,Value> entry : scanner) {
+        Text colf = entry.getKey().getColumnFamily();
+        Value val = entry.getValue();
+        if (TxAdminColumnFamily.STATUS_COLUMN.hasColumns(entry.getKey())) {
+          status = TStatus.valueOf(val.toString());
+        } else if (TxAdminColumnFamily.FATE_OP_COLUMN.hasColumns(entry.getKey())) {
+          op = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
+        } else if (RepoColumnFamily.NAME.equals(colf)) {
+          if (top != null) {
+            top = (Repo<T>) deserialize(entry.getValue().get());
+          }
+        } else if (TxColumnFamily.CREATE_TIME_COLUMN.hasColumns(entry.getKey())) {
+          createdTime = Long.parseLong(val.toString());
+        }
+      }
+      return new TxSnapshot<>(status, op, top, createdTime);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException(tableName + " not found!", e);
     }
   }
 
