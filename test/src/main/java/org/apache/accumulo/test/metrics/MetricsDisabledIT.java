@@ -37,7 +37,7 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.fate.FateTestUtil;
-import org.apache.accumulo.test.fate.SlowFateSplitManager;
+import org.apache.accumulo.test.fate.custom.SlowFateSplitManager;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
