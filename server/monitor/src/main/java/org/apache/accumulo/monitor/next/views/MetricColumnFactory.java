@@ -36,6 +36,7 @@ public class MetricColumnFactory implements ColumnFactory {
   private final Column column;
   private final boolean computeRate;
   private final Predicate<String> statPredicate;
+  private final double multiple;
 
   MetricColumnFactory(Metric metric) {
     String classes;
@@ -53,6 +54,13 @@ public class MetricColumnFactory implements ColumnFactory {
     }
     this.column = new Column(metric.getName(), metric.getColumnHeader(),
         metric.getColumnDescription(), classes);
+
+    if (metric.getType() == Metric.MetricType.TIMER) {
+      // metrics report in seconds and the monitor expects millis, so set this for conversion
+      multiple = 1000.0;
+    } else {
+      multiple = 1.0;
+    }
 
     statPredicate = switch (metric.getType()) {
       case GAUGE -> sv -> sv.equals(StatType.VALUE);
@@ -72,11 +80,15 @@ public class MetricColumnFactory implements ColumnFactory {
   @Override
   public Object getRowData(ServerId sid, MetricResponse mr,
       Map<String,List<FMetric>> serverMetrics) {
-    var sum = sum(serverMetrics.getOrDefault(column.key(), List.of()), statPredicate);
+    Number sum = sum(serverMetrics.getOrDefault(column.key(), List.of()), statPredicate);
     if (computeRate) {
-      return computeRate(sum);
-    } else {
-      return sum;
+      sum = computeRate(sum);
     }
+
+    if (sum != null && multiple != 1.0) {
+      sum = sum.doubleValue() * multiple;
+    }
+
+    return sum;
   }
 }
