@@ -107,9 +107,9 @@ public class CoordinatorManager {
           // This code is running in the primary manager, so should find ourselves.
           throw new IllegalStateException("No primary manager found");
         }
+        var primary = HostAndPort.fromString(primaryManager);
 
-        var desired =
-            computeAssignments(HostAndPort.fromString(primaryManager), current, configuredGroups);
+        var desired = computeAssignments(primary, current, configuredGroups);
 
         log.trace("Desired assignments {}", desired);
         if (!current.equals(desired)) {
@@ -127,7 +127,15 @@ public class CoordinatorManager {
               .getTimeInMillis(Property.COMPACTION_COORDINATOR_ASSIGNMENT_MAX));
         }
 
-        advertiseAssignments(desired);
+        if (desired.size() > 1 && desired.getOrDefault(primary, Set.of()).isEmpty()) {
+          // Do not advertise the primary as a coordinator when nothing is assigned to it and there
+          // is more that one manager.
+          var copy = new HashMap<>(desired);
+          copy.remove(primary);
+          advertiseAssignments(copy);
+        } else {
+          advertiseAssignments(desired);
+        }
       } catch (Exception e) {
         log.warn("Failed to set compaction coordinator assignments", e);
         sleepTime = context.getConfiguration()
@@ -142,15 +150,10 @@ public class CoordinatorManager {
 
   private void advertiseAssignments(Map<HostAndPort,Set<ResourceGroupId>> desired)
       throws InterruptedException, KeeperException {
-    // transform desired set to look like what is in zookeeper
-    HashMap<ResourceGroupId,HostAndPort> locations = new HashMap<>();
-    desired.forEach((hp, rgs) -> {
-      rgs.forEach(rg -> locations.put(rg, hp));
-    });
 
-    var assignmentsInZk = context.getCoordinatorLocations().locations();
-    if (!locations.equals(assignmentsInZk)) {
-      CoordinatorLocationsFactory.setLocations(context.getZooSession().asReaderWriter(), locations,
+    var assignmentsInZk = context.getCoordinatorLocations().hostAssignments();
+    if (!desired.equals(assignmentsInZk)) {
+      CoordinatorLocationsFactory.setLocations(context.getZooSession().asReaderWriter(), desired,
           NodeExistsPolicy.OVERWRITE);
       log.debug("Set new coordinator locations {}", desired);
 

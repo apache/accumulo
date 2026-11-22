@@ -604,7 +604,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     var coordinatorHost = switch (locationType) {
       case GROUP -> {
-        var allCoordinatorLocations = getContext().getCoordinatorLocations().locations();
+        var allCoordinatorLocations = getContext().getCoordinatorLocations().groupAssignments();
         var host = allCoordinatorLocations.get(getResourceGroup());
         if (host == null) {
           throw new TTransportException("Did not find group " + getResourceGroup()
@@ -617,8 +617,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         if (hosts.isEmpty()) {
           throw new TTransportException("There are no coordinators in zookeeper.");
         }
-        int hashedClientAddr = Math
-            .abs(Hashing.murmur3_128().hashString(getAdvertiseAddress().toString(), UTF_8).asInt());
+        int hashedClientAddr =
+            Math.abs(Hashing.sha256().hashString(getAdvertiseAddress().toString(), UTF_8).asInt());
         // Hashing compactors to coordinators will spread them evenly across coordinators, however
         // each coordinator will only have connections for #compactors/#coordinators. If compactors
         // randomly choose a coordinator, then each coordinator would have a lot more connections.
