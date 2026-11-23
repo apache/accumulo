@@ -149,8 +149,10 @@ public class GCRun implements GarbageCollectionEnvironment {
       candidateLength += candidate.getPath().length();
       candidatesBatch.add(candidate);
       if (candidateLength > candidateBatchSize) {
-        log.info("Candidate batch of size {} with {} entries has exceeded the threshold. Attempting to delete "
-            + "what has been gathered so far.", candidateLength, candidatesBatch.size());
+        log.info(
+            "Candidate batch of size {} with {} entries has exceeded the threshold. Attempting to delete "
+                + "what has been gathered so far.",
+            candidateLength, candidatesBatch.size());
         return candidatesBatch;
       }
     }
