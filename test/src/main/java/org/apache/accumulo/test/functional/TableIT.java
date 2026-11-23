@@ -19,12 +19,10 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.FileNotFoundException;
 import java.time.Duration;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -44,6 +42,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Tag;
@@ -87,11 +86,9 @@ public class TableIT extends AccumuloClusterHarness {
         to.delete(tableName);
         assertTrue(s.stream().findAny().isEmpty());
 
-        try {
-          assertEquals(0, fs.listStatus(tablePath).length);
-        } catch (FileNotFoundException ex) {
-          // that's fine, too
-        }
+        // GC should eventually delete table dir
+        Wait.waitFor(() -> !fs.exists(tablePath));
+
         assertNull(to.tableIdMap().get(tableName));
         to.create(tableName);
         TestIngest.ingest(c, params);
