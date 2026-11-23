@@ -133,7 +133,7 @@ public class FateLogger {
 
       @Override
       public TxSnapshot<T> readSnapshot(FateId fateId) {
-        throw new UnsupportedOperationException();
+        return store.readSnapshot(fateId);
       }
 
       @Override

@@ -600,12 +600,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public TxSnapshot<T> readSnapshot(FateId fateId) {
-    FateData<T> fateData = getFateData(fateId);
-    long createdTime = 0;
-
-    if (fateData.status != UNKNOWN) {
-      createdTime = new Stat().getCtime();
-    }
+    Stat stat = new Stat();
+    FateData<T> fateData = getFateData(fateId, stat);
+    long createdTime = stat.getCtime();
 
     return new TxSnapshot<>(fateData.status, (FateOperation) fateData.txInfo.get(TxInfo.FATE_OP),
         fateData.repoDeque.peek(), createdTime);
