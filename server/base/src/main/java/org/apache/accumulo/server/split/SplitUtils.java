@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Predicate;
@@ -189,7 +190,16 @@ public class SplitUtils {
     return (int) Math.floor((double) esitimatedSize / (double) splitThreshold);
   }
 
+  public record SplitResult(SortedSet<Text> splitPoints,
+      Optional<UnSplittableMetadata.Reason> reason) {
+  }
+
   public static SortedSet<Text> findSplits(ServerContext context, TabletMetadata tabletMetadata) {
+    return findSplitsWithReason(context, tabletMetadata).splitPoints();
+  }
+
+  public static SplitResult findSplitsWithReason(ServerContext context,
+      TabletMetadata tabletMetadata) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var threshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
@@ -198,7 +208,7 @@ public class SplitUtils {
 
     var estimatedSize = tabletMetadata.getFileSize();
     if (!needsSplit(context, tabletMetadata)) {
-      return new TreeSet<>();
+      return new SplitResult(new TreeSet<>(), Optional.empty());
     }
 
     int fileCount = tabletMetadata.getFiles().size();
@@ -208,14 +218,17 @@ public class SplitUtils {
               + " examination, so it can not be split. Increase {} to allow it to be examined.",
           tabletMetadata.getExtent(), fileCount, maxFilesToOpen, Property.SPLIT_MAXOPEN.getKey(),
           Property.SPLIT_MAXOPEN.getKey());
-      return new TreeSet<>();
+      return new SplitResult(new TreeSet<>(),
+          Optional.of(UnSplittableMetadata.Reason.TOO_MANY_FILES));
     }
 
+    boolean[] rejectedLargeRow = {false};
     try (var indexIterable = new IndexIterable(context, tableConf, tabletMetadata.getFiles(),
         tabletMetadata.getEndRow(), tabletMetadata.getPrevEndRow())) {
 
       Predicate<ByteSequence> splitPredicate = splitCandidate -> {
         if (splitCandidate.length() >= maxEndRowSize) {
+          rejectedLargeRow[0] = true;
           log.warn("Ignoring split point for {} of length {}", tabletMetadata.getExtent(),
               splitCandidate.length());
           return false;
@@ -224,8 +237,13 @@ public class SplitUtils {
         return true;
       };
 
-      return findSplits(indexIterable, calculateDesiredSplits(estimatedSize, threshold),
+      var splits = findSplits(indexIterable, calculateDesiredSplits(estimatedSize, threshold),
           splitPredicate);
+      var reason = splits.isEmpty()
+          ? Optional.of(rejectedLargeRow[0] ? UnSplittableMetadata.Reason.LARGE_ROW
+              : UnSplittableMetadata.Reason.NO_SPLIT_POINTS)
+          : Optional.<UnSplittableMetadata.Reason>empty();
+      return new SplitResult(splits, reason);
     }
   }
 
@@ -304,18 +322,23 @@ public class SplitUtils {
 
   public static UnSplittableMetadata toUnSplittable(ServerContext context,
       TabletMetadata tabletMetadata) {
+    return toUnSplittable(context, tabletMetadata, UnSplittableMetadata.Reason.UNKNOWN);
+  }
+
+  public static UnSplittableMetadata toUnSplittable(ServerContext context,
+      TabletMetadata tabletMetadata, UnSplittableMetadata.Reason reason) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
     int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
 
     var unSplittableMetadata = UnSplittableMetadata.toUnSplittable(tabletMetadata.getExtent(),
-        splitThreshold, maxEndRowSize, maxFilesToOpen, tabletMetadata.getFiles());
+        splitThreshold, maxEndRowSize, maxFilesToOpen, tabletMetadata.getFiles(), reason);
 
     log.trace(
-        "Created unsplittable metadata for tablet {}. splitThreshold: {}, maxEndRowSize:{}, maxFilesToOpen: {}, hashCode: {}",
+        "Created unsplittable metadata for tablet {}. splitThreshold: {}, maxEndRowSize:{}, maxFilesToOpen: {}, hashCode: {}, reason: {}",
         tabletMetadata.getExtent(), splitThreshold, maxEndRowSize, maxFilesToOpen,
-        unSplittableMetadata);
+        unSplittableMetadata, reason);
 
     return unSplittableMetadata;
   }
