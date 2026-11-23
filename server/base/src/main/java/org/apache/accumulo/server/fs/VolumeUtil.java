@@ -64,18 +64,19 @@ public class VolumeUtil {
   public static Path switchVolume(Path path, FileType ft, Map<Path,Path> replacements) {
     Path replacement = null;
     if (!replacements.isEmpty()) {
-      // removing trailing slash for exact match comparison on the volume itself
-      try {
-        Path volume = removeTrailingSlash(ft.getVolume(requireNonNull(path)));
+      Path inputPath = requireNonNull(path);
+      if (inputPath.toString().indexOf(ft.getDirectory()) > 0) {
+        // removing trailing slash for exact match comparison on the volume itself
+        Path volume = removeTrailingSlash(ft.getVolume(inputPath));
         replacement = replacements.entrySet().stream()
             .filter(entry -> removeTrailingSlash(entry.getKey()).equals(volume))
-            .map(entry -> new Path(entry.getValue(), requireNonNull(ft.removeVolume(path))))
+            .map(entry -> new Path(entry.getValue(), requireNonNull(ft.removeVolume(inputPath))))
             .findFirst().orElse(null);
-      } catch (IllegalArgumentException e) {
-        // ft.getVolume could not find the file type in the path
+      } else {
+        // The directory for the file type is not in the path
         // which means this is an external file. Handle volume replacement
         // differently
-        final String src = path.toString();
+        final String src = inputPath.toString();
         int matchingLength = 0;
         Entry<Path,Path> matchingEntry = null;
         for (Entry<Path,Path> entry : replacements.entrySet()) {

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -47,6 +48,7 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 /** Exercises tablet files stored outside Accumulo's configured table directories. */
@@ -83,9 +85,37 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
       client.tableOperations().compact(table, new CompactionConfig().setWait(true));
 
       assertRows(client, table);
-      assertTrue(hasConfiguredVolumeFile(client, table));
+      assertEquals(0, countExternalFileReferences(client, table));
       Wait.waitFor(() -> !fs.exists(externalFile), GC_WAIT.toMillis(), GC_POLL_MS,
           "GC did not remove compacted external RFile " + externalFile);
+    }
+  }
+
+  @Test
+  public void splitAndMerge() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      FileSystem fs = getCluster().getMiniDfs().getFileSystem();
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
+
+      Path externalFile = writeRFile(fs, "split-merge");
+      addFileReference(client, table, externalFile, fs.getFileStatus(externalFile).getLen(), 2);
+
+      assertRows(client, table);
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("r1"));
+      client.tableOperations().addSplits(table, splits);
+
+      assertRows(client, table);
+      assertEquals(2, countExternalFileReferences(client, table));
+
+      client.tableOperations().merge(table, new Text(), new Text());
+      assertRows(client, table);
+      // There are still two files because they have non-overlapping
+      // ranges from the split operation
+      assertEquals(2, countExternalFileReferences(client, table));
+
     }
   }
 
@@ -162,19 +192,20 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
     }
   }
 
-  private boolean hasConfiguredVolumeFile(AccumuloClient client, String table) throws Exception {
+  private int countExternalFileReferences(AccumuloClient client, String table) throws Exception {
+    int count = 0;
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
     try (var tablets = getCluster().getServerContext().getAmple().readTablets().forTable(tableId)
         .fetch(TabletMetadata.ColumnType.FILES).build()) {
       for (var tablet : tablets) {
         for (StoredTabletFile file : tablet.getFilesMap().keySet()) {
           if (file.getPath().toString().contains("/external-rfiles/")) {
-            return false;
+            count++;
           }
         }
       }
     }
-    return true;
+    return count;
   }
 
   private boolean hasGcCandidate(Path path) {
