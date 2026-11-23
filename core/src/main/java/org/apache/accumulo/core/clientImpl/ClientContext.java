@@ -1191,23 +1191,19 @@ public class ClientContext implements AccumuloClient {
     return this.zkLockChecker.get();
   }
 
-  public MeterRegistry getMeterRegistry() {
-    ensureOpen();
-    return micrometer;
-  }
-
-  public void setMeterRegistry(MeterRegistry micrometer) {
+  public synchronized void setMeterRegistry(MeterRegistry micrometer) {
     ensureOpen();
     this.micrometer = micrometer;
-    getCaches();
+    if (caches != null) {
+      caches.registerMetrics(micrometer);
+    }
   }
 
   public synchronized Caches getCaches() {
     ensureOpen();
     if (caches == null) {
       caches = Caches.getInstance();
-      if (micrometer != null && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED)
-          && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
+      if (micrometer != null) {
         caches.registerMetrics(micrometer);
       }
     }

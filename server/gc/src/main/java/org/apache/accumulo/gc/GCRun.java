@@ -30,14 +30,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.SortedMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,7 +58,6 @@ import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -69,19 +69,16 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.gc.GcVolumeUtil;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterators;
 
 /**
  * A single garbage collection performed on a table (Root, MD) or all User tables.
@@ -188,8 +185,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
     }
 
-    // there is a lot going on in this "one line" so see below for more info
-    var tabletReferences = tabletStream.flatMap(tm -> {
+    var tabletReferences = tabletStream.<Reference>mapMulti((tm, refConsumer) -> {
       var tableId = tm.getTableId();
 
       // verify that dir and prev row entries present for to check for complete row scan
@@ -201,24 +197,9 @@ public class GCRun implements GarbageCollectionEnvironment {
             + tm.sawPrevEndRow());
       }
 
-      // combine all the entries read from file and scan columns in the metadata table
-      Stream<StoredTabletFile> stfStream = tm.getFiles().stream();
-      // map the files to Reference objects
-      var fileStream = stfStream.map(f -> ReferenceFile.forFile(tableId, f));
-
-      // scans are normally empty, so only introduce a layer of indirection when needed
-      final var tmScans = tm.getScans();
-      if (!tmScans.isEmpty()) {
-        var scanStream = tmScans.stream().map(s -> ReferenceFile.forScan(tableId, s));
-        fileStream = Stream.concat(fileStream, scanStream);
-      }
-      // if dirName is populated, then we have a tablet directory aka srv:dir
-      if (tm.getDirName() != null) {
-        // add the tablet directory to the stream
-        var tabletDir = ReferenceFile.forDirectory(tableId, tm.getDirName());
-        fileStream = Stream.concat(fileStream, Stream.of(tabletDir));
-      }
-      return fileStream;
+      tm.getFiles().forEach(f -> refConsumer.accept(ReferenceFile.forFile(tableId, f)));
+      tm.getScans().forEach(s -> refConsumer.accept(ReferenceFile.forScan(tableId, s)));
+      refConsumer.accept(ReferenceFile.forDirectory(tableId, tm.getDirName()));
     });
 
     var scanServerRefs = context.getAmple().scanServerRefs().list()
@@ -268,7 +249,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes) {
+  public void deleteConfirmedCandidates(Collection<GcCandidate> confirmedDeletes) {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
         ? ZooUtil.getRoot(context.getInstanceID()) + " for " + SystemTables.ROOT.tableName()
@@ -279,7 +260,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           + " data file candidates marked for deletion in " + metadataLocation + ".\n"
           + "          Examine the log files to identify them.\n");
       log.info("{} SAFEMODE: Listing all data file candidates for deletion", fileActionPrefix);
-      for (GcCandidate candidate : confirmedDeletes.values()) {
+      for (GcCandidate candidate : confirmedDeletes) {
         log.info("{} SAFEMODE: {}", fileActionPrefix, candidate);
       }
       log.info("SAFEMODE: End candidates for deletion");
@@ -288,43 +269,52 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     List<GcCandidate> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
-    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log, loggingInterval);
-
     ThreadPoolExecutor deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS);
 
     final Map<Path,Path> replacements = context.getVolumeReplacements();
 
+    Map<GcCandidate.Type,List<Runnable>> deleteTasks = new EnumMap<>(GcCandidate.Type.class);
+
     log.info("Batch {} attempting to delete {} gcCandidate files", batchCount.get(),
         confirmedDeletes.size());
     Timer timer = Timer.startNew();
-    for (final GcCandidate delete : confirmedDeletes.values()) {
+    for (final GcCandidate delete : confirmedDeletes) {
       Runnable deleteTask = () -> {
         boolean removeFlag = false;
 
         try {
-          Path fullPath;
-          Path switchedDelete = VolumeUtil.switchVolume(new Path(delete.getPath()),
-              VolumeManager.FileType.TABLE, replacements);
-          if (switchedDelete != null) {
-            // actually replacing the volumes in the metadata table would be tricky because the
-            // entries would be different rows. So it could not be
-            // atomically in one mutation and extreme care would need to be taken that delete
-            // entry was not lost. Instead of doing that, just deal with
-            // volume switching when something needs to be deleted. Since the rest of the code
-            // uses suffixes to compare delete entries, there is no danger
-            // of deleting something that should not be deleted. Must not change value of delete
-            // variable because that's what's stored in metadata table.
-            log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
-            fullPath = ValidationUtil.validate(switchedDelete);
+          Iterable<Path> paths;
+          if (delete.getType() == GcCandidate.Type.TABLET_DIR
+              || delete.getType() == GcCandidate.Type.TABLE_DIR) {
+            String relPath = "/" + Constants.TABLE_DIR
+                + (delete.getPath().startsWith("/") ? "" : "/") + delete.getPath();
+            paths = () -> fs.getVolumes().stream().map(vol -> vol.prefixChild(relPath)).iterator();
           } else {
-            fullPath = new Path(ValidationUtil.validate(delete.getPath()));
+            Path fullPath;
+            Path switchedDelete = VolumeUtil.switchVolume(new Path(delete.getPath()),
+                VolumeManager.FileType.TABLE, replacements);
+            if (switchedDelete != null) {
+              // actually replacing the volumes in the metadata table would be tricky because the
+              // entries would be different rows. So it could not be
+              // atomically in one mutation and extreme care would need to be taken that delete
+              // entry was not lost. Instead of doing that, just deal with
+              // volume switching when something needs to be deleted. Since the rest of the code
+              // uses suffixes to compare delete entries, there is no danger
+              // of deleting something that should not be deleted. Must not change value of delete
+              // variable because that's what's stored in metadata table.
+              log.debug("Volume replaced {} -> {}", delete.getPath(), switchedDelete);
+              fullPath = ValidationUtil.validate(switchedDelete);
+            } else {
+              fullPath = new Path(ValidationUtil.validate(delete.getPath()));
+            }
+            paths = () -> Iterators.singletonIterator(fullPath);
           }
 
-          for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
+          for (Path pathToDel : paths) {
             log.debug("Batch {} {} Deleting {}", batchCount.get(), fileActionPrefix, pathToDel);
 
-            if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
+            if (moveToTrash(pathToDel) || fs.delete(pathToDel)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               deleted.increment();
@@ -368,7 +358,27 @@ public class GCRun implements GarbageCollectionEnvironment {
 
       };
 
-      deleteThreadPool.execute(deleteTask);
+      deleteTasks.computeIfAbsent(delete.getType(), t -> new ArrayList<>()).add(deleteTask);
+    }
+
+    // Need to process deletes in a certain order to ensure that files are deleted before
+    // directories.
+    for (var type : List.of(GcCandidate.Type.TABLET_FILE, GcCandidate.Type.TABLET_DIR,
+        GcCandidate.Type.BULK_DIR, GcCandidate.Type.TABLE_DIR)) {
+      List<Future<?>> futures = new ArrayList<>();
+      for (var task : deleteTasks.getOrDefault(type, List.of())) {
+        futures.add(deleteThreadPool.submit(task));
+      }
+      for (var future : futures) {
+        try {
+          future.get();
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          log.error("{}", e.getMessage(), e);
+        } catch (ExecutionException e) {
+          log.error("{}", e.getMessage(), e);
+        }
+      }
     }
 
     deleteThreadPool.shutdown();
@@ -390,29 +400,6 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public void deleteTableDirIfEmpty(TableId tableID) throws IOException {
-    final VolumeManager fs = context.getVolumeManager();
-    // if dir exist and is empty, then empty list is returned...
-    // hadoop 2.0 will throw an exception if the file does not exist
-    for (String dir : context.getTablesDirs()) {
-      FileStatus[] tabletDirs;
-      try {
-        tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
-      } catch (FileNotFoundException ex) {
-        continue;
-      }
-
-      if (tabletDirs.length == 0) {
-        Path p = new Path(dir + "/" + tableID);
-        log.debug("{} Removing table dir {}", fileActionPrefix, p);
-        if (!moveToTrash(p)) {
-          fs.delete(p);
-        }
-      }
-    }
-  }
-
-  @Override
   public void incrementCandidatesStat(long i) {
     candidates.add(i);
   }
@@ -420,70 +407,6 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public void incrementInUseStat(long i) {
     inUse.add(i);
-  }
-
-  @VisibleForTesting
-  static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
-      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
-      Duration loggingInterval) {
-    Set<Path> seenVolumes = new HashSet<>();
-
-    // when deleting a dir and all files in that dir, only need to delete the dir.
-    // The dir will sort right before the files... so remove the files in this case
-    // to minimize namenode ops
-    Iterator<Map.Entry<String,GcCandidate>> cdIter = confirmedDeletes.entrySet().iterator();
-
-    String lastDirRel = null;
-    Path lastDirAbs = null;
-    Timer progressTimer = Timer.startNew();
-    int progressCount = 0;
-    int totalDeletes = confirmedDeletes.size();
-    while (cdIter.hasNext()) {
-      progressCount++;
-      Map.Entry<String,GcCandidate> entry = cdIter.next();
-      String relPath = entry.getKey();
-      Path absPath = new Path(entry.getValue().getPath());
-
-      if (SimpleGarbageCollector.isDir(relPath)) {
-        lastDirRel = relPath;
-        lastDirAbs = absPath;
-      } else if (lastDirRel != null) {
-        if (relPath.startsWith(lastDirRel)) {
-          Path vol = VolumeManager.FileType.TABLE.getVolume(absPath);
-
-          boolean sameVol = false;
-
-          if (GcVolumeUtil.isAllVolumesUri(lastDirAbs)) {
-            if (seenVolumes.contains(vol)) {
-              sameVol = true;
-            } else {
-              for (Volume cvol : fs.getVolumes()) {
-                if (cvol.containsPath(vol)) {
-                  seenVolumes.add(vol);
-                  sameVol = true;
-                }
-              }
-            }
-          } else {
-            sameVol = Objects.equals(VolumeManager.FileType.TABLE.getVolume(lastDirAbs), vol);
-          }
-
-          if (sameVol) {
-            logger.info("{} Ignoring {} because {} exist", fileActionPrefix,
-                entry.getValue().getPath(), lastDirAbs);
-            processedDeletes.add(entry.getValue());
-            cdIter.remove();
-          }
-        } else {
-          lastDirRel = null;
-          lastDirAbs = null;
-        }
-      }
-      if (progressTimer.hasElapsed(loggingInterval)) {
-        logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
-        progressTimer.restart();
-      }
-    }
   }
 
   /**

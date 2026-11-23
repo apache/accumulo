@@ -375,11 +375,6 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
-  GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
-      PropertyType.BOOLEAN,
-      "Enables Caffeine Cache metrics functionality using Micrometer. Requires "
-          + " property 'general.micrometer.enabled' to be set to 'true' to take effect.",
-      "4.0.0"),
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "true", PropertyType.BOOLEAN,
       "Enables metrics collection and reporting functionality using Micrometer. The Monitor"
           + " is dependent on metrics being enabled to function correctly.",
@@ -472,15 +467,6 @@ public enum Property {
       "Time to wait between scanning tables to identify ranges of tablets that can be "
           + " auto-merged. Valid ranges will be have merge fate ops submitted.",
       "4.0.0"),
-  MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
-      PropertyType.BOOLEAN,
-      "When deleting a table the Manager will remove related table directories from "
-          + " the storage volumes if there are no other references to the files in the "
-          + " metadata table. When deleting a lot of tables this optimization can be costly. "
-          + " Setting this value to false will skip this optimization and the table directory "
-          + " cleanup will occur in the Garbage Collector instead. The value should be false  "
-          + " when recursive deletes are not efficient on underlying volumes.",
-      "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
@@ -1452,6 +1438,16 @@ public enum Property {
           + " disables Compactor wake up. Enabling this feature will cause Compactors in a long wait state (see"
           + " COMPACTOR_MAX_JOB_WAIT_TIME) to check in with the Coordinator for work.",
       "2.1.7"),
+  COMPACTION_COORDINATOR_ASSIGNMENT_MIN("compaction.coordinator.assignment.sleep.min", "100ms",
+      PropertyType.TIMEDURATION,
+      "When there are multiple managers compaction resource groups are assigned across manager. This is the "
+          + "minimum time between checks to see if assignments need to be adjusted.",
+      "4.0.0"),
+  COMPACTION_COORDINATOR_ASSIGNMENT_MAX("compaction.coordinator.assignment.sleep.max", "3m",
+      PropertyType.TIMEDURATION,
+      "When there are multiple managers compaction resource groups are assigned across manager. This is the "
+          + "maximum time between checks to see if assignments need to be adjusted.",
+      "4.0.0"),
   GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
       PropertyType.COUNT,
       "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
@@ -1738,8 +1734,7 @@ public enum Property {
       GENERAL_IDLE_PROCESS_INTERVAL, GENERAL_MICROMETER_ENABLED,
       GENERAL_MICROMETER_JVM_METRICS_ENABLED, GENERAL_MICROMETER_LOG_METRICS,
       GENERAL_MICROMETER_FACTORY, GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL,
-      GENERAL_CACHE_MANAGER_IMPL, GENERAL_MICROMETER_CACHE_METRICS_ENABLED,
-      GENERAL_LOW_MEM_DETECTOR_INTERVAL,
+      GENERAL_CACHE_MANAGER_IMPL, GENERAL_LOW_MEM_DETECTOR_INTERVAL,
 
       // MANAGER options
       MANAGER_THREADCHECK, MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, MANAGER_METADATA_SUSPENDABLE,

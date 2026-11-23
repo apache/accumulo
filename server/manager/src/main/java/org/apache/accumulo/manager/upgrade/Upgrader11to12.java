@@ -48,6 +48,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -70,6 +71,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -381,6 +383,8 @@ public class Upgrader11to12 implements Upgrader {
     removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId());
     LOG.info("Removing compact columns from metadata tablets");
     removeCompactColumnsFromTable(context, SystemTables.ROOT.tableName());
+    LOG.info("Updating GC candidates in root table");
+    upgradeGcCandidates(context, SystemTables.ROOT.tableName());
   }
 
   @Override
@@ -411,6 +415,8 @@ public class Upgrader11to12 implements Upgrader {
     removeBulkFileColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing major compaction temp files from prior versions");
     deleteCompactionTempFiles(context, new DeleteStats(), new HashSet<Path>());
+    LOG.info("Updating GC candidates in metadata table");
+    upgradeGcCandidates(context, SystemTables.METADATA.tableName());
   }
 
   private static void addAssistantManager(ServerContext context) {
@@ -1411,5 +1417,62 @@ public class Upgrader11to12 implements Upgrader {
     deletedFiles.addAll(filesDeleted);
     LOG.info("Deletion of compaction tmp files completed. Success:{}, Failure:{}, Error:{}",
         stats.success, stats.failure, stats.error);
+  }
+
+  private static final String ALL_VOLUMES_PREFIX = "agcav:/";
+  private static final String SKEWED = "skewed";
+
+  private static GcCandidate upgradeGcCandidate(Key key, Value value) {
+
+    if (!value.toString().equals(SKEWED)) {
+      return null;
+    }
+
+    String row = MetadataSchema.DeletesSection.decodeRow(key.getRowData().toString());
+
+    var path = new Path(row);
+
+    if (row.startsWith(ALL_VOLUMES_PREFIX)) {
+      return GcCandidate.forTabletDir(TableId.of(path.getParent().getName()), path.getName());
+    } else if (path.getParent().getParent().getParent().getName().equals(Constants.TABLE_DIR)) {
+      return GcCandidate.forTabletFile(StoredTabletFile.of(path));
+    } else if (path.getName().startsWith(Constants.BULK_PREFIX)
+        && path.getParent().getParent().getName().equals(Constants.TABLE_DIR)) {
+      return GcCandidate.forBulkDir(row);
+    }
+
+    LOG.warn("Invalid GC deletion candidate : {} ", row);
+    return null;
+  }
+
+  public static void upgradeGcCandidates(AccumuloClient client, String table) {
+    try (var scanner = client.createScanner(table); var writer = client.createBatchWriter(table)) {
+      scanner.setRange(MetadataSchema.DeletesSection.getRange());
+      for (var entry : scanner) {
+        GcCandidate candidate = upgradeGcCandidate(entry.getKey(), entry.getValue());
+        if (candidate != null) {
+          writer.addMutation(MetadataSchema.DeletesSection.createDeleteMutation(candidate));
+          LOG.debug("Inserting GC Candidate {} -> {}", entry.getKey().getRow(), candidate);
+        }
+      }
+
+      writer.flush();
+
+      // Delete in a second pass to make this code idempotent.
+      for (var entry : scanner) {
+        GcCandidate candidate = upgradeGcCandidate(entry.getKey(), entry.getValue());
+        if (candidate != null) {
+          // This candidate was upgraded but was put in a different row in the first pass, so delete
+          // the original. If the first pass put it in the same row, then it would not be seen here
+          // because it would be null.
+          Mutation m = new Mutation(entry.getKey().getRow());
+          m.at().family("").qualifier("").delete();
+          writer.addMutation(m);
+          LOG.debug("Deleting GC Candidate {} ", entry.getKey().getRow());
+        }
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 }

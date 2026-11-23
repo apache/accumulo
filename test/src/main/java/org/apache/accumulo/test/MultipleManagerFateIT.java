@@ -53,6 +53,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.rpc.clients.ManagerClient;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -62,9 +63,11 @@ import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FastFate;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
@@ -84,6 +87,9 @@ import com.google.common.net.HostAndPort;
  *
  */
 public class MultipleManagerFateIT extends ConfigurableMacBase {
+
+  private static final Logger log = LoggerFactory.getLogger(MultipleManagerFateIT.class);
+
   // A manager that will quickly clean up fate reservations held by dead managers
   public static class FastFateCleanupManager extends Manager {
     protected FastFateCleanupManager(ServerOpts opts, String[] args) throws IOException {
@@ -149,7 +155,7 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
           int loops = 0;
           while (!stop.get() || loops == 0) {
             client.tableOperations().create(table);
-            log.info("Created table {}", table);
+            // log.info("Created table {}", table);
             if (stop.get() && loops > 0) {
               break;
             }
@@ -254,6 +260,10 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
   private static void waitToSeeManagers(ClientContext context, int expectedManagers,
       UserFateStore<FateEnv> store, boolean managersKilled) {
 
+    Wait.waitFor(() -> ManagerClient.getPrimaryManagerLocation(context) != null);
+    var primaryManager = HostAndPort.fromString(ManagerClient.getPrimaryManagerLocation(context));
+    log.debug("primary manager : {}", primaryManager);
+
     // Track what reservations exist when entering, want to see new reservations created during this
     // function call.
     var existingReservationUUIDs =
@@ -274,6 +284,9 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
     var expectedServers = assistants.stream().map(ServiceLockPath::getServer)
         .map(HostAndPort::fromString).collect(toSet());
     log.debug("managers seen in zookeeper :{}", expectedServers);
+    // Eventually the primary manager should be assigned no fate partitions, so remove it from the
+    // expected severs.
+    assertTrue(expectedServers.remove(primaryManager));
 
     Set<HostAndPort> reservationsSeen = new HashSet<>();
     Set<HostAndPort> extraSeen = new HashSet<>();
@@ -285,7 +298,8 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
     // reassigned.
     Set<Character> seenPrefixes = new HashSet<>();
 
-    while (reservationsSeen.size() < expectedManagers || !seenPrefixes.equals(expectedPrefixes)) {
+    while (reservationsSeen.size() < (expectedManagers - 1)
+        || !seenPrefixes.equals(expectedPrefixes)) {
       var reservations =
           store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
       reservations.forEach((fateId, reservation) -> {
@@ -301,7 +315,7 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
                     Sets.difference(expectedPrefixes, seenPrefixes));
               }
             }
-          } else if (!managersKilled) {
+          } else if (!managersKilled && !hostPort.equals(primaryManager)) {
             fail("Saw unexpected extra manager " + slp);
           } else {
             extraSeen.add(hostPort);
@@ -313,8 +327,8 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
 
     log.debug("managers seen in fate reservations :{}", reservationsSeen);
     if (managersKilled) {
-      log.debug("killed managers seen in fate reservations : {}", extraSeen);
+      log.debug("extra managers seen in fate reservations : {}", extraSeen);
     }
-    assertEquals(expectedManagers, reservationsSeen.size());
+    assertEquals(expectedManagers - 1, reservationsSeen.size());
   }
 }

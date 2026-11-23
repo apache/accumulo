@@ -66,6 +66,24 @@ struct TNextCompactionJob {
   2:i32 compactorCount
 }
 
+struct TResolvedCompactionJob {
+  1:string selectedFateId
+  2:list<tabletserver.InputFile> jobFiles;
+  3:string kind
+  4:bool compactingAll
+  5:data.TKeyExtent extent
+  6:i16 priority
+  7:string group
+  8:string tabletDir
+  9:bool overlapsSelectedFiles
+}
+
+struct TDequeuedCompactionJob {
+  1:TResolvedCompactionJob job
+  // The total number of compactors servicing the queue this job was requested for
+  2:i32 compactorCount
+
+}
 
 exception UnknownCompactionIdException {}
 
@@ -84,23 +102,31 @@ service CompactionCoordinatorService {
     7:string compactor
   )throws(
      1:client.ThriftSecurityException sec
-     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
-   * Called by Compactor to get the next compaction job
+   * Called by Compactor to get the next compaction job off the queue
    */
-  TNextCompactionJob getCompactionJob(
+  TDequeuedCompactionJob getCompactionJob(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string groupName
+  )throws(
+    1:client.ThriftSecurityException sec
+  )
+
+  /*
+   * Called by a compactor to reserve a job returned by getCompactionJob()
+   */
+  TNextCompactionJob reserveCompactionJob(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:TResolvedCompactionJob job
     4:string compactor
     5:string externalCompactionId
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
-
 
   /*
    * Called by Compactor on unsuccessful completion of compaction job
@@ -116,8 +142,46 @@ service CompactionCoordinatorService {
     8:string compactor
   )throws(
      1:client.ThriftSecurityException sec
-     2:client.ThriftNotActiveServiceException tnase
   )
+
+  void beginFullJobScan(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:string dataLevel
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
+
+   oneway void addJobs(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:list<TResolvedCompactionJob> jobs
+   )
+
+   void endFullJobScan(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:string dataLevel
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
+
+   set<string> getResourceGroups(   
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:i64 updateId
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
+
+   void setResourceGroups(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:i64 updateId
+     4:set<string> groups
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
 }
 
 service CompactorService {

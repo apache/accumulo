@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -45,7 +45,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +71,7 @@ public class MergeTablets extends AbstractFateOperation {
     var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
     Set<TabletAvailability> tabletAvailabilities = new HashSet<>();
     MetadataTime maxLogicalTime = null;
-    List<ReferenceFile> dirs = new ArrayList<>();
+    List<GcCandidate> dirs = new ArrayList<>();
     Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>();
     TabletMetadata firstTabletMeta = null;
     TabletMetadata lastTabletMeta = null;
@@ -136,7 +135,7 @@ public class MergeTablets extends AbstractFateOperation {
           });
 
           // queue all tablets dirs except the last tablets to be added as GC candidates
-          dirs.add(new AllVolumesDirectory(range.tableId(), tabletMeta.getDirName()));
+          dirs.add(GcCandidate.forTabletDir(range.tableId(), tabletMeta.getDirName()));
           if (dirs.size() > 1000) {
             Preconditions.checkState(tabletsSeen > 1);
             env.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);

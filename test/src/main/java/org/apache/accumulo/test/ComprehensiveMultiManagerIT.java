@@ -61,14 +61,17 @@ public class ComprehensiveMultiManagerIT extends ComprehensiveITBase {
     Wait.waitFor(() -> {
       Map<HostAndPort,FateManager.CurrentPartitions> fateAssignments =
           FateManager.getCurrentAssignments(srvCtx);
-      boolean allAssigned = fateAssignments.size() == 3 && fateAssignments.values().stream()
-          .noneMatch(currentPartitions -> currentPartitions.partitions().isEmpty());
-      if (allAssigned) {
+      long emptyCount = fateAssignments.values().stream()
+          .filter(currentPartitions -> currentPartitions.partitions().isEmpty()).count();
+      long notEmptyCount = fateAssignments.values().stream()
+          .filter(currentPartitions -> !currentPartitions.partitions().isEmpty()).count();
+      if (fateAssignments.size() == 3 && emptyCount == 1 && notEmptyCount == 2) {
         fateAssignments.forEach((hostPort, partitions) -> {
           log.debug("Fate assignment {} {}", hostPort, partitions.partitions());
         });
+        return true;
       }
-      return allAssigned;
+      return false;
     });
 
   }
