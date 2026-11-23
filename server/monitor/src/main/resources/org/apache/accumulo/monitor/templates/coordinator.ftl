@@ -43,16 +43,4 @@
         <tbody></tbody>
     </table>
     <br />
-    <span class="table-caption">Running Compactions By Queue</span>
-    <br />
-    <table id="queue_running" class="table caption-top table-bordered table-striped table-condensed">
-        <thead>
-          <tr>
-            <th>Queue Name</th>
-            <th>Running Compactions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-    <br />
     

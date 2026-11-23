@@ -191,7 +191,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   public int removeBlip(String blip) {
     var lastThree = lastThree(blip, false, 2, 2);
 
-    String blipPrefix = "/" + lastThree.name;
+    String blipPrefix = "/" + lastThree.name + "/";
 
     bulkDirCandidates.remove(lastThree.name);
 

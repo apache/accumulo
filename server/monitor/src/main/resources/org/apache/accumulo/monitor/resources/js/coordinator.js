@@ -21,17 +21,14 @@
 const coordinatorHtmlTable = '#coordinators';
 const queuesHtmlTable = '#coordinator_queues';
 const runningTableHtmlTable = '#table_running';
-const runningQueueHtmlTable = '#queue_running';
 
 var tableRunning;
-var queueRunning;
 
 function refresh() {
-  $.when(getRunningCompactionsByTable(), getRunningCompactionsByGroup(), getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
+  $.when(getRunningCompactionsByTable(), getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     refreshTable(queuesHtmlTable, COORDINATOR_QUEUE_PROCESS_VIEW);
     ajaxReloadTable(tableRunning);
-    ajaxReloadTable(queueRunning);
   }).fail(function () {
     sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
       data: [],
@@ -44,11 +41,9 @@ function refresh() {
       status: null
     });
     sessionStorage[RUNNING_COMPACTIONS_BY_TABLE] = JSON.stringify([]);
-    sessionStorage[RUNNING_COMPACTIONS_BY_GROUP] = JSON.stringify([]);
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     refreshTable(queuesHtmlTable, COORDINATOR_QUEUE_PROCESS_VIEW);
     ajaxReloadTable(tableRunning);
-    ajaxReloadTable(queueRunning);
   });
 }
 
@@ -64,7 +59,6 @@ $(function () {
     status: null
   });
   sessionStorage[RUNNING_COMPACTIONS_BY_TABLE] = JSON.stringify([]);
-  sessionStorage[RUNNING_COMPACTIONS_BY_GROUP] = JSON.stringify([]);
 
   // Create a table for scans list
   tableRunning = new DataTable(runningTableHtmlTable, {
@@ -91,27 +85,6 @@ $(function () {
     ],
     "columns": [{
         "data": "tableName"
-      },
-      {
-        "data": "running"
-      }
-    ]
-  });
-
-  queueRunning = new DataTable(runningQueueHtmlTable, {
-    "ajax": function (data, callback) {
-      callback({
-        data: getStoredArray(RUNNING_COMPACTIONS_BY_GROUP)
-      });
-    },
-    "stateSave": true,
-    "colReorder": true,
-    "columnDefs": [{
-      targets: '_all',
-      defaultContent: '&mdash;'
-    }],
-    "columns": [{
-        "data": "groupId"
       },
       {
         "data": "running"

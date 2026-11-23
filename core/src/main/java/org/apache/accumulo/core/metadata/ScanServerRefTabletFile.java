@@ -34,12 +34,6 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
   private final Text serverAddress;
   private final Text uuid;
 
-  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
-    super(new Path(URI.create(file)));
-    this.serverAddress = new Text(serverAddress);
-    uuid = new Text(serverLockUUID.toString());
-  }
-
   public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
     super(new Path(URI.create(file)));
     this.serverAddress = new Text(serverAddress);

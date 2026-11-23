@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -400,7 +401,7 @@ public class GarbageCollectionTest {
   }
 
   @Test
-  public void testAbsoluteReferencesWithRelativeCandidates() throws Exception {
+  public void testReferencesAndCandidates() throws Exception {
     TestGCE gce = new TestGCE();
 
     var candOne = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
@@ -444,7 +445,6 @@ public class GarbageCollectionTest {
     assertFileDeleted(gce, candThree);
     assertNoCandidatesRemoved(gce);
 
-    // add an absolute candidate for file that already has a relative candidate
     var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce);
@@ -457,7 +457,6 @@ public class GarbageCollectionTest {
     assertFileDeleted(gce, candFour);
     assertNoCandidatesRemoved(gce);
 
-    // Finally re-add the relative candidate to remove the last file
     candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce, candTwo);
@@ -491,8 +490,7 @@ public class GarbageCollectionTest {
     // Remove the first blip
     gce.blips.remove("/4/b-0");
 
-    // And we should lose all files in that blip and the blip directory itself -- relative and
-    // absolute
+    // And we should lose all files in that blip and the blip directory itself
     gca.collect(gce);
     assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/4/b-0"),
         GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/b-0/F002.rf", 0L),
@@ -500,7 +498,6 @@ public class GarbageCollectionTest {
 
     gce.blips.remove("/5/b-1");
 
-    // Same as above, we should lose relative and absolute for a relative or absolute blip
     gca.collect(gce);
     assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/5/b-1"),
         GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/5/b-1/F002.rf", 2L),
@@ -724,12 +721,15 @@ public class GarbageCollectionTest {
     gce.addCandidate("//");
     gce.addCandidate("///");
     gce.addCandidate("////");
+    gce.addCandidate("/1/2/3/4");
     gce.addCandidate("/a");
+    gce.addCandidate("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf");
     gce.addCandidate("hdfs://foo.com:6000/");
 
     gca.collect(gce);
     System.out.println(gce.fileDeletions);
-    assertFileDeleted(gce);
+    assertFileDeleted(gce,
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf", 8L));
   }
 
   @Test
@@ -1150,4 +1150,89 @@ public class GarbageCollectionTest {
     assertTrue(msg.startsWith("Saw table IDs in ZK that were not in metadata table:  [3]"));
 
   }
+
+  @Test
+  public void externalFilesAreNotMatchedByFullUri() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/b-0001/shared.rf");
+    var referencedCandidate = gce.addCandidate("hdfs://nn2/external/b-0001/shared.rf");
+    gce.addFileReference("4", null, referencedCandidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, referencedCandidate);
+  }
+
+  @Test
+  public void externalFileUrisAreNormalizedForMatching() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    var candidate = gce.addCandidate("hdfs://nn//external///b-0001//source.rf");
+    gce.addFileReference("4", null, "hdfs://nn/external/b-0001/source.rf");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertCandidateRemoved(gce, GcCandidateType.INUSE, candidate);
+  }
+
+  @Test
+  public void externalScanReferenceProtectsCandidate() throws Exception {
+    TestGCE gce = new TestGCE();
+    var candidate = gce.addCandidate("hdfs://nn/external/b-0001/source.rf");
+    gce.addScanReference("4", null, candidate.getPath());
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce);
+    assertNoCandidatesRemoved(gce);
+  }
+
+  @Test
+  public void blipPrefixDoesNotMatchSiblingDirectory() throws Exception {
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/b-0/F000.rf");
+    var siblingCandidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/b-01/F001.rf");
+    gce.blips.add("/4/b-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, siblingCandidate);
+    assertTrue(gce.candidates.contains(protectedCandidate));
+  }
+
+  @Test
+  public void externalBlipProtectsOnlyDescendants() throws Exception {
+
+    // In this test the file in directory B-01 is deleted, but not the files
+    // in either B-0 directory. The Bulk Load In-Progress marker in
+    // hdfs://nn1/external/B-0 protects the files in hdfs://nn2/external/B-0
+    // because GcCandidates only looks at the last dir and file name in the
+    // path.
+
+    TestGCE gce = new TestGCE();
+    var protectedCandidate = gce.addCandidate("hdfs://nn1/external/B-0/F000.rf");
+    var siblingCandidate = gce.addCandidate("hdfs://nn1/external/B-01/F000.rf");
+    var otherVolume = gce.addCandidate("hdfs://nn2/external/B-0/F000.rf");
+    gce.blips.add("hdfs://nn1/external/B-0");
+
+    new GarbageCollectionAlgorithm().collect(gce);
+
+    assertFileDeleted(gce, siblingCandidate);
+    assertNoCandidatesRemoved(gce);
+    assertEquals(Set.of(protectedCandidate, otherVolume), gce.candidates);
+  }
+
+  @Test
+  public void testExternalFileReferenceDoesNotNeedTabletPathLayout() {
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/b-0004/F00.rf"));
+  }
+
+  @Test
+  public void testExternalFileReferenceCanHaveArbitraryPath() {
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/b-0003/F00.rf"));
+  }
+
 }
