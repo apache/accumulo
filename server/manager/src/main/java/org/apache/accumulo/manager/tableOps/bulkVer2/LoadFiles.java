@@ -102,11 +102,6 @@ class LoadFiles extends AbstractBulkFateOperation {
   @Override
   public long isReady(FateId fateId, FateEnv env) throws Exception {
     log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
-    if (env.onlineTabletServers().isEmpty()) {
-      log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
-          + ")");
-      return 100;
-    }
     VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     try (LoadMappingIterator lmi =
