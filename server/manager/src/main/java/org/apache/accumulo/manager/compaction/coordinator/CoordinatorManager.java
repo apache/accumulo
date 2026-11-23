@@ -46,6 +46,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ManagerClient;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -143,7 +144,10 @@ public class CoordinatorManager {
       }
 
       log.trace("Sleeping {}", sleepTime);
-      UtilWaitThread.sleep(sleepTime);
+      CountDownTimer timer = CountDownTimer.startNew(sleepTime, TimeUnit.MILLISECONDS);
+      while (!stopped.get() && !timer.isExpired()) {
+        UtilWaitThread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
+      }
     }
 
   }
