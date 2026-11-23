@@ -53,6 +53,7 @@ public class GarbageCollectionAlgorithm {
     Set<TableId> tableIdsSeen = new HashSet<>(tableIdsBefore.size());
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
+        log.trace("Removing candidates for live reference {}", ref);
         if (ref.hasTabletTableId()) {
           tableIdsSeen.add(ref.getTabletTableId());
         }

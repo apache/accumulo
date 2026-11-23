@@ -71,7 +71,7 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
       Wait.waitFor(
           () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 2);
       assertEquals(getExpectedGroups(),
-          getServerContext().getCoordinatorLocations().locations().keySet());
+          getServerContext().getCoordinatorLocations().groupAssignments().keySet());
 
       String table1 = names[0];
       createTable(client, table1, "cs1");
@@ -100,7 +100,7 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
       Wait.waitFor(
           () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 4);
       assertEquals(getExpectedGroups(),
-          getServerContext().getCoordinatorLocations().locations().keySet());
+          getServerContext().getCoordinatorLocations().groupAssignments().keySet());
 
       compact(client, table1, 3, GROUP1, true);
       verify(client, table1, 6);
@@ -119,7 +119,7 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
           () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 1,
           120_000);
       assertEquals(getExpectedGroups(),
-          getServerContext().getCoordinatorLocations().locations().keySet());
+          getServerContext().getCoordinatorLocations().groupAssignments().keySet());
 
       compact(client, table1, 5, GROUP1, true);
       verify(client, table1, 30);

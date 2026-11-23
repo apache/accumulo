@@ -35,7 +35,6 @@ const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
 const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
 const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
-const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 const AUTO_REFRESH_KEY = 'auto-refresh';
 const FATE = 'fate';
 const ALERT_CATEGORIES = 'alertCategories';
@@ -258,10 +257,10 @@ function timeDuration(time) {
 
   if (Math.round(time) === 0) {
     var microsecs = Math.round(time * 1000)
-    if(microsecs == 0){
+    if (microsecs == 0) {
       return '0μs';
-    }else{
-      return microsecs+'μs';
+    } else {
+      return microsecs + 'μs';
     }
   }
 
@@ -718,14 +717,6 @@ function getTable(name) {
  */
 function getRunningCompactionsByTable() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/running/table', RUNNING_COMPACTIONS_BY_TABLE);
-}
-
-/**
- * REST GET call for /compactions/running/group,
- * stores it on a sessionStorage variable
- */
-function getRunningCompactionsByGroup() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
 }
 
 /**
