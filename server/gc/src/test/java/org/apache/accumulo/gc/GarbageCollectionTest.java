@@ -243,16 +243,16 @@ public class GarbageCollectionTest {
   public void minimalDelete() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
-    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
-    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
-    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/6/t0/F006.rf");
+    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t-0/F000.rf");
+    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F001.rf");
+    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/t-0/F005.rf");
+    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/6/t-0/F006.rf");
 
     gce.addFileReference("4", null, candOne.getPath());
     gce.addFileReference("4", null, candTwo.getPath());
     gce.addFileReference("6", null, candFour.getPath());
-    gce.addDirReference("4", null, "t0");
-    gce.addDirReference("6", null, "t1");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("6", null, "t-1");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     gca.collect(gce);
@@ -265,15 +265,15 @@ public class GarbageCollectionTest {
   public void testBasic() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
-    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
-    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t-0/F000.rf");
+    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F001.rf");
+    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/t-0/F005.rf");
 
-    gce.addDirReference("4", null, "t0");
-    gce.addDirReference("5", null, "t0");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-0");
     gce.addFileReference("4", null, candOne.getPath());
     gce.addFileReference("4", null, candTwo.getPath());
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0//F002.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0//F002.rf");
     gce.addFileReference("5", null, candThree.getPath());
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
@@ -285,19 +285,19 @@ public class GarbageCollectionTest {
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candTwo, candThree);
 
     // Removing a reference to a file that wasn't in the candidates should do nothing
-    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
+    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce);
 
     // Adding more candidates which do not have references that should be removed
-    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf");
-    var candFive = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
+    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F003.rf");
+    var candFive = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F004.rf");
     gca.collect(gce);
     assertFileDeleted(gce, candFour, candFive);
     assertNoCandidatesRemoved(gce);
 
     // Removing a reference to a file that wasn't in the candidates should do nothing
-    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
+    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce);
     assertNoCandidatesRemoved(gce);
@@ -315,7 +315,7 @@ public class GarbageCollectionTest {
     GcCandidate[] toBeRemoved = new GcCandidate[20];
 
     BiFunction<String,String,String> genPath =
-        (id, f) -> String.format("hdfs://foo:6000/accumulo/tables/%s/t%s/F00%s.rf", id, id, f);
+        (id, f) -> String.format("hdfs://foo:6000/accumulo/tables/%s/t-%s/F00%s.rf", id, id, f);
 
     var candOne = gce.addCandidate(genPath.apply("4", "0"));
     var candTwo = gce.addCandidate(genPath.apply("4", "1"));
@@ -335,7 +335,7 @@ public class GarbageCollectionTest {
 
     gce.addFileReference("4", null, candOne.getPath());
     gce.addFileReference("4", null, candTwo.getPath());
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0//F002.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0//F002.rf");
     gce.addFileReference("5", null, candThree.getPath());
     gce.addDirReference("4", null, "t4");
     gce.addDirReference("5", null, "t5");
@@ -382,16 +382,16 @@ public class GarbageCollectionTest {
   public void emptyPathsTest() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4//t0//F000.rf");
-    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4//t0//F001.rf");
-    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5//t0//F005.rf");
-    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo//tables//6/t0/F006.rf");
+    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4//t-0//F000.rf");
+    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4//t-0//F001.rf");
+    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5//t-0//F005.rf");
+    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo//tables//6/t-0/F006.rf");
 
     gce.addFileReference("4", null, candOne.getPath());
     gce.addFileReference("4", null, candTwo.getPath());
     gce.addFileReference("6", null, candFour.getPath());
-    gce.addDirReference("4", null, "t0");
-    gce.addDirReference("6", null, "t1");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("6", null, "t-1");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     gca.collect(gce);
@@ -404,25 +404,25 @@ public class GarbageCollectionTest {
   public void testReferencesAndCandidates() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var candOne = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
-    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
-    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    var candOne = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
+    var candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
+    var candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F001.rf");
 
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
-    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
-    gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addDirReference("4", null, "t0");
-    gce.addDirReference("5", null, "t1");
-    gce.addDirReference("6", null, "t1");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F001.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
+    gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
+    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-1");
+    gce.addDirReference("6", null, "t-1");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     List<String[]> refsToRemove = new ArrayList<>();
-    refsToRemove.add(new String[] {"4", "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf"});
-    refsToRemove.add(new String[] {"5", "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf"});
-    refsToRemove.add(new String[] {"6", "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf"});
+    refsToRemove.add(new String[] {"4", "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf"});
+    refsToRemove.add(new String[] {"5", "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf"});
+    refsToRemove.add(new String[] {"6", "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf"});
 
     Collections.shuffle(refsToRemove);
 
@@ -439,25 +439,25 @@ public class GarbageCollectionTest {
     gca.collect(gce);
     assertFileDeleted(gce, cand);
 
-    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
-    candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F001.rf");
+    candThree = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F001.rf");
     gca.collect(gce);
     assertFileDeleted(gce, candThree);
     assertNoCandidatesRemoved(gce);
 
-    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
+    var candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce);
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candFour);
 
     // Re-add the absolute candidate
-    candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
-    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
+    candFour = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
+    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce, candFour);
     assertNoCandidatesRemoved(gce);
 
-    candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
+    candTwo = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F002.rf");
     gca.collect(gce);
     assertFileDeleted(gce, candTwo);
     assertNoCandidatesRemoved(gce);
@@ -467,9 +467,9 @@ public class GarbageCollectionTest {
   public void testBlip() throws Exception {
     TestGCE gce = new TestGCE();
 
-    gce.addCandidate(GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/4/B-0"));
-    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/B-0/F002.rf");
-    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/B-0/F001.rf");
+    gce.addCandidate(GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/4/b-0"));
+    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/b-0/F002.rf");
+    gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf");
     gce.addCandidate(GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/5/b-1"));
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-1/F002.rf");
     gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/5/b-1/F001.rf");
@@ -478,7 +478,7 @@ public class GarbageCollectionTest {
     gce.addDirReference("6", null, "t-0");
     gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/b-2/I1234.rf");
 
-    gce.blips.add("/4/B-0");
+    gce.blips.add("/4/b-0");
     gce.blips.add("/5/b-1");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
@@ -488,13 +488,13 @@ public class GarbageCollectionTest {
     assertFileDeleted(gce);
 
     // Remove the first blip
-    gce.blips.remove("/4/B-0");
+    gce.blips.remove("/4/b-0");
 
     // And we should lose all files in that blip and the blip directory itself
     gca.collect(gce);
-    assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/4/B-0"),
-        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/B-0/F002.rf", 0L),
-        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/B-0/F001.rf", 1L));
+    assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/4/b-0"),
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/b-0/F002.rf", 0L),
+        GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf", 1L));
 
     gce.blips.remove("/5/b-1");
 
@@ -867,19 +867,19 @@ public class GarbageCollectionTest {
   public void testDeletingInUseReferenceCandidates() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var candidate = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    var candidate = gce.addCandidate("hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
 
-    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
-    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F002.rf");
-    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F003.rf");
-    gce.addFileReference("5", null, "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addFileReference("9", null, "hdfs://foo:6000/accumulo/tables/9/t0/F003.rf");
-    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
-    gce.addDirReference("4", null, "t0");
-    gce.addDirReference("5", null, "t0");
-    gce.addDirReference("6", null, "t0");
-    gce.addDirReference("9", null, "t0");
+    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F000.rf");
+    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F001.rf");
+    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F002.rf");
+    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F003.rf");
+    gce.addFileReference("5", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F000.rf");
+    gce.addFileReference("9", null, "hdfs://foo:6000/accumulo/tables/9/t-0/F003.rf");
+    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/4/t-0/F000.rf");
+    gce.addDirReference("4", null, "t-0");
+    gce.addDirReference("5", null, "t-0");
+    gce.addDirReference("6", null, "t-0");
+    gce.addDirReference("9", null, "t-0");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     // All candidates currently have references
@@ -889,8 +889,8 @@ public class GarbageCollectionTest {
 
     var cand1 = gce.addCandidate("hdfs://foo:6000/accumulo/tables/9/t2/F003.rf");
     var cand2 = gce.addCandidate("hdfs://foo:6000/accumulo/tables/144/t3/F003.rf");
-    gce.removeFileReference("9", null, "hdfs://foo:6000/accumulo/tables/9/t0/F003.rf");
-    gce.removeFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F003.rf");
+    gce.removeFileReference("9", null, "hdfs://foo:6000/accumulo/tables/9/t-0/F003.rf");
+    gce.removeFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F003.rf");
 
     gca.collect(gce);
     assertNoCandidatesRemoved(gce);
@@ -904,19 +904,19 @@ public class GarbageCollectionTest {
 
     GcCandidate[] toBeRemoved = new GcCandidate[4];
 
-    toBeRemoved[0] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t0/F000.rf");
-    toBeRemoved[1] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t0/F001.rf");
-    toBeRemoved[2] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t0/F002.rf");
-    toBeRemoved[3] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t0/F003.rf");
+    toBeRemoved[0] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t-0/F000.rf");
+    toBeRemoved[1] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t-0/F001.rf");
+    toBeRemoved[2] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t-0/F002.rf");
+    toBeRemoved[3] = gce.addCandidate("hdfs://foo:6000/accumulo/tables/+r/t-0/F003.rf");
 
-    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F000.rf");
-    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F001.rf");
-    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F002.rf");
-    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F003.rf");
-    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/4/t1/F000.rf");
-    gce.addFileReference("+r", null, "hdfs://foo.com:6000/accumulo/tables/4/t1/F000.rf");
+    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F000.rf");
+    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F001.rf");
+    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F002.rf");
+    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F003.rf");
+    gce.addFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/4/t-1/F000.rf");
+    gce.addFileReference("+r", null, "hdfs://foo.com:6000/accumulo/tables/4/t-1/F000.rf");
 
-    gce.addDirReference("+r", null, "t0");
+    gce.addDirReference("+r", null, "t-0");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
     gca.collect(gce);
@@ -924,10 +924,10 @@ public class GarbageCollectionTest {
     // Due to the gce Datalevel of ROOT, InUse candidate deletion is not supported
     assertNoCandidatesRemoved(gce);
 
-    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F000.rf");
-    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F001.rf");
-    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F002.rf");
-    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t0/F003.rf");
+    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F000.rf");
+    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F001.rf");
+    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F002.rf");
+    gce.removeFileReference("+r", null, "hdfs://foo:6000/accumulo/tables/+r/t-0/F003.rf");
 
     // With file references deleted, the GC should now process the candidates
     gca.collect(gce);
@@ -945,7 +945,7 @@ public class GarbageCollectionTest {
 
     // Ensure that dir candidates still work
     var candOne = gce.addCandidate("6/t-0");
-    var candTwo = gce.addCandidate("7/T-1");
+    var candTwo = gce.addCandidate("7/t-2");
     gce.addDirReference("6", "m", "t-1");
     gce.addDirReference("6", null, "t-0");
 
@@ -984,12 +984,12 @@ public class GarbageCollectionTest {
     TestGCE gce = new TestGCE();
 
     // InUse Scan Refs should not be removed.
-    var scanCandidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t0/F010.rf");
-    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
-    var candTwo = gce.addCandidate("hdfs://foo:6000/accumulo/tables/6/t0/F123.rf");
-    gce.addDirReference("4", null, "t0");
-    gce.addScanReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F010.rf");
-    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
+    var scanCandidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t-0/F010.rf");
+    var candOne = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/t-0/F000.rf");
+    var candTwo = gce.addCandidate("hdfs://foo:6000/accumulo/tables/6/t-0/F123.rf");
+    gce.addDirReference("4", null, "t-0");
+    gce.addScanReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F010.rf");
+    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F000.rf");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -998,7 +998,7 @@ public class GarbageCollectionTest {
     assertCandidateRemoved(gce, GcCandidateType.INUSE, candOne);
     assertEquals(Set.of(scanCandidate), gce.candidates);
 
-    gce.removeScanReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F010.rf");
+    gce.removeScanReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t-0/F010.rf");
     gca.collect(gce);
     assertFileDeleted(gce, scanCandidate);
     assertNoCandidatesRemoved(gce);
@@ -1155,8 +1155,8 @@ public class GarbageCollectionTest {
   public void externalFilesAreNotMatchedByFullUri() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/b/shared.rf");
-    var referencedCandidate = gce.addCandidate("hdfs://nn2/external/b/shared.rf");
+    var sameNameDifferentLocation = gce.addCandidate("hdfs://nn1/external/b-0001/shared.rf");
+    var referencedCandidate = gce.addCandidate("hdfs://nn2/external/b-0001/shared.rf");
     gce.addFileReference("4", null, referencedCandidate.getPath());
 
     new GarbageCollectionAlgorithm().collect(gce);
@@ -1169,8 +1169,8 @@ public class GarbageCollectionTest {
   public void externalFileUrisAreNormalizedForMatching() throws Exception {
     TestGCE gce = new TestGCE();
 
-    var candidate = gce.addCandidate("hdfs://nn//external///rfiles//source.rf");
-    gce.addFileReference("4", null, "hdfs://nn/external/rfiles/source.rf");
+    var candidate = gce.addCandidate("hdfs://nn//external///b-0001//source.rf");
+    gce.addFileReference("4", null, "hdfs://nn/external/b-0001/source.rf");
 
     new GarbageCollectionAlgorithm().collect(gce);
 
@@ -1181,7 +1181,7 @@ public class GarbageCollectionTest {
   @Test
   public void externalScanReferenceProtectsCandidate() throws Exception {
     TestGCE gce = new TestGCE();
-    var candidate = gce.addCandidate("hdfs://nn/external/rfiles/source.rf");
+    var candidate = gce.addCandidate("hdfs://nn/external/b-0001/source.rf");
     gce.addScanReference("4", null, candidate.getPath());
 
     new GarbageCollectionAlgorithm().collect(gce);
@@ -1227,12 +1227,12 @@ public class GarbageCollectionTest {
 
   @Test
   public void testExternalFileReferenceDoesNotNeedTabletPathLayout() {
-    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/F00.rf"));
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/b-0004/F00.rf"));
   }
 
   @Test
   public void testExternalFileReferenceCanHaveArbitraryPath() {
-    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
+    assertDoesNotThrow(() -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/b-0003/F00.rf"));
   }
 
 }
