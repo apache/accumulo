@@ -39,12 +39,18 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // the exact path from the file reference string that is stored in the metadata
   protected final String metadataPath;
 
-  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan,
-      boolean isDirectory) {
+  private ReferenceFile(TableId tableId, String metadataPath, boolean isScan, boolean isDirectory) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataPath = Objects.requireNonNull(metadataPath);
     this.isScan = isScan;
     this.isDirectory = isDirectory;
+  }
+
+  private ReferenceFile(ScanServerRefTabletFile file) {
+    this.tableId = null;
+    this.metadataPath = Objects.requireNonNull(file.getNormalizedPathStr());
+    this.isScan = true;
+    this.isDirectory = false;
   }
 
   public static ReferenceFile forFile(TableId tableId, StoredTabletFile tabletFile) {
@@ -55,8 +61,8 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
     return new ReferenceFile(tableId, metadataPathPath.toString(), false, false);
   }
 
-  public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false);
+  public static ReferenceFile forScan(ScanServerRefTabletFile tabletFile) {
+    return new ReferenceFile(tabletFile);
   }
 
   public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {
@@ -123,7 +129,8 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
 
   @Override
   public String toString() {
-    return "Reference [id=" + tableId + ", ref=" + metadataPath + "]";
+    return "Reference [id=" + tableId + ", ref=" + metadataPath + ", isDir=" + isDirectory
+        + ", isScan=" + isScan + "]";
   }
 
 }
