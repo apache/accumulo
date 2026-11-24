@@ -478,8 +478,8 @@ public class GarbageCollectionTest {
     gce.addDirReference("6", null, "t-0");
     gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/b-2/I1234.rf");
 
-    gce.blips.add("/4/b-0");
-    gce.blips.add("/5/b-1");
+    gce.blips.add("hdfs://foo.com:6000/accumulo/tables/4/b-0");
+    gce.blips.add("hdfs://foo.com:6000/accumulo/tables/5/b-1");
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -488,7 +488,7 @@ public class GarbageCollectionTest {
     assertFileDeleted(gce);
 
     // Remove the first blip
-    gce.blips.remove("/4/b-0");
+    gce.blips.remove("hdfs://foo.com:6000/accumulo/tables/4/b-0");
 
     // And we should lose all files in that blip and the blip directory itself
     gca.collect(gce);
@@ -496,7 +496,7 @@ public class GarbageCollectionTest {
         GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/b-0/F002.rf", 0L),
         GcCandidate.forTabletFile("hdfs://foo.com:6000/accumulo/tables/4/b-0/F001.rf", 1L));
 
-    gce.blips.remove("/5/b-1");
+    gce.blips.remove("hdfs://foo.com:6000/accumulo/tables/5/b-1");
 
     gca.collect(gce);
     assertFileDeleted(gce, GcCandidate.forBulkDir("hdfs://foo.com:6000/accumulo/tables/5/b-1"),
@@ -780,7 +780,7 @@ public class GarbageCollectionTest {
 
     gce = new TestGCE();
 
-    gce.blips.add("/1636/b-0001");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/1636/b-0001");
     gce.addCandidate("hdfs://foo:6000/accumulo/tables/1636/b-0001/I0000.rf");
     blipCount = gca.collect(gce);
     assertFileDeleted(gce);
@@ -788,11 +788,11 @@ public class GarbageCollectionTest {
 
     gce = new TestGCE();
 
-    gce.blips.add("/1029/b-0001");
-    gce.blips.add("/1029/b-0002");
-    gce.blips.add("/1029/b-0003");
-    gce.blips.add("/1000/b-1001");
-    gce.blips.add("/1000/b-1002");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/1029/b-0001");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/1029/b-0002");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/1029/b-0003");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/1000/b-1001");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/1000/b-1002");
     gce.addCandidate("hdfs://foo:6000/accumulo/tables/1029/b-0002/I0006.rf");
     gce.addCandidate("hdfs://foo:6000/accumulo/tables/1000/b-1002/I0007.rf");
     var candidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/1000/t-0003/I0008.rf");
@@ -1195,7 +1195,7 @@ public class GarbageCollectionTest {
     TestGCE gce = new TestGCE();
     var protectedCandidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/b-0/F000.rf");
     var siblingCandidate = gce.addCandidate("hdfs://foo:6000/accumulo/tables/4/b-01/F001.rf");
-    gce.blips.add("/4/b-0");
+    gce.blips.add("hdfs://foo:6000/accumulo/tables/4/b-0");
 
     new GarbageCollectionAlgorithm().collect(gce);
 
