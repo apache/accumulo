@@ -44,7 +44,9 @@ public enum TableOperation implements org.apache.thrift.TEnum {
   EXPORT(15),
   COMPACT_CANCEL(16),
   SET_TABLET_AVAILABILITY(17),
-  SPLIT(18);
+  SPLIT(18),
+  LOCK(19),
+  UNLOCK(20);
 
   private final int value;
 
@@ -105,6 +107,10 @@ public enum TableOperation implements org.apache.thrift.TEnum {
         return SET_TABLET_AVAILABILITY;
       case 18:
         return SPLIT;
+      case 19:
+        return LOCK;
+      case 20:
+        return UNLOCK;
       default:
         return null;
     }

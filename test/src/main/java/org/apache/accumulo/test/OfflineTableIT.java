@@ -212,7 +212,8 @@ public class OfflineTableIT extends SharedMiniClusterBase {
       f.get();
       tabletMeta = ctx.getAmple().readTablet(new KeyExtent(tableId, null, null));
 
-      // Should have no location, ecomp, or opid
+      // Should have no location, ecomp, or
+
       assertFalse(tabletMeta.hasCurrent());
       assertNull(tabletMeta.getLocation());
       assertTrue(tabletMeta.getExternalCompactions().isEmpty());
