@@ -751,8 +751,8 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
-              file.getNormalizedPathStr()));
+          refs.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
+              serverLockUUID));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);

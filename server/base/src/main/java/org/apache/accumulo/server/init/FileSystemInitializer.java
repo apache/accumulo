@@ -64,7 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileSystemInitializer {
-  private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
+  public static final String TABLE_TABLETS_TABLET_DIR = "table_info";
   private static final Logger log = LoggerFactory.getLogger(FileSystemInitializer.class);
   private static final Text SPLIT_POINT =
       MetadataSchema.TabletsSection.getRange().getEndKey().getRow();

@@ -56,7 +56,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.AlertCategory;
 import org.apache.accumulo.monitor.next.SystemInformation.AlertPriority;
-import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.FateTransaction;
 import org.apache.accumulo.monitor.next.SystemInformation.FetchCycleTimes;
@@ -226,14 +225,6 @@ public class Endpoints {
     return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
         .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
         .collect(Collectors.toList());
-  }
-
-  @GET
-  @Path("compactions/running/group")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns number of running major compactions per group")
-  public List<CompactionGroupSummary> getRunningCompactionsPerGroup() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getRunningCompactionsPerGroup();
   }
 
   @GET

@@ -94,10 +94,6 @@ public class PrepBulkImport extends AbstractBulkFateOperation {
       return wait;
     }
 
-    if (env.onlineTabletServers().isEmpty()) {
-      return 500;
-    }
-
     return Utils.reserveHdfsDirectory(env.getContext(), bulkInfo.sourceDir, fateId);
   }
 

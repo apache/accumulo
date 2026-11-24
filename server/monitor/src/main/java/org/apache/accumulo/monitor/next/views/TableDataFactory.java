@@ -19,8 +19,6 @@
 package org.apache.accumulo.monitor.next.views;
 
 import static org.apache.accumulo.monitor.next.views.TableDataFactory.MetricFilterPrefixes.GC_WAL;
-import static org.apache.accumulo.monitor.next.views.TableDataFactory.MetricFilterPrefixes.MINC;
-import static org.apache.accumulo.monitor.next.views.TableDataFactory.MetricFilterPrefixes.MINC_COMPACTION;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -236,19 +234,22 @@ public class TableDataFactory {
    * table specific metrics.
    */
   public static List<ColumnFactory> columnsFor(TableName table) {
-    List<ColumnFactory> cols = new ArrayList<>(COMMON_COLUMNS);
+    return columnsFor(table, true);
+  }
+
+  public static List<ColumnFactory> columnsFor(TableName table, boolean includeCommon) {
+    List<ColumnFactory> cols = includeCommon ? new ArrayList<>(COMMON_COLUMNS) : new ArrayList<>();
 
     switch (table) {
       case COORDINATOR_QUEUES ->
         coordinatorQueueMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
+      case MANAGER_COMPACTIONS -> coordinatorServerMetrics(cols);
       case COMPACTORS -> compactorMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case GC_SUMMARY -> gcSummaryMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case GC_FILES -> gcFileMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case GC_WALS -> gcWalMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case MANAGERS -> managerMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case MANAGER_FATE -> managerFateMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
-      case MANAGER_COMPACTIONS ->
-        managerCompactionMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
       case SCAN_SERVERS -> scanServerColumns(cols);
       case TABLET_SERVERS -> tabletServerColumns(cols);
     }
@@ -290,16 +291,19 @@ public class TableDataFactory {
     // TODO create scan problems that is a sum of zombie and low memory
   }
 
-  private static void commonColumns(List<ColumnFactory> cols) {
-    cols.add(new MetricColumnFactory(Metric.SERVER_IDLE));
-    cols.add(new MetricColumnFactory(Metric.LOW_MEMORY));
-
+  private static void rpcColumns(List<ColumnFactory> cols) {
     cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
         ThreadPoolNames.RPC_POOL.poolName, "Completed RPCs",
         "Task completed by the Thrift thread pool"));
     cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
         ThreadPoolNames.RPC_POOL.poolName, "Queued RPCs",
         "Task queued for the Thrift thread pool"));
+  }
+
+  private static void commonColumns(List<ColumnFactory> cols) {
+    cols.add(new MetricColumnFactory(Metric.SERVER_IDLE));
+    cols.add(new MetricColumnFactory(Metric.LOW_MEMORY));
+    rpcColumns(cols);
   }
 
   private static void scanColumns(List<ColumnFactory> cols) {
@@ -391,13 +395,35 @@ public class TableDataFactory {
    * as their order.
    */
   private static List<Metric> coordinatorQueueMetrics() {
-    return metricList(m -> !m.getName().startsWith(MINC.getPrefix())
-        && !m.getName().startsWith(MINC_COMPACTION.getPrefix()), MetricDocSection.COMPACTION);
+    return List.of(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE,
+        Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER);
+  }
+
+  private static void coordinatorServerMetrics(List<ColumnFactory> cols) {
+    rpcColumns(cols);
+
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
+        ThreadPoolNames.COORDINATOR_RESERVATION_USER_POOL.poolName, "Completed Reservations",
+        "Completed reservations of a tablets files for compaction."));
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
+        ThreadPoolNames.COORDINATOR_RESERVATION_USER_POOL.poolName, "Queued Reservations",
+        "Queued reservations of a tablets files for compaction."));
+
+    coordinatorQueueMetrics().forEach(m -> cols.add(new MetricColumnFactory(m)));
   }
 
   private static List<Metric> compactorMetrics() {
-    return metricList(null, MetricDocSection.GENERAL_SERVER, MetricDocSection.COMPACTION,
-        MetricDocSection.COMPACTOR);
+    return List.of(Metric.COMPACTOR_ENTRIES_READ, Metric.COMPACTOR_ENTRIES_WRITTEN,
+        Metric.COMPACTOR_MAJC_IN_PROGRESS, Metric.COMPACTOR_MAJC_COMPLETED,
+        Metric.COMPACTOR_MAJC_STUCK, Metric.COMPACTOR_MAJC_CANCELLED, Metric.COMPACTOR_MAJC_FAILED,
+        Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE, Metric.COMPACTOR_MAJC_FAILURES_TERMINATION);
   }
 
   private static List<Metric> gcSummaryMetrics() {
@@ -420,11 +446,6 @@ public class TableDataFactory {
 
   private static List<Metric> managerFateMetrics() {
     return metricList(null, MetricDocSection.FATE);
-  }
-
-  private static List<Metric> managerCompactionMetrics() {
-    return metricList(m -> !m.getName().startsWith(MINC.getPrefix())
-        && !m.getName().startsWith(MINC_COMPACTION.getPrefix()), MetricDocSection.COMPACTION);
   }
 
   /**

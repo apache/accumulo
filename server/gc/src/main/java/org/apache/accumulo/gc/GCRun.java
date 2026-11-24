@@ -149,8 +149,10 @@ public class GCRun implements GarbageCollectionEnvironment {
       candidateLength += candidate.getPath().length();
       candidatesBatch.add(candidate);
       if (candidateLength > candidateBatchSize) {
-        log.info("Candidate batch of size {} has exceeded the threshold. Attempting to delete "
-            + "what has been gathered so far.", candidateLength);
+        log.info(
+            "Candidate batch of size {} with {} entries has exceeded the threshold. Attempting to delete "
+                + "what has been gathered so far.",
+            candidateLength, candidatesBatch.size());
         return candidatesBatch;
       }
     }
@@ -202,8 +204,8 @@ public class GCRun implements GarbageCollectionEnvironment {
       refConsumer.accept(ReferenceFile.forDirectory(tableId, tm.getDirName()));
     });
 
-    var scanServerRefs = context.getAmple().scanServerRefs().list()
-        .map(sfr -> ReferenceFile.forScan(sfr.getTableId(), sfr));
+    Stream<ReferenceFile> scanServerRefs =
+        context.getAmple().scanServerRefs().list().map(sfr -> ReferenceFile.forScan(sfr));
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }
@@ -329,21 +331,7 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors.increment();
-              String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
-              if (parts.length > 2) {
-                TableId tableId = TableId.of(parts[1]);
-                String tabletDir = parts[2];
-                TableState tableState = context.getTableManager().getTableState(tableId);
-                if (tableState != TableState.UNKNOWN && tableState != TableState.DELETING) {
-                  // clone directories don't always exist
-                  if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                    log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
-                  }
-                }
-              } else {
-                log.warn("{} Delete failed due to invalid file path format: {}", fileActionPrefix,
-                    delete.getPath());
-              }
+              log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
             }
           }
 

@@ -1293,6 +1293,7 @@ public class Manager extends AbstractServer
       UtilWaitThread.sleep(100);
     }
 
+    log.debug("Stopping coordinator manager");
     coordinatorManager.stop();
 
     log.debug("Shutting down fate.");

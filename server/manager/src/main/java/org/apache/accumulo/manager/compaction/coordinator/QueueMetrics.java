@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -60,8 +61,8 @@ public class QueueMetrics implements MetricsProducer {
   private static class QueueMeters {
     private final Gauge jobsQueued;
     private final Gauge jobsQueuedSize;
-    private final Gauge jobsDequeued;
-    private final Gauge jobsRejected;
+    private final FunctionCounter jobsDequeued;
+    private final FunctionCounter jobsRejected;
     private final Gauge jobsLowestPriority;
     private final Gauge jobsMinAge;
     private final Gauge jobsMaxAge;
@@ -84,13 +85,13 @@ public class QueueMetrics implements MetricsProducer {
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getDescription())
           .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
-      jobsDequeued = Gauge
+      jobsDequeued = FunctionCounter
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName(), queue,
               q -> q.getDequeuedJobs())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getDescription())
           .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
-      jobsRejected = Gauge
+      jobsRejected = FunctionCounter
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName(), queue,
               q -> q.getRejectedJobs())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getDescription())
@@ -104,19 +105,19 @@ public class QueueMetrics implements MetricsProducer {
 
       jobsMinAge = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getName(), queue,
-              q -> q.getJobQueueStats().getMinAge().toSeconds())
+              q -> q.getJobQueueStats().getMinAge().toMillis())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getDescription())
           .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsMaxAge = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getName(), queue,
-              q -> q.getJobQueueStats().getMaxAge().toSeconds())
+              q -> q.getJobQueueStats().getMaxAge().toMillis())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getDescription())
           .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
       jobsAvgAge = Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getName(), queue,
           // Divide by 1000.0 instead of using toSeconds() so we get a double
-          q -> q.getJobQueueStats().getAvgAge().toMillis() / 1000.0)
+          q -> q.getJobQueueStats().getAvgAge().toMillis())
           .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getDescription())
           .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, queueId))).register(meterRegistry);
 
