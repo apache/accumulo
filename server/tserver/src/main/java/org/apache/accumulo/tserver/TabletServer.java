@@ -19,6 +19,8 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SLOW_SYNCS;
+import static org.apache.accumulo.core.metrics.Metric.WAL_WRITE_FAILURES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
@@ -152,6 +154,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 public class TabletServer extends AbstractServer implements TabletHostingServer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -189,6 +194,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
+  private final AtomicLong walSlowSyncCounter = new AtomicLong(0);
+  private final AtomicLong walWriteFailureCounter = new AtomicLong(0);
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
@@ -324,8 +331,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             .maxWait(Duration.ofMillis(walFailureRetryMax)).backOffFactor(1.5)
             .logInterval(Duration.ofMinutes(3)).createFactory();
 
-    logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
-        walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
+    logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter, walSlowSyncCounter,
+        walWriteFailureCounter, walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
@@ -564,7 +571,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     recoveryMetrics = new TabletServerRecoveryMetrics();
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics);
+        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics,
+        getContext().getWalProviderRegistry());
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 
@@ -1198,4 +1206,18 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       });
     }
   }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
+
+    String provider = getContext().getWalProviderRegistry().getCurrent().getId();
+    FunctionCounter.builder(WAL_SLOW_SYNCS.getName(), walSlowSyncCounter, AtomicLong::get)
+        .description(WAL_SLOW_SYNCS.getDescription()).tag("provider", provider).register(registry);
+    FunctionCounter.builder(WAL_WRITE_FAILURES.getName(), walWriteFailureCounter, AtomicLong::get)
+        .description(WAL_WRITE_FAILURES.getDescription()).tag("provider", provider)
+        .register(registry);
+
+  }
+
 }

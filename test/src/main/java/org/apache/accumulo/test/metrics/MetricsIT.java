@@ -124,6 +124,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, "1s");
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
     // Tell the server processes to use a StatsDMeterRegistry and the simple logging registry
     // that will be configured to push all metrics to the sink we started.
     cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");

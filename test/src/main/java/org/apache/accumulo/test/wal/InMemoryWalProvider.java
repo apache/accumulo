@@ -28,6 +28,7 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.spi.wal.WalProvider;
@@ -52,6 +53,11 @@ public class InMemoryWalProvider implements WalProvider {
   private static final String REFERENCE_PREFIX = "memwal:wal?uuid=";
   private static final String OPAQUE_SUFFIX = "&opaque=a%2Fb%2Cc%7Cd";
 
+  private final AtomicLong creates = new AtomicLong(0);
+  private final AtomicLong deletes = new AtomicLong(0);
+  private final AtomicLong opens = new AtomicLong(0);
+  private final AtomicLong prepares = new AtomicLong(0);
+  private final AtomicLong syncs = new AtomicLong(0);
   private String host;
   private int port = -1;
 
@@ -84,8 +90,39 @@ public class InMemoryWalProvider implements WalProvider {
   }
 
   @Override
+  public Metrics getMetrics() {
+    return new Metrics() {
+      @Override
+      public long creates() {
+        return creates.get();
+      }
+
+      @Override
+      public long deletes() {
+        return deletes.get();
+      }
+
+      @Override
+      public long opens() {
+        return opens.get();
+      }
+
+      @Override
+      public long prepareForRecoveries() {
+        return prepares.get();
+      }
+
+      @Override
+      public long syncs() {
+        return syncs.get();
+      }
+    };
+  }
+
+  @Override
   public long prepareForRecovery(String reference) throws IOException {
     requireInitialized();
+    prepares.incrementAndGet();
     validateReference(reference);
     return 0;
   }
@@ -93,6 +130,7 @@ public class InMemoryWalProvider implements WalProvider {
   @Override
   public Writer create(UUID id) throws IOException {
     requireInitialized();
+    creates.incrementAndGet();
     String reference = REFERENCE_PREFIX + id + "&store=" + port + OPAQUE_SUFFIX;
     validateReference(reference);
     try (var socket = InMemoryWalStore.connect(host, port);
@@ -109,6 +147,7 @@ public class InMemoryWalProvider implements WalProvider {
   public InputStream open(String reference) throws IOException {
     requireInitialized();
     validateReference(reference);
+    opens.incrementAndGet();
     try (var socket = InMemoryWalStore.connect(host, port);
         var output = new DataOutputStream(socket.getOutputStream());
         var input = new DataInputStream(socket.getInputStream())) {
@@ -145,6 +184,7 @@ public class InMemoryWalProvider implements WalProvider {
   public void delete(String reference) throws IOException {
     requireInitialized();
     validateReference(reference);
+    deletes.incrementAndGet();
     try (var socket = InMemoryWalStore.connect(host, port);
         var output = new DataOutputStream(socket.getOutputStream());
         var input = new DataInputStream(socket.getInputStream())) {
@@ -255,6 +295,7 @@ public class InMemoryWalProvider implements WalProvider {
     @Override
     public synchronized void sync(Durability durability) throws IOException {
       ensureOpen();
+      syncs.incrementAndGet();
       if (durability != Durability.SYNC && durability != Durability.FLUSH) {
         throw new IllegalArgumentException("Unexpected WAL sync durability " + durability);
       }

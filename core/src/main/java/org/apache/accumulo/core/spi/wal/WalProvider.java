@@ -48,27 +48,6 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
  */
 public interface WalProvider {
 
-  /** Regular expression for valid provider IDs. */
-  String PROVIDER_ID_REGEX = "[A-Za-z0-9]+";
-
-  /**
-   * Returns the stable identifier persisted with logs created by this provider. It must be unique
-   * among the configured providers and match {@link #PROVIDER_ID_REGEX}.
-   *
-   * @return stable provider ID
-   */
-  String getId();
-
-  /**
-   * Initializes this provider with its configured options. Implementations may retain the service
-   * environment for accessing system configuration and must not assume that properties change
-   * during this process lifetime. Throwing an exception prevents the server process from starting.
-   *
-   * @param params the service environment and options configured for this provider
-   * @since 4.0.0
-   */
-  default void init(InitParameters params) {}
-
   /** Parameters passed to {@link #init(InitParameters)}. */
   interface InitParameters {
 
@@ -78,56 +57,6 @@ public interface WalProvider {
     /** @return the provider-specific options configured in {@code instance.wal.providers} */
     Map<String,String> getOptions();
   }
-
-  /**
-   * Prepares a closed or abandoned WAL for recovery, including any storage-level lease recovery or
-   * fencing needed to make its recoverable bytes consistently readable through
-   * {@link #open(String)}. Accumulo calls this after the TabletServer has closed or lost ownership
-   * of the WAL. Calls must be safe to repeat after retries or Manager failover, and may run
-   * concurrently for different WALs. Perform one attempt rather than waiting indefinitely; Accumulo
-   * schedules retries.
-   *
-   * @param reference reference returned by {@link Writer#getReference()}
-   * @return zero when ready, or a positive delay in milliseconds before retrying; never negative
-   */
-  long prepareForRecovery(String reference) throws IOException;
-
-  /**
-   * Creates a new exclusive WAL for the given UUID. The returned reference must be unique and
-   * contain the supplied UUID. The writer must preserve every byte written to its output stream in
-   * order.
-   *
-   * @param id globally unique identifier for the WAL
-   * @return a new writer whose reference can later be passed to {@link #open(String)} and
-   *         {@link #delete(String)}
-   */
-  Writer create(UUID id) throws IOException;
-
-  /**
-   * Opens a completed or abandoned WAL for recovery. The returned stream must start at byte zero
-   * and reproduce the bytes written by the corresponding writer exactly and in the same order.
-   * Accumulo only opens logs after their TabletServer has closed or lost ownership of them.
-   *
-   * @param reference reference returned by {@link Writer#getReference()}
-   */
-  InputStream open(String reference) throws IOException;
-
-  /**
-   * Checks whether a WAL reference currently exists without opening it. This may be called while a
-   * WAL is still being written.
-   *
-   * @param reference reference returned by {@link Writer#getReference()}
-   * @return true if the WAL exists
-   */
-  boolean exists(String reference) throws IOException;
-
-  /**
-   * Deletes a WAL that Accumulo has determined is no longer referenced by any tablet. Deletion
-   * should be idempotent because a server may retry cleanup after an interruption.
-   *
-   * @param reference reference returned by {@link Writer#getReference()}
-   */
-  void delete(String reference) throws IOException;
 
   /**
    * A newly created WAL and its append-only output stream. Accumulo may call
@@ -186,4 +115,116 @@ public interface WalProvider {
     @Override
     void close() throws IOException;
   }
+
+  public interface Metrics {
+
+    /**
+     * @return number of calls to {@code WalProvider#create(UUID)} for the life of this provider
+     *         instance
+     */
+    long creates();
+
+    /**
+     * @return number of calls to {@code WalProvider#delete(String)} for the life of this provider
+     *         instance
+     */
+    long deletes();
+
+    /**
+     * @return number of calls to {@code WalProvider#open(String)} for the life of this provider
+     *         instance
+     */
+    long opens();
+
+    /**
+     * @return number of calls to {@code WalProvider#prepareForRecovery(String)} for the life of
+     *         this provider instance
+     */
+    long prepareForRecoveries();
+
+    /**
+     * @return number of calls to {@code WalProvider.Writer#sync(Durability)} for the life of this
+     *         provider instance
+     */
+    long syncs();
+  }
+
+  /** Regular expression for valid provider IDs. */
+  String PROVIDER_ID_REGEX = "[A-Za-z0-9]+";
+
+  /**
+   * Returns a Metrics object
+   *
+   * @return WalProvider.Metrics instance
+   */
+  Metrics getMetrics();
+
+  /**
+   * Returns the stable identifier persisted with logs created by this provider. It must be unique
+   * among the configured providers and match {@link #PROVIDER_ID_REGEX}.
+   *
+   * @return stable provider ID
+   */
+  String getId();
+
+  /**
+   * Initializes this provider with its configured options. Implementations may retain the service
+   * environment for accessing system configuration and must not assume that properties change
+   * during this process lifetime. Throwing an exception prevents the server process from starting.
+   *
+   * @param params the service environment and options configured for this provider
+   * @since 4.0.0
+   */
+  default void init(InitParameters params) {}
+
+  /**
+   * Prepares a closed or abandoned WAL for recovery, including any storage-level lease recovery or
+   * fencing needed to make its recoverable bytes consistently readable through
+   * {@link #open(String)}. Accumulo calls this after the TabletServer has closed or lost ownership
+   * of the WAL. Calls must be safe to repeat after retries or Manager failover, and may run
+   * concurrently for different WALs. Perform one attempt rather than waiting indefinitely; Accumulo
+   * schedules retries.
+   *
+   * @param reference reference returned by {@link Writer#getReference()}
+   * @return zero when ready, or a positive delay in milliseconds before retrying; never negative
+   */
+  long prepareForRecovery(String reference) throws IOException;
+
+  /**
+   * Creates a new exclusive WAL for the given UUID. The returned reference must be unique and
+   * contain the supplied UUID. The writer must preserve every byte written to its output stream in
+   * order.
+   *
+   * @param id globally unique identifier for the WAL
+   * @return a new writer whose reference can later be passed to {@link #open(String)} and
+   *         {@link #delete(String)}
+   */
+  Writer create(UUID id) throws IOException;
+
+  /**
+   * Opens a completed or abandoned WAL for recovery. The returned stream must start at byte zero
+   * and reproduce the bytes written by the corresponding writer exactly and in the same order.
+   * Accumulo only opens logs after their TabletServer has closed or lost ownership of them.
+   *
+   * @param reference reference returned by {@link Writer#getReference()}
+   */
+  InputStream open(String reference) throws IOException;
+
+  /**
+   * Checks whether a WAL reference currently exists without opening it. This may be called while a
+   * WAL is still being written.
+   *
+   * @param reference reference returned by {@link Writer#getReference()}
+   * @return true if the WAL exists
+   */
+  boolean exists(String reference) throws IOException;
+
+  /**
+   * Deletes a WAL that Accumulo has determined is no longer referenced by any tablet. Deletion
+   * should be idempotent because a server may retry cleanup after an interruption.
+   *
+   * @param reference reference returned by {@link Writer#getReference()}
+   */
+  void delete(String reference) throws IOException;
+
 }

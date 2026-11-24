@@ -19,9 +19,9 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_AVG_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_IN_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_LONGEST_RUNTIME;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SORTS_AVG_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SORTS_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SORTS_LONGEST_RUNTIME;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
@@ -385,11 +385,11 @@ public class LogSorter implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(RECOVERIES_SORTS_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
-        .description(RECOVERIES_SORTS_IN_PROGRESS.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_SORTS_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
-        .description(RECOVERIES_SORTS_LONGEST_RUNTIME.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_SORTS_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
-        .description(RECOVERIES_SORTS_AVG_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(WAL_SORTS_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
+        .description(WAL_SORTS_IN_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(WAL_SORTS_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
+        .description(WAL_SORTS_LONGEST_RUNTIME.getDescription()).register(registry);
+    Gauge.builder(WAL_SORTS_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
+        .description(WAL_SORTS_AVG_PROGRESS.getDescription()).register(registry);
   }
 }

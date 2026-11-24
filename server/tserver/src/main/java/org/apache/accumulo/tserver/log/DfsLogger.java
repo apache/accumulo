@@ -129,11 +129,16 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
     private final AtomicLong syncCounter;
     private final AtomicLong flushCounter;
+    private final AtomicLong walSlowSyncCounter;
+    private final AtomicLong walWriteFailureCounter;
     private final Duration slowFlushDuration;
 
-    LogSyncingTask(AtomicLong syncCounter, AtomicLong flushCounter, Duration slowFlushDuration) {
+    LogSyncingTask(AtomicLong syncCounter, AtomicLong flushCounter, AtomicLong walSlowSyncCounter,
+        AtomicLong walWriteFailureCounter, Duration slowFlushDuration) {
       this.syncCounter = syncCounter;
       this.flushCounter = flushCounter;
+      this.walSlowSyncCounter = walSlowSyncCounter;
+      this.walWriteFailureCounter = walWriteFailureCounter;
       this.slowFlushDuration = slowFlushDuration;
     }
 
@@ -184,6 +189,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
             }
           }
           if (timer.hasElapsed(slowFlushDuration)) {
+            walSlowSyncCounter.incrementAndGet();
             log.info("Slow sync cost: {} ms, current information: {}", timer.elapsed(MILLISECONDS),
                 logFile.getDiagnostics());
             if (!logFile.isHealthy()) {
@@ -206,6 +212,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     }
 
     private void fail(ArrayList<LogWork> work, Exception ex, String why) {
+      walWriteFailureCounter.incrementAndGet();
       log.warn("Exception {} {}", why, ex, ex);
       for (LogWork logWork : work) {
         logWork.exception = ex;
@@ -290,7 +297,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    * Create a new DfsLogger with the provided characteristics.
    */
   public static DfsLogger createNew(ServerContext context, AtomicLong syncCounter,
-      AtomicLong flushCounter, HostAndPort address, WalProvider provider) throws IOException {
+      AtomicLong flushCounter, AtomicLong walSlowSyncCounter, AtomicLong walWriteFailureCounter,
+      HostAndPort address, WalProvider provider) throws IOException {
 
     UUID id = UUID.randomUUID();
     WalProvider.Writer writer = provider.create(id);
@@ -300,7 +308,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       dfsLogger = new DfsLogger(log);
       long slowFlushMillis =
           context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
-      dfsLogger.open(context, writer, syncCounter, flushCounter, slowFlushMillis);
+      dfsLogger.open(context, writer, syncCounter, flushCounter, walSlowSyncCounter,
+          walWriteFailureCounter, slowFlushMillis);
       return dfsLogger;
     } catch (IOException | RuntimeException e) {
       try {
@@ -385,7 +394,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    * {@link #close()} is called to prevent leaking the file handle and/or syncing thread.
    */
   private synchronized void open(ServerContext context, WalProvider.Writer writer,
-      AtomicLong syncCounter, AtomicLong flushCounter, long slowFlushMillis) throws IOException {
+      AtomicLong syncCounter, AtomicLong flushCounter, AtomicLong walSlowSyncCounter,
+      AtomicLong walWriteFailureCounter, long slowFlushMillis) throws IOException {
     log.debug("Address is {}", logEntry.getTServerAddress());
 
     log.debug("DfsLogger.open() begin");
@@ -434,7 +444,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     }
 
     syncThread = Threads.createCriticalThread("Accumulo WALog thread " + this,
-        new LogSyncingTask(syncCounter, flushCounter, Duration.ofMillis(slowFlushMillis)));
+        new LogSyncingTask(syncCounter, flushCounter, walSlowSyncCounter, walWriteFailureCounter,
+            Duration.ofMillis(slowFlushMillis)));
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);

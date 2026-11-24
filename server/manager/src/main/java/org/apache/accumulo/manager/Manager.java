@@ -922,7 +922,7 @@ public class Manager extends AbstractServer
           getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
       metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
           getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-      metricsInfo.addMetricsProducers(this);
+      metricsInfo.addMetricsProducers(this, getContext().getWalProviderRegistry());
     }
   }
 

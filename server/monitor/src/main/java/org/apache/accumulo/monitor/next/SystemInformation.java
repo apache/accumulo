@@ -771,13 +771,13 @@ public class SystemInformation {
         final String name = fm.name();
         final Metric m = Metric.fromName(name);
         switch (m) {
-          case RECOVERIES_SORTS_IN_PROGRESS:
+          case WAL_SORTS_IN_PROGRESS:
             logSortsInProgress = getMetricValue(fm);
             break;
-          case RECOVERIES_SORTS_AVG_PROGRESS:
+          case WAL_SORTS_AVG_PROGRESS:
             logSortsAvgProgress = getMetricValue(fm);
             break;
-          case RECOVERIES_SORTS_LONGEST_RUNTIME:
+          case WAL_SORTS_LONGEST_RUNTIME:
             logSortsLongestRuntime = getMetricValue(fm);
             break;
           case RECOVERIES_TABLETS_STARTED:

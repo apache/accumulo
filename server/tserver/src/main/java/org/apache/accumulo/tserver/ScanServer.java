@@ -387,7 +387,8 @@ public class ScanServer extends AbstractServer
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics,
+        getContext().getWalProviderRegistry());
 
     ServiceLock lock = announceExistence();
     this.getContext().setServiceLock(lock);

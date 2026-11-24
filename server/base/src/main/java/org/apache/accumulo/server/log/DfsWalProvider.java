@@ -21,6 +21,7 @@ package org.apache.accumulo.server.log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -50,6 +51,11 @@ public class DfsWalProvider implements WalProvider {
   /** Provider option selecting a public no-argument {@link LogCloser} implementation. */
   public static final String LOG_CLOSER_OPTION = "logCloser";
 
+  private final AtomicLong creates = new AtomicLong(0);
+  private final AtomicLong deletes = new AtomicLong(0);
+  private final AtomicLong opens = new AtomicLong(0);
+  private final AtomicLong prepares = new AtomicLong(0);
+  private final AtomicLong syncs = new AtomicLong(0);
   private ServerContext context;
   private LogCloser logCloser;
 
@@ -75,13 +81,45 @@ public class DfsWalProvider implements WalProvider {
   }
 
   @Override
+  public Metrics getMetrics() {
+    return new Metrics() {
+      @Override
+      public long creates() {
+        return creates.get();
+      }
+
+      @Override
+      public long deletes() {
+        return deletes.get();
+      }
+
+      @Override
+      public long opens() {
+        return opens.get();
+      }
+
+      @Override
+      public long prepareForRecoveries() {
+        return prepares.get();
+      }
+
+      @Override
+      public long syncs() {
+        return syncs.get();
+      }
+    };
+  }
+
+  @Override
   public long prepareForRecovery(String reference) throws IOException {
+    prepares.incrementAndGet();
     return logCloser.close(context.getConfiguration(), context.getHadoopConf(),
         context.getVolumeManager(), new Path(reference));
   }
 
   @Override
   public Writer create(UUID id) throws IOException {
+    creates.incrementAndGet();
     var chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
     String logPath = context.getVolumeManager().choose(chooserEnv, context.getBaseUris())
@@ -119,6 +157,7 @@ public class DfsWalProvider implements WalProvider {
 
   @Override
   public InputStream open(String reference) throws IOException {
+    opens.incrementAndGet();
     return context.getVolumeManager().open(new Path(reference));
   }
 
@@ -129,6 +168,7 @@ public class DfsWalProvider implements WalProvider {
 
   @Override
   public void delete(String reference) throws IOException {
+    deletes.incrementAndGet();
     VolumeManager fs = context.getVolumeManager();
     Path path = new Path(reference);
     if (!fs.moveToTrash(path)) {
@@ -136,7 +176,7 @@ public class DfsWalProvider implements WalProvider {
     }
   }
 
-  private static class DfsWriter implements Writer {
+  private class DfsWriter implements Writer {
     private final String reference;
     private final FSDataOutputStream output;
     private boolean closed;
@@ -159,6 +199,7 @@ public class DfsWalProvider implements WalProvider {
 
     @Override
     public void sync(Durability durability) throws IOException {
+      syncs.incrementAndGet();
       if (durability == Durability.SYNC) {
         output.hsync();
       } else if (durability == Durability.FLUSH) {
