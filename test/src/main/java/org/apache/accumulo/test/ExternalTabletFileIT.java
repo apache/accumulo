@@ -62,6 +62,8 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
     cfg.useMiniDFS(true);
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
+    // make locks expire faster, makes test that kills GC process run faster
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
     super.configure(cfg, hadoopCoreSite);
   }
 
@@ -159,7 +161,7 @@ public class ExternalTabletFileIT extends ConfigurableMacBase {
   }
 
   private Path writeRFile(FileSystem fs, String name) throws Exception {
-    Path externalFile = fs.makeQualified(new Path("/external-rfiles/" + name + ".rf"));
+    Path externalFile = fs.makeQualified(new Path("/external-rfiles/b-000001/" + name + ".rf"));
     fs.mkdirs(externalFile.getParent());
     try (RFileWriter writer =
         RFile.newWriter().to(externalFile.toString()).withFileSystem(fs).build()) {
