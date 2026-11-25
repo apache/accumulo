@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -595,6 +596,16 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   @Override
   protected FateTxStore<T> newUnreservedFateTxStore(FateId fateId) {
     return new FateTxStoreImpl(fateId);
+  }
+
+  @Override
+  public TxSnapshot<T> readSnapshot(FateId fateId) {
+    Stat stat = new Stat();
+    FateData<T> fateData = getFateData(fateId, stat);
+    long createdTime = stat.getCtime();
+
+    return new TxSnapshot<>(fateData.status, (FateOperation) fateData.txInfo.get(TxInfo.FATE_OP),
+        fateData.repoDeque.peek(), createdTime);
   }
 
   @Override

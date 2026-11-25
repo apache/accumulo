@@ -57,9 +57,22 @@ public interface ReadOnlyFateStore<T> {
   }
 
   /**
+   * Record to hold a fate transaction's data for use in AdminUtil
+   */
+  record TxSnapshot<T>(TStatus status, Fate.FateOperation fateOp, Repo<T> top, long timeCreated) {
+  };
+
+  /**
    * Reads the data related to fate transaction without reserving it.
    */
   ReadOnlyFateTxStore<T> read(FateId fateId);
+
+  /**
+   * Preforms a one-time read of data from a single transaction
+   *
+   * @return a specified record of the transaction's data
+   */
+  TxSnapshot<T> readSnapshot(FateId fateId);
 
   /**
    * Storage for an individual fate transaction

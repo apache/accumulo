@@ -540,7 +540,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         // Filter out the result to just include the info about the transactions
         List<String> transactionInfo = Arrays.stream(lines).filter(
             line -> line.contains(fateIdsStarted.get(0)) || line.contains(fateIdsStarted.get(1)))
-            .collect(Collectors.toList());
+            .toList();
         assertEquals(2, transactionInfo.size());
         for (String info : transactionInfo) {
           assertTrue(info.contains("TABLE_COMPACT"));
@@ -848,6 +848,24 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     // All should have the store.type() type
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getInstanceType)
         .collect(Collectors.toList()), List.of(store.type(), store.type()));
+  }
+
+  @Test
+  public void testUnknownFateTransaction() throws Exception {
+    executeTest(this::testUnknownFateTransaction);
+  }
+
+  protected <T> void testUnknownFateTransaction(ReadOnlyFateStore<T> store, ServerContext sctx)
+      throws Exception {
+    // Create a FateIds that does not exist.
+    FateId tx = FateId.from(store.type(), UUID.randomUUID());
+
+    // Read the transaction data
+    ReadOnlyFateStore.TxSnapshot<T> txSnapshot = store.readSnapshot(tx);
+
+    // The transaction should have UNKNOWN status and created time 0
+    assertEquals(ReadOnlyFateStore.TStatus.UNKNOWN, txSnapshot.status());
+    assertEquals(0, txSnapshot.timeCreated());
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {

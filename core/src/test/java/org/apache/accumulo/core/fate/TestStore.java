@@ -239,6 +239,11 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
+  public TxSnapshot<String> readSnapshot(FateId fateId) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Stream<FateIdStatus> list() {
     return new ArrayList<>(statuses.entrySet()).stream().map(e -> new FateIdStatus() {
       @Override
