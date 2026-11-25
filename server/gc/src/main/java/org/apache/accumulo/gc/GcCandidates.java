@@ -189,7 +189,7 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
   }
 
   public int removeBlip(String blip) {
-    var lastThree = lastThree(blip, false, 2, 2);
+    var lastThree = lastThree(blip, 2);
 
     String blipPrefix = "/" + lastThree.name + "/";
 
