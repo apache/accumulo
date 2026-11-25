@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.logging.FileOperationsLogger;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,6 +32,7 @@ class FSConfArgs {
 
   FileSystem getFileSystem(Path path) throws IOException {
     if (fs == null) {
+      FileOperationsLogger.startLoggingFilesystemMetrics();
       return path.getFileSystem(getConf());
     }
     return fs;

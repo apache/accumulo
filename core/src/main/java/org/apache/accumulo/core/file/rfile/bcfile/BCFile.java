@@ -38,8 +38,11 @@ import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
+import org.apache.accumulo.core.file.streams.LoggingFilterInputStream;
+import org.apache.accumulo.core.file.streams.LoggingSeekableDataInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.logging.FileOperationsLogger;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -65,6 +68,7 @@ import org.apache.hadoop.io.compress.Decompressor;
  * be used for other block-compressed file implementation.
  */
 public final class BCFile {
+
   // the current version of BCFile impl, increment them (major or minor) made
   // enough changes
   /**
@@ -615,7 +619,10 @@ public final class BCFile {
 
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin,
         long fileLength, Configuration conf, CryptoService cryptoService) throws IOException {
-      this.in = new SeekableDataInputStream(fin);
+
+      this.in = FileOperationsLogger.isEnabled()
+          ? new LoggingSeekableDataInputStream(new LoggingFilterInputStream(fin))
+          : new SeekableDataInputStream(fin);
       this.conf = conf;
 
       // Move the cursor to grab the version and the magic first
@@ -670,7 +677,10 @@ public final class BCFile {
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
         InputStreamType fin, Configuration conf, CryptoService cryptoService) throws IOException {
-      this.in = new SeekableDataInputStream(fin);
+
+      this.in = FileOperationsLogger.isEnabled()
+          ? new LoggingSeekableDataInputStream(new LoggingFilterInputStream(fin))
+          : new SeekableDataInputStream(fin);
       this.conf = conf;
 
       ByteArrayInputStream bais = new ByteArrayInputStream(serializedMetadata);

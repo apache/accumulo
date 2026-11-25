@@ -53,6 +53,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.logging.FileOperationsLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -134,6 +135,7 @@ public class ServerContext extends ClientContext {
     metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
     thriftTransportPool =
         memoize(() -> ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis, true));
+    FileOperationsLogger.startLoggingFilesystemMetrics();
   }
 
   /**
