@@ -47,8 +47,6 @@ public enum ClientProperty {
       "Zookeeper connection information for Accumulo instance", "2.0.0", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", PropertyType.TIMEDURATION,
       "Zookeeper session timeout", "2.0.0", false),
-  THREAD_POOL_MAX_SIZE("thread.pool.max.size", "256", PropertyType.COUNT,
-      "Maximum number of threads to use for writing data", "4.0.0", false),
 
   // Authentication
   AUTH_TYPE("auth.type", "password", PropertyType.STRING,
@@ -132,7 +130,9 @@ public enum ClientProperty {
   // RPC
   RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
-      false);
+      false),
+  RPC_SERVER_QUERY_MAX_THREADS("rpc.server.query.max.threads", "256", PropertyType.COUNT,
+      "Maximum number of threads to use for querying servers using RPC", "4.0.0", false),;
 
   private final String key;
   private final String defaultValue;
