@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -61,14 +59,12 @@ public class DeadCompactionDetector {
 
   private final ServerContext context;
   private final ScheduledThreadPoolExecutor schedExecutor;
-  private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
   private final Function<FateInstanceType,FateClient<FateEnv>> fateClients;
 
   public DeadCompactionDetector(ServerContext context, ScheduledThreadPoolExecutor stpe,
       Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.context = context;
     this.schedExecutor = stpe;
-    this.deadCompactions = new ConcurrentHashMap<>();
     this.fateClients = fateClients;
   }
 
@@ -132,8 +128,7 @@ public class DeadCompactionDetector {
      * compactors, then it could result in false positives. If compactors were queried before the
      * metadata table, then it could cause false positives.
      */
-    log.trace("Starting to look for dead compactions, deadCompactions.size():{}",
-        deadCompactions.size());
+    log.trace("Starting to look for dead compactions");
 
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
 
@@ -182,21 +177,12 @@ public class DeadCompactionDetector {
       context.getAmple().orphanedCompactions().delete(orphanedCompactions);
     }
 
-    if (tabletCompactions.isEmpty()) {
-      // Clear out dead compactions, tservers don't think anything is running
-      log.trace("Clearing the dead compaction map, no tablets have compactions running");
-      this.deadCompactions.clear();
-      // no need to look for dead compactions when tablets don't have anything recorded as running
-    } else {
+    if (!tabletCompactions.isEmpty()) {
       log.trace("Read {} tablet compactions into memory from metadata table",
           tabletCompactions.size());
       if (log.isTraceEnabled()) {
         tabletCompactions.forEach((ecid, extent) -> log.trace("Saw {} for {}", ecid, extent));
       }
-
-      // Remove from the dead map any compactions that the Tablet's
-      // do not think are running any more.
-      this.deadCompactions.keySet().retainAll(tabletCompactions.keySet());
 
       // Determine what compactions are currently running and remove those.
       //
@@ -205,10 +191,7 @@ public class DeadCompactionDetector {
       // ids do not cover this time period then legitimate running compactions could be canceled.
       running.forEach(ecid -> {
         if (tabletCompactions.remove(ecid) != null) {
-          log.debug("Ignoring compaction {} that is running on a compactor", ecid);
-        }
-        if (this.deadCompactions.remove(ecid) != null) {
-          log.debug("Removed {} from the dead compaction map, it's running on a compactor", ecid);
+          log.trace("Ignoring compaction {} that is running on a compactor", ecid);
         }
       });
 
@@ -218,34 +201,20 @@ public class DeadCompactionDetector {
             .flatMap(fateClient -> fateClient.list(FateKey.FateKeyType.COMPACTION_COMMIT))) {
           keyStream.map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
             if (tabletCompactions.remove(ecid) != null) {
-              log.debug("Ignoring compaction {} that is committing in a fate", ecid);
-            }
-            if (this.deadCompactions.remove(ecid) != null) {
-              log.debug("Removed {} from the dead compaction map, it's committing in fate", ecid);
+              log.trace("Ignoring compaction {} that is committing in a fate", ecid);
             }
           });
         }
       }
 
-      log.trace("deadCompactions.size() after removals {}", deadCompactions.size());
-      tabletCompactions.forEach((ecid, extent) -> {
-        log.info("Possible dead compaction detected {} {}", ecid, extent);
-        this.deadCompactions.merge(ecid, 1L, Long::sum);
-      });
-      log.trace("deadCompactions.size() after additions {}", deadCompactions.size());
-
       // Everything left in tabletCompactions is no longer running anywhere and should be failed.
       // Its possible that a compaction committed while going through the steps above, if so then
       // that is ok and marking it failed will end up being a no-op.
-      Set<ExternalCompactionId> toFail =
-          this.deadCompactions.entrySet().stream().filter(e -> e.getValue() > 2)
-              .map(e -> e.getKey()).collect(Collectors.toCollection(TreeSet::new));
-      tabletCompactions.keySet().retainAll(toFail);
       tabletCompactions.forEach((ecid, extent) -> {
-        log.warn("Compaction believed to be dead, failing it: id: {}, extent: {}", ecid, extent);
+        log.info("Compaction believed to be dead, failing it: id: {}, extent: {}", ecid, extent);
       });
       CompactionCoordinator.compactionsFailed(context, tabletCompactions);
-      this.deadCompactions.keySet().removeAll(toFail);
+      log.trace("Finished looking for dead compactions");
     }
   }
 
