@@ -102,6 +102,8 @@ public class TabletServerLogger {
 
   private final AtomicLong syncCounter;
   private final AtomicLong flushCounter;
+  private final AtomicLong walSlowSyncCounter;
+  private final AtomicLong walWriteFailureCounter;
 
   private long createTime = 0;
 
@@ -156,12 +158,14 @@ public class TabletServerLogger {
   }
 
   public TabletServerLogger(TabletServer tserver, long maxSize, AtomicLong syncCounter,
-      AtomicLong flushCounter, RetryFactory createRetryFactory, RetryFactory writeRetryFactory,
-      long maxAge) {
+      AtomicLong flushCounter, AtomicLong walSlowSyncCounter, AtomicLong walWriteFailureCounter,
+      RetryFactory createRetryFactory, RetryFactory writeRetryFactory, long maxAge) {
     this.tserver = tserver;
     this.maxSize = maxSize;
     this.syncCounter = syncCounter;
     this.flushCounter = flushCounter;
+    this.walSlowSyncCounter = walSlowSyncCounter;
+    this.walWriteFailureCounter = walWriteFailureCounter;
     this.createRetryFactory = createRetryFactory;
     this.createRetry = null;
     this.writeRetryFactory = writeRetryFactory;
@@ -278,7 +282,8 @@ public class TabletServerLogger {
 
         try {
           alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
-              tserver.getAdvertiseAddress());
+              walSlowSyncCounter, walWriteFailureCounter, tserver.getAdvertiseAddress(),
+              tserver.getContext().getWalProviderRegistry().getCurrent());
         } catch (IOException | RuntimeException e) {
           log.error("Failed to open WAL", e);
           try {
@@ -513,7 +518,8 @@ public class TabletServerLogger {
     for (var logEntry : walogs) {
       var sortedLog = sortedLogCache.get(logEntry, le1 -> {
         try {
-          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager(),
+              tserver.getContext().getRecoveryDirs());
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }

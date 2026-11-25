@@ -224,7 +224,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
       for (TabletMetadata tm : tabletsMetadata) {
         for (LogEntry walog : tm.getLogs()) {
           String sortId = walog.getUniqueID().toString();
-          String dest = RecoveryPath.getRecoveryPath(walog.getPath()).toString();
+          String dest = RecoveryPath.getRecoveryPath(walog, ctx.getRecoveryDirs()).toString();
 
           if (ctx.getZooCache().get(Constants.ZRECOVERY + "/" + sortId) != null
               || !ctx.getVolumeManager().exists(SortedLogState.getFinishedMarkerPath(dest))) {

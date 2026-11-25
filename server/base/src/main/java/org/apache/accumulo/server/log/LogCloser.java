@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.manager.recovery;
+package org.apache.accumulo.server.log;
 
 import java.io.IOException;
 
@@ -27,7 +27,10 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * Object that is used by the RecoveryManager to properly close WALogs that were being written to
- * and were not properly closed (TabletServer died, for example).
+ * and were not properly closed (TabletServer died, for example). Configured implementations must
+ * have a public no-argument constructor and support concurrent calls for different WALs. A DFS WAL
+ * provider reuses its closer, and recovery attempts may be repeated after retries or Manager
+ * failover.
  */
 public interface LogCloser {
 

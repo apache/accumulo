@@ -215,6 +215,7 @@ public class ScanServer extends AbstractServer
   public ScanServer(ServerOpts opts, String[] args) {
     super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
     context = super.getContext();
+    context.getWalProviderRegistry();
     LOG.info("Version " + Constants.VERSION);
     LOG.info("Instance " + getContext().getInstanceID());
     this.sessionManager = new SessionManager(context);
@@ -386,7 +387,8 @@ public class ScanServer extends AbstractServer
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
-    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics,
+        getContext().getWalProviderRegistry());
 
     ServiceLock lock = announceExistence();
     this.getContext().setServiceLock(lock);

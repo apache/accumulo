@@ -171,7 +171,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
     Map<TServerInstance,Set<WalStatePath>> missingWals = new HashMap<>();
     for (var instanceAndWals : walsBefore.entrySet()) {
       for (var wal : instanceAndWals.getValue()) {
-        if (!context.getVolumeManager().exists(wal.path())) {
+        if (!context.getWalProviderRegistry().get(wal.providerId()).exists(wal.reference())) {
           missingWals.computeIfAbsent(instanceAndWals.getKey(), k -> new HashSet<>()).add(wal);
         }
       }
@@ -219,7 +219,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
         if (data == null) {
           continue;
         }
-        var parseRes = WalStateManager.parse(data);
+        var parseRes = WalStateManager.parse(data, java.util.UUID.fromString(walPath));
         log.trace("Successfully parsed WAL metadata at {} result {}", fullWalPath, parseRes);
         if (parseRes.state() == WalStateManager.WalState.OPEN
             || parseRes.state() == WalStateManager.WalState.CLOSED) {

@@ -269,7 +269,7 @@ public abstract class WALSunnyDayITBase extends ConfigurableMacBase {
         WalStateManager wals = new WalStateManager(c);
         for (var wal : wals.getAllState()) {
           // WALs are in use if they are not unreferenced
-          result.put(wal.path().toString(), wal.state());
+          result.put(wal.reference(), wal.state());
         }
         return result;
       } catch (WalMarkerException wme) {

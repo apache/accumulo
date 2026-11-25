@@ -19,6 +19,8 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SLOW_SYNCS;
+import static org.apache.accumulo.core.metrics.Metric.WAL_WRITE_FAILURES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalFixedDelay;
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalScheduledTask;
@@ -152,6 +154,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.MeterRegistry;
+
 public class TabletServer extends AbstractServer implements TabletHostingServer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -189,6 +194,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
+  private final AtomicLong walSlowSyncCounter = new AtomicLong(0);
+  private final AtomicLong walWriteFailureCounter = new AtomicLong(0);
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
@@ -222,6 +229,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
     context = super.getContext();
+    context.getWalProviderRegistry();
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -323,8 +331,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             .maxWait(Duration.ofMillis(walFailureRetryMax)).backOffFactor(1.5)
             .logInterval(Duration.ofMinutes(3)).createFactory();
 
-    logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
-        walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
+    logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter, walSlowSyncCounter,
+        walWriteFailureCounter, walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
@@ -563,7 +571,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     recoveryMetrics = new TabletServerRecoveryMetrics();
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics);
+        pausedMetrics, blockCacheMetrics, logSorter, recoveryMetrics,
+        getContext().getWalProviderRegistry());
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 
@@ -1018,8 +1027,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       TServerInstance session = this.getTabletSession();
       for (DfsLogger candidate : eligible) {
-        log.info("Marking " + candidate.getPath() + " as unreferenced");
-        walMarker.walUnreferenced(session, candidate.getPath());
+        log.info("Marking " + candidate.getReference() + " as unreferenced");
+        walMarker.walUnreferenced(session, candidate.getLogEntry());
       }
       synchronized (closedLogs) {
         closedLogs.removeAll(eligible);
@@ -1030,8 +1039,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public void addNewLogMarker(DfsLogger copy) throws WalMarkerException {
-    log.info("Writing log marker for " + copy.getPath());
-    walMarker.addNewWalMarker(getTabletSession(), copy.getPath());
+    log.info("Writing log marker for " + copy.getReference());
+    walMarker.addNewWalMarker(getTabletSession(), copy.getLogEntry());
   }
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
@@ -1042,8 +1051,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         closedLogs.add(currentLog);
         clSize = closedLogs.size();
       }
-      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getPath(), clSize);
-      walMarker.closeWal(getTabletSession(), currentLog.getPath());
+      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getReference(), clSize);
+      walMarker.closeWal(getTabletSession(), currentLog.getLogEntry());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
       // see if any need to minor compact
@@ -1060,8 +1069,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       }
     } else {
-      log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
-      walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
+      log.info("Marking {} as unreferenced (skipping closed writes == 0)",
+          currentLog.getReference());
+      walMarker.walUnreferenced(getTabletSession(), currentLog.getLogEntry());
     }
   }
 
@@ -1196,4 +1206,18 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       });
     }
   }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
+
+    String provider = getContext().getWalProviderRegistry().getCurrent().getId();
+    FunctionCounter.builder(WAL_SLOW_SYNCS.getName(), walSlowSyncCounter, AtomicLong::get)
+        .description(WAL_SLOW_SYNCS.getDescription()).tag("provider", provider).register(registry);
+    FunctionCounter.builder(WAL_WRITE_FAILURES.getName(), walWriteFailureCounter, AtomicLong::get)
+        .description(WAL_WRITE_FAILURES.getDescription()).tag("provider", provider)
+        .register(registry);
+
+  }
+
 }

@@ -19,14 +19,15 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_AVG_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_IN_PROGRESS;
-import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_SORTS_LONGEST_RUNTIME;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SORTS_AVG_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SORTS_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.WAL_SORTS_LONGEST_RUNTIME;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,11 +52,13 @@ import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.DfsWalProvider;
 import org.apache.accumulo.server.log.LogSortInformation;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -63,7 +66,6 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue.Processor;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
@@ -85,7 +87,7 @@ public class LogSorter implements MetricsProducer {
 
   class LogProcessor implements Processor {
 
-    private FSDataInputStream input;
+    private CountingInputStream input;
     private DataInputStream decryptingInput;
     private long bytesCopied = -1;
     private long sortStart = 0;
@@ -115,7 +117,8 @@ public class LogSorter implements MetricsProducer {
       String src = work.source();
       String dest = work.destination();
       String sortId = work.sortId().toString();
-      log.debug("Sorting {} to {} using sortId {}", src, dest, sortId);
+      String providerId = work.providerId();
+      log.debug("Sorting {} to {} from provider {} using sortId {}", src, dest, providerId, sortId);
 
       synchronized (currentWork) {
         if (currentWork.containsKey(sortId)) {
@@ -132,7 +135,7 @@ public class LogSorter implements MetricsProducer {
 
       String formerThreadName = Thread.currentThread().getName();
       try {
-        sort(fs, sortId, new Path(src), dest);
+        sort(fs, sortId, src, dest, providerId);
       } catch (Exception t) {
         try {
           // parent dir may not exist
@@ -156,8 +159,8 @@ public class LogSorter implements MetricsProducer {
       }
     }
 
-    public void sort(VolumeManager fs, String name, Path srcPath, String destPath)
-        throws IOException {
+    public void sort(VolumeManager fs, String name, String sourceReference, String destPath,
+        String providerId) throws IOException {
       int part = 0;
 
       // check for finished first since another thread may have already done the sort
@@ -166,25 +169,19 @@ public class LogSorter implements MetricsProducer {
         return;
       }
 
-      log.info("Copying {} to {}", srcPath, destPath);
+      log.info("Copying {} to {}", sourceReference, destPath);
       // the following call does not throw an exception if the file/dir does not exist
       fs.deleteRecursively(new Path(destPath));
 
-      input = fs.open(srcPath);
-
-      // Tell the DataNode that the write ahead log does not need to be cached in the OS page cache
-      try {
-        input.setDropBehind(Boolean.TRUE);
-      } catch (UnsupportedOperationException e) {
-        log.debug("setDropBehind reads not enabled for wal file: {}", input);
-      } catch (IOException e) {
-        log.debug("IOException setting drop behind for file: {}, msg: {}", input, e.getMessage());
-      }
+      InputStream source =
+          providerId.equals(DfsWalProvider.PROVIDER_ID) ? fs.open(new Path(sourceReference))
+              : context.getWalProviderRegistry().get(providerId).open(sourceReference);
+      input = new CountingInputStream(source);
 
       try {
         decryptingInput = DfsLogger.getDecryptingStream(input, cryptoService);
       } catch (LogHeaderIncompleteException e) {
-        log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
+        log.warn("Could not read header from write-ahead log {}. Not sorting.", sourceReference);
         // Creating a 'finished' marker will cause recovery to proceed normally and the
         // empty file will be correctly ignored downstream.
         fs.mkdirs(new Path(destPath));
@@ -200,8 +197,8 @@ public class LogSorter implements MetricsProducer {
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>(512);
         try {
-          long start = input.getPos();
-          while (input.getPos() - start < bufferSize) {
+          long start = input.getCount();
+          while (input.getCount() - start < bufferSize) {
             LogFileKey key = new LogFileKey();
             LogFileValue value = new LogFileValue();
             key.readFields(decryptingInput);
@@ -224,7 +221,7 @@ public class LogSorter implements MetricsProducer {
       // If we receive an empty or malformed-header WAL, we won't
       // have input streams that need closing. Avoid the NPE.
       if (input != null) {
-        bytesCopied = input.getPos();
+        bytesCopied = input.getCount();
         input.close();
         if (decryptingInput != null) {
           decryptingInput.close();
@@ -243,8 +240,8 @@ public class LogSorter implements MetricsProducer {
       return 0;
     }
 
-    synchronized long getBytesCopied() throws IOException {
-      return input == null ? bytesCopied : input.getPos();
+    synchronized long getBytesCopied() {
+      return input == null ? bytesCopied : input.getCount();
     }
   }
 
@@ -353,13 +350,9 @@ public class LogSorter implements MetricsProducer {
       for (Entry<String,LogProcessor> entries : currentWork.entrySet()) {
         RecoveryStatus status = new RecoveryStatus();
         status.setName(entries.getKey());
-        try {
-          double progress = entries.getValue().getBytesCopied() / walBlockSize;
-          // to be sure progress does not exceed 100%
-          status.setProgress(Math.min(progress, 99.9));
-        } catch (IOException ex) {
-          log.warn("Error getting bytes read");
-        }
+        double progress = entries.getValue().getBytesCopied() / walBlockSize;
+        // to be sure progress does not exceed 100%
+        status.setProgress(Math.min(progress, 99.9));
         status.setRuntime((int) entries.getValue().getSortTime());
         result.add(status);
       }
@@ -381,11 +374,7 @@ public class LogSorter implements MetricsProducer {
           if (start > 0) { // may not have started yet
             runtime = Math.max(start, runtime);
           }
-          try {
-            progress += processor.getBytesCopied();
-          } catch (IOException e) {
-            log.warn("Error getting bytes read");
-          }
+          progress += processor.getBytesCopied();
         }
         recoveryRuntime.set(runtime);
         recoveryAvgProgress
@@ -396,11 +385,11 @@ public class LogSorter implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(RECOVERIES_SORTS_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
-        .description(RECOVERIES_SORTS_IN_PROGRESS.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_SORTS_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
-        .description(RECOVERIES_SORTS_LONGEST_RUNTIME.getDescription()).register(registry);
-    Gauge.builder(RECOVERIES_SORTS_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
-        .description(RECOVERIES_SORTS_AVG_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(WAL_SORTS_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
+        .description(WAL_SORTS_IN_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(WAL_SORTS_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
+        .description(WAL_SORTS_LONGEST_RUNTIME.getDescription()).register(registry);
+    Gauge.builder(WAL_SORTS_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
+        .description(WAL_SORTS_AVG_PROGRESS.getDescription()).register(registry);
   }
 }

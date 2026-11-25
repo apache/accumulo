@@ -96,6 +96,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   protected SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
+    getContext().getWalProviderRegistry();
 
     final AccumuloConfiguration conf = getConfiguration();
 
@@ -184,7 +185,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    metricsInfo.addMetricsProducers(this, new GcMetrics(this));
+    metricsInfo.addMetricsProducers(this, new GcMetrics(this),
+        getContext().getWalProviderRegistry());
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
     try {
