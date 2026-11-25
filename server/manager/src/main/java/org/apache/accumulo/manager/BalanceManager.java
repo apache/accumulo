@@ -350,6 +350,7 @@ class BalanceManager {
     while (unassigned > 0) {
       log.debug("displayUnassigned():{}", unassigned);
       UtilWaitThread.sleep(50);
+      waitForBalance(EnumSet.allOf(Ample.DataLevel.class));
       unassigned = getManager().displayUnassigned();
     }
   }
