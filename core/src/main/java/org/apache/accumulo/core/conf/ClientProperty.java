@@ -47,6 +47,8 @@ public enum ClientProperty {
       "Zookeeper connection information for Accumulo instance", "2.0.0", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", PropertyType.TIMEDURATION,
       "Zookeeper session timeout", "2.0.0", false),
+  THREAD_POOL_MAX_SIZE("thread.pool.max.size", "256", PropertyType.COUNT,
+      "Maximum number of threads to use for writing data", "4.0.0", false),
 
   // Authentication
   AUTH_TYPE("auth.type", "password", PropertyType.STRING,
@@ -90,10 +92,8 @@ public enum ClientProperty {
   // Scanner
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
-
   SCAN_SERVER_SELECTOR("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName(),
       PropertyType.CLASSNAME, "Class used by client to find Scan Servers", "2.1.0", false),
-
   SCAN_SERVER_SELECTOR_OPTS_PREFIX("scan.server.selector.opts.", "", PropertyType.PREFIX,
       "Properties in this category are related to the configuration of the scan.server.selector.impl class",
       "2.1.0", false),
@@ -132,9 +132,7 @@ public enum ClientProperty {
   // RPC
   RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
-      false),
-
-  ;
+      false);
 
   private final String key;
   private final String defaultValue;
