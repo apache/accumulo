@@ -107,24 +107,6 @@ public class VolumeUtil {
     return null;
   }
 
-  /*
-   * public static Path switchVolume(Path path, FileType ft, Map<Path,Path> replacements) {
-   * requireNonNull(path); for (Entry<Path,Path> entry : replacements.entrySet()) { Path source =
-   * removeTrailingSlash(entry.getKey()); Path relative = getRelativePath(source, path); if
-   * (relative != null) { Path replacement = relative.toString().equals(".") ? entry.getValue() :
-   * new Path(entry.getValue(), relative); log.trace("Replacing {} with {} for {}", path,
-   * replacement, ft); return replacement; } } log.trace("No replacement available for {} at {}",
-   * ft, path); return null; }
-   *
-   * private static Path getRelativePath(Path parent, Path path) { ArrayList<String> names = new
-   * ArrayList<>(); Path current = path; while (current != null && !current.equals(parent)) {
-   * names.add(current.getName()); current = current.getParent(); } if (current == null) { return
-   * null; }
-   *
-   * Path relative = null; for (int i = names.size() - 1; i >= 0; i--) { relative = relative == null
-   * ? new Path(names.get(i)) : new Path(relative, names.get(i)); } return relative == null ? new
-   * Path(".") : relative; }
-   */
   public static LogEntry switchVolume(LogEntry le, Map<Path,Path> replacements) {
     Path switchedPath = switchVolume(le.getPath(), FileType.WAL, replacements);
     return switchedPath == null ? null : LogEntry.withSwitchedVolume(le, switchedPath);
