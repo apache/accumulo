@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.conf.ClientProperty.RPC_SERVER_QUERY_MAX_THREADS;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getClient;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -410,7 +412,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } else if (servers.size() == 1) {
       executorService = MoreExecutors.newDirectExecutorService();
     } else {
-      int numThreads = Math.max(4, Math.min((servers.size()) / 10, 256));
+      int numThreads = Math.max(4, Math.min((servers.size()) / 10, ConfigurationTypeHelper
+          .getNumThreads(context.getConfiguration().get(RPC_SERVER_QUERY_MAX_THREADS.getKey()))));
       executorService =
           context.threadPools().getPoolBuilder(pool).numCoreThreads(numThreads).build();
     }
