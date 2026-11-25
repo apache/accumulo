@@ -40,6 +40,8 @@ import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.file.streams.TimedFilterInputStream;
+import org.apache.accumulo.core.file.streams.TimedSeekableDataInputStream;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -65,6 +67,9 @@ import org.apache.hadoop.io.compress.Decompressor;
  * be used for other block-compressed file implementation.
  */
 public final class BCFile {
+
+  public static final String CAPTURE_READ_SEEK_OPS = "accumulo.bcfile.capture.ops";
+
   // the current version of BCFile impl, increment them (major or minor) made
   // enough changes
   /**
@@ -615,7 +620,11 @@ public final class BCFile {
 
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin,
         long fileLength, Configuration conf, CryptoService cryptoService) throws IOException {
-      this.in = new SeekableDataInputStream(fin);
+
+      String captureOps = System.getProperty(CAPTURE_READ_SEEK_OPS, null);
+      this.in =
+          captureOps != null ? new TimedSeekableDataInputStream(new TimedFilterInputStream(fin))
+              : new SeekableDataInputStream(fin);
       this.conf = conf;
 
       // Move the cursor to grab the version and the magic first
@@ -670,7 +679,11 @@ public final class BCFile {
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
         InputStreamType fin, Configuration conf, CryptoService cryptoService) throws IOException {
-      this.in = new SeekableDataInputStream(fin);
+
+      String captureOps = System.getProperty(CAPTURE_READ_SEEK_OPS, null);
+      this.in =
+          captureOps != null ? new TimedSeekableDataInputStream(new TimedFilterInputStream(fin))
+              : new SeekableDataInputStream(fin);
       this.conf = conf;
 
       ByteArrayInputStream bais = new ByteArrayInputStream(serializedMetadata);
