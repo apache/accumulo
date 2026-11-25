@@ -132,7 +132,7 @@ public enum ClientProperty {
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
       false),
   RPC_SERVER_QUERY_MAX_THREADS("rpc.server.query.max.threads", "256", PropertyType.COUNT,
-      "Maximum number of threads to use for querying servers using RPC", "4.0.0", false),;
+      "Maximum number of threads to use for querying servers using RPC", "4.0.0", false);
 
   private final String key;
   private final String defaultValue;
