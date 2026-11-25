@@ -27,9 +27,9 @@ import org.apache.hadoop.fs.Seekable;
  * {@link DataInputStream} that increments seek and read Timers. This is intended to be used for
  * testing only.
  */
-public class TimedSeekableDataInputStream extends SeekableDataInputStream {
+public class LoggingSeekableDataInputStream extends SeekableDataInputStream {
 
-  public TimedSeekableDataInputStream(TimedFilterInputStream stream) {
+  public LoggingSeekableDataInputStream(LoggingFilterInputStream stream) {
     super(stream);
   }
 }

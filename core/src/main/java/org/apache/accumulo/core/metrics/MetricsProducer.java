@@ -655,10 +655,6 @@ public interface MetricsProducer {
 
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
-  // File Metrics
-  String BCFILE_SEEK_OPS = "accumulo.file.bc.seeks";
-  String BCFILE_READ_OPS = "accumulo.file.bc.reads";
-
   String METRICS_SERVER_IDLE = "accumulo.server.idle";
 
   String METRICS_COMPACTOR_PREFIX = "accumulo.compactor.";

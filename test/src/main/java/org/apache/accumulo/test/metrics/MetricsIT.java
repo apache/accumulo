@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -90,10 +89,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
         + TestStatsDRegistryFactory.class.getName();
     cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, clazzList);
-    Map<String,
-        String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
-            TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()),
-            BCFile.CAPTURE_READ_SEEK_OPS, "true");
+    Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
+        TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
     cfg.setSystemProperties(sysProps);
   }
 
