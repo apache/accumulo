@@ -55,6 +55,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
@@ -102,6 +103,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   private Executor executor = null;
   private final String dir;
   private int numThreads = -1;
+  private boolean useFilesInPlace = false;
 
   private final ClientContext context;
   private String tableName;
@@ -122,6 +124,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   @Override
   public ImportMappingOptions ignoreEmptyDir(boolean ignore) {
     this.ignoreEmptyDir = ignore;
+    return this;
+  }
+
+  @Override
+  public TableOperations.ImportOptions useFilesInPlace() {
+    this.useFilesInPlace = true;
     return this;
   }
 
@@ -171,7 +179,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
       List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
           ByteBuffer.wrap(srcPath.toString().getBytes(UTF_8)),
-          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)));
+          ByteBuffer.wrap((setTime + "").getBytes(UTF_8)),
+          ByteBuffer.wrap((useFilesInPlace + "").getBytes(UTF_8)));
       try {
         tableOps.doBulkFateOperation(args, tableName);
         shouldRetry = false;

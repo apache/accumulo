@@ -262,37 +262,43 @@ public class PrepBulkImport extends AbstractBulkFateOperation {
     // now that table lock is acquired check that all splits in load mapping exists in table
     checkForMerge(env.getContext(), fateId);
 
-    VolumeManager fs = env.getVolumeManager();
-    final UniqueNameAllocator namer = env.getContext().getUniqueNameAllocator();
-    Path sourceDir = new Path(bulkInfo.sourceDir);
-    List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
+    if (bulkInfo.useFilesInPlace) {
+      bulkInfo.bulkDir = bulkInfo.sourceDir;
+      return new LoadFiles(bulkInfo);
+    } else {
+      VolumeManager fs = env.getVolumeManager();
+      final UniqueNameAllocator namer = env.getContext().getUniqueNameAllocator();
+      Path sourceDir = new Path(bulkInfo.sourceDir);
+      List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
-    Path bulkDir = createNewBulkDir(env.getContext(), fs, bulkInfo.tableId);
-    Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
+      Path bulkDir = createNewBulkDir(env.getContext(), fs, bulkInfo.tableId);
+      Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
-    Map<String,String> oldToNewNameMap = new HashMap<>();
+      Map<String,String> oldToNewNameMap = new HashMap<>();
 
-    Iterator<String> names = namer.getNextNames(files.size());
+      Iterator<String> names = namer.getNextNames(files.size());
 
-    for (FileStatus file : files) {
-      // since these are only valid files we know it has an extension
-      String newName = FilePrefix.BULK_IMPORT.createFileName(
-          names.next() + "." + FilenameUtils.getExtension(file.getPath().getName()));
-      oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
+      for (FileStatus file : files) {
+        // since these are only valid files we know it has an extension
+        String newName = FilePrefix.BULK_IMPORT.createFileName(
+            names.next() + "." + FilenameUtils.getExtension(file.getPath().getName()));
+        oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
+      }
+
+      // also have to move mapping file
+      oldToNewNameMap.put(mappingFile.getName(),
+          new Path(bulkDir, mappingFile.getName()).getName());
+
+      BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), fs::create);
+
+      bulkInfo.bulkDir = bulkDir.toString();
+
+      BulkLogger.initiating(fateId, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
+          bulkInfo.bulkDir);
+
+      // return the next step, which will move files
+      return new BulkImportMove(bulkInfo);
     }
-
-    // also have to move mapping file
-    oldToNewNameMap.put(mappingFile.getName(), new Path(bulkDir, mappingFile.getName()).getName());
-
-    BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), fs::create);
-
-    bulkInfo.bulkDir = bulkDir.toString();
-
-    BulkLogger.initiating(fateId, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
-        bulkInfo.bulkDir);
-
-    // return the next step, which will move files
-    return new BulkImportMove(bulkInfo);
   }
 
   private Path createNewBulkDir(ServerContext context, VolumeManager fs, TableId tableId)

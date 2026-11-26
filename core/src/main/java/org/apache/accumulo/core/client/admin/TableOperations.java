@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -646,14 +647,46 @@ public interface TableOperations {
      * @param value override the time values in the input files, and use the current time for all
      *        mutations
      */
-    ImportMappingOptions tableTime(boolean value);
+    ImportOptions tableTime(boolean value);
 
     /**
      * Ignores empty bulk import source directory, rather than throwing an IllegalArgumentException.
      *
      * @since 2.1.0
      */
-    ImportMappingOptions ignoreEmptyDir(boolean ignore);
+    ImportOptions ignoreEmptyDir(boolean ignore);
+
+    /**
+     * Avoids moving and renaming the files from the source directory where they are bulk imported
+     * from. The files will be used by Accumulo directly from their current location. Accumulo will
+     * delete the files when it no longer references them. When the directory is empty, Accumulo
+     * will delete it.
+     *
+     * <p>
+     * When using this, the directory containing the files must be named by calling
+     * {@link #allocateBulkDirectory()}. An allocated bulk directory name can only be used for one
+     * bulk import operation, attempting to reuse it will fail.
+     *
+     * <pre>
+     * {@code
+     * void bulkImport(AccumuloClient client, String tableName) {
+     *
+     *   String bulkDir = client.tableOperations().allocateBulkDirectory();
+     *
+     *   // The path must end with bulkDir
+     *   String bulkPath = "hdfs://nn1/whatever/you/want/" + bulkDir;
+     *
+     *   // TODO create some files and place them in bulkPath
+     *
+     *   client.tableOperations().importDirectory(bulkPath).to(tableName).useFilesInPlace().load();
+     * }
+     *
+     * }
+     * </pre>
+     *
+     * @since 4.0.0
+     */
+    ImportOptions useFilesInPlace();
 
     /**
      * Loads the files into the table.
@@ -736,6 +769,17 @@ public interface TableOperations {
    * @since 2.0.0
    */
   default ImportDestinationArguments importDirectory(String directory) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * When bulk importing files and leaving them in place (not moving them), the files must be in a
+   * directory named by calling this method.
+   *
+   * @return a directory name to be used for bulk imports
+   * @see ImportOptions#useFilesInPlace()
+   */
+  default String allocateBulkDirectory() {
     throw new UnsupportedOperationException();
   }
 

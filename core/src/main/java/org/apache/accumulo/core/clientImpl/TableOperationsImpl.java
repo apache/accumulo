@@ -176,6 +176,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 public class TableOperationsImpl extends TableOperationsHelper {
 
@@ -2175,6 +2176,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public ImportDestinationArguments importDirectory(String directory) {
     return new BulkImport(directory, context);
+  }
+
+  @Override
+  public String allocateBulkDirectory() {
+    return Constants.BULK_EXT_PREFIX
+        + Strings.padStart(Long.toString(RANDOM.get().nextLong(Long.MAX_VALUE), 36), 13, '0');
   }
 
   @Override

@@ -122,10 +122,12 @@ public class BulkSerialize {
    * by BulkImportMove
    */
   public static LoadMappingIterator getUpdatedLoadMapping(String bulkDir, TableId tableId,
-      Input input) throws IOException {
-    Map<String,String> renames = readRenameMap(bulkDir, input);
+      Input input, boolean useFilesInPlace) throws IOException {
     LoadMappingIterator lmi = readLoadMapping(bulkDir, tableId, input);
-    lmi.setRenameMap(renames);
+    if (!useFilesInPlace) {
+      Map<String,String> renames = readRenameMap(bulkDir, input);
+      lmi.setRenameMap(renames);
+    }
     return lmi;
   }
 }

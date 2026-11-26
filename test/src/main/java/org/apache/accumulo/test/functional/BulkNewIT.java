@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.BulkExtDirSection.ID_COL;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -45,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -60,6 +63,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -68,6 +72,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -1329,6 +1334,170 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
     }
 
+  }
+
+  private Set<String> listReservedBulkExtDirs(ClientContext ctx) throws TableNotFoundException {
+    try (var scanner = ctx.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
+      ID_COL.fetch(scanner);
+      final int prefixLen = MetadataSchema.BulkExtDirSection.getRowPrefix().length();
+      return scanner.stream().map(entry -> entry.getKey().getRowData().toString())
+          .map(row -> row.substring(prefixLen)).collect(Collectors.toUnmodifiableSet());
+    }
+  }
+
+  @Test
+  public void testInPlaceFilesCustomDirName() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var ctx = (ClientContext) c;
+
+      String dir1 = rootPath + "/import003";
+      String dir2 = rootPath + "/be-5";
+      Path path1 = new Path(dir1);
+      Path path2 = new Path(dir2);
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(path1);
+      fs.mkdirs(path2);
+
+      addSplits(c, tableName, "0199 0399 0599 0799");
+
+      for (int i = 0; i < 5; i++) {
+        writeData(fs, dir1 + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+      }
+
+      for (int i = 5; i < 10; i++) {
+        writeData(fs, dir2 + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+      }
+
+      var e1 = assertThrows(AccumuloException.class,
+          () -> c.tableOperations().importDirectory(dir1).to(tableName).useFilesInPlace().load());
+      var e2 = assertThrows(AccumuloException.class,
+          () -> c.tableOperations().importDirectory(dir2).to(tableName).useFilesInPlace().load());
+      assertEquals(
+          "Unacceptable bulk directory name. Ensure directory names are allocated using the Accumulo API.",
+          e1.getMessage());
+      assertEquals(e1.getMessage(), e2.getMessage());
+
+      // check that nothing happened
+      assertEquals(Set.of(), listReservedBulkExtDirs(ctx));
+      assertEquals(6, fs.listStatus(path1).length);
+      assertEquals(6, fs.listStatus(path2).length);
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals(0, scanner.stream().count());
+      }
+    }
+  }
+
+  @Test
+  public void testInPlaceFiles() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var ctx = (ClientContext) c;
+
+      String dir1 = rootPath + "/" + c.tableOperations().allocateBulkDirectory();
+      String dir2 = rootPath + "/" + c.tableOperations().allocateBulkDirectory();
+      Path path1 = new Path(dir1);
+      Path path2 = new Path(dir2);
+      FileSystem fs = getCluster().getFileSystem();
+      fs.mkdirs(path1);
+      fs.mkdirs(path2);
+
+      addSplits(c, tableName, "0199 0399 0599 0799");
+
+      for (int i = 0; i < 5; i++) {
+        writeData(fs, dir1 + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+      }
+
+      for (int i = 5; i < 10; i++) {
+        writeData(fs, dir2 + "/f" + i + ".", aconf, i * 100, (i + 1) * 100 - 1);
+      }
+
+      assertEquals(Set.of(), listReservedBulkExtDirs(ctx));
+      c.tableOperations().importDirectory(dir1).to(tableName).useFilesInPlace().load();
+      assertEquals(Set.of(new Path(dir1).getName()), listReservedBulkExtDirs(ctx));
+
+      // attempt to reuse bulk dir
+      var exception = assertThrows(AccumuloException.class,
+          () -> c.tableOperations().importDirectory(dir1).to(tableName).useFilesInPlace().load());
+      assertEquals("Bulk directory name was used by a previous bulk import operation.",
+          exception.getMessage());
+      // failed operation will leave a loadmap.json file behind, delete it
+      fs.delete(new Path(dir1, Constants.BULK_LOAD_MAPPING), false); // TODO does client code only
+                                                                     // create loadmap.json if it
+                                                                     // does not exist?
+
+      // ensure the failed operation did not delete the reservation
+      assertEquals(Set.of(new Path(dir1).getName()), listReservedBulkExtDirs(ctx));
+
+      c.tableOperations().importDirectory(dir2).to(tableName).useFilesInPlace().load();
+
+      // ensure the files are still there
+      assertEquals(5, fs.listStatus(path1).length);
+      assertEquals(5, fs.listStatus(path2).length);
+
+      verifyData(c, tableName, 0, 100 * 10 - 1, false);
+
+      // ensure the metadata table references the files in the original directory
+      try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(tableName)).build()) {
+        tablets.forEach(tm -> {
+          // each tablet should have two files
+          assertEquals(2, tm.getFiles().size());
+          for (var ref : tm.getFiles()) {
+            var parent = ref.getPath().getParent();
+            assertTrue(parent.equals(path1) || parent.equals(path2),
+                () -> "parent: " + parent + " path1: " + path1 + " path2: " + path2 + " ");
+          }
+        });
+      }
+
+      // ensure clone works with external files
+      c.tableOperations().clone(tableName, tableName + "_clone",
+          CloneConfiguration.builder().build());
+      verifyData(c, tableName + "_clone", 0, 100 * 10 - 1, false);
+      c.tableOperations().delete(tableName + "_clone");
+
+      // ensure splits work with external files
+      addSplits(c, tableName, "0499");
+      verifyData(c, tableName, 0, 100 * 10 - 1, false);
+
+      // ensure merge works with external files
+      c.tableOperations().merge(tableName, null, new Text("0399"));
+      verifyData(c, tableName, 0, 100 * 10 - 1, false);
+
+      // both bulk dirs should still be reserved
+      assertEquals(Set.of(new Path(dir1).getName(), new Path(dir2).getName()),
+          listReservedBulkExtDirs(ctx));
+
+      // ensure compact works with external files, only compact files from first bulk import
+      c.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true).setEndRow(new Text("0499")));
+      verifyData(c, tableName, 0, 100 * 10 - 1, false);
+
+      // RawLocalFilesystem does not seem to delete the .crc files when a file is deleted. Remove
+      // the crc files so the GC can delete the bulk dir.
+      for (var path : List.of(path1, path2)) {
+        for (var file : Optional
+            .ofNullable(java.nio.file.Path.of(path.toUri()).toFile().listFiles())
+            .orElse(new File[0])) {
+          if (file.getName().endsWith(".crc")) {
+            assertTrue(file.delete());
+          }
+        }
+      }
+      // ensure GC works with external files, should delete the files and directory for the first
+      // bulk import after the compaction
+      Wait.waitFor(() -> !fs.exists(path1));
+
+      // The bulk dir reservation for the first bulk import should eventually go away
+      Wait.waitFor(() -> listReservedBulkExtDirs(ctx).equals(Set.of(new Path(dir2).getName())));
+
+      // delete the table, should cause files from 2nd bulk import to be deleted
+      assertTrue(fs.exists(path2));
+      assertEquals(Set.of(new Path(dir2).getName()), listReservedBulkExtDirs(ctx));
+
+      c.tableOperations().delete(tableName);
+
+      Wait.waitFor(() -> !fs.exists(path2));
+      Wait.waitFor(() -> listReservedBulkExtDirs(ctx).isEmpty());
+    }
   }
 
   private void addSplits(AccumuloClient client, String tableName, String splitString)
