@@ -333,8 +333,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
     tablesRegExCache =
         Caches.getInstance().createNewBuilder(CacheName.HOST_REGEX_BALANCER_TABLE_REGEX, true)
-            .expireAfterAccess(1, HOURS).build(key -> balancerEnvironment.getConfiguration(key)
-                .getDerived(HostRegexTableLoadBalancer::getRegexes));
+            .expireAfterAccess(Duration.ofHours(1)).build(key -> balancerEnvironment
+                .getConfiguration(key).getDerived(HostRegexTableLoadBalancer::getRegexes));
 
     LOG.info("{}", this);
   }

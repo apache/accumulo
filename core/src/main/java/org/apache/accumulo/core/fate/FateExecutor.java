@@ -52,6 +52,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
@@ -71,6 +72,12 @@ import com.google.common.base.Preconditions;
 public class FateExecutor<T> {
   private static final Logger log = LoggerFactory.getLogger(FateExecutor.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
+
+  // How long the work finder waits for a worker to take a FateId before trying again.
+  private static final long TRANSFER_TIMEOUT_MS = 100;
+  // Idle workers sleep instead of blocking, so keep this at half the transfer timeout. Then even
+  // a single worker polls at least once while the work finder is waiting.
+  private static final long IDLE_POLL_MS = TRANSFER_TIMEOUT_MS / 2;
 
   private final T environment;
   private final Fate<T> fate;
@@ -262,32 +269,29 @@ public class FateExecutor<T> {
     transactionExecutor.shutdownNow();
   }
 
-  protected void waitForShutdown(long start, long timeout, TimeUnit timeUnit)
-      throws InterruptedException {
-    if (timeout > 0) {
-      while (((System.nanoTime() - start) < timeUnit.toNanos(timeout)) && isAlive()) {
-        if (!transactionExecutor.awaitTermination(1, SECONDS)) {
-          log.debug("Fate {} is waiting for {} worker threads for fate ops {} to terminate",
-              fate.getStore().type(), runningTxRunners.size(), fateOps);
-          continue;
-        }
-
-        workFinder.join(1_000);
-        if (workFinder.isAlive()) {
-          log.debug("Fate {} is waiting for work finder thread for fate ops {} to terminate",
-              fate.getStore().type(), fateOps);
-          workFinder.interrupt();
-        }
+  protected void waitForShutdown(CountDownTimer countdown) throws InterruptedException {
+    while (!countdown.isExpired() && isAlive()) {
+      if (!transactionExecutor.awaitTermination(1, SECONDS)) {
+        log.debug("Fate {} is waiting for {} worker threads for fate ops {} to terminate",
+            fate.getStore().type(), runningTxRunners.size(), fateOps);
+        continue;
       }
 
-      if (isAlive()) {
-        log.warn(
-            "Waited for {}ms for the {} fate executor operating on fate ops {} to stop, but it"
-                + " is still running. Summary of run state of its threads: work finder:{}"
-                + " transaction executor:{}",
-            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), fate.getStore().type(),
-            fateOps, workFinder.isAlive(), !transactionExecutor.isTerminated());
+      workFinder.join(1_000);
+      if (workFinder.isAlive()) {
+        log.debug("Fate {} is waiting for work finder thread for fate ops {} to terminate",
+            fate.getStore().type(), fateOps);
+        workFinder.interrupt();
       }
+    }
+
+    if (isAlive()) {
+      log.warn(
+          "The {} fate executor operating on fate ops {} did not stop within the shutdown"
+              + " timeout and is still running. Summary of run state of its threads: work finder:{}"
+              + " transaction executor:{}",
+          fate.getStore().type(), fateOps, workFinder.isAlive(),
+          !transactionExecutor.isTerminated());
     }
   }
 
@@ -344,7 +348,8 @@ public class FateExecutor<T> {
                   // threads were busy, the queue size was 100, and there are three runnable things
                   // in the store. Do not want to keep scanning the store adding those same 3
                   // runnable things until the queue is full.
-                  if (workQueue.tryTransfer(fateIdStatus.getFateId(), 100, MILLISECONDS)) {
+                  if (workQueue.tryTransfer(fateIdStatus.getFateId(), TRANSFER_TIMEOUT_MS,
+                      MILLISECONDS)) {
                     break;
                   }
                 } catch (InterruptedException e) {
@@ -398,7 +403,7 @@ public class FateExecutor<T> {
           FateId unreservedFateId = workQueue.poll();
 
           if (unreservedFateId == null) {
-            Thread.sleep(1);
+            Thread.sleep(IDLE_POLL_MS);
             continue;
           }
           var optionalopStore = fate.getStore().tryReserve(unreservedFateId);

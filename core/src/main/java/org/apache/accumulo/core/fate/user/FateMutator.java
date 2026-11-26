@@ -53,6 +53,11 @@ public interface FateMutator<T> {
   FateMutator<T> requireUnreserved();
 
   /**
+   * Require the transaction is reserved with the given reservation.
+   */
+  FateMutator<T> requireReserved(FateStore.FateReservation fateReservation);
+
+  /**
    * Require the transaction has no fate key set.
    */
   FateMutator<T> requireAbsentKey();

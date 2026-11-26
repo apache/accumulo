@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -299,7 +298,7 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
 
     } finally {
       if (fate != null) {
-        fate.shutdown(10, TimeUnit.MINUTES);
+        fate.shutdown(Duration.ofMinutes(10));
       }
     }
   }
@@ -404,7 +403,7 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
 
     } finally {
       if (fate != null) {
-        fate.shutdown(10, TimeUnit.MINUTES);
+        fate.shutdown(Duration.ofMinutes(10));
       }
     }
   }

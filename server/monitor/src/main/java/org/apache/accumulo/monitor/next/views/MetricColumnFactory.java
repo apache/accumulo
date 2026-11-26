@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor.next.views;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -28,11 +29,14 @@ import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.views.TableDataFactory.StatType;
 
 public class MetricColumnFactory implements ColumnFactory {
 
   private final Column column;
   private final boolean computeRate;
+  private final Predicate<String> statPredicate;
+  private final double multiple;
 
   MetricColumnFactory(Metric metric) {
     String classes;
@@ -50,6 +54,22 @@ public class MetricColumnFactory implements ColumnFactory {
     }
     this.column = new Column(metric.getName(), metric.getColumnHeader(),
         metric.getColumnDescription(), classes);
+
+    if (metric.getType() == Metric.MetricType.TIMER) {
+      // metrics report in seconds and the monitor expects millis, so set this for conversion
+      multiple = 1000.0;
+    } else {
+      multiple = 1.0;
+    }
+
+    statPredicate = switch (metric.getType()) {
+      case GAUGE -> sv -> sv.equals(StatType.VALUE);
+      case COUNTER, FUNCTION_COUNTER -> sv -> sv.equals(StatType.COUNT);
+      case TIMER, DISTRIBUTION_SUMMARY -> sv -> sv.equals(StatType.AVERAGE);
+      case LONG_TASK_TIMER -> sv -> sv.equals(StatType.MAX);
+      case CACHE ->
+        throw new IllegalArgumentException("Cache metrics not supported : " + metric.getName());
+    };
   }
 
   @Override
@@ -60,11 +80,15 @@ public class MetricColumnFactory implements ColumnFactory {
   @Override
   public Object getRowData(ServerId sid, MetricResponse mr,
       Map<String,List<FMetric>> serverMetrics) {
-    var sum = sum(serverMetrics.getOrDefault(column.key(), List.of()));
+    Number sum = sum(serverMetrics.getOrDefault(column.key(), List.of()), statPredicate);
     if (computeRate) {
-      return computeRate(sum);
-    } else {
-      return sum;
+      sum = computeRate(sum);
     }
+
+    if (sum != null && multiple != 1.0) {
+      sum = sum.doubleValue() * multiple;
+    }
+
+    return sum;
   }
 }

@@ -82,25 +82,11 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
    */
   @Override
   public long getUpdateCount() {
-    long count = 0;
-    long dataVersion = 0;
-    for (AccumuloConfiguration p = this; p != null; p = p.getParent()) {
-      if (p instanceof ZooBasedConfiguration) {
-        dataVersion = ((ZooBasedConfiguration) p).getDataVersion();
-      } else {
-        dataVersion = p.getUpdateCount();
-      }
-      count += dataVersion;
-    }
+    long count = getDataVersion() + parent.getUpdateCount();
 
     log.trace("update count result for: {} - data version: {} update: {}", propStoreKey,
-        dataVersion, count);
+        getDataVersion(), count);
     return count;
-  }
-
-  @Override
-  public AccumuloConfiguration getParent() {
-    return parent;
   }
 
   public PropStoreKey getPropStoreKey() {
@@ -114,11 +100,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
     if (value != null) {
       return value;
     }
-    AccumuloConfiguration parent = getParent();
-    if (parent != null) {
-      return parent.get(property);
-    }
-    return null;
+    return parent.get(property);
   }
 
   @Override
@@ -141,7 +123,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   @Override
   public boolean isPropertySet(final Property property) {
-    return getSnapshot().get(property.getKey()) != null || getParent().isPropertySet(property);
+    return getSnapshot().get(property.getKey()) != null || parent.isPropertySet(property);
   }
 
   public @NonNull Map<String,String> getSnapshot() {

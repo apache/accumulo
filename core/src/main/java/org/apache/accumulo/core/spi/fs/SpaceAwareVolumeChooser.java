@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -78,7 +78,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
       choiceCache = Caches.getInstance().createNewBuilder(CacheName.SPACE_AWARE_VOLUME_CHOICE, true)
-          .expireAfterWrite(computationCacheDuration, MILLISECONDS)
+          .expireAfterWrite(Duration.ofMillis(computationCacheDuration))
           .build(key -> new WeightedRandomCollection(key, env));
     }
 

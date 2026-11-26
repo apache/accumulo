@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.compaction;
 
+import java.io.Serial;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -101,7 +102,22 @@ public class CompactionJobGenerator {
     this.steadyTime = steadyTime;
   }
 
-  public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
+  public static class CompactionConfigurationException extends RuntimeException {
+
+    @Serial
+    private static final long serialVersionUID = 985194026258001525L;
+
+    private CompactionConfigurationException(String msg) {
+      super(msg);
+    }
+
+    private CompactionConfigurationException(String msg, Exception e) {
+      super(msg, e);
+    }
+  }
+
+  public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds)
+      throws CompactionConfigurationException {
     Collection<CompactionJob> systemJobs = Set.of();
 
     log.trace("Planning for {} {} {}", tablet.getExtent(), kinds, this.hashCode());
@@ -174,11 +190,12 @@ public class CompactionJobGenerator {
               + " the table compaction dispatcher configuration. No compactions will happen"
               + " until the configuration is fixed. This log message is temporarily suppressed.",
           tablet.getExtent().tableId(), serviceId, kind);
-      return Set.of();
+      throw new CompactionConfigurationException(
+          "Table configuration " + tablet.getExtent().tableId()
+              + " points to nonexistent compaction service " + serviceId);
     }
 
-    CompactionPlanner planner =
-        planners.computeIfAbsent(serviceId, sid -> createPlanner(tablet.getTableId(), serviceId));
+    CompactionPlanner planner = planners.computeIfAbsent(serviceId, this::createPlanner);
 
     // selecting indicator
     // selected files
@@ -308,7 +325,7 @@ public class CompactionJobGenerator {
     return planCompactions(planner, params, serviceId);
   }
 
-  private CompactionPlanner createPlanner(TableId tableId, CompactionServiceId serviceId) {
+  private CompactionPlanner createPlanner(CompactionServiceId serviceId) {
 
     CompactionPlanner planner;
     String plannerClassName = null;
@@ -316,18 +333,19 @@ public class CompactionJobGenerator {
     try {
       plannerClassName = servicesConfig.getPlanners().get(serviceId.canonical());
       options = servicesConfig.getOptions().get(serviceId.canonical());
-      planner = env.instantiate(tableId, plannerClassName, CompactionPlanner.class);
+      planner = env.instantiate(plannerClassName, CompactionPlanner.class);
       CompactionPlannerInitParams initParameters = new CompactionPlannerInitParams(serviceId,
           servicesConfig.getPlannerPrefix(serviceId.canonical()),
           servicesConfig.getOptions().get(serviceId.canonical()), (ServiceEnvironment) env);
       planner.init(initParameters);
     } catch (Exception e) {
       PLANNING_INIT_ERROR_LOG.trace(
-          "Failed to create compaction planner for service:{} tableId:{} using class:{} options:{}.  Compaction "
+          "Failed to create compaction planner for service:{} using class:{} options:{}.  Compaction "
               + "service will not start any new compactions until its configuration is fixed. This log message is "
               + "temporarily suppressed.",
-          serviceId, tableId, plannerClassName, options, e);
-      planner = new ProvisionalCompactionPlanner(serviceId);
+          serviceId, plannerClassName, options, e);
+      throw new CompactionConfigurationException(
+          "Failed to create compaction planner for service:" + serviceId, e);
     }
     return planner;
   }
@@ -342,7 +360,8 @@ public class CompactionJobGenerator {
               + " new compactions until this issue is resolved. Duplicates of this log message are temporarily"
               + " suppressed.",
           serviceId, params.getKind(), params.getTableId(), params.getExecutionHints(), e);
-      return Set.of();
+      throw new CompactionConfigurationException(
+          "Failed to plan compactions for service:" + serviceId);
     }
   }
 }

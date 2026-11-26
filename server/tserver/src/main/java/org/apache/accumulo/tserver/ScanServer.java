@@ -382,7 +382,7 @@ public class ScanServer extends AbstractServer
 
     scanMetrics = new TabletServerScanMetrics(resourceManager::getOpenFiles);
     sessionManager.setZombieCountConsumer(scanMetrics::setZombieScanThreads);
-    scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
+    scanServerMetrics = new ScanServerMetrics(tabletMetadataCache, reservedFiles::size);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
@@ -670,7 +670,7 @@ public class ScanServer extends AbstractServer
    */
   private Map<KeyExtent,TabletMetadata> reserveFilesInner(Collection<KeyExtent> extents,
       long myReservationId, Set<KeyExtent> failures) throws AccumuloException {
-    // RFS is an acronym for Reference files for scan
+    // RFFS is an acronym for Reference files for scan
     LOG.debug("RFFS {} ensuring files are referenced for scan of extents {}", myReservationId,
         extents);
 
@@ -750,8 +750,8 @@ public class ScanServer extends AbstractServer
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
-          refs.add(new ScanServerRefTabletFile(serverLockUUID, serverAddress,
-              file.getNormalizedPathStr()));
+          refs.add(new ScanServerRefTabletFile(file.getNormalizedPathStr(), serverAddress,
+              serverLockUUID));
           filesToReserve.add(file);
           tabletsToCheck.add(Objects.requireNonNull(allFiles.get(file)));
           LOG.trace("RFFS {} need to add scan ref for file {}", myReservationId, file);

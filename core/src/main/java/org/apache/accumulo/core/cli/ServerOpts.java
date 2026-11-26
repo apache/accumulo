@@ -53,6 +53,10 @@ public class ServerOpts extends Help {
           + " Expected format: -o <key>=<value> [-o <key>=<value>]")
   private List<String> overrides = new ArrayList<>();
 
+  @Parameter(names = {"-j", "--json"},
+      description = "Print output in JSON format. Output is wrapped in standard envelope with command, version, reportTime, status and data fields.")
+  public boolean json = false;
+
   private SiteConfiguration siteConfig = null;
 
   public synchronized SiteConfiguration getSiteConfiguration() {

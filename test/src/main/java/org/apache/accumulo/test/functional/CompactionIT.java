@@ -714,6 +714,17 @@ public class CompactionIT extends CompactionITBase {
     }
   }
 
+  public static class NoopPlanner implements CompactionPlanner {
+    @Override
+    public void init(InitParameters params) {}
+
+    @Override
+    public CompactionPlan makePlan(PlanningParameters params) {
+      // always return a plan with zero jobs
+      return params.createPlanBuilder().build();
+    }
+  }
+
   @Test
   public void testGetSelectedFilesForCompaction() throws Exception {
 
@@ -724,10 +735,15 @@ public class CompactionIT extends CompactionITBase {
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().modifyProperties(propsMap -> {
+        propsMap.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "noop.planner",
+            NoopPlanner.class.getName());
+      });
+
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
       // This is done to avoid system compactions - we want to do all the compactions ourselves
-      props.put("table.compaction.dispatcher.opts.service.system", "nonexitant");
+      props.put("table.compaction.dispatcher.opts.service.system", "noop");
       NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
       client.tableOperations().create(tableName, ntc);
 

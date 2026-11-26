@@ -129,7 +129,8 @@ public class ZooBasedConfigurationTest {
     ZooBasedConfiguration configuration = new SystemConfiguration(context, sysPropKey, siteConfig);
 
     assertNotNull(configuration);
-    assertEquals("1G", configuration.get(TABLE_SPLIT_THRESHOLD));
+    assertEquals("int expected", configuration.get(TABLE_SPLIT_THRESHOLD),
+        "stored value should be returned without validation on read");
     assertEquals("true", configuration.get(TABLE_BLOOM_ENABLED));
   }
 

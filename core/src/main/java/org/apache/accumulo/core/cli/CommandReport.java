@@ -16,31 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.file.blockfile.cache.lru;
+package org.apache.accumulo.core.cli;
+
+import java.util.List;
 
 /**
- * Implementations can be asked for an estimate of their size in bytes.
+ * Implemented by all command report classes that support both human-readable and computer readable
+ * outputs.
  * <p>
- * Useful for sizing caches. Its a given that implementation approximations do not account for 32 vs
- * 64 bit nor for different VM implementations.
+ * Json output is always wrapped in a {@link CommandOutputEnvelope} to provide a stable, versioned
+ * outer structure that scripts can depend on, regardless of which command is used.
+ *
  * <p>
- * An Object's size is determined by the non-static data members in it, as well as the fixed
- * {@link Object} overhead.
- * <p>
- * For example:
+ * Usage pattern is a command's execute() method:
  *
  * <pre>
- * public class SampleObject implements HeapSize {
- *   int[] numbers;
- *   int x;
+ * CommandReport report = buildReport(context, options);
+ * if (options.json()) {
+ *   System.out.println(report.toEnvelopedJson("accumulo admin 'my-command'"));
+ * } else {
+ *   report.formatLines().forEach(System.out::println);
  * }
  * </pre>
  */
-public interface HeapSize {
-  /**
-   * @return Approximate 'exclusive deep size' of implementing object. Includes count of payload and
-   *         hosting object sizings.
-   */
-  long heapSize();
+public interface CommandReport {
+  List<String> formatLines();
+
+  Object getData();
+
+  default String toEnvelopedJson(String commandName) {
+    return CommandOutputEnvelope.of(commandName, getData()).toJson();
+  }
 
 }

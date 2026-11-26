@@ -100,7 +100,7 @@ public class VisibilityEvaluator {
     try {
       return accessEvaluator.canAccess(visibility.getExpression());
     } catch (InvalidAccessExpressionException e) {
-      // This is thrown for compatability with the exception this class used to evaluate expressions
+      // This is thrown for compatibility with the exception this class used to evaluate expressions
       // itself.
       throw new VisibilityParseException(e);
     }

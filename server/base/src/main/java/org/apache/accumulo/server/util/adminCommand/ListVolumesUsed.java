@@ -72,15 +72,22 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
   }
 
   private String getTableURI(String rootTabletDir) {
-    Path ret = FileType.TABLE.getVolume(new Path(rootTabletDir));
-    if (ret == null) {
+    Path path = new Path(rootTabletDir);
+    try {
+      Path ret = FileType.TABLE.getVolume(path);
+      if (ret != null) {
+        return ret.toString();
+      }
       return "RELATIVE";
+    } catch (IllegalArgumentException e) {
+      // External file references need not contain the Accumulo tables directory. Include their
+      // full URI so this command remains useful without inventing a volume root.
+      return "EXTERNAL: " + path.getParent().getParent();
     }
-    return ret.toString();
   }
 
-  private String getLogURI(String logEntry) {
-    Path ret = FileType.WAL.getVolume(new Path(logEntry));
+  private String getLogURI(Path logEntry) {
+    Path ret = FileType.WAL.getVolume(logEntry);
     if (ret == null) {
       return "RELATIVE";
     }
@@ -126,7 +133,7 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
 
     WalStateManager wals = new WalStateManager(context);
     for (var wal : wals.getAllState()) {
-      volumes.add(getLogURI(wal.path().toString()));
+      volumes.add(getLogURI(wal.path()));
     }
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);

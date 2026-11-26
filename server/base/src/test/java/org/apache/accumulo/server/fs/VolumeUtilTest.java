@@ -52,6 +52,15 @@ public class VolumeUtilTest {
         FileType.TABLE, replacements));
     assertNull(VolumeUtil.switchVolume(new Path("file:/nn1/a/accumulo/tables/t-00000/C000.rf"),
         FileType.TABLE, replacements));
+    assertEquals(new Path("viewfs:/a/accumulo/external/C000.rf"), VolumeUtil.switchVolume(
+        new Path("hdfs://nn1/accumulo/external/C000.rf"), FileType.TABLE, replacements));
+    assertNull(VolumeUtil.switchVolume(new Path("hdfs://nn1/accumulo-sibling/external/C000.rf"),
+        FileType.TABLE, replacements));
+    assertEquals(new Path("viewfs:/a/accumulo/dir/C000.rf"),
+        VolumeUtil.switchVolume(new Path("hdfs://nn1:9000/accumulo/ext/dir/C000.rf"),
+            FileType.TABLE,
+            Map.of(new Path("hdfs://nn1:9000/accumulo"), new Path("viewfs:/b/accumulo"),
+                new Path("hdfs://nn1:9000/accumulo/ext"), new Path("viewfs:/a/accumulo"))));
 
     replacements.clear();
     replacements.put(new Path("hdfs://nn1/d1/accumulo"), new Path("viewfs:/a/accumulo"));
@@ -172,16 +181,19 @@ public class VolumeUtilTest {
     String fileName = "hdfs://nn1/accumulo/wal/localhost+9997/" + walUUID;
     LogEntry le = LogEntry.fromPath(fileName);
     LogEntry fixedVolume = VolumeUtil.switchVolume(le, replacements);
-    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
+    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID,
+        fixedVolume.getPath().toString());
 
     fileName = "hdfs://nn1:9000/accumulo/wal/localhost+9997/" + walUUID;
     le = LogEntry.fromPath(fileName);
     fixedVolume = VolumeUtil.switchVolume(le, replacements);
-    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
+    assertEquals("viewfs:/a/accumulo/wal/localhost+9997/" + walUUID,
+        fixedVolume.getPath().toString());
 
     fileName = "hdfs://nn2/accumulo/wal/localhost+9997/" + walUUID;
     le = LogEntry.fromPath(fileName);
     fixedVolume = VolumeUtil.switchVolume(le, replacements);
-    assertEquals("viewfs:/b/accumulo/wal/localhost+9997/" + walUUID, fixedVolume.getPath());
+    assertEquals("viewfs:/b/accumulo/wal/localhost+9997/" + walUUID,
+        fixedVolume.getPath().toString());
   }
 }

@@ -70,6 +70,7 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -253,12 +254,12 @@ public class CloneTestIT_SimpleSuite extends SharedMiniClusterBase {
       c.tableOperations().flush(table3, null, null, true);
       // check for files
       FileSystem fs = getCluster().getFileSystem();
-      final String id = c.tableOperations().tableIdMap().get(table3);
+      final String id3 = c.tableOperations().tableIdMap().get(table3);
 
       // the following path expects mini to be configured with a single volume
-      final Path tablePath = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES)
-          + "/" + Constants.TABLE_DIR + "/" + id);
-      FileStatus[] status = fs.listStatus(tablePath);
+      final Path table3Path = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES)
+          + "/" + Constants.TABLE_DIR + "/" + id3);
+      FileStatus[] status = fs.listStatus(table3Path);
       assertTrue(status.length > 0);
       // verify disk usage
       List<DiskUsage> diskUsage = c.tableOperations().getDiskUsage(Collections.singleton(table3));
@@ -266,15 +267,21 @@ public class CloneTestIT_SimpleSuite extends SharedMiniClusterBase {
       assertTrue(diskUsage.get(0).getUsage() > 100);
       // delete the table
       c.tableOperations().delete(table3);
-      // verify its gone from the file system
-      if (fs.exists(tablePath)) {
-        status = fs.listStatus(tablePath);
-        assertTrue(status == null || status.length == 0);
-      }
+      // wait for GC to delete the table dir
+      Wait.waitFor(() -> !fs.exists(table3Path));
 
       c.tableOperations().create(table1);
 
       writeDataAndClone(c, table1, table2);
+      final String id1 = c.tableOperations().tableIdMap().get(table1);
+      final String id2 = c.tableOperations().tableIdMap().get(table2);
+      final Path table1Path = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES)
+          + "/" + Constants.TABLE_DIR + "/" + id1);
+      final Path table2Path = new Path(mac.getSiteConfiguration().get(Property.INSTANCE_VOLUMES)
+          + "/" + Constants.TABLE_DIR + "/" + id2);
+      assertTrue(fs.exists(table1Path));
+      // clone will not create its table dir until its needed
+      assertFalse(fs.exists(table2Path));
 
       // delete source table, should not affect clone
       c.tableOperations().delete(table1);
@@ -282,10 +289,18 @@ public class CloneTestIT_SimpleSuite extends SharedMiniClusterBase {
       checkData(table2, c);
 
       c.tableOperations().compact(table2, null, null, true, true);
+      // now that table2 no longer references table1 file, GC should delete table 1 dir in
+      // filesystem
+      Wait.waitFor(() -> !fs.exists(table1Path));
+      // compaction should have created clones table dir
+      assertTrue(fs.exists(table2Path));
 
       checkData(table2, c);
 
       c.tableOperations().delete(table2);
+
+      // GC should delete table2 dir in filesystem eventually
+      Wait.waitFor(() -> !fs.exists(table2Path));
     }
   }
 

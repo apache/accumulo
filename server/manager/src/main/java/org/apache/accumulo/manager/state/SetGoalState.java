@@ -26,6 +26,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
 
@@ -35,22 +36,32 @@ public class SetGoalState {
    * Utility program that will change the goal state for the manager from the command line.
    */
   public static void main(String[] args) throws Exception {
+    final ManagerGoalState targetGoalState;
     try {
       Preconditions.checkArgument(args.length == 1);
-      ManagerGoalState.valueOf(args[0]);
+      targetGoalState = ManagerGoalState.valueOf(args[0]);
     } catch (IllegalArgumentException e) {
       System.err.println(
           "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);
+      return;
     }
 
     var siteConfig = SiteConfiguration.auto();
     SecurityUtil.serverLogin(siteConfig);
     try (var context = new ServerContext(siteConfig)) {
       context.waitForZookeeperAndHdfs();
-      context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_GOAL_STATE,
-          args[0].getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      setGoalState(context, targetGoalState);
     }
+  }
+
+  /**
+   * Writes the manager goal state to ZooKeeper, overwriting the current value.
+   */
+  public static void setGoalState(ServerContext context, ManagerGoalState targetGoalState)
+      throws KeeperException, InterruptedException {
+    context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_GOAL_STATE,
+        targetGoalState.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
   }
 
 }

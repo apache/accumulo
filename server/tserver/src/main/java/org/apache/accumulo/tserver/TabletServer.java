@@ -30,7 +30,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,9 +43,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -195,9 +192,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final AtomicLong flushCounter = new AtomicLong(0);
   private final AtomicLong syncCounter = new AtomicLong(0);
 
-  final OnlineTablets onlineTablets = new OnlineTablets();
-  final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
-  final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
+  final TabletAssignmentTracker assignmentTracker = new TabletAssignmentTracker();
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
 
   final TabletServerResourceManager resourceManager;
@@ -253,7 +248,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
             @Override
             public void run() {
-              Collection<Tablet> tablets = onlineTablets.snapshot().values();
+              Collection<Tablet> tablets = assignmentTracker.getOnline().values();
               logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
               logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
             }
@@ -835,13 +830,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
           .setRunning(table.getScans().getRunning() + mapCounter.getInt(ScanRunState.RUNNING));
     });
 
-    ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<>();
-    synchronized (this.unopenedTablets) {
-      synchronized (this.openingTablets) {
-        offlineTabletsCopy.addAll(this.unopenedTablets);
-        offlineTabletsCopy.addAll(this.openingTablets);
-      }
-    }
+    List<KeyExtent> offlineTabletsCopy = assignmentTracker.getUnopenedAndOpening();
 
     for (KeyExtent extent : offlineTabletsCopy) {
       String tableId = extent.tableId().canonical();
@@ -928,12 +917,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public SortedMap<KeyExtent,Tablet> getOnlineTablets() {
-    return onlineTablets.snapshot();
+    return assignmentTracker.getOnline();
   }
 
   @Override
   public Tablet getOnlineTablet(KeyExtent extent) {
-    Tablet t = onlineTablets.snapshot().get(extent);
+    Tablet t = assignmentTracker.getOnline().get(extent);
     if (t != null) {
       t.setLastAccessTime();
     }
@@ -955,11 +944,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public int getOpeningCount() {
-    return openingTablets.size();
+    return assignmentTracker.getOpeningCount();
   }
 
   public int getUnopenedCount() {
-    return unopenedTablets.size();
+    return assignmentTracker.getUnopenedCount();
   }
 
   public long getTotalMinorCompactions() {
@@ -1053,7 +1042,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         closedLogs.add(currentLog);
         clSize = closedLogs.size();
       }
-      log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
+      log.info("Marking {} as closed. Total closed logs: {} ", currentLog.getPath(), clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
@@ -1071,8 +1060,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       }
     } else {
-      log.info(
-          "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
+      log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
       walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
     }
   }
@@ -1088,7 +1076,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private boolean isTabletInUse(KeyExtent extent) {
     // Don't call getOnlineTablet as that will update the last access time
-    final Tablet t = onlineTablets.snapshot().get(extent);
+    final Tablet t = assignmentTracker.getOnline().get(extent);
     if (t == null) {
       return false;
     }

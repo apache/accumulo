@@ -334,11 +334,6 @@ public class ClientContext implements AccumuloClient {
     });
 
     zkLockChecker = memoize(() -> {
-      // make this use its own ZooSession and ZooCache, because this is used by the
-      // tablet location cache, which is a static singleton reused by multiple clients
-      // so, it can't rely on being able to continue to use the same client's ZooCache,
-      // because that client could be closed, and its ZooSession also closed
-      // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
           ZooUtil.getRoot(getInstanceID())).get();
       return new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
@@ -1196,23 +1191,19 @@ public class ClientContext implements AccumuloClient {
     return this.zkLockChecker.get();
   }
 
-  public MeterRegistry getMeterRegistry() {
-    ensureOpen();
-    return micrometer;
-  }
-
-  public void setMeterRegistry(MeterRegistry micrometer) {
+  public synchronized void setMeterRegistry(MeterRegistry micrometer) {
     ensureOpen();
     this.micrometer = micrometer;
-    getCaches();
+    if (caches != null) {
+      caches.registerMetrics(micrometer);
+    }
   }
 
   public synchronized Caches getCaches() {
     ensureOpen();
     if (caches == null) {
       caches = Caches.getInstance();
-      if (micrometer != null && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_ENABLED)
-          && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
+      if (micrometer != null) {
         caches.registerMetrics(micrometer);
       }
     }

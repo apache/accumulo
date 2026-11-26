@@ -16,18 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metadata;
+package org.apache.accumulo.minicluster;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-public class GcCandidateFilter extends Filter {
+import org.apache.commons.io.FileUtils;
 
-  @Override
-  public boolean accept(Key k, Value v) {
-    return v.equals(SkewedKeyValue.NAME);
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+// Trimmed copy of AccumuloITBase.createTestDir (can't depend on the test module). Keeps MAC
+// dirs under target/mini-tests so their logs still exist in case of failure for CI to upload.
+public class MiniTestDirs {
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  public static Path createTestDir(String name) throws IOException {
+    Path testDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests", name);
+    FileUtils.deleteQuietly(testDir.toFile());
+    return Files.createDirectories(testDir);
   }
 
 }

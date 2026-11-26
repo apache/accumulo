@@ -61,6 +61,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   private final ConditionalMutation mutation;
   private final Supplier<ConditionalWriter> writer;
   private boolean requiredUnreserved = false;
+  private boolean requiredReserved = false;
   public static final int INITIAL_ITERATOR_PRIO = 1000000;
 
   public FateMutatorImpl(ClientContext context, String tableName, FateId fateId,
@@ -105,6 +106,17 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
         TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
     mutation.addCondition(condition);
     requiredUnreserved = true;
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> requireReserved(FateStore.FateReservation fateReservation) {
+    Preconditions.checkState(!requiredReserved);
+    Condition condition = new Condition(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier())
+        .setValue(fateReservation.getSerialized());
+    mutation.addCondition(condition);
+    requiredReserved = true;
     return this;
   }
 

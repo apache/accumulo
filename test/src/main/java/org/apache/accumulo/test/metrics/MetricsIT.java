@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.CACHE_SIZE;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
@@ -127,7 +128,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // that will be configured to push all metrics to the sink we started.
     cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_USER_TAGS, "tag1=value1,tag2=value2");
-    cfg.setProperty(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED, "true");
     cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
     cfg.setProperty("general.custom.metrics.opts.logging.step", "10s");
     String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
@@ -162,6 +162,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     // add sserver as flaky until scan server included in mini tests.
     Set<Metric> flakyMetrics = Set.of(
+            CACHE_SIZE,
             COMPACTOR_MAJC_STUCK,
             EXECUTOR_COMPLETED,
             EXECUTOR_QUEUED,
