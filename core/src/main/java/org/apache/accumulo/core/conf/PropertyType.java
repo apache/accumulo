@@ -55,6 +55,12 @@ import com.google.gson.JsonParser;
 public enum PropertyType {
   PREFIX(null, x -> false, null),
 
+  /**
+   * Keys under {@code CLOSED_PREFIX} are only valid if it matches a concretely defined property or
+   * falls under a more specific, nested open prefix
+   */
+  CLOSED_PREFIX("closed prefix", x -> false, null),
+
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
       "A non-negative integer optionally followed by a unit of time (whitespace"
           + " disallowed), as in 30s.\n"

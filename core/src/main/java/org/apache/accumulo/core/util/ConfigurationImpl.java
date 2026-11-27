@@ -76,13 +76,16 @@ public class ConfigurationImpl implements Configuration {
   @Override
   public Map<String,String> getWithPrefix(String prefix) {
     Property propertyPrefix = Property.getPropertyByKey(prefix);
-    if (propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX) {
-      return acfg.getAllPropertiesWithPrefix(propertyPrefix);
-    } else {
-      return StreamSupport.stream(acfg.spliterator(), false)
-          .filter(prop -> prop.getKey().startsWith(prefix))
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
+    if (propertyPrefix != null) {
+      PropertyType type = propertyPrefix.getType();
+      if (type == PropertyType.PREFIX || type == PropertyType.CLOSED_PREFIX) {
+        return acfg.getAllPropertiesWithPrefix(propertyPrefix);
+      }
     }
+
+    return StreamSupport.stream(acfg.spliterator(), false)
+        .filter(prop -> prop.getKey().startsWith(prefix))
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 
   @Override
