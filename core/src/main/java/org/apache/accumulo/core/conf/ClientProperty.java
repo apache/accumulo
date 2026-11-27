@@ -238,6 +238,13 @@ public enum ClientProperty {
     return Boolean.parseBoolean(value);
   }
 
+  public int getThreads(Properties properties) {
+    checkState(getType() == PropertyType.COUNT,
+        "Invalid type setting bytes. Type must be " + PropertyType.COUNT + ", not " + getType());
+    String value = getValue(properties);
+    return ConfigurationTypeHelper.getNumThreads(value);
+  }
+
   public void setBytes(Properties properties, Long bytes) {
     checkState(getType() == PropertyType.BYTES,
         "Invalid type setting bytes. Type must be " + PropertyType.BYTES + ", not " + getType());
