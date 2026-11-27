@@ -101,6 +101,7 @@ public class Constants {
   public static final String ZTEST_LOCK = "/test/lock";
 
   public static final String BULK_PREFIX = "b-";
+  public static final String BULK_EXT_PREFIX = "be-";
   public static final String BULK_RENAME_FILE = "renames.json";
   public static final String BULK_LOAD_MAPPING = "loadmap.json";
   public static final String BULK_WORKING_PREFIX = "accumulo-bulk-";

@@ -104,8 +104,8 @@ class LoadFiles extends AbstractBulkFateOperation {
     log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
     VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    try (LoadMappingIterator lmi =
-        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
+    try (LoadMappingIterator lmi = BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(),
+        bulkInfo.tableId, fs::open, bulkInfo.useFilesInPlace)) {
 
       Loader loader = new Loader(env, bulkInfo.tableId);
 

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -66,8 +67,16 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
     m.put(colf, colq, v);
   }
 
+  public void put(Mutation m, String s) {
+    put(m, new Value(s));
+  }
+
   public void putDelete(Mutation m) {
     m.putDelete(colf, colq);
+  }
+
+  public Condition newCondition() {
+    return new Condition(colf, colq);
   }
 
   @Override

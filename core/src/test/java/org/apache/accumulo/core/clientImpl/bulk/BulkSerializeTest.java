@@ -112,7 +112,7 @@ public class BulkSerializeTest {
     };
 
     try (LoadMappingIterator lmi =
-        BulkSerialize.getUpdatedLoadMapping("/some/dir", tableId, input)) {
+        BulkSerialize.getUpdatedLoadMapping("/some/dir", tableId, input, false)) {
       SortedMap<KeyExtent,Bulk.Files> actual = new TreeMap<>();
       lmi.forEachRemaining(e -> actual.put(e.getKey(), e.getValue()));
       assertEquals(newNameMapping, actual);

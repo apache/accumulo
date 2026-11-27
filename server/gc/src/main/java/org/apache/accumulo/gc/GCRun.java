@@ -47,9 +47,11 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -132,6 +134,26 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     log.info("Batch {} attempting to delete {} gcCandidates of type {} from metadata",
         batchCount.get(), gcCandidates.size(), type);
+
+    // Delete bulk ext dir name reservations before deleting candidates so that in failure case they
+    // will still be deleted.
+    if (level == DataLevel.USER && type == GcCandidateType.VALID) {
+      try (var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
+        for (var candidate : gcCandidates) {
+          if (candidate.getType() == GcCandidate.Type.BULK_DIR) {
+            var dirName = new Path(candidate.getPath()).getName();
+            if (dirName.startsWith(Constants.BULK_EXT_PREFIX)) {
+              Mutation m = new Mutation(MetadataSchema.BulkExtDirSection.prefix(dirName));
+              MetadataSchema.BulkExtDirSection.ID_COL.putDelete(m);
+              writer.addMutation(m);
+            }
+          }
+        }
+      } catch (TableNotFoundException | MutationsRejectedException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
     context.getAmple().deleteGcCandidates(level, gcCandidates, type);
   }
 

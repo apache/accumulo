@@ -625,6 +625,30 @@ public class MetadataSchema {
   }
 
   /**
+   * Holds names of bulk external directories that are reserved
+   */
+  public static class BulkExtDirSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "bedr", true, RESERVED_PREFIX + "beds", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+
+    public static String prefix(String dirName) {
+      Preconditions.checkArgument(!dirName.contains("/"));
+      return getRowPrefix() + dirName;
+    }
+
+    public static final ColumnFQ ID_COL = new ColumnFQ(new Text("fate"), new Text("id"));
+
+  }
+
+  /**
    * Holds information about compactions that were deleted from tablets metadata by split or merge
    * operations. These may still be running and may have tmp files that need to be cleaned up.
    */

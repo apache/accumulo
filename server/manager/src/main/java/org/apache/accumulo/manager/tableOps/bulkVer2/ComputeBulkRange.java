@@ -40,7 +40,11 @@ public class ComputeBulkRange extends AbstractBulkFateOperation {
   private static final Logger log = LoggerFactory.getLogger(ComputeBulkRange.class);
 
   public ComputeBulkRange(TableId tableId, String sourceDir, boolean setTime) {
-    super(BulkInfo.create(tableId, sourceDir, setTime));
+    super(BulkInfo.create(tableId, sourceDir, setTime, false));
+  }
+
+  ComputeBulkRange(BulkInfo bulkInfo) {
+    super(bulkInfo);
   }
 
   @Override

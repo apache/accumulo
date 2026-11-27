@@ -73,6 +73,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -87,8 +88,10 @@ import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.availability.LockTable;
 import org.apache.accumulo.manager.tableOps.bulkVer2.ComputeBulkRange;
+import org.apache.accumulo.manager.tableOps.bulkVer2.ReserveExternalDir;
 import org.apache.accumulo.manager.tableOps.clone.CloneTable;
 import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
@@ -649,12 +652,14 @@ class FateServiceHandler implements FateService.Iface {
       }
       case TABLE_BULK_IMPORT2: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
-        validateArgumentCount(arguments, tableOp, 3);
+        validateArgumentCount(arguments, tableOp, 4);
         final var tableId =
             validateTableIdArgument(arguments.get(0), tableOp, NOT_BUILTIN_TABLE_ID);
         String dir = ByteBufferUtil.toString(arguments.get(1));
 
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
+
+        boolean useFilesInPlace = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
 
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
@@ -677,8 +682,14 @@ class FateServiceHandler implements FateService.Iface {
         }
 
         goalMessage += "Bulk import (v2)  " + dir + " to " + tableName + "(" + tableId + ")";
-        manager.fateClient(type).seedTransaction(op, fateId,
-            new TraceRepo<>(new ComputeBulkRange(tableId, dir, setTime)), autoCleanup, goalMessage);
+        Repo<FateEnv> seed;
+        if (useFilesInPlace) {
+          seed = new ReserveExternalDir(tableId, dir, setTime);
+        } else {
+          seed = new ComputeBulkRange(tableId, dir, setTime);
+        }
+        manager.fateClient(type).seedTransaction(op, fateId, new TraceRepo<>(seed), autoCleanup,
+            goalMessage);
         break;
       }
       case TABLE_TABLET_AVAILABILITY: {
