@@ -29,13 +29,13 @@ public class TabletScanClientService {
 
   public interface Iface {
 
-    public org.apache.accumulo.core.dataImpl.thrift.InitialScan startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, TooManyFilesException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.dataImpl.thrift.InitialScan startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, TooManyFilesException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException;
 
     public org.apache.accumulo.core.dataImpl.thrift.ScanResult continueScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long scanID, long busyTimeout) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, TooManyFilesException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException;
 
     public void closeScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long scanID) throws org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException;
 
     public org.apache.accumulo.core.dataImpl.thrift.MultiScanResult continueMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long scanID, long busyTimeout) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException;
 
@@ -47,13 +47,13 @@ public class TabletScanClientService {
 
   public interface AsyncIface {
 
-    public void startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler) throws org.apache.thrift.TException;
+    public void startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler) throws org.apache.thrift.TException;
 
     public void continueScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long scanID, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.ScanResult> resultHandler) throws org.apache.thrift.TException;
 
     public void closeScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long scanID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler) throws org.apache.thrift.TException;
+    public void startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler) throws org.apache.thrift.TException;
 
     public void continueMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long scanID, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.MultiScanResult> resultHandler) throws org.apache.thrift.TException;
 
@@ -86,13 +86,13 @@ public class TabletScanClientService {
     }
 
     @Override
-    public org.apache.accumulo.core.dataImpl.thrift.InitialScan startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, TooManyFilesException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException
+    public org.apache.accumulo.core.dataImpl.thrift.InitialScan startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, TooManyFilesException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException
     {
-      send_startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout);
+      send_startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout, eventual);
       return recv_startScan();
     }
 
-    public void send_startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout) throws org.apache.thrift.TException
+    public void send_startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual) throws org.apache.thrift.TException
     {
       startScan_args args = new startScan_args();
       args.setTinfo(tinfo);
@@ -112,6 +112,7 @@ public class TabletScanClientService {
       args.setClassLoaderContext(classLoaderContext);
       args.setExecutionHints(executionHints);
       args.setBusyTimeout(busyTimeout);
+      args.setEventual(eventual);
       sendBase("startScan", args);
     }
 
@@ -196,13 +197,13 @@ public class TabletScanClientService {
     }
 
     @Override
-    public org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException
+    public org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, TSampleNotPresentException, ScanServerBusyException, org.apache.thrift.TException
     {
-      send_startMultiScan(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout);
+      send_startMultiScan(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout, eventual);
       return recv_startMultiScan();
     }
 
-    public void send_startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout) throws org.apache.thrift.TException
+    public void send_startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual) throws org.apache.thrift.TException
     {
       startMultiScan_args args = new startMultiScan_args();
       args.setTinfo(tinfo);
@@ -218,6 +219,7 @@ public class TabletScanClientService {
       args.setClassLoaderContext(classLoaderContext);
       args.setExecutionHints(executionHints);
       args.setBusyTimeout(busyTimeout);
+      args.setEventual(eventual);
       sendBase("startMultiScan", args);
     }
 
@@ -348,9 +350,9 @@ public class TabletScanClientService {
     }
 
     @Override
-    public void startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler) throws org.apache.thrift.TException {
+    public void startScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startScan_call method_call = new startScan_call(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout, resultHandler, this, ___protocolFactory, ___transport);
+      startScan_call method_call = new startScan_call(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout, eventual, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -373,7 +375,8 @@ public class TabletScanClientService {
       private java.lang.String classLoaderContext;
       private java.util.Map<java.lang.String,java.lang.String> executionHints;
       private long busyTimeout;
-      public startScan_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private boolean eventual;
+      public startScan_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.dataImpl.thrift.TRange range, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -392,6 +395,7 @@ public class TabletScanClientService {
         this.classLoaderContext = classLoaderContext;
         this.executionHints = executionHints;
         this.busyTimeout = busyTimeout;
+        this.eventual = eventual;
       }
 
       @Override
@@ -415,6 +419,7 @@ public class TabletScanClientService {
         args.setClassLoaderContext(classLoaderContext);
         args.setExecutionHints(executionHints);
         args.setBusyTimeout(busyTimeout);
+        args.setEventual(eventual);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -510,9 +515,9 @@ public class TabletScanClientService {
     }
 
     @Override
-    public void startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler) throws org.apache.thrift.TException {
+    public void startMultiScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startMultiScan_call method_call = new startMultiScan_call(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout, resultHandler, this, ___protocolFactory, ___transport);
+      startMultiScan_call method_call = new startMultiScan_call(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites, samplerConfig, batchTimeOut, classLoaderContext, executionHints, busyTimeout, eventual, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -531,7 +536,8 @@ public class TabletScanClientService {
       private java.lang.String classLoaderContext;
       private java.util.Map<java.lang.String,java.lang.String> executionHints;
       private long busyTimeout;
-      public startMultiScan_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private boolean eventual;
+      public startMultiScan_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.dataImpl.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList, java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio, java.util.List<java.nio.ByteBuffer> authorizations, boolean waitForWrites, TSamplerConfiguration samplerConfig, long batchTimeOut, java.lang.String classLoaderContext, java.util.Map<java.lang.String,java.lang.String> executionHints, long busyTimeout, boolean eventual, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -546,6 +552,7 @@ public class TabletScanClientService {
         this.classLoaderContext = classLoaderContext;
         this.executionHints = executionHints;
         this.busyTimeout = busyTimeout;
+        this.eventual = eventual;
       }
 
       @Override
@@ -565,6 +572,7 @@ public class TabletScanClientService {
         args.setClassLoaderContext(classLoaderContext);
         args.setExecutionHints(executionHints);
         args.setBusyTimeout(busyTimeout);
+        args.setEventual(eventual);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -750,7 +758,7 @@ public class TabletScanClientService {
       public startScan_result getResult(I iface, startScan_args args) throws org.apache.thrift.TException {
         startScan_result result = getEmptyResultInstance();
         try {
-          result.success = iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout);
+          result.success = iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout, args.eventual);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste) {
@@ -872,7 +880,7 @@ public class TabletScanClientService {
       public startMultiScan_result getResult(I iface, startMultiScan_args args) throws org.apache.thrift.TException {
         startMultiScan_result result = getEmptyResultInstance();
         try {
-          result.success = iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout);
+          result.success = iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout, args.eventual);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (TSampleNotPresentException tsnpe) {
@@ -1110,7 +1118,7 @@ public class TabletScanClientService {
 
       @Override
       public void start(I iface, startScan_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialScan> resultHandler) throws org.apache.thrift.TException {
-        iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout,resultHandler);
+        iface.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated, args.readaheadThreshold, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout, args.eventual,resultHandler);
       }
     }
 
@@ -1331,7 +1339,7 @@ public class TabletScanClientService {
 
       @Override
       public void start(I iface, startMultiScan_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan> resultHandler) throws org.apache.thrift.TException {
-        iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout,resultHandler);
+        iface.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.samplerConfig, args.batchTimeOut, args.classLoaderContext, args.executionHints, args.busyTimeout, args.eventual,resultHandler);
       }
     }
 
@@ -1593,6 +1601,7 @@ public class TabletScanClientService {
     private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)15);
     private static final org.apache.thrift.protocol.TField EXECUTION_HINTS_FIELD_DESC = new org.apache.thrift.protocol.TField("executionHints", org.apache.thrift.protocol.TType.MAP, (short)16);
     private static final org.apache.thrift.protocol.TField BUSY_TIMEOUT_FIELD_DESC = new org.apache.thrift.protocol.TField("busyTimeout", org.apache.thrift.protocol.TType.I64, (short)17);
+    private static final org.apache.thrift.protocol.TField EVENTUAL_FIELD_DESC = new org.apache.thrift.protocol.TField("eventual", org.apache.thrift.protocol.TType.BOOL, (short)18);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startScan_argsTupleSchemeFactory();
@@ -1614,6 +1623,7 @@ public class TabletScanClientService {
     private @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
     private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> executionHints; // required
     private long busyTimeout; // required
+    private boolean eventual; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -1633,7 +1643,8 @@ public class TabletScanClientService {
       BATCH_TIME_OUT((short)14, "batchTimeOut"),
       CLASS_LOADER_CONTEXT((short)15, "classLoaderContext"),
       EXECUTION_HINTS((short)16, "executionHints"),
-      BUSY_TIMEOUT((short)17, "busyTimeout");
+      BUSY_TIMEOUT((short)17, "busyTimeout"),
+      EVENTUAL((short)18, "eventual");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -1683,6 +1694,8 @@ public class TabletScanClientService {
             return EXECUTION_HINTS;
           case 17: // BUSY_TIMEOUT
             return BUSY_TIMEOUT;
+          case 18: // EVENTUAL
+            return EVENTUAL;
           default:
             return null;
         }
@@ -1732,6 +1745,7 @@ public class TabletScanClientService {
     private static final int __READAHEADTHRESHOLD_ISSET_ID = 3;
     private static final int __BATCHTIMEOUT_ISSET_ID = 4;
     private static final int __BUSYTIMEOUT_ISSET_ID = 5;
+    private static final int __EVENTUAL_ISSET_ID = 6;
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -1779,6 +1793,8 @@ public class TabletScanClientService {
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
       tmpMap.put(_Fields.BUSY_TIMEOUT, new org.apache.thrift.meta_data.FieldMetaData("busyTimeout", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+      tmpMap.put(_Fields.EVENTUAL, new org.apache.thrift.meta_data.FieldMetaData("eventual", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(startScan_args.class, metaDataMap);
     }
@@ -1803,7 +1819,8 @@ public class TabletScanClientService {
       long batchTimeOut,
       java.lang.String classLoaderContext,
       java.util.Map<java.lang.String,java.lang.String> executionHints,
-      long busyTimeout)
+      long busyTimeout,
+      boolean eventual)
     {
       this();
       this.tinfo = tinfo;
@@ -1829,6 +1846,8 @@ public class TabletScanClientService {
       this.executionHints = executionHints;
       this.busyTimeout = busyTimeout;
       setBusyTimeoutIsSet(true);
+      this.eventual = eventual;
+      setEventualIsSet(true);
     }
 
     /**
@@ -1897,6 +1916,7 @@ public class TabletScanClientService {
         this.executionHints = __this__executionHints;
       }
       this.busyTimeout = other.busyTimeout;
+      this.eventual = other.eventual;
     }
 
     @Override
@@ -1929,6 +1949,8 @@ public class TabletScanClientService {
       this.executionHints = null;
       setBusyTimeoutIsSet(false);
       this.busyTimeout = 0;
+      setEventualIsSet(false);
+      this.eventual = false;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -2414,6 +2436,29 @@ public class TabletScanClientService {
       __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __BUSYTIMEOUT_ISSET_ID, value);
     }
 
+    public boolean isEventual() {
+      return this.eventual;
+    }
+
+    public startScan_args setEventual(boolean eventual) {
+      this.eventual = eventual;
+      setEventualIsSet(true);
+      return this;
+    }
+
+    public void unsetEventual() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __EVENTUAL_ISSET_ID);
+    }
+
+    /** Returns true if field eventual is set (has been assigned a value) and false otherwise */
+    public boolean isSetEventual() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __EVENTUAL_ISSET_ID);
+    }
+
+    public void setEventualIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __EVENTUAL_ISSET_ID, value);
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -2553,6 +2598,14 @@ public class TabletScanClientService {
         }
         break;
 
+      case EVENTUAL:
+        if (value == null) {
+          unsetEventual();
+        } else {
+          setEventual((java.lang.Boolean)value);
+        }
+        break;
+
       }
     }
 
@@ -2611,6 +2664,9 @@ public class TabletScanClientService {
       case BUSY_TIMEOUT:
         return getBusyTimeout();
 
+      case EVENTUAL:
+        return isEventual();
+
       }
       throw new java.lang.IllegalStateException();
     }
@@ -2657,6 +2713,8 @@ public class TabletScanClientService {
         return isSetExecutionHints();
       case BUSY_TIMEOUT:
         return isSetBusyTimeout();
+      case EVENTUAL:
+        return isSetEventual();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -2827,6 +2885,15 @@ public class TabletScanClientService {
           return false;
       }
 
+      boolean this_present_eventual = true;
+      boolean that_present_eventual = true;
+      if (this_present_eventual || that_present_eventual) {
+        if (!(this_present_eventual && that_present_eventual))
+          return false;
+        if (this.eventual != that.eventual)
+          return false;
+      }
+
       return true;
     }
 
@@ -2889,6 +2956,8 @@ public class TabletScanClientService {
         hashCode = hashCode * 8191 + executionHints.hashCode();
 
       hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(busyTimeout);
+
+      hashCode = hashCode * 8191 + ((eventual) ? 131071 : 524287);
 
       return hashCode;
     }
@@ -3071,6 +3140,16 @@ public class TabletScanClientService {
           return lastComparison;
         }
       }
+      lastComparison = java.lang.Boolean.compare(isSetEventual(), other.isSetEventual());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetEventual()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.eventual, other.eventual);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -3205,6 +3284,10 @@ public class TabletScanClientService {
       if (!first) sb.append(", ");
       sb.append("busyTimeout:");
       sb.append(this.busyTimeout);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("eventual:");
+      sb.append(this.eventual);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -3479,6 +3562,14 @@ public class TabletScanClientService {
                   org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
                 }
                 break;
+              case 18: // EVENTUAL
+                if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                  struct.eventual = iprot.readBool();
+                  struct.setEventualIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
               default:
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -3616,6 +3707,9 @@ public class TabletScanClientService {
         oprot.writeFieldBegin(BUSY_TIMEOUT_FIELD_DESC);
         oprot.writeI64(struct.busyTimeout);
         oprot.writeFieldEnd();
+        oprot.writeFieldBegin(EVENTUAL_FIELD_DESC);
+        oprot.writeBool(struct.eventual);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -3686,7 +3780,10 @@ public class TabletScanClientService {
         if (struct.isSetBusyTimeout()) {
           optionals.set(16);
         }
-        oprot.writeBitSet(optionals, 17);
+        if (struct.isSetEventual()) {
+          optionals.set(17);
+        }
+        oprot.writeBitSet(optionals, 18);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -3777,6 +3874,9 @@ public class TabletScanClientService {
         if (struct.isSetBusyTimeout()) {
           oprot.writeI64(struct.busyTimeout);
         }
+        if (struct.isSetEventual()) {
+          oprot.writeBool(struct.eventual);
+        }
       }
 
       @Override
@@ -3784,7 +3884,7 @@ public class TabletScanClientService {
         prot.incrementRecursionDepth();
         try {
           org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-          java.util.BitSet incoming = iprot.readBitSet(17);
+          java.util.BitSet incoming = iprot.readBitSet(18);
           if (incoming.get(0)) {
             struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
             struct.tinfo.read(iprot);
@@ -3919,6 +4019,10 @@ public class TabletScanClientService {
           if (incoming.get(16)) {
             struct.busyTimeout = iprot.readI64();
             struct.setBusyTimeoutIsSet(true);
+          }
+          if (incoming.get(17)) {
+            struct.eventual = iprot.readBool();
+            struct.setEventualIsSet(true);
           }
         } finally {
           prot.decrementRecursionDepth();
@@ -6888,6 +6992,7 @@ public class TabletScanClientService {
     private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)11);
     private static final org.apache.thrift.protocol.TField EXECUTION_HINTS_FIELD_DESC = new org.apache.thrift.protocol.TField("executionHints", org.apache.thrift.protocol.TType.MAP, (short)12);
     private static final org.apache.thrift.protocol.TField BUSY_TIMEOUT_FIELD_DESC = new org.apache.thrift.protocol.TField("busyTimeout", org.apache.thrift.protocol.TType.I64, (short)13);
+    private static final org.apache.thrift.protocol.TField EVENTUAL_FIELD_DESC = new org.apache.thrift.protocol.TField("eventual", org.apache.thrift.protocol.TType.BOOL, (short)14);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new startMultiScan_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new startMultiScan_argsTupleSchemeFactory();
@@ -6905,6 +7010,7 @@ public class TabletScanClientService {
     private @org.apache.thrift.annotation.Nullable java.lang.String classLoaderContext; // required
     private @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> executionHints; // required
     private long busyTimeout; // required
+    private boolean eventual; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -6920,7 +7026,8 @@ public class TabletScanClientService {
       BATCH_TIME_OUT((short)10, "batchTimeOut"),
       CLASS_LOADER_CONTEXT((short)11, "classLoaderContext"),
       EXECUTION_HINTS((short)12, "executionHints"),
-      BUSY_TIMEOUT((short)13, "busyTimeout");
+      BUSY_TIMEOUT((short)13, "busyTimeout"),
+      EVENTUAL((short)14, "eventual");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -6962,6 +7069,8 @@ public class TabletScanClientService {
             return EXECUTION_HINTS;
           case 13: // BUSY_TIMEOUT
             return BUSY_TIMEOUT;
+          case 14: // EVENTUAL
+            return EVENTUAL;
           default:
             return null;
         }
@@ -7008,6 +7117,7 @@ public class TabletScanClientService {
     private static final int __WAITFORWRITES_ISSET_ID = 0;
     private static final int __BATCHTIMEOUT_ISSET_ID = 1;
     private static final int __BUSYTIMEOUT_ISSET_ID = 2;
+    private static final int __EVENTUAL_ISSET_ID = 3;
     private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
@@ -7050,6 +7160,8 @@ public class TabletScanClientService {
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
       tmpMap.put(_Fields.BUSY_TIMEOUT, new org.apache.thrift.meta_data.FieldMetaData("busyTimeout", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+      tmpMap.put(_Fields.EVENTUAL, new org.apache.thrift.meta_data.FieldMetaData("eventual", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(startMultiScan_args.class, metaDataMap);
     }
@@ -7070,7 +7182,8 @@ public class TabletScanClientService {
       long batchTimeOut,
       java.lang.String classLoaderContext,
       java.util.Map<java.lang.String,java.lang.String> executionHints,
-      long busyTimeout)
+      long busyTimeout,
+      boolean eventual)
     {
       this();
       this.tinfo = tinfo;
@@ -7089,6 +7202,8 @@ public class TabletScanClientService {
       this.executionHints = executionHints;
       this.busyTimeout = busyTimeout;
       setBusyTimeoutIsSet(true);
+      this.eventual = eventual;
+      setEventualIsSet(true);
     }
 
     /**
@@ -7166,6 +7281,7 @@ public class TabletScanClientService {
         this.executionHints = __this__executionHints;
       }
       this.busyTimeout = other.busyTimeout;
+      this.eventual = other.eventual;
     }
 
     @Override
@@ -7191,6 +7307,8 @@ public class TabletScanClientService {
       this.executionHints = null;
       setBusyTimeoutIsSet(false);
       this.busyTimeout = 0;
+      setEventualIsSet(false);
+      this.eventual = false;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -7593,6 +7711,29 @@ public class TabletScanClientService {
       __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __BUSYTIMEOUT_ISSET_ID, value);
     }
 
+    public boolean isEventual() {
+      return this.eventual;
+    }
+
+    public startMultiScan_args setEventual(boolean eventual) {
+      this.eventual = eventual;
+      setEventualIsSet(true);
+      return this;
+    }
+
+    public void unsetEventual() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __EVENTUAL_ISSET_ID);
+    }
+
+    /** Returns true if field eventual is set (has been assigned a value) and false otherwise */
+    public boolean isSetEventual() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __EVENTUAL_ISSET_ID);
+    }
+
+    public void setEventualIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __EVENTUAL_ISSET_ID, value);
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -7700,6 +7841,14 @@ public class TabletScanClientService {
         }
         break;
 
+      case EVENTUAL:
+        if (value == null) {
+          unsetEventual();
+        } else {
+          setEventual((java.lang.Boolean)value);
+        }
+        break;
+
       }
     }
 
@@ -7746,6 +7895,9 @@ public class TabletScanClientService {
       case BUSY_TIMEOUT:
         return getBusyTimeout();
 
+      case EVENTUAL:
+        return isEventual();
+
       }
       throw new java.lang.IllegalStateException();
     }
@@ -7784,6 +7936,8 @@ public class TabletScanClientService {
         return isSetExecutionHints();
       case BUSY_TIMEOUT:
         return isSetBusyTimeout();
+      case EVENTUAL:
+        return isSetEventual();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -7918,6 +8072,15 @@ public class TabletScanClientService {
           return false;
       }
 
+      boolean this_present_eventual = true;
+      boolean that_present_eventual = true;
+      if (this_present_eventual || that_present_eventual) {
+        if (!(this_present_eventual && that_present_eventual))
+          return false;
+        if (this.eventual != that.eventual)
+          return false;
+      }
+
       return true;
     }
 
@@ -7970,6 +8133,8 @@ public class TabletScanClientService {
         hashCode = hashCode * 8191 + executionHints.hashCode();
 
       hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(busyTimeout);
+
+      hashCode = hashCode * 8191 + ((eventual) ? 131071 : 524287);
 
       return hashCode;
     }
@@ -8112,6 +8277,16 @@ public class TabletScanClientService {
           return lastComparison;
         }
       }
+      lastComparison = java.lang.Boolean.compare(isSetEventual(), other.isSetEventual());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetEventual()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.eventual, other.eventual);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -8226,6 +8401,10 @@ public class TabletScanClientService {
       if (!first) sb.append(", ");
       sb.append("busyTimeout:");
       sb.append(this.busyTimeout);
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("eventual:");
+      sb.append(this.eventual);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -8484,6 +8663,14 @@ public class TabletScanClientService {
                   org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
                 }
                 break;
+              case 14: // EVENTUAL
+                if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                  struct.eventual = iprot.readBool();
+                  struct.setEventualIsSet(true);
+                } else { 
+                  org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+                }
+                break;
               default:
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -8622,6 +8809,9 @@ public class TabletScanClientService {
         oprot.writeFieldBegin(BUSY_TIMEOUT_FIELD_DESC);
         oprot.writeI64(struct.busyTimeout);
         oprot.writeFieldEnd();
+        oprot.writeFieldBegin(EVENTUAL_FIELD_DESC);
+        oprot.writeBool(struct.eventual);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -8680,7 +8870,10 @@ public class TabletScanClientService {
         if (struct.isSetBusyTimeout()) {
           optionals.set(12);
         }
-        oprot.writeBitSet(optionals, 13);
+        if (struct.isSetEventual()) {
+          optionals.set(13);
+        }
+        oprot.writeBitSet(optionals, 14);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -8772,6 +8965,9 @@ public class TabletScanClientService {
         if (struct.isSetBusyTimeout()) {
           oprot.writeI64(struct.busyTimeout);
         }
+        if (struct.isSetEventual()) {
+          oprot.writeBool(struct.eventual);
+        }
       }
 
       @Override
@@ -8779,7 +8975,7 @@ public class TabletScanClientService {
         prot.incrementRecursionDepth();
         try {
           org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-          java.util.BitSet incoming = iprot.readBitSet(13);
+          java.util.BitSet incoming = iprot.readBitSet(14);
           if (incoming.get(0)) {
             struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
             struct.tinfo.read(iprot);
@@ -8918,6 +9114,10 @@ public class TabletScanClientService {
           if (incoming.get(12)) {
             struct.busyTimeout = iprot.readI64();
             struct.setBusyTimeoutIsSet(true);
+          }
+          if (incoming.get(13)) {
+            struct.eventual = iprot.readBool();
+            struct.setEventualIsSet(true);
           }
         } finally {
           prot.decrementRecursionDepth();

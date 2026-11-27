@@ -34,8 +34,10 @@
                 <th>User</th>
                 <th class="scan-state">Scan State</th>
                 <th>Scan Type</th>
+                <th>Consistency</th>
                 <th class="duration">Age</th>
                 <th class="duration">Idle Time</th>
+                <th>More</th>
               </tr>
             </thead>
             <tbody></tbody>
