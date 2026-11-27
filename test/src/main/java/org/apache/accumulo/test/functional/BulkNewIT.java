@@ -1420,9 +1420,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       assertEquals("Bulk directory name was used by a previous bulk import operation.",
           exception.getMessage());
       // failed operation will leave a loadmap.json file behind, delete it
-      fs.delete(new Path(dir1, Constants.BULK_LOAD_MAPPING), false); // TODO does client code only
-                                                                     // create loadmap.json if it
-                                                                     // does not exist?
+      fs.delete(new Path(dir1, Constants.BULK_LOAD_MAPPING), false);
 
       // ensure the failed operation did not delete the reservation
       assertEquals(Set.of(new Path(dir1).getName()), listReservedBulkExtDirs(ctx));

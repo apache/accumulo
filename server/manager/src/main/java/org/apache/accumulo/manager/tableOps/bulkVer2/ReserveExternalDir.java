@@ -48,7 +48,7 @@ import com.google.common.base.Preconditions;
 public class ReserveExternalDir extends AbstractBulkFateOperation {
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = LoggerFactory.getLogger(ComputeBulkRange.class);
+  private static final Logger log = LoggerFactory.getLogger(ReserveExternalDir.class);
 
   private static final Pattern BULK_EXTERNAL_PATTERN =
       Pattern.compile(Constants.BULK_EXT_PREFIX + "[0-9a-z]{13}");
@@ -56,8 +56,7 @@ public class ReserveExternalDir extends AbstractBulkFateOperation {
   public ReserveExternalDir(TableId tableId, String sourceDir, boolean setTime)
       throws ThriftTableOperationException {
     super(BulkInfo.create(tableId, sourceDir, setTime, true));
-    Preconditions.checkArgument(!SystemTables.containsTableId(tableId)); // TODO is this check done
-                                                                         // elsewhere?
+    Preconditions.checkArgument(!SystemTables.containsTableId(tableId));
     if (!BULK_EXTERNAL_PATTERN.matcher(new Path(sourceDir).getName()).matches()) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.IMPORT,
           TableOperationExceptionType.OTHER,
