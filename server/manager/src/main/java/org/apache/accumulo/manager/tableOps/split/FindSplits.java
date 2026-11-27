@@ -100,7 +100,12 @@ public class FindSplits extends AbstractFateOperation {
     SortedSet<Text> splits = SplitUtils.findSplits(env.getContext(), tabletMetadata);
 
     if (extent.endRow() != null) {
-      splits.remove(extent.endRow());
+      if (splits.remove(extent.endRow()) && splits.isEmpty()) {
+        log.warn(
+            "Tablet {} needs to split but the only split found equals the tablets end row, so can "
+                + "not split. The tablet probably has a single row with many columns.",
+            extent);
+      }
     }
 
     if (splits.isEmpty()) {

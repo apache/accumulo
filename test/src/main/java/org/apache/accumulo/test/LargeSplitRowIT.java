@@ -20,13 +20,16 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -39,6 +42,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
@@ -79,6 +83,44 @@ public class LargeSplitRowIT extends SharedMiniClusterBase {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
+  }
+
+  // Test a tablet with a single row that has many columns, should not be able to split this because
+  // there is only one row.
+  @Test
+  public void testManyColumns() throws Exception {
+    final String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> props = Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256K");
+      final String split = "manyCols";
+      TreeSet<Text> splits = new TreeSet<>(List.of(new Text(split)));
+      client.tableOperations().create(tableName,
+          new NewTableConfiguration().setProperties(props).withSplits(splits));
+
+      byte[] data = new byte[1000];
+      // Write 1K columns to a single row with 1K of data in each column. This should create 1M of
+      // data which exceeds the 256K split threshold.
+      try (BatchWriter batchWriter = client.createBatchWriter(tableName)) {
+        for (int f = 0; f < 100; f++) {
+          Mutation m = new Mutation(split);
+          for (int q = 0; q < 10; q++) {
+            RANDOM.get().nextBytes(data);
+            m.at().family(String.format("%03d", f)).qualifier(String.format("%03d", q)).put(data);
+          }
+          batchWriter.addMutation(m);
+        }
+      }
+
+      client.tableOperations().flush(tableName, null, null, true);
+
+      var ctx = (ClientContext) client;
+      var tableId = ctx.getTableId(tableName);
+      var extent = new KeyExtent(tableId, new Text(split), null);
+      Wait.waitFor(() -> ctx.getAmple().readTablet(extent).getUnSplittable() != null);
+      assertNotNull(ctx.getAmple().readTablet(extent).getUnSplittable());
+
+      assertEquals(splits, new TreeSet<>(client.tableOperations().listSplits(tableName)));
+    }
   }
 
   // User added split
