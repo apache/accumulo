@@ -109,7 +109,7 @@ public enum PropertyType {
 
   THREAD_COUNT("thread count", boundedUnits(0, Long.MAX_VALUE, false, "", "C"),
       "A non-negative integer in the range of 0-" + Integer.MAX_VALUE
-          + ", if the suffixed with 'C', the number of threads will be multiplied by the number of cores.\n"
+          + ", if suffixed with 'C', the number of threads will be multiplied by the number of cores.\n"
           + "Examples of valid thread counts are '256' and '50C'."),
 
   FRACTION("fraction/percentage", new FractionPredicate(),
