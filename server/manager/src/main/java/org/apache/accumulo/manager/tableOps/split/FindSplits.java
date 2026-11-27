@@ -75,7 +75,8 @@ public class FindSplits extends AbstractFateOperation {
     if (tabletMetadata.getUnSplittable() != null) {
       computedUnsplittable =
           Optional.of(SplitUtils.toUnSplittable(env.getContext(), tabletMetadata));
-      if (tabletMetadata.getUnSplittable().equals(computedUnsplittable.orElseThrow())) {
+      if (tabletMetadata.getUnSplittable().equals(computedUnsplittable.orElseThrow())
+          && tabletMetadata.getUnSplittable().getReason() != UnSplittableMetadata.Reason.UNKNOWN) {
         log.debug("Not splitting {} because unsplittable metadata is present and did not change",
             extent);
         return null;
@@ -97,7 +98,8 @@ public class FindSplits extends AbstractFateOperation {
       return null;
     }
 
-    SortedSet<Text> splits = SplitUtils.findSplits(env.getContext(), tabletMetadata);
+    var splitResult = SplitUtils.findSplitsWithReason(env.getContext(), tabletMetadata);
+    SortedSet<Text> splits = splitResult.splitPoints();
 
     if (extent.endRow() != null) {
       splits.remove(extent.endRow());
@@ -120,10 +122,10 @@ public class FindSplits extends AbstractFateOperation {
         // split metadata is changed
         final var context = env.getContext();
         if (SplitUtils.needsSplit(context, tabletMetadata)) {
+          var reason = splitResult.reason().orElse(UnSplittableMetadata.Reason.NO_SPLIT_POINTS);
+          var unSplittableMeta = SplitUtils.toUnSplittable(context, tabletMetadata, reason);
           log.info("Tablet {} needs to split, but no split points could be found.",
               tabletMetadata.getExtent());
-          var unSplittableMeta = computedUnsplittable
-              .orElseGet(() -> SplitUtils.toUnSplittable(context, tabletMetadata));
 
           // With the current design we don't need to require the files to be the same
           // for correctness as the TabletManagementIterator will detect the difference

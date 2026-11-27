@@ -321,7 +321,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         Condition c = new Condition(UNSPLITTABLE_COLUMN.getColumnFamily(),
             UNSPLITTABLE_COLUMN.getColumnQualifier());
         if (tabletMetadata.getUnSplittable() != null) {
-          c.setValue(tabletMetadata.getUnSplittable().toBase64());
+          c.setValue(tabletMetadata.getUnSplittable().toValue());
         }
         mutation.addCondition(c);
       }

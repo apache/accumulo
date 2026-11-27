@@ -356,7 +356,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T setUnSplittable(UnSplittableMetadata unSplittableMeta) {
-    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unSplittableMeta.toBase64()));
+    SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unSplittableMeta.toValue()));
     return getThis();
   }
 

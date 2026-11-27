@@ -38,14 +38,21 @@ import com.google.common.hash.Hashing;
 public class UnSplittableMetadata {
 
   private final HashCode hashOfSplitParameters;
+  private final Reason reason;
 
-  private UnSplittableMetadata(KeyExtent keyExtent, long splitThreshold, long maxEndRowSize,
-      int maxFilesToOpen, Set<StoredTabletFile> files) {
-    this(calculateSplitParamsHash(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen, files));
+  public enum Reason {
+    UNKNOWN, TOO_MANY_FILES, LARGE_ROW, NO_SPLIT_POINTS
   }
 
-  private UnSplittableMetadata(HashCode hashOfSplitParameters) {
+  private UnSplittableMetadata(KeyExtent keyExtent, long splitThreshold, long maxEndRowSize,
+      int maxFilesToOpen, Set<StoredTabletFile> files, Reason reason) {
+    this(calculateSplitParamsHash(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen, files),
+        reason);
+  }
+
+  private UnSplittableMetadata(HashCode hashOfSplitParameters, Reason reason) {
     this.hashOfSplitParameters = Objects.requireNonNull(hashOfSplitParameters);
+    this.reason = Objects.requireNonNull(reason);
   }
 
   @Override
@@ -60,6 +67,10 @@ public class UnSplittableMetadata {
     return Objects.equals(hashOfSplitParameters, that.hashOfSplitParameters);
   }
 
+  public Reason getReason() {
+    return reason;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(hashOfSplitParameters);
@@ -72,6 +83,10 @@ public class UnSplittableMetadata {
 
   public String toBase64() {
     return Base64.getEncoder().encodeToString(hashOfSplitParameters.asBytes());
+  }
+
+  public String toValue() {
+    return toBase64() + "," + reason.name();
   }
 
   private static HashCode calculateSplitParamsHash(KeyExtent keyExtent, long splitThreshold,
@@ -93,13 +108,24 @@ public class UnSplittableMetadata {
 
   public static UnSplittableMetadata toUnSplittable(KeyExtent keyExtent, long splitThreshold,
       long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files) {
-    return new UnSplittableMetadata(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen,
-        files);
+    return new UnSplittableMetadata(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen, files,
+        Reason.UNKNOWN);
   }
 
-  public static UnSplittableMetadata toUnSplittable(String base64HashOfSplitParameters) {
-    return new UnSplittableMetadata(
-        HashCode.fromBytes(Base64.getDecoder().decode(base64HashOfSplitParameters)));
+  public static UnSplittableMetadata toUnSplittable(KeyExtent keyExtent, long splitThreshold,
+      long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files, Reason reason) {
+    return new UnSplittableMetadata(keyExtent, splitThreshold, maxEndRowSize, maxFilesToOpen, files,
+        reason);
+  }
+
+  public static UnSplittableMetadata toUnSplittable(String value) {
+    int separator = value.indexOf(',');
+    if (separator != value.lastIndexOf(',')) {
+      throw new IllegalArgumentException("Invalid unsplittable value");
+    }
+    String hash = separator < 0 ? value : value.substring(0, separator);
+    Reason reason = separator < 0 ? Reason.UNKNOWN : Reason.valueOf(value.substring(separator + 1));
+    return new UnSplittableMetadata(HashCode.fromBytes(Base64.getDecoder().decode(hash)), reason);
   }
 
   private static byte[] serializeKeyExtent(KeyExtent keyExtent) {

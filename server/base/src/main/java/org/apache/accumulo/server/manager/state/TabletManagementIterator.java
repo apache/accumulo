@@ -110,7 +110,7 @@ public class TabletManagementIterator extends WholeRowIterator {
     // which gives a chance to clean up the marker and recheck.
     var unsplittable = tm.getUnSplittable();
     if (unsplittable != null) {
-      return !unsplittable
+      return unsplittable.getReason() == UnSplittableMetadata.Reason.UNKNOWN || !unsplittable
           .equals(UnSplittableMetadata.toUnSplittable(tm.getExtent(), splitConfig.splitThreshold,
               splitConfig.maxEndRowSize, splitConfig.maxFilesToOpen, tm.getFiles()));
     }
