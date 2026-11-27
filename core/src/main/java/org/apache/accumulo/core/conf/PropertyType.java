@@ -107,6 +107,11 @@ public enum PropertyType {
   COUNT("count", new Bounds(0, Integer.MAX_VALUE),
       "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
 
+  THREAD_COUNT("thread count", boundedUnits(0, Integer.MAX_VALUE, false, "", "C"),
+      "A non-negative integer in the range of 0-" + Integer.MAX_VALUE
+          + ", if suffixed with 'C', the number of threads will be multiplied by the number of cores.\n"
+          + "Examples of valid thread counts are '256' and '50C'."),
+
   FRACTION("fraction/percentage", new FractionPredicate(),
       "A floating point number that represents either a fraction or, if"
           + " suffixed with the '%' character, a percentage.\n"

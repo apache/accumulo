@@ -66,7 +66,7 @@ public enum ClientProperty {
       "Max amount of time (in seconds) an unresponsive server will be re-tried. An"
           + " exception is thrown when this timeout is exceeded. Set to zero for no timeout.",
       "2.0.0", false),
-  BATCH_WRITER_THREADS_MAX("batch.writer.threads.max", "3", PropertyType.COUNT,
+  BATCH_WRITER_THREADS_MAX("batch.writer.threads.max", "3", PropertyType.THREAD_COUNT,
       "Maximum number of threads to use for writing data to tablet servers.", "2.0.0", false),
   BATCH_WRITER_DURABILITY("batch.writer.durability", "default", PropertyType.DURABILITY,
       Property.TABLE_DURABILITY.getDescription() + " Setting this property will "
@@ -79,7 +79,7 @@ public enum ClientProperty {
       "Maximum amount of time an unresponsive server will be re-tried. A value of 0 will use "
           + "Long.MAX_VALUE.",
       "2.1.0", false),
-  CONDITIONAL_WRITER_THREADS_MAX("conditional.writer.threads.max", "3", PropertyType.COUNT,
+  CONDITIONAL_WRITER_THREADS_MAX("conditional.writer.threads.max", "3", PropertyType.THREAD_COUNT,
       "Maximum number of threads to use for writing data to tablet servers.", "2.1.0", false),
   CONDITIONAL_WRITER_DURABILITY("conditional.writer.durability", "default", PropertyType.DURABILITY,
       Property.TABLE_DURABILITY.getDescription() + " Setting this property will change the "
@@ -97,12 +97,12 @@ public enum ClientProperty {
       "2.1.0", false),
 
   // BatchScanner
-  BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3", PropertyType.COUNT,
+  BATCH_SCANNER_NUM_QUERY_THREADS("batch.scanner.num.query.threads", "3", PropertyType.THREAD_COUNT,
       "Number of concurrent query threads to spawn for querying", "2.0.0", false),
 
   // Bulk load
   BULK_LOAD_THREADS("bulk.threads", ImportMappingOptions.BULK_LOAD_THREADS_DEFAULT,
-      PropertyType.COUNT,
+      PropertyType.THREAD_COUNT,
       "The number of threads used to inspect bulk load files to determine where files go.  "
           + "If the value ends with C, then it will be multiplied by the number of cores on the "
           + "system. This property is only used by the bulk import API introduced in 2.0.0.",
@@ -131,7 +131,7 @@ public enum ClientProperty {
   RPC_TRANSPORT_IDLE_TIMEOUT("rpc.transport.idle.timeout", "3s", PropertyType.TIMEDURATION,
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
       false),
-  RPC_SERVER_QUERY_MAX_THREADS("rpc.server.query.max.threads", "256", PropertyType.COUNT,
+  RPC_SERVER_QUERY_MAX_THREADS("rpc.server.query.max.threads", "256", PropertyType.THREAD_COUNT,
       "Maximum number of threads to use for querying servers using RPC", "4.0.0", false);
 
   private final String key;

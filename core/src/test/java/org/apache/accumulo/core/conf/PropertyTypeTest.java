@@ -140,6 +140,12 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
+  public void testTypeTHREAD_COUNT() {
+    valid(null, "0", "256", "15C", Long.toString(Integer.MAX_VALUE));
+    invalid(Long.toString(Integer.MAX_VALUE + 1L), "-65535", "-1", "25CC");
+  }
+
+  @Test
   public void testTypeDURABILITY() {
     valid(null, "none", "log", "flush", "sync");
     invalid("", "other");
