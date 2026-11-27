@@ -36,10 +36,16 @@ public interface Reference {
    */
   boolean isScan();
 
+  boolean hasTabletTableId();
+
   /**
-   * Get the {@link TableId} of the reference.
+   * Get the {@link TableId} of the tablet containing the reference. If the path in the reference
+   * has a table id it may not match this table id.
+   *
+   * @throws UnsupportedOperationException if this reference was not derived from a tablet. Call
+   *         {@link #hasTabletTableId()} to avoid this exception.
    */
-  TableId getTableId();
+  TableId getTabletTableId();
 
   /**
    * Get the path stored in the metadata table for this file or directory. The path will be read

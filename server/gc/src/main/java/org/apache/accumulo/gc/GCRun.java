@@ -204,8 +204,7 @@ public class GCRun implements GarbageCollectionEnvironment {
       refConsumer.accept(ReferenceFile.forDirectory(tableId, tm.getDirName()));
     });
 
-    Stream<ReferenceFile> scanServerRefs =
-        context.getAmple().scanServerRefs().list().map(sfr -> ReferenceFile.forScan(sfr));
+    var scanServerRefs = context.getAmple().scanServerRefs().list().map(ReferenceFile::forScan);
 
     return Stream.concat(tabletReferences, scanServerRefs);
   }

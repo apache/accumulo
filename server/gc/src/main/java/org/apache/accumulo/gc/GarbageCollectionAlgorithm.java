@@ -54,9 +54,8 @@ public class GarbageCollectionAlgorithm {
     try (Stream<Reference> references = gce.getReferences()) {
       references.forEach(ref -> {
         log.trace("Removing candidates for live reference {}", ref);
-        TableId tid = ref.getTableId();
-        if (tid != null) {
-          tableIdsSeen.add(tid);
+        if (ref.hasTabletTableId()) {
+          tableIdsSeen.add(ref.getTabletTableId());
         }
 
         candidates.remove(ref, candidate -> {

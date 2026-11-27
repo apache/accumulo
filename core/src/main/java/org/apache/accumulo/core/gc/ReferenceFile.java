@@ -89,7 +89,15 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   }
 
   @Override
-  public TableId getTableId() {
+  public boolean hasTabletTableId() {
+    return tableId != null;
+  }
+
+  @Override
+  public TableId getTabletTableId() {
+    if (tableId == null) {
+      throw new UnsupportedOperationException("Reference was not derived from a tablet");
+    }
     return tableId;
   }
 

@@ -229,9 +229,9 @@ public class GcCandidates extends AbstractCollection<GcCandidate> {
 
     if (reference.isDirectory()) {
       var lastThree = lastThree(reference.getMetadataPath(), false, 1, 1);
-      nonNullConsumer
-          .accept(tabletDirCandidates.remove("/" + reference.getTableId() + "/" + lastThree.name));
-      nonNullConsumer.accept(tableDirCandidates.remove(reference.getTableId().toString()));
+      nonNullConsumer.accept(
+          tabletDirCandidates.remove("/" + reference.getTabletTableId() + "/" + lastThree.name));
+      nonNullConsumer.accept(tableDirCandidates.remove(reference.getTabletTableId().toString()));
     } else {
       var lastThree = lastThree(reference.getMetadataPath(), 2);
       if (isTabletDir(lastThree.dir)) {
