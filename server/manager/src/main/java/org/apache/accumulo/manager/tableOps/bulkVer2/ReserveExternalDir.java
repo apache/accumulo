@@ -29,7 +29,6 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -74,9 +73,8 @@ public class ReserveExternalDir extends AbstractBulkFateOperation {
 
     ConditionalMutation cm = new ConditionalMutation(row);
     // add a condition requiring the column does not exist
-    cm.addCondition(new Condition(ID_COL.getColumnFamily(), ID_COL.getColumnQualifier()));
-    cm.at().family(ID_COL.getColumnFamily()).qualifier(ID_COL.getColumnQualifier())
-        .put(fateId.canonical());
+    cm.addCondition(ID_COL.newCondition());
+    ID_COL.put(cm, fateId.canonical());
     var result = environment.getContext().getSharedUserWriter().get().write(cm);
     if (result.getStatus() == ACCEPTED) {
       return true;
@@ -115,9 +113,9 @@ public class ReserveExternalDir extends AbstractBulkFateOperation {
     var row = MetadataSchema.BulkExtDirSection.prefix(bulkDirName);
 
     ConditionalMutation cm = new ConditionalMutation(row);
-    cm.addCondition(new Condition(ID_COL.getColumnFamily(), ID_COL.getColumnQualifier())
-        .setValue(fateId.canonical()));
-    cm.at().family(ID_COL.getColumnFamily()).qualifier(ID_COL.getColumnQualifier()).delete();
+    // only delete the reservation if our fate id is set for the value
+    cm.addCondition(ID_COL.newCondition().setValue(fateId.canonical()));
+    ID_COL.putDelete(cm);
     var result = environment.getContext().getSharedUserWriter().get().write(cm);
 
     // The rejected case can occur for two reason, first when this code runs a second time for the

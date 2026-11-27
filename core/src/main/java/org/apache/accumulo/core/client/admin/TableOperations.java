@@ -669,6 +669,7 @@ public interface TableOperations {
      *
      * <pre>
      * {@code
+     * // Example of how to properly use this API
      * void bulkImport(AccumuloClient client, String tableName) {
      *
      *   String bulkDir = client.tableOperations().allocateBulkDirectory();
