@@ -1351,7 +1351,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       var ctx = (ClientContext) c;
 
       String dir1 = rootPath + "/import003";
-      String dir2 = rootPath + "/be-5";
+      String dir2 = rootPath + "/" + Constants.BULK_EXT_PREFIX + "5";
       Path path1 = new Path(dir1);
       Path path2 = new Path(dir2);
       FileSystem fs = getCluster().getFileSystem();
